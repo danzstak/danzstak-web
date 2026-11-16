@@ -76,7 +76,7 @@ Example: a show in Sacramento. The agent suggests Sacramento record stores for a
 - **Morning brief** each day: where, when, who drives, load-in, soundcheck, appearances, and where you sleep tonight.
 
 ## Press: zines and reviews (owner, 2026-11-16)
-- For each release and tour, the agent suggests **zine writers, blogs and local music press** for the genre and towns on the route (example: Spinning Platters, spinningplatters.com, a Sacramento music site, for a Sacramento show), and drafts a promo package for each: note, EPK link, release/stream links (links only, no audio files), show dates, and an offer of guest-list spots for the show.
+- For each release and tour, the agent suggests **zine writers, blogs and local music press** for the genre and towns on the route (examples for a Sacramento show: Submerge Magazine, and Spinning Platters, a Bay Area music blog that has covered Sacramento shows), and drafts a promo package for each: note, EPK link, release/stream links (links only, no audio files), show dates, and an offer of guest-list spots for the show.
 - Reviews come into DanzStak in two ways:
   1. The writer posts the review on DanzStak themselves. Invite them with a no-account-needed link; if they join, the review is their post, owned by them, shown on the artist's EPK "Press" section and in Mix's review slot.
   2. The artist adds an outside review to the EPK as a **link + a short pull-quote (≤ 1–2 sentences) + outlet + date**, with a checkbox confirming the writer is OK with it. Never copy the full review.
