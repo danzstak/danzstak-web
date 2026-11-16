@@ -23,3 +23,10 @@ Maximum refund protection for DanzStak direct purchases (credits, contact unlock
 - Partial refund equals unused credits × unit price (EU in-window: no fee deduction while the flag is on).
 - A dispute webhook submits evidence once (idempotent) and freezes unused items.
 - Usage log entries can't be edited or deleted by the app.
+
+## Signup acceptance (clickwrap), owner 2026-11-16: "close the holes"
+- Signup has an **unticked** "I agree to the Terms of Service and Privacy Policy" box (both linked). Account creation is rejected server-side without it.
+- Store `TERMS_ACCEPT#<userId>#<termsVersion>`: version and hash, UTC time, full IP (kept 180 days, then truncated), user agent.
+- Each terms page shows its version and effective date. When `TERMS_VERSION` changes materially, signed-in members see a blocking "We updated our Terms" screen with a short summary of what changed and the same unticked box. Until they accept, they can still export or delete their data.
+- Paid features (buy, sell, promote, payouts, StakGuard) require confirming 18+ (or the age of majority), logged the same way.
+- Tests: no account without the tick; the re-accept gate appears after a version bump; acceptance records exist and can't be edited.
