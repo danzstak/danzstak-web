@@ -1,0 +1,11 @@
+"use strict";
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const js = fs.readFileSync("assets/profile-friend.js", "utf8");
+const html = fs.readFileSync("profile.html", "utf8");
+assert.match(html, /assets\/profile-friend\.js\?v=\d+/, "profile page loads Add friend");
+assert.match(js, /profile\.isOwner/, "no Add friend on your own profile");
+assert.match(js, /\/friends\/request[\s\S]*memberId: profile\.memberId/, "requests by member id, never exposing email");
+assert.match(js, /status === 409[\s\S]*incoming/, "an incoming request is answered in Friends");
+assert.match(fs.readFileSync("assets/icon-buttons.js", "utf8"), /"person-add"/, "Add friend uses an icon");
+console.log("Profile Add friend checks passed.");
