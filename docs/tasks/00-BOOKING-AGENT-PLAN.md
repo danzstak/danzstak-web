@@ -41,3 +41,22 @@ AI automates most of the agent's work. It never sends anything unseen (CLAUDE.md
 - Proposes the date set on the shortest route, and suggests appointment times around soundcheck for the Tour Manager.
 - Queues everything as a **review list**. The artist opens each item, edits it, and taps Send or Approve. "Approve all" is allowed only after each draft has been opened (a scroll-through preview counts) and must still respect caps and the suppression list.
 - Provider is swappable. Never train on creator content. Pricing follows `docs/OWNER-DIRECTIVES.md` (manual remains free).
+
+## Promote every show: timeline, town plan and costs (owner, 2026-11-16)
+Example: a show in Sacramento. The agent suggests Sacramento record stores for an in-store appearance and Sacramento radio stations for an on-air interview or short ads. Promoters love a band that does this, and they often come to the in-store to see the band's real draw. Invite the show's promoter to the in-store (draft, artist approves).
+
+**Timeline (defaults, editable)**
+- Book the gig **2 months or more ahead**. The pipeline warns when a pitched date is under 8 weeks away ("tight — promo may suffer") and does not block it.
+- **2 weeks before the show**: flyers go to the club and ads/announcements start on radio. Reminders appear in Music HQ with drafts ready to approve.
+- In-store and on-air are set for the show week, ideally show day or the day before, timed around soundcheck (Tour Manager).
+
+**Radio**
+- Rank **college and community stations first**: they're the cheapest, often almost free. Most US college stations are non-commercial, so the request is worded as an **underwriting spot, community-calendar listing or PSA/gig announcement**, not a commercial ad. Commercial stations get an ad-rate request. The draft picks the right wording per station type (task 04 stores `type: college | community | commercial`).
+
+**Flyers**
+- Generate a print-ready flyer and a digital square/story flyer from the show + EPK look (genre look tokens). Send to the club 2 weeks out (digital via the booking thread; print = artist prints/ships, cost logged).
+
+**Costs: the Tour Manager budgets everything for each gig** (task 06)
+- Travel (fuel, tolls), lodging (room, campground or free van parking), food.
+- Promo: radio ad/underwriting spend, flyer printing and shipping, in-store costs (if any).
+- Per gig: expected income (guarantee / door split / merch estimate) vs. total cost → **profit/loss per show and per tour**, budget vs. actual after the show.
