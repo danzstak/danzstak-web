@@ -1931,7 +1931,7 @@ function renderWorkspace(name) {
     ticketLabel.className = "event-certification";
     const ticketSales = document.createElement("input");
     ticketSales.type = "checkbox";
-    ticketLabel.append(ticketSales, document.createTextNode("Sell tickets on DanzStak (you set the price; DanzStak keeps 6%, Stripe fees included)"));
+    ticketLabel.append(ticketSales, document.createTextNode("Sell tickets on DanzStak (you set the price; buyers pay DanzStak's 6% fee on top)"));
     const ticketFields = document.createElement("div");
     ticketFields.className = "event-ticket-fields";
     ticketFields.hidden = true;
@@ -1940,7 +1940,15 @@ function renderWorkspace(name) {
     ticketPrice.input.inputMode = "decimal";
     const ticketTerms = document.createElement("p");
     ticketTerms.className = "event-ticket-terms";
-    ticketTerms.textContent = "Buyers pay your price, no added fees. DanzStak's 6% fee (Stripe fees included; $1 minimum on orders under $30) comes out of your payout after the show.";
+    ticketTerms.textContent = window.DanzStakFees?.PROMOTER_NOTICE || "Buyers pay your ticket price plus DanzStak's 6% fee ($1 more on orders under $30). You receive your full ticket price. No fees come out of your payout.";
+    const ticketPreview = Object.assign(document.createElement("p"), { className: "event-ticket-preview" });
+    ticketPreview.setAttribute("aria-live", "polite");
+    const showTicketPreview = () => {
+      const match = String(ticketPrice.input.value || "").trim().match(/^(\d{1,5})(?:\.(\d{1,2}))?$/);
+      const priceCents = match ? Number(match[1]) * 100 + Number((match[2] || "").padEnd(2, "0")) : 0;
+      ticketPreview.textContent = priceCents >= 50 && window.DanzStakFees ? `One ticket: ${window.DanzStakFees.payoutPreview(priceCents)}` : "";
+    };
+    ticketPrice.input.addEventListener("input", showTicketPreview); showTicketPreview();
     const ticketTermsLink = Object.assign(document.createElement("a"), { href: "terms.html#tickets", target: "_blank", rel: "noopener", textContent: "Ticket terms" });
     ticketTerms.append(" ", ticketTermsLink);
     // Owner directive 2026-11-16: scalping protection is ON by default; promoters may turn it off (e.g. punk venues).
@@ -1950,7 +1958,7 @@ function renderWorkspace(name) {
     namedTickets.type = "checkbox";
     namedTickets.checked = true;
     namedLabel.append(namedTickets, document.createTextNode("Require legal names on tickets (stops scalping). Untick if your door doesn't check names."));
-    ticketFields.append(ticketTerms, ticketName.wrap, ticketPrice.wrap, namedLabel);
+    ticketFields.append(ticketTerms, ticketName.wrap, ticketPrice.wrap, ticketPreview, namedLabel);
     ticketSales.addEventListener("change", () => { ticketFields.hidden = !ticketSales.checked; if (ticketSales.checked && !ticketName.input.value) ticketName.input.value = "General admission"; });
     const publishedHeading = document.createElement("h4");
     publishedHeading.textContent = "Published events";
