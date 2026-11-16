@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const { createHmac } = require("node:crypto");
 
 (async () => {
+  const { buyerFees } = await import("./infrastructure/auth-api/fees.mjs");
   const { createTourManagerBilling, TEST_BOOKING_CONTACT_PRICE_ID: BOOKING_CONTACT_PRICE_ID, TEST_BOOKING_CONTACT_PRODUCT_ID: BOOKING_CONTACT_PRODUCT_ID, BOOKING_CONTACT_UNIT_CENTS } = await import("./infrastructure/auth-api/tour-manager-billing.mjs");
   class Command { constructor(input) { this.input = input; } }
   class GetItemCommand extends Command {}
@@ -40,7 +41,7 @@ const { createHmac } = require("node:crypto");
   }};
   const now = 1793700000000, env = { STRIPE_SECRET_KEY: "sk_test_example", STRIPE_TOUR_MANAGER_WEBHOOK_SECRET: "whsec_example" };
   let createdForm, amount = BOOKING_CONTACT_UNIT_CENTS;
-  const stripeSession = () => ({ id: "cs_test_contact123", mode: "payment", payment_status: "paid", status: "complete", livemode: false, client_reference_id: userId, currency: "usd", amount_total: amount, metadata: { product: "booking_contact_unlock", userId, priceId: BOOKING_CONTACT_PRICE_ID, venueKey }, line_items: { data: [{ quantity: 1, price: { id: BOOKING_CONTACT_PRICE_ID, product: BOOKING_CONTACT_PRODUCT_ID, currency: "usd", unit_amount: amount } }] } });
+  const stripeSession = () => ({ id: "cs_test_contact123", mode: "payment", payment_status: "paid", status: "complete", livemode: false, client_reference_id: userId, currency: "usd", amount_total: amount + buyerFees(amount), metadata: { product: "booking_contact_unlock", userId, priceId: BOOKING_CONTACT_PRICE_ID, venueKey }, line_items: { data: [{ quantity: 1, price: { id: BOOKING_CONTACT_PRICE_ID, product: BOOKING_CONTACT_PRODUCT_ID, currency: "usd", unit_amount: amount } }, { description: "DanzStak fee", quantity: 1, amount_total: buyerFees(amount), price: { id: "price_inline_fee", currency: "usd", unit_amount: buyerFees(amount) } }] } });
   const fetcher = async (url, options = {}) => {
     if (url.endsWith("/checkout/sessions")) { createdForm = new URLSearchParams(options.body); return { ok: true, json: async () => ({ id: "cs_test_contact123", url: "https://checkout.stripe.com/c/pay/contact123" }) }; }
     if (url.includes("/checkout/sessions/cs_test_contact123")) return { ok: true, json: async () => stripeSession() };

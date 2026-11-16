@@ -1,9 +1,11 @@
 // DanzStak ticket checkout (approved plan: claude/stripe-connect-plan.md). Sandbox only until the owner approves live.
-// Buyers pay the flat listed price to DanzStak's Stripe account; the money is held (ledger status "held") and is
+// Buyers pay the ticket price plus DanzStak's fee (task 12: 6% + $1 under $30, its own receipt line) to DanzStak's
+// Stripe account; the ticket money is held (ledger status "held") and is
 // released to the promoter only by a later release job, 3 days after the event. Tickets are issued only from a
 // signature-verified Stripe webhook. Named tickets (default) carry one legal name each and are non-transferable.
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { FEE_PERCENT, SMALL_ORDER_FEE_CENTS, SMALL_ORDER_LIMIT_CENTS, buyerFees } from "./fees.mjs";
+export const FEE_LINE_NAME = "DanzStak fee";
 
 const ID = /^[a-f0-9-]{36}$/i;
 const MEMBER = /^[A-Za-z0-9_-]{8,128}$/;
@@ -96,23 +98,23 @@ export function createTicketOrders({ db, commands, authenticate, corsHeaders, ta
     if (capacity - sold - reserved < quantity) return json(409, { error: "Not enough tickets left." }, headers);
     const email = await emailForUser(userId);
     if (!email) return json(409, { error: "Your account needs an email address for your tickets." }, headers);
-    const orderId = randomUUID(), at = nowIso(), subtotal = price * quantity, expires = Math.floor(clock() / 1000) + 31 * 60;
+    const orderId = randomUUID(), at = nowIso(), subtotal = price * quantity, fee = feeCents(subtotal), expires = Math.floor(clock() / 1000) + 31 * 60;
     try {
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
         { Update: { TableName: tableName, Key: tierKey(eventId, tierId), UpdateExpression: "SET reserved = if_not_exists(reserved, :z) + :q", ConditionExpression: "(attribute_not_exists(sold) OR sold = :sold) AND (attribute_not_exists(reserved) OR reserved <= :max) AND #s = :onsale", ExpressionAttributeNames: { "#s": "status" }, ExpressionAttributeValues: { ":z": N(0), ":q": N(quantity), ":sold": N(sold), ":max": N(capacity - sold - quantity), ":onsale": S("on_sale") } } },
-        { Put: { TableName: tableName, Item: { ...orderKey(orderId), entityType: S("ticket_order"), orderId: S(orderId), eventId: S(eventId), tierId: S(tierId), buyerId: S(userId), organizerId: S(ev.organizerId?.S || ""), quantity: N(quantity), unitCents: N(price), subtotalCents: N(subtotal), feeCents: N(feeCents(subtotal)), payoutCents: N(subtotal), currency: S("usd"), named: { BOOL: named }, attendees: { L: attendees.map(S) }, status: S("pending"), releaseAfter: S(releaseAfter({ startsAt: ev.startsAt?.S, endsAt: ev.endsAt?.S })), createdAt: S(at), updatedAt: S(at) }, ConditionExpression: "attribute_not_exists(pk)" } }
+        { Put: { TableName: tableName, Item: { ...orderKey(orderId), entityType: S("ticket_order"), orderId: S(orderId), eventId: S(eventId), tierId: S(tierId), buyerId: S(userId), organizerId: S(ev.organizerId?.S || ""), quantity: N(quantity), unitCents: N(price), subtotalCents: N(subtotal), feeCents: N(fee), totalCents: N(subtotal + fee), payoutCents: N(subtotal), currency: S("usd"), named: { BOOL: named }, attendees: { L: attendees.map(S) }, status: S("pending"), releaseAfter: S(releaseAfter({ startsAt: ev.startsAt?.S, endsAt: ev.endsAt?.S })), createdAt: S(at), updatedAt: S(at) }, ConditionExpression: "attribute_not_exists(pk)" } }
       ] }));
     } catch { return json(409, { error: "Those tickets were just taken. Try again." }, headers); }
     try {
       const session = await stripe("POST", "/v1/checkout/sessions", {
         mode: "payment", client_reference_id: orderId, customer_email: email, expires_at: expires,
-        line_items: { 0: { quantity, price_data: { currency: "usd", unit_amount: price, product_data: { name: `${ev.title?.S || "Event"} — ${tier.name?.S || "Ticket"}`.slice(0, 250), tax_code: "txcd_10000000" } } } },
+        line_items: { 0: { quantity, price_data: { currency: "usd", unit_amount: price, product_data: { name: `${ev.title?.S || "Event"} — ${tier.name?.S || "Ticket"}`.slice(0, 250), tax_code: "txcd_10000000" } } }, ...(fee ? { 1: { quantity: 1, price_data: { currency: "usd", unit_amount: fee, product_data: { name: FEE_LINE_NAME } } } } : {}) },
         payment_intent_data: { transfer_group: `ORDER_${orderId}`, metadata: { danzstak_order: orderId, danzstak_event: eventId } },
         metadata: { danzstak_order: orderId, danzstak_kind: "event_tickets" },
         success_url: `${APP}/event.html?id=${eventId}&order=${orderId}`, cancel_url: `${APP}/event.html?id=${eventId}&order=${orderId}&cancelled=1`
       });
       await db.send(new UpdateItemCommand({ TableName: tableName, Key: orderKey(orderId), UpdateExpression: "SET sessionId = :s", ExpressionAttributeValues: { ":s": S(session.id) } }));
-      return json(200, { url: session.url, orderId }, headers);
+      return json(200, { url: session.url, orderId, subtotalCents: subtotal, feeCents: fee, totalCents: subtotal + fee }, headers);
     } catch (error) {
       await releaseReservation(orderId, "failed");
       return json(error.status || 502, { error: error.status === 503 ? error.message : "Checkout is unavailable right now." }, headers);
@@ -135,7 +137,9 @@ export function createTicketOrders({ db, commands, authenticate, corsHeaders, ta
     if (!ID.test(String(orderId || ""))) return;
     const order = await get(orderKey(orderId));
     if (!order || order.status?.S !== "pending") return; // idempotent: already fulfilled or released
-    if (session.payment_status !== "paid" || Number(session.amount_total) !== num(order, "subtotalCents") || session.currency !== "usd") return;
+    // Task 12: Stripe must have collected exactly the ticket price plus the buyer fee recorded at checkout.
+    const subtotal = num(order, "subtotalCents");
+    if (session.payment_status !== "paid" || num(order, "feeCents") !== feeCents(subtotal) || Number(session.amount_total) !== subtotal + feeCents(subtotal) || session.currency !== "usd") return;
     const ev = await get(eventKey(order.eventId.S)), tier = await get(tierKey(order.eventId.S, order.tierId.S));
     const quantity = num(order, "quantity"), named = order.named?.BOOL !== false, attendees = (order.attendees?.L || []).map(v => v.S), at = nowIso();
     const tickets = Array.from({ length: quantity }, (_, i) => ({ code: ticketCode(), name: named ? attendees[i] : "" }));
@@ -170,7 +174,7 @@ export function createTicketOrders({ db, commands, authenticate, corsHeaders, ta
     const codes = (order.ticketCodes?.L || []).map(v => v.S);
     const tickets = [];
     for (const code of codes) { const t = await get({ pk: S(`EVENT#${order.eventId.S}`), sk: S(`TICKET#${code}`) }); if (t) tickets.push({ code, name: t.attendee?.S || "", status: t.status?.S || "valid", tier: t.tierName?.S || "" }); }
-    return json(200, { order: { id: orderId, status: order.status?.S, quantity: num(order, "quantity"), totalCents: num(order, "subtotalCents"), named: order.named?.BOOL !== false, tickets } }, headers);
+    return json(200, { order: { id: orderId, status: order.status?.S, quantity: num(order, "quantity"), subtotalCents: num(order, "subtotalCents"), feeCents: num(order, "feeCents"), totalCents: num(order, "subtotalCents") + num(order, "feeCents"), named: order.named?.BOOL !== false, tickets } }, headers);
   }
 
   async function doorList(event, eventId) {
