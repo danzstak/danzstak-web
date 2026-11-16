@@ -22,7 +22,7 @@ Owner directives 2026-11-16/17. First job next session.
 - One search tops out around one centre point. Sweep big cities area by area and scene by scene, saving every club and crew.
 - New York: Brooklyn (Bushwick, Williamsburg, Greenpoint, Gowanus), Queens (Ridgewood, Astoria, LIC), Manhattan (LES, East Village), the Bronx, Jersey City. Scenes: punk/DIY, metal, techno/house/warehouse, free tekno, promoters.
 - Then all of them (owner: "yes all them"): LA, Chicago, SF/Oakland, Seattle, Portland, Detroit, Austin, Philadelphia, Berlin, London, Paris, Milan, Bologna, Barcelona, Madrid, Amsterdam, Lyon, Hamburg, Mannheim and more.
-- Tell the owner the search count and cost before running. Give him a spreadsheet per city sorted by area and scene.
+- Budget (owner 2026-11-17): 50,000 Brave searches to work with. Keep a running count; report searches used per sweep. Give him a spreadsheet per city sorted by area and scene.
 
 ## Also queued
 - Notification when a club or promoter replies to a pitch ("[club] answered your pitch") — booking replies land in SYNC but no push fires today.
