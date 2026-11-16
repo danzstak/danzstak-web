@@ -37,6 +37,9 @@ epk.html, assets/epk.js (the `kit` fields: artistName, actType, genres, hometown
 - Every AI-written field is labeled "AI draft — check it" until the artist edits or confirms it. Publish requires ticking "I reviewed all AI-written sections and have permission for every quote and image."
 - Public EPK pages don't show an AI label once the artist has reviewed and published (the artist is the author). Re-check with the lawyer (EU AI Act transparency).
 
+## Included free send (owner, 2026-11-16)
+Each paid AI EPK ($5) includes **one free distribution**: one booking pitch email to one venue, sent through the normal Booking Agent flow (caps, contact check, review before send). Grant it as a single non-transferable send credit when the AI EPK payment webhook confirms. It's used by the first pitch; it has no cash value and isn't refundable on its own. No bundles: it's part of the one-off $5 purchase.
+
 ## Rewrites and redesign
 - Included with each paid EPK: **3 AI rewrites** (any section, e.g. "shorter", "more punk", "in Italian"). After that, a rewrite pack or redesign is another $5.
 - **AI redesign ($5)** = a new full draft (text + suggested look) from the current EPK + sources. Manual edits and manual look switching are always free.
