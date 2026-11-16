@@ -29,7 +29,8 @@ Keep this file current at the end of every working session so a new Claude sessi
 - Backend: zip infrastructure/auth-api and update BOTH Lambdas `DANZSTAK-Auth-API` and `DANZSTAK-TourManager-Stripe-Test` (us-west-1). New routes: API Gateway `0872gqal4m`, target `integrations/5pipi5a`, plus a Lambda AddPermission per path.
 - Social backend (friends, stories, profiles, Tribes) is the `DANZSTAK-Call-Signaling` CloudFormation stack (inline code in infrastructure/call-signaling/template.yaml) — don't redeploy casually.
 
-## Next
+## Next (specs in docs/tasks/ — claude.ai thinks, Claude Code codes)
+- Run `docs/tasks/01-ticket-release-job.md` next.
 1. Release job (scheduled): pay promoters/sellers from held funds when rules are met; refunds/problems.
 2. Shop orders: shipping/tracking, buyer "I got it", 3-day / 21-day release rules.
 3. Full sandbox run-through with Shawn, lawyer review of seller/promoter terms, then live only on his OK.
