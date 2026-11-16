@@ -3978,16 +3978,18 @@ async function planTourRoute(event) {
     }
     const home = await geocodeTourPlace(start);
     const suggestedMarkets = directional ? await suggestDirectionalMarkets(home, direction, requestedDays, genre) : [];
-    let points = directional ? [home, ...suggestedMarkets, home] : await Promise.all([start, ...stops, end, start].map(value => geocodeTourPlace(value)));
+    // One-way tours (owner 2026-11-16) end at the destination instead of looping home.
+    const oneWay = data.oneWay === true && !directional;
+    let points = directional ? [home, ...suggestedMarkets, home] : await Promise.all((oneWay ? [start, ...stops, end] : [start, ...stops, end, start]).map(value => geocodeTourPlace(value)));
     let route;
-    while (points.length >= 3) {
+    while (points.length >= 2) {
       try {
         route = await geoRoutes.send(new CalculateRoutesCommand({ Origin: points[0].position, Destination: points.at(-1).position, Waypoints: points.slice(1, -1).map(point => ({ Position: point.position })), TravelMode: "Car", LegGeometryFormat: "Simple" }));
       } catch (error) {
         if (!directional) throw error;
         route = undefined;
       }
-      if (route?.Routes?.[0]?.Summary || !directional || points.length === 3) break;
+      if (route?.Routes?.[0]?.Summary || !directional || points.length <= 3) break;
       points = [...points.slice(0, -2), points.at(-1)];
     }
     const summary = route?.Routes?.[0]?.Summary;
@@ -4009,7 +4011,7 @@ async function planTourRoute(event) {
               return null;
             }
           })).filter(Boolean)
-        : await discoverRouteMarkets(route, points, requestedDays, requestedShows),
+        : await discoverRouteMarkets(route, oneWay ? [...points, points.at(-1)] : points, requestedDays, requestedShows),
       candidates = await mapLimit(selected, 4, async point => {
         try {
           return await tourCandidates(point, genre, excludedVenueKeys, variation, null, venueType);
@@ -4042,7 +4044,7 @@ async function planTourRoute(event) {
       const departureDate = new Date(returnDate); departureDate.setUTCDate(departureDate.getUTCDate() - requestedDays + 1); departOn = departureDate.toISOString().slice(0, 10);
     }
     if (departOn) candidates.forEach((market, index) => { const date = new Date(`${departOn}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + Math.min(Math.max(0, requestedDays - 1), index + (local ? 0 : 1))); market.proposedDate = date.toISOString().slice(0, 10); market.bookingStatus = "proposed"; });
-    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), turnaround: points.at(-2), stops: points.slice(1, -1), itineraryMarkets: itineraryMarkets || candidates.map(candidate => candidate.stop), distanceMiles, durationHours, minimumDrivingDays, requestedDays, requestedShows, direction: directional ? direction : undefined, departOn, returnBy, bookingStatus: "proposed", roundTrip: true, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), oneWay, turnaround: oneWay ? points.at(-1) : points.at(-2), stops: points.slice(1, -1), itineraryMarkets: itineraryMarkets || candidates.map(candidate => candidate.stop), distanceMiles, durationHours, minimumDrivingDays, requestedDays, requestedShows, direction: directional ? direction : undefined, departOn, returnBy, bookingStatus: "proposed", roundTrip: !oneWay, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
   } catch (error) {
     if (error.statusCode === 422) return { statusCode: 422, headers, body: JSON.stringify({ error: error.message }) };
     console.error("Tour route planning failed", { name: error.name });

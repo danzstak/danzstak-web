@@ -81,7 +81,7 @@ assert.match(bookingUi, /return start\.includes\("seattle"\) \? i5Markets : \[\.
 assert.match(bookingUi, /section = document\.createElement\("details"\),[\s\S]*heading = document\.createElement\("summary"\)/, "each route town should be a compact expandable result instead of a long open panel");
 assert.match(bookingUi, /recommendedRoom = marketVenues\[0\]\?\.name/, "a collapsed tour stop should name its recommended room instead of showing only a city and count");
 assert.match(bookingUi, /section\.open = false/, "tour stops should start collapsed on phones");
-assert.match(bookingUi, /needsHomeDay = !data\.route\.local && days > 1/, "a round-trip calendar must reserve its final day for reaching home");
+assert.match(bookingUi, /needsHomeDay = !data\.route\.local && !data\.route\.oneWay && days > 1/, "a round-trip calendar must reserve its final day for reaching home");
 assert.match(bookingUi, /finalHomeDay = needsHomeDay && day === days - 1/, "the final round-trip day must not be consumed by another venue target");
 assert.match(bookingUi, /returningHome = finalHomeDay \|\| showIndex >= shows/, "a rest day must not claim the band is returning home while later shows remain");
 assert.match(bookingUi, /Drive toward the next show; load-in buffer, laundry, or sleep/, "mid-tour rest days should point toward the next show");

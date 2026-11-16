@@ -247,6 +247,10 @@
   bookingMode.value = "direction";
   $("startCity").closest("label").firstChild.textContent = "Home city";
   $("startCity").placeholder = "City, region, country";
+  const oneWayLabel = document.createElement("label"), oneWayBox = document.createElement("input");
+  oneWayLabel.className = "check"; oneWayBox.type = "checkbox"; oneWayBox.id = "oneWayTour";
+  oneWayLabel.append(oneWayBox, document.createTextNode(" One way (end the tour there, don't drive home)"));
+  $("endCity").closest("label").after(oneWayLabel);
   $("endCity").closest("label").firstChild.textContent =
     "Turnaround city (only if known)";
   const performerType = $("performerType"),
@@ -1455,7 +1459,7 @@
     const startValue = data.route.departOn || departInput.value,
       hasStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startValue),
       start = hasStartDate ? new Date(`${startValue}T12:00:00Z`) : null;
-    const needsHomeDay = !data.route.local && days > 1,
+    const needsHomeDay = !data.route.local && !data.route.oneWay && days > 1,
       showDays = needsHomeDay ? days - 1 : days,
       restCount = Math.max(0, showDays - shows),
       restDays = new Set(Array.from({ length: restCount }, (_, index) =>
@@ -1507,7 +1511,7 @@
         showIndex += 1;
       } else {
         const returningHome = finalHomeDay || showIndex >= shows,
-          label = returningHome ? `Return toward ${data.route.start?.label || "home"}` : market?.stop || data.route.start?.label;
+          label = returningHome ? (data.route.oneWay ? `End of tour · ${data.route.end?.label || ""}` : `Return toward ${data.route.start?.label || "home"}`) : market?.stop || data.route.start?.label;
         row.className = "off";
         cityCell.textContent = label || "Route day";
         venueCell.textContent = shouldShow ? "Research needed" : "Travel / rest";
@@ -1711,6 +1715,7 @@
             shows: Math.max(1, number("showCount")),
             departOn: departOn,
             returnBy: returnBy,
+            oneWay: Boolean($("oneWayTour")?.checked) && mode === "tour",
             variation: searchVariation,
             excludeVenueKeys: excludeVenueKeys,
           }),

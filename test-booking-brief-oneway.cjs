@@ -24,3 +24,19 @@ const lead = parse("tour 10 days seattle to los angeles");
 assert.equal(lead.home, "seattle"); assert.equal(lead.destination, "los angeles");
 assert.deepEqual([parse("we wanna play 12 days from portland to austin").home, parse("we wanna play 12 days from portland to austin").destination], ["portland", "austin"]);
 console.log("Natural-language brief checks passed.");
+{
+  const p = parse("salt lake to detroit 1 way");
+  assert.equal(p.home, "salt lake"); assert.equal(p.destination, "detroit"); assert.equal(p.oneWay, true);
+  const q = parse("Salt Lake City to Detroit one way, 10 days");
+  assert.equal(q.destination, "Detroit"); assert.equal(q.oneWay, true);
+  assert.equal(parse("Seattle to LA and back").oneWay, undefined);
+  const server = fs.readFileSync(require("node:path").join(__dirname, "infrastructure/auth-api/index.mjs"), "utf8");
+  assert.match(server, /const oneWay = data\.oneWay === true && !directional;/);
+  assert.match(server, /oneWay \? \[start, \.\.\.stops, end\] : \[start, \.\.\.stops, end, start\]/);
+  assert.match(server, /roundTrip: !oneWay/);
+  const ui = fs.readFileSync(require("node:path").join(__dirname, "assets/booking-agent.js"), "utf8");
+  assert.match(ui, /oneWay: Boolean\(\$\("oneWayTour"\)\?\.checked\) && mode === "tour"/);
+  assert.match(ui, /!data\.route\.oneWay && days > 1/);
+  assert.match(src, /parsed\.days \* 0\.7/);
+  console.log("One-way tour checks passed.");
+}

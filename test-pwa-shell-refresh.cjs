@@ -73,7 +73,7 @@ for (const [file, expected] of [
   ["profile.html", "assets/profile-interactions.css?v=2"],
   ["profile.html", "assets/profile-interactions.js?v=1"],
   ["profile.html", "assets/profile-editor.js?v=488"],
-  ["booking.html", "assets/booking-agent.js?v=489"],
+  ["booking.html", "assets/booking-agent.js?v=490"],
   ["profile.html", "assets/post-sharing.js?v=422"],
   ["profile.html", "assets/profile.js?v=421"]
 ]) {
