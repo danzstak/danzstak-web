@@ -11,24 +11,39 @@
   };
   const ownMedia = post => post.querySelector(".post-media, .profile-post-media, iframe, video, img.post-image");
 
+  // Strip tracking parameters (owner 2026-11-16): members see and share the clean link only.
+  const TRACKING = /^(utm_|fbclid$|gclid$|dclid$|msclkid$|yclid$|si$|igsh$|igshid$|mibextid$|ref_src$|ref_url$|_ga$|mc_cid$|mc_eid$|share_id$|rdid$|__cft__|__tn__|feature$|pp$|app$|wtsrc$)/i;
+  function cleanUrl(href) {
+    try { const u = new URL(href); for (const key of [...u.searchParams.keys()]) if (TRACKING.test(key)) u.searchParams.delete(key); u.hash = u.hash && /^#?(_=_)?$/.test(u.hash) ? "" : u.hash; return u.href.replace(/\?$/, ""); } catch { return href; }
+  }
+  const displayUrl = href => { try { const u = new URL(href); const path = (u.pathname + u.search).replace(/\/$/, ""); return u.hostname.replace(/^www\./, "") + (path.length > 40 ? path.slice(0, 39) + "…" : path); } catch { return href; } };
+
+  // Card = the source's preview image, with the clean link under it. No scraped text.
   function card(preview) {
+    const href = cleanUrl(preview.url);
     const link = document.createElement("a");
-    link.className = "link-preview-card" + (preview.video ? " is-video" : "");
-    link.href = preview.url; link.target = "_blank"; link.rel = "noopener noreferrer nofollow ugc";
+    link.className = "link-preview-card" + (preview.video ? " is-video" : "") + (preview.image ? "" : " no-image");
+    link.href = href; link.target = "_blank"; link.rel = "noopener noreferrer nofollow ugc";
     link.setAttribute("aria-label", (preview.title || preview.host) + " — opens on " + preview.host);
     if (preview.image) {
       const frame = document.createElement("span"); frame.className = "link-preview-image";
       const img = document.createElement("img"); img.src = preview.image; img.alt = ""; img.loading = "lazy"; img.decoding = "async"; img.referrerPolicy = "no-referrer";
-      img.addEventListener("error", () => frame.remove(), { once: true });
+      img.addEventListener("error", () => { frame.remove(); link.classList.add("no-image"); }, { once: true });
       frame.append(img); link.append(frame);
     }
-    const meta = document.createElement("span"); meta.className = "link-preview-meta";
-    const host = document.createElement("span"); host.className = "link-preview-host"; host.textContent = preview.site || preview.host;
-    const title = document.createElement("span"); title.className = "link-preview-title"; title.textContent = preview.title || preview.host;
-    meta.append(host, title);
-    if (preview.description) { const d = document.createElement("span"); d.className = "link-preview-desc"; d.textContent = preview.description; meta.append(d); }
-    link.append(meta);
+    const url = document.createElement("span"); url.className = "link-preview-url"; url.textContent = displayUrl(href);
+    link.append(url);
     return link;
+  }
+
+  // The raw link leaves the post text once the card shows it; a post that was only a link shows only the card.
+  function hideRawLink(text, anchor) {
+    const rest = text.textContent.replace(anchor.textContent, "").trim();
+    if (!rest) { text.classList.add("link-only"); text.hidden = true; return; }
+    const prev = anchor.previousSibling, next = anchor.nextSibling;
+    anchor.remove();
+    if (prev?.nodeType === 3) prev.nodeValue = prev.nodeValue.replace(/\s+$/, next ? " " : "");
+    if (next?.nodeType === 3 && !prev) next.nodeValue = next.nodeValue.replace(/^\s+/, "");
   }
 
   async function enhance(text) {
@@ -42,6 +57,7 @@
     const preview = await fetchPreview(href);
     if (!preview || !text.isConnected || post.querySelector(".link-preview-card")) return;
     text.after(card(preview));
+    hideRawLink(text, anchor);
   }
 
   const scan = root => {
@@ -55,5 +71,5 @@
       .observe(document.body, { childList: true, subtree: true });
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
-  globalThis.danzstakLinkPreviewCard = card;
+  globalThis.danzstakLinkPreviewCard = card; globalThis.danzstakCleanUrl = cleanUrl;
 })();

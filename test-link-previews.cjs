@@ -23,3 +23,16 @@ for (const page of ["feed.html", "profile.html"]) {
   assert.equal(yt.video, true);
   console.log("Link preview checks passed: source image/title parsing, https-only, SSRF guard, YouTube thumbnail.");
 })().catch(e => { console.error(e); process.exit(1); });
+{
+  const js = fs.readFileSync("assets/link-preview-cards.js", "utf8");
+  const vm = require("node:vm");
+  const ctx = { globalThis: {}, document: { readyState: "complete", body: { querySelectorAll: () => [], nodeType: 1, matches: () => false } }, MutationObserver: class { observe() {} }, URL };
+  ctx.globalThis = ctx; vm.createContext(ctx); vm.runInContext(js, ctx);
+  const clean = ctx.danzstakCleanUrl;
+  assert.equal(clean("https://music.youtube.com/watch?v=1hA_OW9B0CA&si=AXoMHBR7og_"), "https://music.youtube.com/watch?v=1hA_OW9B0CA", "YouTube share tracking removed");
+  assert.equal(clean("https://www.facebook.com/x/posts/1?mibextid=abc&fbclid=zz&__cft__[0]=q"), "https://www.facebook.com/x/posts/1", "Facebook tracking removed");
+  assert.equal(clean("https://www.mixcloud.com/a/b/?utm_source=clipboard&utm_medium=text"), "https://www.mixcloud.com/a/b/", "utm removed");
+  assert.equal(clean("https://youtu.be/abc?t=42&si=x"), "https://youtu.be/abc?t=42", "timestamps kept");
+  assert.ok(!/link-preview-desc|link-preview-title/.test(js), "the card shows the image and the link only");
+  console.log("Link preview cleanup checks passed: tracking parameters stripped, image + clean link only.");
+}
