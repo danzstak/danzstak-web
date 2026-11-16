@@ -49,6 +49,9 @@
     byId("epkGuideChecklist").querySelectorAll("[data-check]").forEach(item => {
       const ready = completed[item.dataset.check] === true;
       item.classList.toggle("is-complete", ready);
+      const current = item === byId("epkGuideChecklist").querySelectorAll("[data-check]")[currentGuideStep - 1];
+      item.classList.toggle("is-current", current);
+      if (current) item.setAttribute("aria-current", "step"); else item.removeAttribute("aria-current");
       if (ready) count += 1;
     });
     byId("epkGuideProgress").value = count;
