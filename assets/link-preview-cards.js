@@ -31,8 +31,12 @@
       img.addEventListener("error", () => { frame.remove(); link.classList.add("no-image"); }, { once: true });
       frame.append(img); link.append(frame);
     }
+    // Under the image: the source's own title (e.g. "NoonSesh 14 by Eroticon"), then the clean source link.
+    const meta = document.createElement("span"); meta.className = "link-preview-meta";
+    const cleanTitle = String(preview.title || "").trim();
+    if (cleanTitle && cleanTitle.toLowerCase() !== String(preview.host || "").toLowerCase()) { const title = document.createElement("span"); title.className = "link-preview-title"; title.textContent = cleanTitle; meta.append(title); }
     const url = document.createElement("span"); url.className = "link-preview-url"; url.textContent = displayUrl(href);
-    link.append(url);
+    meta.append(url); link.append(meta);
     return link;
   }
 
