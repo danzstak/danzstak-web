@@ -5,26 +5,22 @@
   let installedFor = "";
   const icon = (name, label, el = "button") => { const b = document.createElement(el); if (el === "button") b.type = "button"; b.className = "button profile-friend-action"; b.dataset.icon = name; b.textContent = label; b.setAttribute("aria-label", label); b.title = label; return b; };
 
-  async function install(profile) {
-    const actions = document.querySelector(".profile-actions");
+  async function install(profile, target) {
+    const actions = target || document.querySelector(".profile-actions");
     if (!actions || !profile || profile.isOwner || !/^[a-f0-9-]{36}$/.test(profile.memberId || "") || installedFor === profile.memberId) return;
     installedFor = profile.memberId;
     actions.querySelectorAll(".profile-friend-action").forEach(el => el.remove());
     const name = profile.name || "this member";
     const friend = icon("person-add", "Add friend");
     friend.classList.add("primary");
-    const message = icon("chat", "Message", "a");
-    message.href = "messages.html";
-    message.setAttribute("role", "button");
-    message.hidden = true; // SYNC messaging is open between friends
-    actions.prepend(friend, message);
+    actions.prepend(friend);
     const setState = state => {
       friend.disabled = state !== "none";
       friend.dataset.icon = state === "friends" ? "person-check" : state === "requested" ? "clock" : "person-add";
       const label = state === "friends" ? "Friends" : state === "requested" ? "Requested" : state === "incoming" ? "Respond in Friends" : "Add friend";
       friend.textContent = label; friend.setAttribute("aria-label", state === "none" ? "Send friend request to " + name : label); friend.title = friend.getAttribute("aria-label");
       friend.classList.toggle("primary", state === "none");
-      friend.dataset.state = state; message.hidden = state !== "friends";
+      friend.dataset.state = state;
     };
     setState("none");
     try {
@@ -45,6 +41,14 @@
       } catch (error) { setState("none"); window.danzstakShowFeedback?.(error.message, { urgent: true }); }
     });
   }
+  // Locked profile (not friends yet): still offer Add friend, like Facebook.
+  window.addEventListener("danzstak:profile-locked", event => {
+    const { memberId, status } = event.detail || {};
+    if (!status || document.querySelector(".profile-locked-friend")) return;
+    const holder = document.createElement("div"); holder.className = "profile-actions profile-locked-friend";
+    status.insertAdjacentElement("afterend", holder);
+    install({ memberId, name: "this member", isOwner: false }, holder);
+  });
   window.addEventListener("danzstak:profile-loaded", event => install(event.detail || window.danzstakCurrentProfile));
   if (window.danzstakCurrentProfile) install(window.danzstakCurrentProfile);
 })();
