@@ -299,6 +299,7 @@
 
   // Task 07-D: every date a club offered, not just one. "Any Thursday in March" expands to dates.
   const MAX_DATE_OPTIONS = 30, WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  function prettyDate(value) { try { return new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`)); } catch { return value; } }
   const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value;
   function weekdayDates(weekday, from, to) {
     const dates = [];
@@ -306,9 +307,79 @@
     for (let day = Date.parse(`${from}T00:00:00Z`); day <= Date.parse(`${to}T00:00:00Z`) && dates.length < MAX_DATE_OPTIONS; day += 86400000) if (new Date(day).getUTCDay() === weekday) dates.push(new Date(day).toISOString().slice(0, 10));
     return dates;
   }
+  // Owner 2026-11-16: no written confirmation after 3 days → one follow-up email (artist edits and
+  // approves) and a call to the club. A phone OK becomes the written evidence: who and when.
+  const CONFIRM_WAIT_DAYS = 3;
+  function confirmationOverdue(booking) {
+    const accepted = Date.parse(booking.acceptedAt || `${booking.acceptedDate}T00:00:00Z`);
+    return Number.isFinite(accepted) && Date.now() - accepted >= CONFIRM_WAIT_DAYS * 86400000;
+  }
+  function confirmationChase(venue, booking) {
+    const box = document.createElement("div"), title = document.createElement("h4"), state = document.createElement("p");
+    box.className = "confirm-chase"; title.textContent = `No written OK from ${venue.name || "the club"} yet`;
+    state.className = "confirm-chase-state"; state.setAttribute("role", "status");
+    box.append(title);
+    // 1. One follow-up email in the booking thread (free), only after the artist ticks and clicks.
+    const threadId = booking.pipeline?.threadId || "";
+    if (booking.confirmFollowUpAt) box.append(Object.assign(document.createElement("p"), { className: "hint", textContent: `Follow-up sent ${booking.confirmFollowUpAt}. Time to call them.` }));
+    else if (threadId) {
+      const a = artist(), draft = document.createElement("textarea"), approveLabel = document.createElement("label"), approve = document.createElement("input"), send = document.createElement("button");
+      draft.rows = 6; draft.maxLength = 4000; draft.setAttribute("aria-label", `Follow-up to ${venue.name}`);
+      draft.value = `Hello ${venue.name || "venue"} booking team,\n\nJust checking in on ${prettyDate(booking.acceptedDate)}, ${booking.acceptedDate.slice(0, 4)}. Can you confirm the date and the deal so we can announce the show?\n\nThank you,\n${a.name || "[your name]"}`;
+      approve.type = "checkbox"; approveLabel.className = "route-accept-approve"; approveLabel.append(approve, document.createTextNode(` I reviewed this follow-up to ${venue.name}`));
+      send.type = "button"; send.textContent = "Send follow-up"; send.disabled = true;
+      approve.addEventListener("change", () => { send.disabled = !approve.checked; });
+      draft.addEventListener("input", () => { approve.checked = false; send.disabled = true; });
+      send.addEventListener("click", async () => {
+        if (dirty) { window.danzstakShowFeedback?.("Save to your account first.", { urgent: true }); return; }
+        if (/\[[^\]]+\]/.test(draft.value)) { window.danzstakShowFeedback?.("Fill in the [bracketed] parts before sending.", { urgent: true }); return; }
+        send.disabled = true; approve.disabled = true; state.textContent = "Sending…";
+        try {
+          const response = await fetchWithTimeout("https://api.danzstak.com/tour-manager/outreach/reply", { method: "POST", credentials: "include", cache: "no-store", headers: { "content-type": "application/json" }, body: JSON.stringify({ outreachId: threadId, content: draft.value.trim(), clientMessageId: crypto.randomUUID().replaceAll("-", "") }) });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || "The follow-up was not sent.");
+          booking.confirmFollowUpAt = localToday(); persist(); render();
+          await saveWorkspaceSnapshot();
+        } catch (error) { state.textContent = error.message; send.disabled = false; approve.disabled = false; }
+      });
+      box.append(draft, approveLabel, send);
+    }
+    // 2. Call the club.
+    const call = document.createElement("p"), phones = (Array.isArray(venue.phones) ? venue.phones : []).filter(Boolean);
+    call.className = "confirm-chase-call";
+    if (phones.length) {
+      call.append(document.createTextNode("Call them: "));
+      phones.slice(0, 2).forEach((phone, index) => { if (index) call.append(document.createTextNode(" · ")); call.append(Object.assign(document.createElement("a"), { href: `tel:${String(phone).replace(/[^\d+]/g, "")}`, textContent: phone })); });
+    } else call.textContent = "Call the club. No number saved: check their website or listing.";
+    box.append(call);
+    // 3. They said yes on the phone: record who and when, then it's Confirmed.
+    const form = document.createElement("form"), who = document.createElement("input"), when = document.createElement("input"), confirm = document.createElement("button");
+    form.className = "confirm-by-phone";
+    who.maxLength = 120; who.placeholder = "Who confirmed (name, role)"; who.setAttribute("aria-label", "Who confirmed by phone"); who.required = true;
+    when.type = "date"; when.value = localToday(); when.setAttribute("aria-label", "Date of the call"); when.required = true;
+    confirm.type = "submit"; confirm.textContent = "They confirmed by phone";
+    form.append(who, when, confirm);
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!who.value.trim() || !validDate(when.value)) return;
+      booking.status = "Confirmed"; booking.showDate = booking.acceptedDate;
+      booking.confirmationEvidence = `Confirmed by phone with ${who.value.trim()} on ${when.value} for ${booking.acceptedDate} (recorded by the artist).`;
+      persist(); render();
+      await saveWorkspaceSnapshot();
+    });
+    box.append(form, state);
+    return box;
+  }
+
   function dateOptionsField(venue, booking) {
     const box = document.createElement("div"), title = document.createElement("h3"), list = document.createElement("ul");
     box.className = "date-options"; title.textContent = "Dates they offered";
+    if (booking.acceptedDate && booking.status === "Date proposed") {
+      const waiting = document.createElement("p");
+      waiting.className = "date-accepted"; waiting.textContent = `You accepted ${booking.acceptedDate}. Waiting for the club to confirm in writing; then it's Confirmed.`;
+      box.append(waiting);
+      if (confirmationOverdue(booking)) box.append(confirmationChase(venue, booking));
+    }
     const options = () => (Array.isArray(booking.dateOptions) ? booking.dateOptions : []).filter(validDate);
     const set = dates => { booking.dateOptions = [...new Set(dates.filter(validDate))].sort().slice(0, MAX_DATE_OPTIONS); persist(); render(); };
     list.className = "date-option-list"; list.setAttribute("aria-label", `Dates ${venue.name || "this venue"} offered`);
@@ -823,7 +894,6 @@
   // Task 07-D: route-aware date picker. Suggestions only; accepting dates is a separate, approved step.
   let routeDates = null;
   const routeForm = document.getElementById("routeDatesForm"), routeResult = document.getElementById("routeDatesResult");
-  const prettyDate = value => { try { return new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`)); } catch { return value; } };
   const miles = value => `${Math.round(Number(value) || 0).toLocaleString()} mi`;
   function renderRouteDatesPanel() {
     const panel = document.querySelector(".route-dates");
@@ -857,6 +927,7 @@
     };
     section("Conflicts", (result.conflicts || []).map(item => Object.assign(document.createElement("li"), { textContent: item.text })), "route-conflicts");
     section("Didn't fit", (result.unplaced || []).map(item => Object.assign(document.createElement("li"), { textContent: `${item.name}: ${item.reason}` })), "route-unplaced");
+    renderAcceptDates(result);
     section("Open nights to fill", (result.gaps || []).map(gap => {
       const li = document.createElement("li"), link = document.createElement("a");
       li.textContent = `${prettyDate(gap.from)}–${prettyDate(gap.to)}: ${gap.nights} open nights between ${gap.after} and ${gap.before}. `;
@@ -864,6 +935,78 @@
       li.append(link); return li;
     }), "route-gaps");
   }
+  // Task 07-E: accept the suggested dates. One editable confirmation per club, sent only after the
+  // artist ticks and clicks. The venue then waits at "Date proposed" for the club's written OK.
+  const confirmationDraft = (venue, date) => {
+    const a = artist();
+    return `Hello ${venue.name || "venue"} booking team,\n\nThanks for the dates. We'd love to lock in ${prettyDate(date)}, ${date.slice(0, 4)} at ${venue.name || "your venue"}.\n\nPlease reply to confirm the date and the deal (doors and set time, guarantee or door split, ticket price) so we can announce it.\n\nEPK: ${a.epk || "[Add your published EPK link.]"}\n\nThank you,\n${a.name || "[your name]"}`;
+  };
+  async function acceptDate(venue, date, sentReplyId) {
+    const data = await accountRequest("POST", { action: "accept_date", venueKey: venue.venueKey, date, ...(sentReplyId ? { sentReplyId } : {}) });
+    Object.assign(venue.booking, { status: "Date proposed", showDate: date, acceptedDate: date, acceptedAt: new Date().toISOString(), ...(sentReplyId ? { acceptedReplyId: sentReplyId } : {}) });
+    if (data.revision) revision = data.revision;
+    try { sessionStorage.setItem(storageKey, JSON.stringify(venues)); } catch {}
+    return data;
+  }
+  function renderAcceptDates(result) {
+    const stops = (result.plan || []).filter(stop => !stop.fixed);
+    if (!stops.length) return;
+    const box = document.createElement("div"), heading = document.createElement("h3"), intro = document.createElement("p"), list = document.createElement("div");
+    box.className = "route-accept"; heading.textContent = "Accept these dates";
+    intro.className = "hint"; intro.textContent = "Each club gets its own confirmation in your booking thread (no credit used). Edit it, tick the box, then send. The show is confirmed when the club confirms in writing.";
+    list.className = "route-accept-list";
+    for (const stop of stops) {
+      const venue = venues.find(item => item.venueKey === stop.venueKey);
+      if (!venue) continue;
+      const card = document.createElement("section"), title = document.createElement("h4"), state = document.createElement("p");
+      card.className = "route-accept-card"; card.dataset.venueKey = stop.venueKey;
+      title.textContent = `${prettyDate(stop.date)} · ${stop.name}`; state.className = "route-accept-state"; state.setAttribute("role", "status");
+      card.append(title);
+      const waiting = () => { card.replaceChildren(title, state); state.textContent = `Sent. Waiting for ${venue.name} to confirm ${prettyDate(stop.date)} in writing.`; card.classList.add("route-accept-done"); };
+      if (venue.booking?.acceptedDate === stop.date && venue.booking?.status === "Date proposed") { waiting(); list.append(card); continue; }
+      const threadId = venue.booking?.pipeline?.threadId || "";
+      const saveOnly = document.createElement("button");
+      saveOnly.type = "button"; saveOnly.className = "secondary"; saveOnly.textContent = "Save date only";
+      saveOnly.addEventListener("click", async () => {
+        if (dirty) { window.danzstakShowFeedback?.("Save to your account first.", { urgent: true }); return; }
+        saveOnly.disabled = true;
+        try { await acceptDate(venue, stop.date); waiting(); state.textContent = `Date saved. Waiting for ${venue.name} to confirm ${prettyDate(stop.date)} in writing.`; render(); }
+        catch (error) { state.textContent = error.message; saveOnly.disabled = false; }
+      });
+      if (!threadId) {
+        state.textContent = "No DanzStak booking thread with this club. Confirm by your own email, then save the date.";
+        card.append(state, saveOnly); list.append(card); continue;
+      }
+      const draft = document.createElement("textarea"), approveLabel = document.createElement("label"), approve = document.createElement("input"), send = document.createElement("button"), actions = document.createElement("div");
+      draft.maxLength = 4000; draft.rows = 8; draft.value = confirmationDraft(venue, stop.date); draft.setAttribute("aria-label", `Confirmation to ${venue.name}`);
+      approve.type = "checkbox"; approveLabel.className = "route-accept-approve"; approveLabel.append(approve, document.createTextNode(` I reviewed this email to ${venue.name}`));
+      send.type = "button"; send.textContent = "Send confirmation"; send.disabled = true;
+      approve.addEventListener("change", () => { send.disabled = !approve.checked || !draft.value.trim(); });
+      draft.addEventListener("input", () => { approve.checked = false; send.disabled = true; });
+      send.addEventListener("click", async () => {
+        if (dirty) { window.danzstakShowFeedback?.("Save to your account first.", { urgent: true }); return; }
+        if (!approve.checked || /\[[^\]]+\]/.test(draft.value)) { window.danzstakShowFeedback?.("Fill in the [bracketed] parts and tick the box before sending.", { urgent: true }); return; }
+        send.disabled = true; approve.disabled = true; draft.readOnly = true; state.textContent = "Sending…";
+        const clientMessageId = crypto.randomUUID().replaceAll("-", "");
+        let sent = false;
+        try {
+          const response = await fetchWithTimeout("https://api.danzstak.com/tour-manager/outreach/reply", { method: "POST", credentials: "include", cache: "no-store", headers: { "content-type": "application/json" }, body: JSON.stringify({ outreachId: threadId, content: draft.value.trim(), clientMessageId }) });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || "The confirmation was not sent.");
+          sent = true;
+          await acceptDate(venue, stop.date, clientMessageId);
+          waiting(); render();
+        } catch (error) {
+          state.textContent = sent ? `Email sent, but the date wasn't saved: ${error.message} Use "Save date only" — don't send again.` : error.message;
+          if (sent) { card.append(saveOnly); send.remove(); } else { send.disabled = false; approve.disabled = false; draft.readOnly = false; }
+        }
+      });
+      actions.className = "route-accept-actions"; actions.append(send, saveOnly);
+      card.append(draft, approveLabel, actions, state); list.append(card);
+    }
+    box.append(heading, intro, list); routeResult.append(box);
+  }
+
   routeForm?.addEventListener("submit", async event => {
     event.preventDefault();
     if (dirty) { window.danzstakShowFeedback?.("Save to your account first so the picker uses your latest dates.", { urgent: true }); return; }
