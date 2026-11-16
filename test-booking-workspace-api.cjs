@@ -20,6 +20,7 @@ let sends = [];
 const request = (method, body, origin='https://danzstak.com') => context.bookingWorkspace({headers:{origin},body}, method);
 (async () => {
   Object.assign(context, await import('./infrastructure/auth-api/booking-pipeline.mjs'));
+  Object.assign(context, await import('./infrastructure/auth-api/booking-venue-signals.mjs'), { BatchGetItemCommand: class extends Command {}, UpdateItemCommand: class extends Command {}, TransactWriteItemsCommand: class extends Command {}, createHash: require('node:crypto').createHash });
   vm.runInContext(helper, context);
   assert.equal((await request('GET', null, 'https://evil.example')).statusCode,403);
   authenticated = '';

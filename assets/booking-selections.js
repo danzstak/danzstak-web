@@ -346,6 +346,35 @@
     }
   }
 
+  // Members keep venue data fresh (task 07): one tap to say a club closed or changed booker. DanzStak reviews it.
+  function venueReport(venue) {
+    const box = document.createElement("details"), summary = document.createElement("summary"), status = document.createElement("p");
+    box.className = "venue-report";
+    summary.textContent = "Club closed or new booker?";
+    status.setAttribute("role", "status");
+    if (!venue.venueKey || !accountLoaded) { box.hidden = true; return box; }
+    const closedButton = document.createElement("button"), contactForm = document.createElement("form"), emailLabel = document.createElement("label"), email = document.createElement("input"), urlLabel = document.createElement("label"), url = document.createElement("input"), submit = document.createElement("button");
+    closedButton.type = "button"; closedButton.className = "secondary"; closedButton.textContent = "This club closed";
+    email.type = "email"; email.maxLength = 254; email.autocomplete = "off"; emailLabel.append("New public booking email", email);
+    url.type = "url"; url.maxLength = 600; url.placeholder = "https://"; urlLabel.append("or booking page", url);
+    submit.type = "submit"; submit.textContent = "Send new contact";
+    contactForm.append(emailLabel, urlLabel, submit);
+    const send = async (body, button) => {
+      button.disabled = true; status.textContent = "Sending…";
+      try {
+        const response = await fetchWithTimeout("https://api.danzstak.com/booking-pipeline", { method:"POST", credentials:"include", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({ action:"venue_report", venueKey:venue.venueKey, ...body }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "DanzStak could not save this report. Try again.");
+        if (data.freshness) venue.freshness = data.freshness;
+        status.textContent = data.alreadyReported ? "You already reported this. Thanks — DanzStak reviews every report." : "Thanks. Other members now see this, and DanzStak reviews every report.";
+      } catch (error) { status.textContent = error.message; button.disabled = false; }
+    };
+    closedButton.addEventListener("click", () => send({ kind:"closed" }, closedButton));
+    contactForm.addEventListener("submit", event => { event.preventDefault(); send({ kind:"new_contact", contactEmail:email.value.trim(), contactUrl:url.value.trim() }, submit); });
+    box.append(summary, closedButton, contactForm, status);
+    return box;
+  }
+
   function render() {
     renderEpkGate();
     renderStageFilters();
@@ -438,7 +467,8 @@
       persist();
       render();
     });
-    body.append(stageChip, title, address, links, note);
+    const freshnessChip = window.danzstakVenueFreshness?.chip(venue);
+    body.append(stageChip, title, ...(freshnessChip ? [freshnessChip] : []), address, links, note, venueReport(venue));
     if (evidence.textContent) address.after(evidence);
     body.append(bookingFields(venue), outreach(venue), remove);
     card.append(body);

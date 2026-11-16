@@ -14,3 +14,11 @@
 #venueQuickMore { display: block; margin: 12px auto 0; background: #fff; font-weight: 800; }
 #venueQuickMore[hidden] { display: none; }
 @media(max-width:680px){.venue-quick-row,.venue-quick-results{grid-template-columns:1fr}.venue-quick-select{flex:1 0 100%;margin-left:0}}
+/* Venue freshness (task 07): an honest one-line chip on every result. */
+.venue-freshness { display: inline-block; justify-self: start; width: fit-content; max-width: 100%; margin: 2px 0 4px; padding: 3px 8px; border: 1px solid #8a8f98; border-radius: 999px; color: #3b3f45; background: #fff; font-size: .8rem; font-weight: 700; line-height: 1.35; }
+.venue-freshness-active { border-color: #0b6b3a; color: #0b6b3a; }
+.venue-freshness-recent { border-color: #4a5160; color: #2b3038; }
+.venue-freshness-bounced, .venue-freshness-reported-closed { border-color: #b3261e; color: #b3261e; }
+.venue-freshness-closed { border-color: #5c6068; color: #fff; background: #5c6068; }
+.venue-closed { opacity: .72; }
+.venue-closed-toggle { grid-column: 1 / -1; min-height: 44px; justify-self: center; padding: 9px 14px; border: 1px solid #121418; border-radius: 9px; background: #fff; color: #121418; font: inherit; font-weight: 800; }

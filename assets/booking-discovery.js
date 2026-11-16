@@ -57,10 +57,25 @@
         syncQuickSelectionButtons();
       });
       actions.append(select);
-      card.append(heading,address,evidence,suitability,actions);
+      const freshnessChip = window.danzstakVenueFreshness?.chip(venue);
+      card.append(heading, ...(freshnessChip ? [freshnessChip] : []), address, evidence, suitability, actions);
+      if (window.danzstakVenueFreshness?.hidden(venue)) { card.hidden = true; card.classList.add("venue-closed"); }
       results.append(card);
     }
+    syncClosedToggle();
     syncQuickSelectionButtons();
+  }
+  // Closed clubs (owner-confirmed or reported by 2+ members) stay out of the way, one tap to see them.
+  function syncClosedToggle() {
+    const closed = [...(results.querySelectorAll?.(".venue-closed[hidden]") || [])];
+    let toggle = results.querySelector?.(".venue-closed-toggle");
+    if (!closed.length) { toggle?.remove(); return; }
+    if (!toggle) {
+      toggle = document.createElement("button"); toggle.type = "button"; toggle.className = "venue-closed-toggle secondary";
+      toggle.addEventListener("click", () => { for (const card of results.querySelectorAll(".venue-closed[hidden]")) card.hidden = false; toggle.remove(); });
+    }
+    toggle.textContent = `Show ${closed.length} closed club${closed.length === 1 ? "" : "s"}`;
+    results.append(toggle);
   }
   function renderResearch(leads) { for (const lead of (leads || []).slice(0, 10)) { if (!/^https:\/\//i.test(lead.url || "") || seen.has(lead.url)) continue; seen.add(lead.url); const card = document.createElement("article"), heading = document.createElement("h3"), copy = document.createElement("p"), warning = document.createElement("p"), actions = document.createElement("div"); heading.textContent = lead.title || "Web research lead"; copy.textContent = lead.description || "A web result may contain current venue or event information."; warning.textContent = "Web research lead only. Verify that this is a real venue, currently active, and appropriate before contacting it."; warning.className = "venue-evidence"; actions.className = "venue-quick-actions"; actions.append(link("Research source", lead.url)); card.append(heading, copy, warning, actions); results.append(card); } }
   async function search(nextPage = 0, nextRadius = radiusMiles, append = nextPage > 0) { const value = append || nextPage ? activeQuery : query.value.trim(); if (!value) return; activeQuery = value; page = nextPage; radiusMiles = nextRadius; more.hidden = true; status.textContent = `Finding sourced venue listings for “${value}”…`; if (!append) { results.replaceChildren(); seen = new Set(); } const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 30000); try { const response = await fetch(`${api}/venues/search`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({query:value,page,radiusMiles}), signal:controller.signal }), data = await response.json().catch(() => ({})), providerStatus = providerStatusText(data.providers); if (!response.ok) throw new Error(`${data.error || "Venue search failed."}${providerStatus ? ` ${providerStatus}` : ""}`); render(data.venues || [], append); renderResearch(data.researchLeads || []); page = data.page || 0; radiusMiles = data.radiusMiles || radiusMiles; hasMore = data.hasMore === true; canExpand = data.canExpand === true; more.hidden = !hasMore && !canExpand; more.textContent = hasMore ? "More clubs" : "Search a wider area"; const expansion = data.expandedFromMiles ? ` Search expanded from ${data.expandedFromMiles} to ${data.radiusMiles} miles.` : ""; status.textContent = data.venues?.length ? `${data.venues.length} sourced leads near ${data.location?.label || "the requested area"}.${expansion} ${data.coverageNotice || ""} ${providerStatus}` : `${data.coverageNotice || "No relevant leads were found; try a wider area."}${expansion} ${providerStatus}`; window.dispatchEvent(new CustomEvent("danzstak:venue-search-results", { detail:data })); } catch (error) { status.textContent = error.name === "AbortError" ? "The search took too long. Try a city and country." : error.message; } finally { clearTimeout(timer); } }

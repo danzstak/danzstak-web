@@ -1003,9 +1003,9 @@
         );
       }
     }
-    notice.textContent = place.bookingSuitability === "contact-found"
+    notice.textContent = (place.freshness?.label ? `${place.freshness.label}. ` : "") + (place.bookingSuitability === "contact-found"
       ? "Public contact found. Verify that it books this kind of show; DanzStak has not contacted this location."
-      : `Needs research. ${(place.suitabilityReasons || []).join(" ") || "Confirm current programming and find the correct public booking contact."}`;
+      : `Needs research. ${(place.suitabilityReasons || []).join(" ") || "Confirm current programming and find the correct public booking contact."}`);
     if (placeType === "club") {
       const syncSelection = () => {
         const selected = window.danzstakBookingVenueSelected?.(place) === true;
@@ -1491,7 +1491,7 @@
         dateLabel = date ? date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }) : "date open";
       const venueKey = venue => venue.venueKey || `${market?.stop}|${venue.name}`.toLowerCase(),
         venue = shouldShow && market
-          ? market.venues.find(candidate => !usedVenues.has(venueKey(candidate)))
+          ? market.venues.find(candidate => !usedVenues.has(venueKey(candidate)) && !window.danzstakVenueFreshness?.hidden(candidate))
           : null;
       if (venue) {
         usedVenues.add(venueKey(venue));

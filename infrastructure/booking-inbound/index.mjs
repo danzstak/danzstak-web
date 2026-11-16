@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { DynamoDBClient, GetItemCommand, TransactWriteItemsCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, GetItemCommand, TransactWriteItemsCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { headerValue, decodePart, cleanReply, receiptIsSafe } from "./mime.mjs";
 
@@ -39,6 +39,11 @@ export async function handler(event) {
       { Put: { TableName: tableName, Item: { ...replyKey, outreachId: { S: route.outreachId.S }, venueKey: { S: route.venueKey?.S || "" }, direction: { S: "inbound" }, action: { S: "reply" }, content: { S: content }, source: { S: "email" }, sender: { S: sender }, providerMessageId: { S: messageId }, createdAt: { S: at } }, ConditionExpression: "attribute_not_exists(userId)" } },
       { Update: { TableName: tableName, Key: sendKey(route.artistId.S, route.outreachId.S), UpdateExpression: "SET #status = :replied, repliedAt = :at", ConditionExpression: "attribute_exists(userId)", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":replied": { S: "replied" }, ":at": { S: at } } } }
     ] }));
+    // Shared venue freshness (task 07): a real reply proves the club is alive. Dates only; best effort.
+    const venueKey = route.venueKey?.S || "";
+    if (venueKey.length >= 6 && venueKey.length <= 240 && /^[a-zA-Z0-9_.:-]+$/.test(venueKey)) {
+      await db.send(new UpdateItemCommand({ TableName: tableName, Key: { userId: { S: "BOOKING#VENUE_SIGNAL" }, tourId: { S: venueKey } }, UpdateExpression: "SET lastReplyAt = :at", ConditionExpression: "attribute_not_exists(lastReplyAt) OR lastReplyAt < :at", ExpressionAttributeValues: { ":at": { S: at } } })).catch(error => { if (error.name !== "ConditionalCheckFailedException") console.error("Venue signal not recorded:", error.name); });
+    }
     return { accepted: true };
   } catch (error) {
     const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: replyKey, ConsistentRead: true }));
