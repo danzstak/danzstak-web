@@ -17,3 +17,10 @@ assert.equal(parse("I want to play shows near home").mode, "local");
 assert.equal(parse("We need to book 5 shows").mode, undefined);
 assert.match(src, /I couldn't read the route/);
 console.log("Booking brief one-way route checks passed.");
+// Owner's natural test brief (2026-11-16).
+const owner = parse("i want to tour 20 days bellingham to san diego and back tacoma find me clubs and places to stay with record stores and radio stations there and back and calculate the cost");
+assert.equal(owner.home, "bellingham"); assert.equal(owner.destination, "san diego"); assert.equal(owner.returnTo, "tacoma"); assert.equal(owner.days, 20); assert.equal(owner.mode, "tour");
+const lead = parse("tour 10 days seattle to los angeles");
+assert.equal(lead.home, "seattle"); assert.equal(lead.destination, "los angeles");
+assert.deepEqual([parse("we wanna play 12 days from portland to austin").home, parse("we wanna play 12 days from portland to austin").destination], ["portland", "austin"]);
+console.log("Natural-language brief checks passed.");
