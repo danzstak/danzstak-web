@@ -48,7 +48,7 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
       assert.match(await page.locator('.sync-network-number').innerText(), /SYNC-only|inside SYNC/i);
       assert.match(await page.locator('.sync-network-number').innerText(), /does not support carrier SMS|not a cellular number/i);
       assert.match(await page.locator('.sync-network-number').innerText(), /never replaces this device's private SMS code/i);
-      assert.equal(await page.locator('#buySyncNetworkNumber').innerText(), 'Get a DS number · $3 Test Mode');
+      assert.equal(await page.locator('#buySyncNetworkNumber').innerText(), 'Get a DS number · $4.18 incl. fees · Test Mode');
       const geometry = await page.evaluate(() => {
         const dialog = document.querySelector('#callingDevicesDialog').getBoundingClientRect();
         const button = document.querySelector('#buySyncNetworkNumber').getBoundingClientRect();

@@ -20,7 +20,12 @@
     };
     qty.addEventListener("change", drawNames); drawNames();
     const total = el("p", { className: "ticket-total" });
-    const sum = () => { total.textContent = `Total ${money(tier.priceCents * Number(qty.value))} — no added fees`; }; qty.addEventListener("change", sum); sum();
+    const sum = () => {
+      const fees = window.DanzStakFees, subtotal = tier.priceCents * Number(qty.value);
+      if (!fees) { total.textContent = `Tickets ${money(subtotal)} plus DanzStak's 6% fee`; return; }
+      const { feeCents, totalCents } = fees.withFees(subtotal);
+      total.textContent = `Total ${money(totalCents)} (incl. ${money(feeCents)} fees)` + (subtotal < fees.SMALL_ORDER_LIMIT_CENTS ? " · the $1 processing fee drops off at $30" : "");
+    }; qty.addEventListener("change", sum); sum();
     const button = el("button", { type: "submit", className: "ticket-buy-button", textContent: "Buy tickets" });
     const note = el("p", { className: "ticket-note", role: "status" });
     form.append(el("label", { className: "ticket-qty", textContent: "Tickets" }, qty), names, total, button, note);

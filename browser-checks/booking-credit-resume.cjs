@@ -114,7 +114,7 @@ const startingWorkspace = () => ({
       await card.waitFor({ state:"visible" });
       const prompt = card.locator(".booking-credit-needed");
       await prompt.waitFor({ state:"visible" });
-      assert.match(await prompt.textContent(), /No booking-email credit is ready[\s\S]*Buy 1 credit · \$1\.50/, `${width}px must explain the zero-credit next step`);
+      assert.match(await prompt.textContent(), /No booking-email credit is ready[\s\S]*Buy 1 credit · \$2\.59 incl\. fees/, `${width}px must explain the zero-credit next step`);
 
       await card.getByRole("button", { name:"Preview exact email" }).click();
       let dialog = page.locator("dialog.booking-send-review");
@@ -130,7 +130,7 @@ const startingWorkspace = () => ({
       assert.match(await prompt.textContent(), /Nothing sends automatically/, `${width}px must explain post-payment approval`);
       await page.screenshot({ path:path.join(output, `credit-needed-${width}.png`), fullPage:true, animations:"disabled", caret:"hide" });
 
-      const buyButton = prompt.getByRole("button", { name:"Buy 1 credit · $1.50" });
+      const buyButton = prompt.getByRole("button", { name:"Buy 1 credit · $2.59 incl. fees" });
       const buyHeight = await buyButton.evaluate(node => node.getBoundingClientRect().height);
       assert.ok(buyHeight >= 44, `${width}px credit purchase target is ${buyHeight}px`);
       await buyButton.click();
