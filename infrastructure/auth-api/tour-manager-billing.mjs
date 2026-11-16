@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { EPK_WORKSPACE_KEY, epkGate, epkGateMessage, followUpDate, followUpEligible } from "./booking-pipeline.mjs";
 import { signalUpdate } from "./booking-venue-signals.mjs";
+import { buyerFees } from "./fees.mjs";
 import { SUPPRESSION_CLEAR_CONDITION, checkBookingContact, createMailDomainCheck, suppressionBlock, suppressionClearValues } from "./booking-contact-check.mjs";
 
 export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UcAtqDoNxcsrqZsAWuhsZb8";
@@ -72,6 +73,24 @@ function response(statusCode, data, headers = {}) { return { statusCode, headers
 function rawBody(event) { if (typeof event?.body !== "string") return ""; return event.isBase64Encoded ? Buffer.from(event.body, "base64").toString("utf8") : event.body; }
 function parseBody(event) { try { return JSON.parse(rawBody(event) || "{}"); } catch { return null; } }
 function validUserId(value) { return typeof value === "string" && /^[a-zA-Z0-9_-]{8,128}$/.test(value); }
+// Task 12: every checkout carries a separate "DanzStak fee" line (6% + $1 under $30) so the receipt shows it.
+export const FEE_LINE_NAME = "DanzStak fee";
+function feeLineForm(index, subtotalCents) {
+  const fee = buyerFees(subtotalCents);
+  return fee ? { [`line_items[${index}][price_data][currency]`]: "usd", [`line_items[${index}][price_data][unit_amount]`]: String(fee), [`line_items[${index}][price_data][product_data][name]`]: FEE_LINE_NAME, [`line_items[${index}][quantity]`]: "1" } : {};
+}
+function priced(subtotalCents) { const feeCents = buyerFees(subtotalCents); return { feeCents, totalCents: subtotalCents + feeCents }; }
+// A paid session must hold exactly the product line plus the fee line, and amount_total must equal price + fee.
+function paidLines(session, priceId, unitCents) {
+  const lines = session?.line_items?.data;
+  if (!Array.isArray(lines)) return null;
+  const line = lines.find(item => item?.price?.id === priceId), quantity = Number(line?.quantity);
+  if (!line || !Number.isInteger(quantity) || quantity < 1) return null;
+  const subtotalCents = quantity * unitCents, feeCents = buyerFees(subtotalCents), fee = lines.find(item => item !== line);
+  if (lines.length !== (feeCents ? 2 : 1)) return null;
+  if (feeCents && !(fee?.description === FEE_LINE_NAME && Number(fee.quantity) === 1 && fee.price?.currency === "usd" && Number(fee.price?.unit_amount) === feeCents && Number(fee.amount_total) === feeCents)) return null;
+  return Number(session.amount_total) === subtotalCents + feeCents ? { line, quantity, subtotalCents, feeCents } : null;
+}
 function checkoutKey(userId, sessionId) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#CHECKOUT#${sessionId}` } }; }
 function creditKey(userId) { return { userId: { S: userId }, tourId: { S: CREDIT_KEY } }; }
 function professionalKey(userId) { return { userId: { S: userId }, tourId: { S: PROFESSIONAL_KEY } }; }
@@ -229,11 +248,11 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
     const body = parseBody(event), quantity = Number(body?.quantity);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_CREDITS_PER_CHECKOUT) return response(400, { error: `Choose 1 to ${MAX_CREDITS_PER_CHECKOUT} booking emails.` }, headers);
-    const catalog = stripeCatalog(!testMode()), requestId = randomUUID(), form = new URLSearchParams({ mode: "payment", ...REFUND_NOTICE, "line_items[0][price]": catalog.tour.priceId, "line_items[0][quantity]": String(quantity), client_reference_id: userId, "metadata[product]": PRODUCT, "metadata[userId]": userId, "metadata[priceId]": catalog.tour.priceId, "metadata[quantity]": String(quantity), success_url: "https://danzstak.com/booking-selections.html?credits=success", cancel_url: "https://danzstak.com/booking-selections.html?credits=cancelled" });
+    const catalog = stripeCatalog(!testMode()), requestId = randomUUID(), form = new URLSearchParams({ mode: "payment", ...REFUND_NOTICE, "line_items[0][price]": catalog.tour.priceId, "line_items[0][quantity]": String(quantity), ...feeLineForm(1, quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS), client_reference_id: userId, "metadata[product]": PRODUCT, "metadata[userId]": userId, "metadata[priceId]": catalog.tour.priceId, "metadata[quantity]": String(quantity), success_url: "https://danzstak.com/booking-selections.html?credits=success", cancel_url: "https://danzstak.com/booking-selections.html?credits=cancelled" });
     const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `tour-manager-${userId}-${requestId}` }, body: form.toString() });
     if (!/^cs_(?:test|live)_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
     await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, quantity: { N: String(quantity) }, priceId: { S: catalog.tour.priceId }, environment: { S: testMode() ? "test" : "live" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
-    return response(200, { checkoutUrl: session.url, quantity, unitAmountCents: TOUR_MANAGER_EMAIL_UNIT_CENTS, currency: "usd", testMode: testMode() }, headers);
+    return response(200, { checkoutUrl: session.url, quantity, unitAmountCents: TOUR_MANAGER_EMAIL_UNIT_CENTS, ...priced(quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS), currency: "usd", testMode: testMode() }, headers);
   }
 
   async function contactCheckout(event) {
@@ -250,11 +269,11 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
     const venue = (plan.venues || []).find(item => item?.venueKey === venueKey);
     if (!venue || !(venue.emails || []).length && !(venue.phones || []).length) return response(409, { error: "Save this venue and its public booking contact before unlocking it." }, headers);
-    const catalog = stripeCatalog(!testMode()), requestId = randomUUID(), form = new URLSearchParams({ mode: "payment", ...REFUND_NOTICE, "line_items[0][price]": catalog.contact.priceId, "line_items[0][quantity]": "1", client_reference_id: userId, "metadata[product]": CONTACT_PRODUCT, "metadata[userId]": userId, "metadata[priceId]": catalog.contact.priceId, "metadata[venueKey]": venueKey, success_url: `https://danzstak.com/booking-selections.html?contact=success&venueKey=${encodeURIComponent(venueKey)}`, cancel_url: `https://danzstak.com/booking-selections.html?contact=cancelled&venueKey=${encodeURIComponent(venueKey)}` });
+    const catalog = stripeCatalog(!testMode()), requestId = randomUUID(), form = new URLSearchParams({ mode: "payment", ...REFUND_NOTICE, "line_items[0][price]": catalog.contact.priceId, "line_items[0][quantity]": "1", ...feeLineForm(1, BOOKING_CONTACT_UNIT_CENTS), client_reference_id: userId, "metadata[product]": CONTACT_PRODUCT, "metadata[userId]": userId, "metadata[priceId]": catalog.contact.priceId, "metadata[venueKey]": venueKey, success_url: `https://danzstak.com/booking-selections.html?contact=success&venueKey=${encodeURIComponent(venueKey)}`, cancel_url: `https://danzstak.com/booking-selections.html?contact=cancelled&venueKey=${encodeURIComponent(venueKey)}` });
     const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `contact-unlock-${userId}-${venueKey}-${requestId}` }, body: form.toString() });
     if (!/^cs_(?:test|live)_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
     await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, product: { S: CONTACT_PRODUCT }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, priceId: { S: catalog.contact.priceId }, environment: { S: testMode() ? "test" : "live" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
-    return response(200, { checkoutUrl: session.url, venueKey, unitAmountCents: BOOKING_CONTACT_UNIT_CENTS, currency: "usd", testMode: testMode() }, headers);
+    return response(200, { checkoutUrl: session.url, venueKey, unitAmountCents: BOOKING_CONTACT_UNIT_CENTS, ...priced(BOOKING_CONTACT_UNIT_CENTS), currency: "usd", testMode: testMode() }, headers);
   }
 
   async function phoneCheckout(event) {
@@ -274,6 +293,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       ...REFUND_NOTICE,
       "line_items[0][price]": catalog.phone.priceId,
       "line_items[0][quantity]": "1",
+      ...feeLineForm(1, PHONE_NUMBER_UNIT_CENTS),
       client_reference_id: userId,
       "metadata[product]": PHONE_PRODUCT,
       "metadata[userId]": userId,
@@ -284,7 +304,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `phone-activation-${userId}-${requestId}` }, body: form.toString() });
     if (!/^cs_(?:test|live)_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
     await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, product: { S: PHONE_PRODUCT }, priceId: { S: catalog.phone.priceId }, environment: { S: testMode() ? "test" : "live" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
-    return response(200, { checkoutUrl: session.url, unitAmountCents: PHONE_NUMBER_UNIT_CENTS, currency: "usd", testMode: testMode() }, headers);
+    return response(200, { checkoutUrl: session.url, unitAmountCents: PHONE_NUMBER_UNIT_CENTS, ...priced(PHONE_NUMBER_UNIT_CENTS), currency: "usd", testMode: testMode() }, headers);
   }
 
   async function phoneEntitlement(event) {
@@ -322,6 +342,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       ...REFUND_NOTICE,
       "line_items[0][price]": TEST_SYNC_NETWORK_CATALOG.priceId,
       "line_items[0][quantity]": "1",
+      ...feeLineForm(1, SYNC_NETWORK_NUMBER_UNIT_CENTS),
       client_reference_id: userId,
       "metadata[product]": SYNC_NETWORK_PRODUCT,
       "metadata[userId]": userId,
@@ -337,7 +358,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     } else if (existingCheckout.Item.product?.S !== SYNC_NETWORK_PRODUCT || existingCheckout.Item.priceId?.S !== TEST_SYNC_NETWORK_CATALOG.priceId) {
       throw new Error("Stored Checkout binding does not match the DanzStak Network number product");
     }
-    return response(200, { checkoutUrl: session.url, unitAmountCents: SYNC_NETWORK_NUMBER_UNIT_CENTS, currency: "usd", testMode: true }, headers);
+    return response(200, { checkoutUrl: session.url, unitAmountCents: SYNC_NETWORK_NUMBER_UNIT_CENTS, ...priced(SYNC_NETWORK_NUMBER_UNIT_CENTS), currency: "usd", testMode: true }, headers);
   }
 
   async function syncNetworkEntitlement(event) {
@@ -612,24 +633,24 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
   }
 
   async function loadVerifiedSession(session, expectedLive) {
-    const catalog = stripeCatalog(expectedLive), userId = session.client_reference_id, lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null, quantity = Number(line?.quantity), metadata = session.metadata || {};
-    const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PRODUCT && metadata.userId === userId && metadata.priceId === catalog.tour.priceId && Number(metadata.quantity) === quantity && line?.price?.id === catalog.tour.priceId && line?.price?.product === catalog.tour.productId && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === TOUR_MANAGER_EMAIL_UNIT_CENTS && Number.isInteger(quantity) && quantity >= 1 && quantity <= MAX_CREDITS_PER_CHECKOUT && session.currency === "usd" && Number(session.amount_total) === quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS;
+    const catalog = stripeCatalog(expectedLive), userId = session.client_reference_id, paid = paidLines(session, catalog.tour.priceId, TOUR_MANAGER_EMAIL_UNIT_CENTS), line = paid?.line, quantity = Number(line?.quantity), metadata = session.metadata || {};
+    const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PRODUCT && metadata.userId === userId && metadata.priceId === catalog.tour.priceId && Number(metadata.quantity) === quantity && line?.price?.id === catalog.tour.priceId && line?.price?.product === catalog.tour.productId && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === TOUR_MANAGER_EMAIL_UNIT_CENTS && Number.isInteger(quantity) && quantity >= 1 && quantity <= MAX_CREDITS_PER_CHECKOUT && session.currency === "usd" && paid !== null;
     if (!valid) return null;
     const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
     return item?.sessionId?.S === session.id && item.priceId?.S === catalog.tour.priceId && Number(item.quantity?.N) === quantity && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, quantity } : null;
   }
 
   async function loadVerifiedContactSession(session, expectedLive) {
-    const catalog = stripeCatalog(expectedLive), userId = session.client_reference_id, metadata = session.metadata || {}, venueKey = String(metadata.venueKey || ""), lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null;
-    const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && validVenueKey(venueKey) && metadata.product === CONTACT_PRODUCT && metadata.userId === userId && metadata.priceId === catalog.contact.priceId && Number(line?.quantity) === 1 && line?.price?.id === catalog.contact.priceId && line?.price?.product === catalog.contact.productId && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === BOOKING_CONTACT_UNIT_CENTS && session.currency === "usd" && Number(session.amount_total) === BOOKING_CONTACT_UNIT_CENTS;
+    const catalog = stripeCatalog(expectedLive), userId = session.client_reference_id, metadata = session.metadata || {}, venueKey = String(metadata.venueKey || ""), paid = paidLines(session, catalog.contact.priceId, BOOKING_CONTACT_UNIT_CENTS), line = paid?.line;
+    const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && validVenueKey(venueKey) && metadata.product === CONTACT_PRODUCT && metadata.userId === userId && metadata.priceId === catalog.contact.priceId && Number(line?.quantity) === 1 && line?.price?.id === catalog.contact.priceId && line?.price?.product === catalog.contact.productId && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === BOOKING_CONTACT_UNIT_CENTS && session.currency === "usd" && paid !== null;
     if (!valid) return null;
     const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
     return item?.sessionId?.S === session.id && item.product?.S === CONTACT_PRODUCT && item.venueKey?.S === venueKey && item.priceId?.S === catalog.contact.priceId && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, venueKey, product: CONTACT_PRODUCT } : null;
   }
 
   async function loadVerifiedPhoneSession(session, expectedLive) {
-    const catalog = stripeCatalog(expectedLive), userId = session.client_reference_id, metadata = session.metadata || {}, lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null;
-    const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PHONE_PRODUCT && metadata.userId === userId && metadata.priceId === catalog.phone.priceId && Number(line?.quantity) === 1 && line?.price?.id === catalog.phone.priceId && line?.price?.product === catalog.phone.productId && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === PHONE_NUMBER_UNIT_CENTS && session.currency === "usd" && Number(session.amount_total) === PHONE_NUMBER_UNIT_CENTS;
+    const catalog = stripeCatalog(expectedLive), userId = session.client_reference_id, metadata = session.metadata || {}, paid = paidLines(session, catalog.phone.priceId, PHONE_NUMBER_UNIT_CENTS), line = paid?.line;
+    const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PHONE_PRODUCT && metadata.userId === userId && metadata.priceId === catalog.phone.priceId && Number(line?.quantity) === 1 && line?.price?.id === catalog.phone.priceId && line?.price?.product === catalog.phone.productId && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === PHONE_NUMBER_UNIT_CENTS && session.currency === "usd" && paid !== null;
     if (!valid) return null;
     const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
     return item?.sessionId?.S === session.id && item.product?.S === PHONE_PRODUCT && item.priceId?.S === catalog.phone.priceId && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, product: PHONE_PRODUCT } : null;
@@ -637,8 +658,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
 
   async function loadVerifiedSyncNetworkSession(session, expectedLive) {
     if (expectedLive) return null;
-    const userId = session.client_reference_id, metadata = session.metadata || {}, lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null;
-    const valid = session.mode === "payment" && session.livemode === false && validUserId(userId) && metadata.product === SYNC_NETWORK_PRODUCT && metadata.userId === userId && metadata.priceId === TEST_SYNC_NETWORK_CATALOG.priceId && Number(line?.quantity) === 1 && line?.price?.id === TEST_SYNC_NETWORK_CATALOG.priceId && line?.price?.product === TEST_SYNC_NETWORK_CATALOG.productId && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === SYNC_NETWORK_NUMBER_UNIT_CENTS && session.currency === "usd" && Number(session.amount_total) === SYNC_NETWORK_NUMBER_UNIT_CENTS;
+    const userId = session.client_reference_id, metadata = session.metadata || {}, paid = paidLines(session, TEST_SYNC_NETWORK_CATALOG.priceId, SYNC_NETWORK_NUMBER_UNIT_CENTS), line = paid?.line;
+    const valid = session.mode === "payment" && session.livemode === false && validUserId(userId) && metadata.product === SYNC_NETWORK_PRODUCT && metadata.userId === userId && metadata.priceId === TEST_SYNC_NETWORK_CATALOG.priceId && Number(line?.quantity) === 1 && line?.price?.id === TEST_SYNC_NETWORK_CATALOG.priceId && line?.price?.product === TEST_SYNC_NETWORK_CATALOG.productId && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === SYNC_NETWORK_NUMBER_UNIT_CENTS && session.currency === "usd" && paid !== null;
     if (!valid) return null;
     const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
     return item?.sessionId?.S === session.id && item.product?.S === SYNC_NETWORK_PRODUCT && item.priceId?.S === TEST_SYNC_NETWORK_CATALOG.priceId && item.environment?.S === "test" ? { session, userId, product: SYNC_NETWORK_PRODUCT } : null;
