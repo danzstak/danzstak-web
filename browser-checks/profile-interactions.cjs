@@ -157,7 +157,7 @@ const engagement = {
       assert.equal(errors.length, 0, `${width}px Profile errors: ${errors.join(" | ")}`);
       assert.equal(geometry.overflow, false, `${width}px Profile interactions overflow horizontally`);
       assert.equal(Math.round(geometry.tabs.height), 44, `${width}px profile tabs are not 44px high`);
-      assert.deepEqual(geometry.tabs.labels, ["Posts", "About", "Photos", "Videos", "More"]);
+      assert.deepEqual(geometry.tabs.labels, ["Posts", "About", "Friends", "Photos", "Videos", "More"]);
       assert.deepEqual(geometry.composerMargins, ["8px", "8px"]);
       assert.deepEqual(geometry.createAvatar.map(Math.round), [36, 36]);
       assert.equal(Math.round(geometry.createInput[0]), 36);

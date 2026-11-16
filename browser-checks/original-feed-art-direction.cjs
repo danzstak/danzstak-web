@@ -256,7 +256,7 @@ async function createPortraitVideo(browser) {
 
       assert.equal(errors.length, 0, `${width}px Feed errors: ${errors.join(" | ")}`);
       assert.ok(geometry.bodyClass && geometry.documentWidth <= width, `${width}px Feed overflow or missing scope: ${JSON.stringify(geometry)}`);
-      assert.equal(geometry.brand, "#1769e0");
+      assert.equal(geometry.brand, "#121418");
       assert.equal(geometry.accent, "#ef6c20");
       assert.equal(normalize(geometry.headerBorder), "rgb(239,108,32)");
       assert.ok(geometry.dailyPortrait?.dominatesCard, `${width}px Dailies portrait is too small for its tile: ${JSON.stringify(geometry.dailyPortrait)}`);

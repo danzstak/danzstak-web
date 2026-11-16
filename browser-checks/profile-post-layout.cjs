@@ -149,18 +149,17 @@ function normalized(value) { return String(value || "").replace(/\s+/g, ""); }
       assert.ok(geometry.toolsOneRow && geometry.toolsMeetTarget, `${width}px Profile actions are not one accessible row: ${JSON.stringify(geometry)}`);
       if (width < 560) {
         assert.ok(Math.abs(geometry.edges[0]) <= 1 && Math.abs(geometry.edges[1] - width) <= 1, `${width}px Profile post is not viewport-wide: ${JSON.stringify(geometry)}`);
-        assert.equal(normalized(geometry.canvas), "rgb(240,242,245)");
+        // Owner 2026-11-16: one continuous white wall, tight rhythm, hairline separators (supersedes the 8px grey gaps).
+        assert.equal(normalized(geometry.canvas), "rgb(255,255,255)");
         assert.equal(geometry.profileCardOverflow, "visible", `${width}px Profile shell clips edge-to-edge posts`);
         assert.equal(normalized(geometry.background), "rgb(255,255,255)");
         assert.equal(geometry.radius, "0px");
         assert.equal(geometry.shadow, "none");
-        assert.deepEqual(geometry.padding, ["12px", "16px", "12px", "16px"]);
-        assert.deepEqual(geometry.avatar, [40, 40]);
-        assert.equal(geometry.headerGap, "12px");
-        assert.equal(geometry.mediaMarginTop, "12px");
-        assert.equal(geometry.toolsMarginTop, "12px");
-        assert.deepEqual(geometry.toolsBorder.map(normalized), ["1px", "solid", "rgb(206,208,212)"]);
-        assert.ok(geometry.gap !== null && Math.abs(geometry.gap - 8) <= 1, `${width}px Profile post gap is not 8px: ${geometry.gap}`);
+        assert.deepEqual(geometry.padding, ["10px", "16px", "4px", "16px"]);
+        assert.deepEqual(geometry.avatar, [36, 36]);
+        assert.equal(geometry.headerGap, "8px");
+        assert.equal(geometry.mediaMarginTop, "0px");
+        assert.ok(geometry.gap !== null && Math.abs(geometry.gap) <= 1, `${width}px Profile posts should flow without grey gaps: ${geometry.gap}`);
       }
       await page.screenshot({ path: path.join(output, `profile-${width}.png`), fullPage: width >= 700 });
       if (width < 560) {
