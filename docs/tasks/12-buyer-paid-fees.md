@@ -8,6 +8,14 @@
 - Shipping never carries the 6%.
 - AI EPK still includes one free distribution (task 08).
 
+## How it's described (owner, 2026-11-16)
+- Not "5% + 3.5%": it's one **6% flat fee**. DanzStak pays Stripe's processing fees out of that 6% (+ $1 under $30). Buyers see "6% fee" (and "$1 processing fee" under $30); the app doesn't break out Stripe.
+- The Terms (8A/8B/8C) say plainly where the fee goes: "DanzStak's fee covers payment processing by Stripe and the cost of running the marketplace."
+
+## Sellers and promoters must know (owner, 2026-11-16)
+- Shown when creating a shop or listing, in the event composer when DanzStak ticket sales are turned on, and in the Seller and Promoter Agreement: "Buyers pay your price plus DanzStak's 6% fee ($1 more on orders under $30). You receive your full price plus your shipping. No fees come out of your payout." Plus a live preview: "Buyer pays $X · You get $Y".
+- An email to every existing seller/promoter when the fee change goes live, and a one-time banner in their shop/event dashboard.
+
 ## Build
 1. **One fee function** (server, shared): `buyerFees(subtotalCents) = round(subtotal × 6%) + (subtotal < 3000 ? 100 : 0)`. Replace the interim seller-deducted `marketplaceFeeCents` / `ticket-orders feeCents` (6%, $1 minimum, merged in #353). Payout = subtotal (+ shipping); fee = buyerFees.
 2. **Stripe Checkout**: add a separate line item "DanzStak fee" (6% + $1 where it applies) so the receipt shows it. Verify `amount_total = subtotal + shipping + fees` in every webhook before fulfilling.
