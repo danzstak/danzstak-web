@@ -1,0 +1,60 @@
+/* Owner directive 2026-11-16: feed, Roll and profile media fill the full card width.
+   Aspect comes from the source (set by media-fit.js), clamped 4:5..1.91:1; cover = no bars, no stretch.
+   Loaded last so it wins over older per-surface rules. Fullscreen keeps the whole frame (contain). */
+#feed .post > .danzstak-media-shell,
+#feed .post > .danzstak-native-video-shell,
+#feed .post > .danzstak-native-video-shell[data-video-layout="portrait"]{
+  aspect-ratio:var(--fit-ar,4/5)!important;
+  height:auto!important;
+  overflow:hidden;
+  background:#0b0b0c;
+}
+#feed .post video.post-media,
+video.profile-post-media{
+  display:block;
+  width:100%!important;
+  height:100%!important;
+  max-height:none!important;
+  aspect-ratio:var(--fit-ar,4/5)!important;
+  object-fit:cover!important;
+  object-position:center;
+  background:#0b0b0c;
+}
+#feed .post > img.post-media{
+  width:calc(100% + (var(--post-inline-padding,14px) * 2))!important;
+  max-width:none!important;
+  margin-inline:calc(var(--post-inline-padding,14px) * -1)!important;
+  border-radius:0!important;
+}
+#feed .post > img.post-media,
+img.profile-post-media{
+  display:block;
+  height:auto!important;
+  max-height:none!important;
+  aspect-ratio:var(--fit-ar,auto)!important;
+  object-fit:cover!important;
+  object-position:center;
+}
+
+img.profile-post-media{width:100%!important}
+
+/* The Roll preview cards: same full-width, source-shaped frame as Mix. */
+.reels-rail:not(.roll-fullscreen) .reel-media-stage,
+.reels-rail:not(.roll-fullscreen) .danzstak-reel-shell:has(> video){
+  aspect-ratio:var(--fit-ar,4/5)!important;
+  width:100%!important;
+  height:auto!important;
+  overflow:hidden;
+  background:#0b0b0c;
+}
+.reels-rail:not(.roll-fullscreen) video.reel-player{
+  width:100%!important;
+  height:100%!important;
+  max-height:none!important;
+  aspect-ratio:auto!important;
+  object-fit:cover!important;
+  object-position:center;
+}
+
+/* Fullscreen shows the whole picture. */
+video.post-media:fullscreen,video.profile-post-media:fullscreen,video.reel-player:fullscreen{object-fit:contain!important;aspect-ratio:auto!important;height:100%!important}
