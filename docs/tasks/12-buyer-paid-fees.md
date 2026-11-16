@@ -21,6 +21,12 @@
 - Shown as the main offer on the EPK builder's "Let AI build it" choice and on the Booking Agent for artists with no credits: "Starter: AI EPK + 11 club pitches — $22.20 (incl. fees)".
 - Refunds per 8A: the AI EPK is consumed when the first draft is shown; unused emails follow the credit rules.
 
+## Record stores, radio, press and Tour Manager (owner, 2026-11-16)
+- **One booking email, any target**: the same credit ($1.50, 20 minimum) sends a pitch to a club, a record-store in-store request, a radio on-air or ad/underwriting request, a program-director rotation package, or a zine/press pitch. One product.
+- **Lists are free**: browsing the directory (clubs, record stores, radio, press) and the town plan suggestions costs nothing; artists pay only to send.
+- **Tour Itinerary: a one-off product, $5 per tour** ($6.30 with fees): the full tour book PDF with the Google Maps route, contacts, call times and day sheets, for every band member (task 06). Free for tours with 20+ confirmed shows. The Tour Manager's budget, schedule and in-app shared itinerary stay free. Consumed when the first PDF is generated (8A).
+- Marketing line: "Clubs, record stores, radio, press and a tour manager in one place." Don't claim no one else offers any of it.
+
 ## How it's described (owner, 2026-11-16)
 - Not "5% + 3.5%": it's one **6% flat fee**. DanzStak pays Stripe's processing fees out of that 6% (+ $1 under $30). Buyers see "6% fee" (and "$1 processing fee" under $30); the app doesn't break out Stripe.
 - The Terms (8A/8B/8C) say plainly where the fee goes: "DanzStak's fee covers payment processing by Stripe and the cost of running the marketplace."
