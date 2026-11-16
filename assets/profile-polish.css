@@ -28,3 +28,7 @@
 /* Friends tab: friends, then who is online now. */
 .profile-friends-heading{margin:12px 0 8px;font-size:1rem;font-weight:800}
 .profile-friends-heading:first-child{margin-top:4px}
+.post-share-socials-label{margin:12px 0 6px;font:600 11px/1.3 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#626b78}
+.post-share-socials{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.post-share-social{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border:1px solid #e7e9ee;border-radius:999px;background:#fff;color:#121418;font:inherit;font-weight:700;font-size:13px;text-decoration:none;cursor:pointer}
+.post-share-social:hover,.post-share-social:focus-visible{border-color:#ff5a1f;color:#d9480f;outline:none}
