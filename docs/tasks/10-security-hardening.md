@@ -23,6 +23,14 @@
 9. **security.txt** at `/.well-known/security.txt`, plus a responsible-disclosure page. Later, a bug bounty program (owner's choice of platform).
 10. **External pen test** before doors.
 
+## Attack tests (owner, 2026-11-16: "it really needs to have tests run" against brute force and flood tools like LOIC/HOIC)
+- **Brute force / credential stuffing**: an automated test in CI and against staging fires repeated wrong logins, OTPs and checkout attempts from one account and from many, then asserts 429s, lockout/backoff, an alert, and no account enumeration (same message for unknown user and wrong password).
+- **Flood / DDoS**: put CloudFront in front of the API and site with an AWS WAF web ACL: a rate-based rule per IP, AWS managed rules (common, known-bad-inputs, IP reputation, bot control), and geo/ASN blocks if needed. AWS Shield Standard comes with it. Load-test **staging only** with k6 at a planned rate to prove the limits hold and the site stays up. A real DDoS simulation against AWS only through an AWS-approved testing partner under AWS's DDoS simulation testing policy, never by running LOIC/HOIC ourselves.
+- **App attacks**: an automated scan (OWASP ZAP baseline) of staging on every release, covering XSS, injection, open redirects, IDOR (member A can't read member B's data on every endpoint) and SSRF. The findings feed the pen test.
+
+## At doors open (owner, 2026-11-16)
+Rotate every password and secret: AWS console users, Stripe, GitHub, Zoho, Amplify, SES SMTP, webhook secrets, API keys. Store them only in a password manager (e.g. 1Password or Bitwarden) with 2FA on the manager itself. Nothing goes in chat, docs or the repo. Record in `docs/BREACH-PLAN.md` which secrets exist and where to rotate each (names only, never values).
+
 ## Owner to-dos (can't be done from here)
 - GitHub → danzstak/danzstak-web → Settings → Code security: turn on **Secret scanning**, **Push protection**, **Dependabot alerts** and **Dependabot security updates** (all free on public repos).
 - Turn on 2FA everywhere: GitHub, Stripe, Zoho, Amplify/AWS console users.
