@@ -1007,7 +1007,7 @@
         );
       }
     }
-    notice.textContent = (place.freshness?.label ? `${place.freshness.label}. ` : "") + (place.bookingSuitability === "contact-found"
+    notice.textContent = (place.club?.label && place.club.tier !== "found" ? `${place.club.label}. ` : "") + (place.freshness?.label ? `${place.freshness.label}. ` : "") + (place.bookingSuitability === "contact-found"
       ? "Public contact found. Verify that it books this kind of show; DanzStak has not contacted this location."
       : `Needs research. ${(place.suitabilityReasons || []).join(" ") || "Confirm current programming and find the correct public booking contact."}`);
     if (placeType === "club") {

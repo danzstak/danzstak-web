@@ -290,6 +290,13 @@
       });
       label.append(input); fields.append(label);
     }
+    // Owner 2026-11-16: pay to play is the band's call. Marking it warns other bands (counts only, never who).
+    const payLabel = document.createElement("label"), pay = document.createElement("select");
+    payLabel.append(document.createTextNode("Pay to play?"));
+    pay.setAttribute("aria-label", "Pay to play?");
+    for (const [value, text] of [["", "No"], ["tickets", "Yes: we must sell a ticket quota"], ["fee", "Yes: we must pay the venue"]]) { const option = document.createElement("option"); option.value = value; option.textContent = text; option.selected = String(booking.payToPlay || "") === value; pay.append(option); }
+    pay.addEventListener("change", () => { booking.payToPlay = pay.value; persist(); render(); });
+    payLabel.append(pay); fields.append(payLabel);
     if (["replied", "offer"].includes(pipeline.stageOf(bookingStatus(venue)))) fields.append(dateOptionsField(venue, booking));
     const hint = document.createElement("small");
     hint.textContent = "Save after editing. Cards move one step at a time; sending a pitch and a venue reply move them for you. Confirmed requires a date and written evidence of the promoter's agreement. Played unlocks after the show date.";
@@ -524,7 +531,9 @@
       render();
     });
     const freshnessChip = window.danzstakVenueFreshness?.chip(venue);
-    body.append(stageChip, title, ...(freshnessChip ? [freshnessChip] : []), address, links, note, venueReport(venue));
+    let clubChip = null;
+    if (venue.club?.label) { clubChip = document.createElement("p"); clubChip.className = `venue-club venue-club-${String(venue.club.tier || "found").replace(/[^a-z]/g, "")}`; clubChip.textContent = venue.club.label; }
+    body.append(stageChip, title, ...(freshnessChip ? [freshnessChip] : []), ...(clubChip ? [clubChip] : []), address, links, note, venueReport(venue));
     if (evidence.textContent) address.after(evidence);
     body.append(bookingFields(venue), outreach(venue), remove);
     card.append(body);
