@@ -43,6 +43,7 @@ import {
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import { createMarketplace } from "./marketplace.mjs";
 import { createTicketing } from "./ticketing.mjs";
+import { createPayouts } from "./payouts.mjs";
 import { createPersonalPhoneService } from "./personal-phone-service.mjs";
 import { createPersonalPhoneDynamoAdapter } from "./personal-phone-dynamodb.mjs";
 import { publicPhoneStatus } from "./personal-phone-verification.mjs";
@@ -268,6 +269,23 @@ const ticketing = createTicketing({
 });
 
 const now = () => Math.floor(Date.now() / 1000);
+
+// Marketplace payouts read the same Stripe secret but never depend on the tour-manager webhook setup.
+let payoutKeyPromise = null;
+async function payoutStripeKey() {
+  if (!payoutKeyPromise) payoutKeyPromise = secretsManager.send(new GetSecretValueCommand({ SecretId: stripeSecretName })).then(result => secretText(result, ["STRIPE_SECRET_KEY", "secretKey", "key", "value"])).catch(error => { payoutKeyPromise = null; throw error; });
+  return payoutKeyPromise;
+}
+const payouts = createPayouts({
+  db,
+  commands: { GetItemCommand, PutItemCommand },
+  authenticate: getAuthenticatedUser,
+  corsHeaders,
+  tableName: marketplaceTable,
+  getStripeKey: payoutStripeKey,
+  emailForUser: userId => accountForSub(userId)
+});
+
 
 // Event flyers/videos must live under the organizer's own media prefix.
 async function mediaOwnerPrefixForUser(userId) {
@@ -5070,6 +5088,8 @@ export const handler = async event => {
       if (billingResponse) return billingResponse;
     }
     if (path?.startsWith("/marketplace/")) {
+      const payoutResponse = await payouts(event);
+      if (payoutResponse) return payoutResponse;
       const ticketingResponse = await ticketing(event);
       if (ticketingResponse) return ticketingResponse;
       const marketplaceResponse = await marketplace(event);
