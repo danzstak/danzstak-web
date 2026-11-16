@@ -25,3 +25,5 @@ a{color:var(--ds-brand,#121418)}
 .payouts-row label{display:grid;gap:4px;font-size:13px;font-weight:600}
 .payouts-row select{min-height:44px}
 .payouts-start{min-height:44px;padding:0 16px;border-radius:999px;background:#121418;color:#fff;font-weight:800;border:0}
+/* Task 12: one-time fee-change banner for sellers and promoters. */
+.fee-change-banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 16px;padding:10px 12px;border-left:3px solid #ff5a1f;background:#fff7f2;color:#172033}.fee-change-banner p{margin:0;flex:1 1 220px;font-size:.92rem;line-height:1.4}.fee-change-close{min-height:44px;padding:0 14px}

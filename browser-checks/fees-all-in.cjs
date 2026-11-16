@@ -25,6 +25,7 @@ function payload(pathname) {
   if (pathname === "/marketplace/bazaar") return { products };
   if (pathname === `/marketplace/bazaar/${productId}`) return { product: products[0] };
   if (pathname === `/marketplace/events/${eventId}`) return { event };
+  if (pathname === "/marketplace/shop") return { shop: { id: "member-shop", name: "Night Circuit Shop", description: "Records and shirts.", official: false, status: "published", revision: 2, products: [] } };
   return {};
 }
 
@@ -70,6 +71,20 @@ function payload(pathname) {
       assert.equal(await page.locator(".ticket-total").innerText(), "Total $31.80 (incl. $1.80 fees)", `${width}px two tickets reach $30 and drop the $1`);
       await noOverflow("event"); await shot("event-tickets");
 
+      // PR 6: the seller sees the notice, a live "Buyer pays · You get" preview and a one-time banner.
+      await page.goto(`${baseUrl}/store.html?manage=1`, { waitUntil: "domcontentloaded" });
+      const banner = page.locator(".fee-change-banner");
+      await banner.waitFor();
+      assert.match(await banner.innerText(), /Fee change: Buyers pay your price plus DanzStak's 6% fee/);
+      await page.locator("#productPrice").fill("25.00");
+      await page.locator("#productShipping").fill("6.00");
+      assert.equal(await page.locator("#feePreview").innerText(), "Buyer pays $33.50 · You get $31.00", `${width}px shop listing preview`);
+      await noOverflow("shop manager"); await shot("shop-manager");
+      await banner.getByRole("button", { name: "Got it" }).click();
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await page.locator("#feePreview").waitFor();
+      assert.equal(await page.locator(".fee-change-banner").count(), 0, `${width}px the banner shows once`);
+
       await page.goto(`${baseUrl}/booking-selections.html`, { waitUntil: "domcontentloaded" });
       await page.locator("#bookingCreditTotal").filter({ hasText: "emails" }).waitFor();
       assert.equal(await page.locator("#bookingCreditTotal").innerText(), "20 emails: $31.80 (incl. $1.80 fees)", `${width}px picker starts at the 20 minimum`);
@@ -90,7 +105,7 @@ function payload(pathname) {
       assert.equal(errors.length, 0, `${width}px page errors: ${errors.join(" | ")}`);
       await context.close();
     }
-    console.log(`All-in price browser checks passed at ${widths.join(", ")}px: Bazaar cards, product page, event tiers and ticket total, booking-email picker and purchase dialog.`);
+    console.log(`All-in price browser checks passed at ${widths.join(", ")}px: Bazaar cards, product page, event tiers and ticket total, booking-email picker, purchase dialog and the seller notice.`);
   } finally {
     await browser.close();
   }

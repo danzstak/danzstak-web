@@ -4,6 +4,7 @@
   const params = new URLSearchParams(location.search);
   const memberId = params.get("member") || "";
   const managing = params.get("manage") === "1";
+  if (managing) window.DanzStakFees?.feeChangeBanner(document.getElementById("shopManager"));
   const byId = id => document.getElementById(id);
   const products = byId("storeProducts"), status = byId("storeStatus"), manager = byId("shopManager"), productManager = byId("productManager");
   let currentShop = null;
@@ -32,7 +33,8 @@
   }
   function updateFeePreview() {
     const price = cents(byId("productPrice").value);
-    byId("feePreview").textContent = price === null ? "Enter an item price" : `${money(price >= 3000 ? Math.round(price * 0.06) : Math.min(price, Math.max(100, Math.round(price * 0.06))))} on this item (6%, Stripe fees included; $1 minimum under $30)`;
+    const shipping = cents(byId("productShipping").value) ?? 0, fees = window.DanzStakFees;
+    byId("feePreview").textContent = price === null ? "Enter an item price" : fees ? fees.payoutPreview(price, shipping) : `You get ${money(price + shipping)}`;
   }
   function node(tag, text = "", className = "") { const item = document.createElement(tag); item.textContent = text; if (className) item.className = className; return item; }
 
@@ -98,7 +100,7 @@
     catch(error){status.textContent=error.message;}
   });
   byId("cancelProductEdit").addEventListener("click",resetProductForm);
-  byId("productPrice").addEventListener("input",updateFeePreview);
+  byId("productPrice").addEventListener("input",updateFeePreview); byId("productShipping").addEventListener("input",updateFeePreview);
   updateFeePreview();
   load();
 })();

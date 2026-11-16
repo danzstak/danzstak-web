@@ -96,6 +96,7 @@
     if (event.organizerId) {
       // The promoter sees payout status and the door list instead of buy buttons.
       const holder = el("div", { className: "event-payouts" }); tiers.before(holder);
+      window.DanzStakFees?.feeChangeBanner(holder.parentElement, window.DanzStakFees.PROMOTER_NOTICE);
       window.danzstakRenderPayouts?.(holder, "event");
       doorList(tiers, event);
       return;
