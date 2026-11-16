@@ -56,3 +56,10 @@ console.log("Natural-language brief checks passed.");
   assert.match(ui, /\(one way\)/);
   console.log("Music-city snapping and one-way calendar checks passed.");
 }
+{
+  const server = fs.readFileSync(require("node:path").join(__dirname, "infrastructure/auth-api/index.mjs"), "utf8");
+  assert.doesNotMatch(server, /return unique\.slice\(0, 8\);/, "route markets must not be cut to the 8 nearest the start");
+  assert.match(server, /const picked = new Set\(\[0, unique\.length - 1\]\);/, "the far end of the route is always kept");
+  assert.match(server, /nearestMusicCity\(position, 100\)/);
+  console.log("Whole-route market spread checks passed.");
+}
