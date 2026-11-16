@@ -14,6 +14,13 @@
 - Server: `MIN_CREDITS_PER_CHECKOUT = 20`, enforced in checkout creation and webhook validation; the UI copy says "Minimum 20 pitches".
 - The AI EPK's free distribution (task 08) is separate and doesn't count toward the 20.
 
+## Starter: AI EPK + 11 club emails for $22.20 (owner, 2026-11-16)
+- One-off purchase for new artists: **AI EPK ($5) + 10 booking emails ($15) = $20.00 + 6% ($1.20) + $1 = $22.20**. Includes the AI EPK's free distribution, so the artist gets **11 club emails**.
+- This is the only way to buy fewer than 20 booking emails. After the Starter, booking emails are 20 minimum ($31.80).
+- One Starter per account. The emails stay on the account and are sent whenever the artist wants (not all at once), consumed one per pitch.
+- Shown as the main offer on the EPK builder's "Let AI build it" choice and on the Booking Agent for artists with no credits: "Starter: AI EPK + 11 club pitches — $22.20 (incl. fees)".
+- Refunds per 8A: the AI EPK is consumed when the first draft is shown; unused emails follow the credit rules.
+
 ## How it's described (owner, 2026-11-16)
 - Not "5% + 3.5%": it's one **6% flat fee**. DanzStak pays Stripe's processing fees out of that 6% (+ $1 under $30). Buyers see "6% fee" (and "$1 processing fee" under $30); the app doesn't break out Stripe.
 - The Terms (8A/8B/8C) say plainly where the fee goes: "DanzStak's fee covers payment processing by Stripe and the cost of running the marketplace."
