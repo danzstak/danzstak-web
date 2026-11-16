@@ -8,12 +8,18 @@ const ID = /^[a-f0-9-]{36}$/i;
 const MEMBER = /^[A-Za-z0-9_-]{8,128}$/;
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I/L — readable at a club door
 export const MAX_TICKETS_PER_ORDER = 10;
-export const DANZSTAK_FEE_RATE = 0.05;
+export const DANZSTAK_FEE_RATE = 0.06; // owner 2026-11-16: 6% includes Stripe processing; $1 minimum per order
+export const DANZSTAK_FEE_MIN_CENTS = 100; // waived on orders of $30 and up (owner 2026-11-16)
+export const DANZSTAK_FEE_MIN_WAIVED_FROM_CENTS = 3000;
 export const PROBLEM_WINDOW_DAYS = 3;
 const APP = "https://danzstak.com";
 
 export function ticketCode(bytes = randomBytes(8)) { let out = ""; for (const b of bytes) out += CODE_ALPHABET[b % CODE_ALPHABET.length]; return out.slice(0, 4) + "-" + out.slice(4, 8); }
-export function feeCents(subtotal) { return Math.round(subtotal * DANZSTAK_FEE_RATE); }
+export function feeCents(subtotal) {
+  if (!(subtotal > 0)) return 0;
+  const pct = Math.round(subtotal * DANZSTAK_FEE_RATE);
+  return subtotal >= DANZSTAK_FEE_MIN_WAIVED_FROM_CENTS ? pct : Math.min(subtotal, Math.max(DANZSTAK_FEE_MIN_CENTS, pct));
+}
 export function cleanName(value) { const name = String(value || "").replace(/\s+/g, " ").trim(); return name.length >= 2 && name.length <= 100 && /^[\p{L}\p{M}' .,-]+$/u.test(name) ? name : null; }
 export function releaseAfter(event) { const base = new Date(event.endsAt || event.startsAt); return new Date(base.getTime() + PROBLEM_WINDOW_DAYS * 86400000).toISOString(); }
 

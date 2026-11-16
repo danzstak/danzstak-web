@@ -150,7 +150,11 @@ function hasInflatedShipping(body) {
 export function marketplaceFeeCents(subtotalCents) {
   const subtotal = positiveInteger(subtotalCents, 0, Number.MAX_SAFE_INTEGER);
   if (subtotal === null) throw new TypeError("Subtotal must be integer cents");
-  return Math.round(subtotal * 5 / 100);
+  // Owner 2026-11-16: 6% of the item price (never shipping), Stripe processing included, $1 minimum per order.
+  // The $1 minimum is waived on orders of $30 and up.
+  if (subtotal <= 0) return 0;
+  const pct = Math.round(subtotal * 6 / 100);
+  return subtotal >= 3000 ? pct : Math.min(subtotal, Math.max(100, pct));
 }
 
 export function createMarketplace({ db, commands, authenticate, corsHeaders, tableName, env = process.env, clock = Date.now }) {

@@ -53,7 +53,7 @@
             <label>Stock<input id="productInventory" type="number" min="0" max="99999" step="1" required></label>
           </div>
           <label>Listing status<select id="productStatus"><option value="draft">Draft</option><option value="published">Published</option><option value="sold_out">Sold out</option></select></label>
-          <aside class="fee-preview" aria-live="polite"><strong>DanzStak marketplace fee</strong><span id="feePreview">Enter an item price</span><small>Exactly 5% of the item price. Shipping is excluded.</small></aside>
+          <aside class="fee-preview" aria-live="polite"><strong>DanzStak marketplace fee</strong><span id="feePreview">Enter an item price</span><small>6% of the item price, Stripe fees included ($1 minimum on orders under $30). Shipping is excluded.</small></aside>
           <div class="form-actions"><button type="submit">Save product</button><button id="cancelProductEdit" type="button" class="store-secondary-action" hidden>Cancel edit</button></div>
         </form>
       </div>
@@ -68,7 +68,7 @@
     <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1"></a>
   </nav>
   <script src="assets/icon-buttons.js?v=13" defer></script>
-  <script src="assets/store.js?v=4" defer></script>
+  <script src="assets/store.js?v=5" defer></script>
   <script src="assets/payouts.js?v=1" defer></script>
 </body>
 </html>

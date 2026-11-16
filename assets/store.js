@@ -32,7 +32,7 @@
   }
   function updateFeePreview() {
     const price = cents(byId("productPrice").value);
-    byId("feePreview").textContent = price === null ? "Enter an item price" : `${money(Math.round(price * 0.05))} on this item`;
+    byId("feePreview").textContent = price === null ? "Enter an item price" : `${money(price >= 3000 ? Math.round(price * 0.06) : Math.min(price, Math.max(100, Math.round(price * 0.06))))} on this item (6%, Stripe fees included; $1 minimum under $30)`;
   }
   function node(tag, text = "", className = "") { const item = document.createElement(tag); item.textContent = text; if (className) item.className = className; return item; }
 

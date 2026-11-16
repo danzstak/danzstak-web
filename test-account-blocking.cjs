@@ -56,6 +56,6 @@ for (const language of expectedLanguages) {
 
 assert.match(feed, /assets\/feed-enhancements\.css\?v=518/);
 assert.match(feed, /assets\/i18n\.js\?v=405/);
-assert.match(feed, /assets\/feed-enhancements\.js\?v=558/);
+assert.match(feed, /assets\/feed-enhancements\.js\?v=559/);
 
 console.log("Account-blocking checks passed: atomic ownership, discovery/contact denial, feed/media filtering, Settings recovery, privacy, localization, and mobile controls.");
