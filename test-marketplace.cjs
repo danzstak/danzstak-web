@@ -69,8 +69,11 @@ const fs = require("node:fs");
   const event = (method, path, body, origin = "https://danzstak.com") => ({ requestContext: { http: { method } }, rawPath: path, headers: { origin }, body: body === undefined ? "" : JSON.stringify(body) });
   const bodyOf = result => JSON.parse(result.body);
 
-  assert.equal(marketplaceFeeCents(100), 5);
-  assert.equal(marketplaceFeeCents(1_999), 100, "5% fee rounds to integer cents on the server");
+  assert.equal(marketplaceFeeCents(100), 100, "$1 minimum applies to a $1 item");
+  assert.equal(marketplaceFeeCents(1_999), 120, "6% fee rounds to integer cents on the server");
+  assert.equal(marketplaceFeeCents(1_000), 100, "$1 minimum fee per order");
+  assert.equal(marketplaceFeeCents(50), 50, "fee never exceeds the item price");
+  assert.equal(marketplaceFeeCents(3_000), 180, "orders of $30+ pay plain 6%");
   assert.throws(() => marketplaceFeeCents(12.5), /integer cents/);
 
   const missing = await service(event("GET", "/marketplace/shop/artist_12345678"));
@@ -94,13 +97,13 @@ const fs = require("node:fs");
   const product = bodyOf(created).product;
   assert.equal(product.available, true);
   assert.equal(product.inventory, 12);
-  assert.equal(product.danzstakFeeCents, 125, "DanzStak earns 5% of item price only");
+  assert.equal(product.danzstakFeeCents, 150, "DanzStak earns 6% of item price only");
 
   const bazaar = bodyOf(await service(event("GET", "/marketplace/bazaar")));
   assert.equal(bazaar.products.length, 1);
   assert.equal(bazaar.products[0].shopName, "Eroticon Records");
   assert.equal(bazaar.products[0].shippingCents, 500);
-  assert.equal(bazaar.products[0].danzstakFeeCents, 125);
+  assert.equal(bazaar.products[0].danzstakFeeCents, 150);
   const bazaarProduct = bodyOf(await service(event("GET", `/marketplace/bazaar/${product.id}`))).product;
   assert.equal(bazaarProduct.memberId, "artist_12345678");
 
@@ -141,5 +144,5 @@ const fs = require("node:fs");
   assert.equal(publicOfficialStore.statusCode, 200);
   assert.equal(bodyOf(publicOfficialStore).shop.products.length, 1);
 
-  console.log("Marketplace catalog checks passed: Bazaar projection, one member shop, official-store authorization, physical-only products, shipping-abuse blocking, safe public views, inventory, optimistic edits and exact item-only 5% fee math.");
+  console.log("Marketplace catalog checks passed: Bazaar projection, one member shop, official-store authorization, physical-only products, shipping-abuse blocking, safe public views, inventory, optimistic edits and exact item-only 6% fee math ($1 minimum).");
 })().catch(error => { console.error(error); process.exit(1); });

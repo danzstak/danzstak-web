@@ -1931,7 +1931,7 @@ function renderWorkspace(name) {
     ticketLabel.className = "event-certification";
     const ticketSales = document.createElement("input");
     ticketSales.type = "checkbox";
-    ticketLabel.append(ticketSales, document.createTextNode("Sell tickets on DanzStak (you set the price; DanzStak keeps 5%)"));
+    ticketLabel.append(ticketSales, document.createTextNode("Sell tickets on DanzStak (you set the price; DanzStak keeps 6%, Stripe fees included)"));
     const ticketFields = document.createElement("div");
     ticketFields.className = "event-ticket-fields";
     ticketFields.hidden = true;
@@ -1940,7 +1940,7 @@ function renderWorkspace(name) {
     ticketPrice.input.inputMode = "decimal";
     const ticketTerms = document.createElement("p");
     ticketTerms.className = "event-ticket-terms";
-    ticketTerms.textContent = "Buyers pay your price, no added fees. DanzStak's 5% and Stripe's fee come out of your payout after the show.";
+    ticketTerms.textContent = "Buyers pay your price, no added fees. DanzStak's 6% fee (Stripe fees included; $1 minimum on orders under $30) comes out of your payout after the show.";
     const ticketTermsLink = Object.assign(document.createElement("a"), { href: "terms.html#tickets", target: "_blank", rel: "noopener", textContent: "Ticket terms" });
     ticketTerms.append(" ", ticketTermsLink);
     // Owner directive 2026-11-16: scalping protection is ON by default; promoters may turn it off (e.g. punk venues).
