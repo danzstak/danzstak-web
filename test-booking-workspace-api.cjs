@@ -114,5 +114,11 @@ const request = (method, body, origin='https://danzstak.com') => context.booking
   const before = calls.length, noDates = await request('POST',{action:'route_dates'});
   assert.equal(noDates.statusCode,400); assert.match(JSON.parse(noDates.body).error,/departure and return dates/);
   assert.ok(calls.slice(before).every(call => !call.Item),'the date picker never writes');
+  // A real ISO discovery time survives a save; junk is dropped.
+  stored={userId:{S:'owner-a'},tourId:{S:'booking-workspace-v1'},revision:{S:'ts1'},plan:{S:JSON.stringify({venues:[],artist:{},tour:{}})}};
+  assert.equal((await request('POST',{revision:'ts1',artist:{},tour:{},venues:[{name:'Kept Time',discoveredAt:'2026-11-09T12:30:00.000Z',booking:{}},{name:'Bad Time',discoveredAt:'2026-11T12:30:00Z',booking:{}}]})).statusCode,200);
+  const timed = JSON.parse(calls.at(-1).Item.plan.S).venues;
+  assert.equal(timed[0].discoveredAt,'2026-11-09T12:30:00.000Z','discoveredAt is kept on save');
+  assert.equal(timed[1].discoveredAt,'','a malformed time is dropped');
   console.log('Booking workspace API checks passed: pipeline stages from real events, no backward moves, account isolation, identity preservation, origins, validation, bounded records, and conflict protection.');
 })().catch(error => {console.error(error);process.exitCode=1;});
