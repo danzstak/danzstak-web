@@ -3,11 +3,12 @@
  const tracked=new Set(),visible=new WeakMap(),ratios=new WeakMap(),manualPlayback=new WeakSet();
  let activeMedia=null,audibleMedia=null,sessionRoot=null,sessionSound=false,sessionDirection=1,sessionScrollTop=0,sessionFrame=0;
  const soundEnabled=()=>Boolean(audibleMedia);
- const mutedAutoplayEnabled=()=>{try{return localStorage.getItem('danzstak_muted_autoplay')==='on';}catch{return false;}};
+ // Owner 2026-11-16: muted autoplay is ON by default (a member can set danzstak_muted_autoplay=off; data saver also stops it).
+ const mutedAutoplayEnabled=()=>{try{return localStorage.getItem('danzstak_muted_autoplay')!=='off';}catch{return true;}};
  let applyingSound=false;
  const isYouTubeFrame=element=>element?.tagName==='IFRAME'&&element.src?.includes('youtube-nocookie.com/embed/');
  const inSession=element=>Boolean(sessionRoot&&element&&sessionRoot.contains(element));
- const thresholdFor=element=>inSession(element)?0.5:0.6;
+ const thresholdFor=()=>0.5; // plays at 50% visible; stops once more than 50% has scrolled out of frame
  function controlYouTube(frame,command){
   if(!isYouTubeFrame(frame)||!frame.contentWindow)return;
   try{frame.contentWindow.postMessage(JSON.stringify({event:'command',func:command,args:[]}), 'https://www.youtube-nocookie.com');}catch{}

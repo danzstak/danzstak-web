@@ -38,7 +38,7 @@ const document = {
   createElement: () => ({ handlers: {}, dataset: {}, setAttribute() {}, addEventListener(name, handler) { this.handlers[name] = handler; }, replaceWith(next) { this.replacement = next; next.isConnected = true; } })
 };
 const context = {
-  document, localStorage: { getItem: () => null }, requestAnimationFrame: handler => handler(),
+  document, localStorage: { getItem: key => key === "danzstak_muted_autoplay" ? "off" : null }, requestAnimationFrame: handler => handler(),
   IntersectionObserver: class { constructor(handler) { intersect = handler; } observe(item) { seen.push(item); } unobserve(item) { unseen.push(item); } },
   MutationObserver: class { constructor(handler) { mutations = handler; } observe() {} },
   addEventListener() {}, dispatchEvent() {}
@@ -72,9 +72,9 @@ assert.equal(video.loads, 1, "only a sufficiently visible feed video begins load
 assert.equal(video.plays, 0, "visibility alone must not start playback");
 
 video.paused = false; video.emit("pointerdown"); video.emit("play");
-assert.equal(video.pauses, 1, "an explicit play at 60% visibility or greater is allowed");
-intersect([{ target: video, isIntersecting: true, intersectionRatio: 0.59 }]);
-assert.equal(video.pauses, 2, "a playing video pauses as soon as it falls below 60% visibility");
+assert.equal(video.pauses, 1, "an explicit play at 50% visibility or greater is allowed");
+intersect([{ target: video, isIntersecting: true, intersectionRatio: 0.49 }]);
+assert.equal(video.pauses, 2, "a playing video pauses once more than 50% is out of frame");
 
 intersect([{ target: video, isIntersecting: true, intersectionRatio: 0.8 }]);
 video.paused = true;

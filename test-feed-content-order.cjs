@@ -27,7 +27,7 @@ assert.match(
 );
 assert.match(enhancements, /video\.autoplay = false;/, "The Roll videos must require explicit playback instead of starting when the app opens");
 assert.match(enhancements, /video\.muted = true;/, "autoplay videos must be muted for browser compatibility");
-assert.match(mediaVisibility, /const thresholdFor=element=>inSession\(element\)\?0\.5:0\.6/, "the feed must require 60% visibility while fullscreen Roll handoff occurs at exactly 50%");
+assert.match(mediaVisibility, /const thresholdFor=\(\)=>0\.5;/, "feed and Roll hand off playback at exactly 50% visibility (owner 2026-11-16)");
 assert.match(enhancements, /danzstakMediaCoordinator\?\.startSession\?\./, "fullscreen Roll playback must use the shared single-player coordinator");
 assert.match(enhancements, /Videos shared to The Roll will appear here\./, "The Roll needs a visible empty-state placeholder");
 assert.match(feedHtml, /video\.post-media \{ height:auto; max-height:none; object-fit:contain; object-position:center center; \}/, "the post box should follow and center each video's real aspect ratio");
