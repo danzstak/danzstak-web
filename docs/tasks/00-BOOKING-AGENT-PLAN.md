@@ -90,3 +90,6 @@ Building an EPK by hand is **free**. An **AI-built EPK costs $5**, and the band 
 - **Fans, after work**: a **Tonight / this week** card: shows near you tonight, friends going, artists you follow in town, in-stores and listening parties. Tickets are one tap away.
 - Earn the open with real usefulness, not engagement-bait: no streaks, no "you're missing out", no fake urgency, chronological only (CLAUDE.md). One optional daily digest notification, off by default, that the member turns on.
 - Everyone still lands in Mix (nav directive 2026-11-15). The band's Music HQ summary and the fan's Tonight card show as one compact card at the top of Mix, tapping through to Music HQ / Events.
+
+## Tell artists up front (owner, 2026-11-16)
+Artists learn before they reach the agent that a ready EPK comes first: in the Music HQ booking card, during artist signup ("Step 1: your EPK. Step 2: the agent books you."), and on the EPK builder's finish screen ("Your EPK is ready — start booking"). Tagline: **"Get it together to keep it together."** Show a short EPK checklist with progress (e.g. 4 of 6 done).
