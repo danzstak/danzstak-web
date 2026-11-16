@@ -4230,12 +4230,13 @@ async function validatedEpkMedia(media) {
     catch { throw Object.assign(new Error(`Uploaded file not found: ${item.name}`), { statusCode: 422 }); }
     const size = Number(head.ContentLength || 0), contentType = String(head.ContentType || "").toLowerCase();
     const image = /\.(jpg|png|webp)$/.test(item.key), allowedType = image ? /^image\/(jpeg|png|webp)$/.test(contentType) : contentType === "application/pdf";
-    const maximum = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
+    // Owner 2026-11-16: some riders and press kits are huge; PDFs up to 50 MB.
+    const maximum = image ? 12 * 1024 * 1024 : 50 * 1024 * 1024;
     if (!allowedType || size <= 0 || size > maximum) throw Object.assign(new Error(`${item.name} has an unsupported type or size.`), { statusCode: 422 });
     total += size;
     item.contentType = contentType; item.size = size;
   }
-  if (total > 100 * 1024 * 1024) throw Object.assign(new Error("EPK media exceeds the 100 MB account quota."), { statusCode: 413 });
+  if (total > 250 * 1024 * 1024) throw Object.assign(new Error("EPK media exceeds the 250 MB account quota."), { statusCode: 413 });
   return media;
 }
 

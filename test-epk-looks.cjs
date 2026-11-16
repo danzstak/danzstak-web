@@ -14,7 +14,7 @@ function contrast(first, second) {
 assert.match(html, /id="epkLook"[\s\S]*value="techno"[\s\S]*value="punk"[\s\S]*value="metal"[\s\S]*value="house"/);
 assert.match(html, /Change the look any time[\s\S]*stay intact/);
 assert.match(html, /assets\/epk-looks\.css\?v=1/);
-assert.match(html, /assets\/epk\.js\?v=23/);
+assert.match(html, /assets\/epk\.js\?v=24/);
 assert.match(client, /look: epkLooks\.has\(byId\("epkLook"\)\.value\)/);
 assert.match(client, /preview\.dataset\.look = look/);
 assert.match(client, /byId\("epkLook"\)\.value = epkLooks\.has\(kit\.look\)/);

@@ -18,4 +18,10 @@ assert.match(epk, /item\.classList\.toggle\("is-current", current\)/);
 assert.match(epk, /setAttribute\("aria-current", "step"\)/);
 assert.match(laminate, /\^https:\\\/\\\//, "laminate photo accepts only https image URLs");
 assert.match(worker, /"\/assets\/epk-skin\.css", "\/assets\/epk-laminate\.js"/);
+// Owner 2026-11-16: upload riders and plots instead of retyping them; some files are huge.
+for (const role of ["technical-rider", "stage-plot", "hospitality-rider"]) assert.match(html, new RegExp(`data-rider-slot="${role}"[\\s\\S]*?<input type="file" accept="application/pdf,image/jpeg,image/png,image/webp">`));
+assert.match(html, /<details class="epk-type-instead" id="epkTypeInstead">/);
+assert.match(epk, /const riderSlots = \[\["technical-rider","publicTechnical"\]/);
+assert.match(epk, /application\/pdf" \? 50 \* 1024 \* 1024/);
+assert.match(read("infrastructure/auth-api/index.mjs"), /const maximum = image \? 12 \* 1024 \* 1024 : 50 \* 1024 \* 1024;/);
 console.log("EPK builder skin checks passed.");

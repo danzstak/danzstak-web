@@ -15,7 +15,7 @@ assert.match(html, /<dialog id="epkQrDialog"[^>]*aria-labelledby="epkQrTitle"/);
 assert.match(html, /id="epkQrImage"[^>]*alt="QR code for this EPK link"/);
 assert.match(html, /id="downloadEpkQr"[^>]*download=/);
 assert.match(html, /assets\/epk\.css\?v=10/);
-assert.match(html, /assets\/epk\.js\?v=23/);
+assert.match(html, /assets\/epk\.js\?v=24/);
 assert.match(client, /new URL\("https:\/\/danzstak\.com\/epk\.html"\)/);
 assert.match(client, /\/epk\/qr[^\n]*method:"POST"/);
 assert.match(client, /new Blob\(\[svg\], \{ type:"image\/svg\+xml" \}\)/);
