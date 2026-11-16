@@ -65,6 +65,8 @@
     ,"laminate": ["M6 4h12v17H6Z", "M10 7h4", "M12 1v3", "m9 14 2 2 4-4"]
     ,"rewind": ["M11 6 4 12l7 6Z", "M20 6l-7 6 7 6Z"]
     ,"eject": ["M12 5 4 14h16Z", "M4 18h16"]
+    ,"plus": ["M12 5v14", "M5 12h14"]
+    ,"chevron-down": ["m6 9 6 6 6-6"]
   };
   const labels = new Map([
     ["open full screen", "expand"], ["open fullscreen", "expand"], ["exit full screen", "minimize"], ["exit fullscreen", "minimize"],
