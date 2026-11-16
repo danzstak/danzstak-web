@@ -3384,8 +3384,12 @@ function nearestMusicCity(position, maxMiles = 75) {
   return bestMiles <= maxMiles ? best : null;
 }
 async function reverseGeocodeTourMarket(position) {
-  const musicCity = nearestMusicCity(position);
+  const musicCity = nearestMusicCity(position, 100);
   if (musicCity) return musicCity;
+  // Inside the continental US with no music city within 100 miles: that stretch is a drive day, not a
+  // booking market (owner 2026-11-16: "Wauneta" was proposed on Salt Lake → Detroit).
+  const [lng, lat] = position.map(Number);
+  if (lng > -125 && lng < -66 && lat > 24 && lat < 49.5) return null;
   try {
     const result = await geoPlaces.send(new ReverseGeocodeCommand({
       QueryPosition: position,
@@ -3445,7 +3449,15 @@ async function discoverRouteMarkets(route, allRoutePoints, requestedDays, reques
     }
     unique.push(market);
   }
-  return unique.slice(0, 8);
+  // Spread the kept markets across the WHOLE route (owner 2026-11-16: Salt Lake → Detroit stopped at Iowa City
+  // because the first 8 markets near the start were kept). Always keep the requested stops and the far end.
+  const keep = Math.max(8, desired);
+  if (unique.length <= keep) return unique;
+  const explicitKeys = new Set(explicitMarkets.map(market => market.label.split(",")[0].trim().toLowerCase()));
+  const picked = new Set([0, unique.length - 1]);
+  unique.forEach((market, index) => { if (explicitKeys.has(market.label.split(",")[0].trim().toLowerCase())) picked.add(index); });
+  for (let slot = 1; picked.size < keep && slot < keep; slot += 1) picked.add(Math.round((slot * (unique.length - 1)) / (keep - 1)));
+  return [...picked].sort((left, right) => left - right).map(index => unique[index]);
 }
 
 // Any north–south West Coast run (e.g. Bellingham → San Diego, owner test 2026-11-16) uses the
