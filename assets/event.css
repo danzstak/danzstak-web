@@ -2,3 +2,31 @@
 .event-media img,.event-media video{display:block;width:100%;max-height:70vh;object-fit:contain;border-radius:10px;background:#0b0b0c;margin:0 0 12px}
 .event-outside-tickets{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:8px;background:#ff5a1f;color:#0b0b0c;font-weight:700;text-decoration:none}.event-outside-note{font-size:.85rem;opacity:.8}
 .event-named-note{font-size:.88rem;padding:8px 10px;border-left:3px solid #ff5a1f}
+
+/* Ticket checkout, your tickets, door list */
+.ticket-buy{display:grid;gap:8px;margin-top:8px}
+.ticket-qty{display:flex;align-items:center;gap:8px;font-weight:600}
+.ticket-qty select,.ticket-names input,.door-list input[type=search]{min-height:44px;padding:0 10px;border:1px solid #d0d5dd;border-radius:8px;font:inherit}
+.ticket-names{display:grid;gap:6px}
+.ticket-names label{display:grid;gap:4px;font-size:13px;font-weight:600}
+.ticket-total{margin:0;font-weight:700}
+.ticket-buy-button,.door-print{min-height:44px;border:0;border-radius:999px;background:#121418;color:#fff;font-weight:800;font-size:15px}
+.ticket-order{margin:12px 0;padding:12px 16px;border-left:3px solid #ff5a1f;background:#fff}
+.ticket-stub{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px dashed #999}
+.ticket-stub strong{font:700 20px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.04em}
+.door-list{margin-top:16px}
+.door-rows{list-style:none;margin:8px 0;padding:0}
+.door-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #ececE8}
+.door-code{font:700 15px "JetBrains Mono",ui-monospace,monospace}
+.door-row button{min-height:40px;padding:0 12px;border-radius:999px;border:1px solid #121418;background:#fff;font-weight:700}
+.door-row.is-checked_in{opacity:.6}
+.payouts-card{margin:0 0 16px;padding:14px 16px;border-left:3px solid #ff5a1f;background:#fff}
+.payouts-card h2{margin:0 0 4px;font-size:17px}
+.payouts-card[data-status=active]{border-left-color:#1f9d55}
+.payouts-note{margin:0 0 8px;color:#344054;font-size:14px;line-height:1.4}
+.payouts-testing{margin:0 0 8px;font:600 11px/1.3 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#d9480f}
+.payouts-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.payouts-row label{display:grid;gap:4px;font-size:13px;font-weight:600}
+.payouts-row select{min-height:44px}
+.payouts-start{min-height:44px;padding:0 16px;border-radius:999px;background:#121418;color:#fff;font-weight:800;border:0}
+@media print{header,nav,.ticket-tier,.door-print,.door-list input,.event-payouts,#eventMedia{display:none!important}.door-row button{display:none}}
