@@ -44,6 +44,7 @@ import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import { createMarketplace } from "./marketplace.mjs";
 import { createTicketing } from "./ticketing.mjs";
 import { createPayouts } from "./payouts.mjs";
+import { createTicketOrders } from "./ticket-orders.mjs";
 import { createPersonalPhoneService } from "./personal-phone-service.mjs";
 import { createPersonalPhoneDynamoAdapter } from "./personal-phone-dynamodb.mjs";
 import { publicPhoneStatus } from "./personal-phone-verification.mjs";
@@ -276,6 +277,38 @@ async function payoutStripeKey() {
   if (!payoutKeyPromise) payoutKeyPromise = secretsManager.send(new GetSecretValueCommand({ SecretId: stripeSecretName })).then(result => secretText(result, ["STRIPE_SECRET_KEY", "secretKey", "key", "value"])).catch(error => { payoutKeyPromise = null; throw error; });
   return payoutKeyPromise;
 }
+const marketplaceWebhookSecretName = process.env.MARKETPLACE_WEBHOOK_SECRET_NAME || "danzstak/stripe/marketplace-webhook-secret";
+let marketplaceWebhookPromise = null;
+async function marketplaceWebhookSecret() {
+  if (!marketplaceWebhookPromise) marketplaceWebhookPromise = secretsManager.send(new GetSecretValueCommand({ SecretId: marketplaceWebhookSecretName })).then(result => secretText(result, ["webhookSecret", "secret", "value"])).catch(() => { marketplaceWebhookPromise = null; return ""; });
+  return marketplaceWebhookPromise;
+}
+const mimeSafe = value => String(value || "").replace(/[\r\n]/g, " ").trim();
+async function sendTicketEmail({ to, event, tier, named, orderId, tickets }) {
+  const when = new Intl.DateTimeFormat("en-US", { dateStyle: "full", timeStyle: "short", timeZone: event.timezone }).format(new Date(event.startsAt));
+  const boundary = "ds-" + randomUUID(), related = "dsr-" + randomUUID();
+  const lines = tickets.map((t, i) => `Ticket ${i + 1}: ${t.code}${t.name ? `  —  ${t.name}` : ""}`).join("\n");
+  const rule = named ? "Named ticket: non-transferable. Bring photo ID that matches the name." : "This ticket is transferable.";
+  const text = `Your tickets for ${event.title}\n${when}\n${event.venue}\n${tier}\n\n${lines}\n\n${rule}\nShow the QR code or tell the door your ticket code.\nOrder ${orderId}\n\nSold through DanzStak. The promoter runs the event.`;
+  const esc = v => String(v || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const html = `<div style="font-family:Arial,sans-serif;color:#121418;max-width:560px"><p style="font:700 12px monospace;letter-spacing:.08em;color:#d9480f;text-transform:uppercase">DanzStak ticket</p><h1 style="margin:0 0 4px">${esc(event.title)}</h1><p style="margin:0">${esc(when)}<br>${esc(event.venue)}<br>${esc(tier)}</p>${tickets.map((t, i) => `<div style="border-top:1px dashed #999;margin-top:16px;padding-top:12px"><img src="cid:qr${i}" width="200" height="200" alt="QR code for ticket ${esc(t.code)}"><p style="font:700 22px monospace;margin:6px 0">${esc(t.code)}</p>${t.name ? `<p style="margin:0">${esc(t.name)}</p>` : ""}</div>`).join("")}<p style="margin-top:16px">${esc(rule)}<br>Show the QR code or tell the door your ticket code.</p><p style="color:#626b78;font-size:12px">Order ${esc(orderId)}. Sold through DanzStak; the promoter runs the event.</p></div>`;
+  const parts = [`From: "DanzStak Tickets" <tickets@danzstak.com>`, `To: ${mimeSafe(to)}`, `Subject: =?UTF-8?B?${Buffer.from(`Your tickets: ${mimeSafe(event.title)}`).toString("base64")}?=`, "MIME-Version: 1.0", `Content-Type: multipart/alternative; boundary="${boundary}"`, "", `--${boundary}`, "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", Buffer.from(text).toString("base64"), `--${boundary}`, `Content-Type: multipart/related; boundary="${related}"`, "", `--${related}`, "Content-Type: text/html; charset=UTF-8", "Content-Transfer-Encoding: base64", "", Buffer.from(html).toString("base64")];
+  tickets.forEach((t, i) => parts.push(`--${related}`, "Content-Type: image/png", "Content-Transfer-Encoding: base64", `Content-ID: <qr${i}>`, `Content-Disposition: inline; filename="ticket-${t.code}.png"`, "", t.qrPng.toString("base64")));
+  parts.push(`--${related}--`, `--${boundary}--`, "");
+  await ses.send(new SendEmailCommand({ ConfigurationSetName: "DanzStakTourManager", Content: { Raw: { Data: Buffer.from(parts.join("\r\n")) } } }));
+}
+const ticketOrders = createTicketOrders({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, UpdateItemCommand, TransactWriteItemsCommand },
+  authenticate: getAuthenticatedUser,
+  corsHeaders,
+  tableName: marketplaceTable,
+  getStripeKey: payoutStripeKey,
+  getWebhookSecret: marketplaceWebhookSecret,
+  emailForUser: userId => accountForSub(userId),
+  sendTicketEmail,
+  renderQr: value => QRCode.toBuffer(value, { type: "png", width: 400, margin: 2, errorCorrectionLevel: "M" })
+});
 const payouts = createPayouts({
   db,
   commands: { GetItemCommand, PutItemCommand },
@@ -5088,6 +5121,8 @@ export const handler = async event => {
       if (billingResponse) return billingResponse;
     }
     if (path?.startsWith("/marketplace/")) {
+      const ticketOrderResponse = await ticketOrders(event);
+      if (ticketOrderResponse) return ticketOrderResponse;
       const payoutResponse = await payouts(event);
       if (payoutResponse) return payoutResponse;
       const ticketingResponse = await ticketing(event);
