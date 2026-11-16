@@ -27,3 +27,8 @@ Owner directives 2026-11-16/17. First job next session.
 ## Also queued
 - Notification when a club or promoter replies to a pitch ("[club] answered your pitch") — booking replies land in SYNC but no push fires today.
 - Owner: delete the root access key in AWS before doors (wiping the PC does not revoke it).
+
+## 14-D Events page: not another HTML form (owner 2026-11-17)
+- Same treatment the EPK builder got (assets/epk-skin.css): DanzStak black/silver/hazard orange, Archivo wide display, mono labels.
+- Creating an event should feel like making a gig poster: a live poster/flyer preview (flyer or 15 s video, headline, date, venue, price) that fills in as the promoter types; ticket options as ticket stubs; one orange primary action (Publish event).
+- Public event page: the poster up top, ticket stub to buy, lineup, venue map link. Phone first, 44 px targets, IT/FR/ES strings.
