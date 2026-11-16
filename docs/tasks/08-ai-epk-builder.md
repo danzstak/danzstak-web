@@ -52,6 +52,7 @@ Create one sandbox product "AI EPK — $5" (and reuse it for redesign with metad
 - Publishing is blocked until the AI-marked sections are reviewed.
 - Screens fax-tested at 320–430 px, plus 768 and 1366.
 
-## Open questions for the owner (Claude Code: ask before building the provider adapters)
-1. AI provider: Anthropic API directly, or Claude on AWS Bedrock (keeps everything in AWS)?
-2. Web search provider (e.g. the Anthropic web-search tool or Brave Search API; avoid Google/Bing as a core dependency).
+## Owner decisions (2026-11-16)
+1. **AI: Claude on Amazon Bedrock** (keeps everything in DanzStak's AWS account). Use the current Claude model available on Bedrock in us-east-1 or us-west-2. Check model access in the Bedrock console and request it if needed. IAM: `bedrock:InvokeModel` on that model only, added to the Lambda role.
+2. **Web search: Brave Search API** (independent index, not Google or Bing). Bedrock's Claude has no built-in web search, so search goes through the Brave adapter. The owner creates the Brave API key and pastes it into AWS Secrets Manager as `danzstak/ai/brave-search-key`. Never commit it or print it. Until the key exists, the "Is this you?" step works from the artist's own links only, and says so.
+Both stay behind the swappable `llm` / `search` adapters.
