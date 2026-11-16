@@ -41,7 +41,7 @@ import {
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
-import { EPK_WORKSPACE_KEY, canMove, epkGate, stageOf, venueEvents, withPipeline } from "./booking-pipeline.mjs";
+import { EPK_WORKSPACE_KEY, canMove, epkGate, pitchStats, stageOf, venueEvents, withPipeline } from "./booking-pipeline.mjs";
 import { VENUE_REPORT_OWNER, cleanReport, freshness, signalFromItem, signalUpdate, sortByFreshness, validSignalVenueKey, venueSignalKey } from "./booking-venue-signals.mjs";
 import { createMarketplace } from "./marketplace.mjs";
 import { createTicketing } from "./ticketing.mjs";
@@ -4753,6 +4753,14 @@ async function bookingSendItems(userId) {
   return result.Items || [];
 }
 const sentEmailCount = items => items.filter(item => item.status?.S === "sent").length;
+// Pitches whose private EPK link was opened at least once (artist stats, task 07-C). A read failure only hides the number.
+async function openedOutreachIds(userId) {
+  try {
+    const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: epkOutreachPrefix } }, ProjectionExpression: "tourId, openCount", ConsistentRead: true, Limit: 500 }));
+    return new Set((result.Items || []).filter(item => Number(item.openCount?.N || 0) > 0).map(item => item.tourId.S.slice(epkOutreachPrefix.length)));
+  } catch (error) { console.error("EPK opens unavailable:", error.name); return null; }
+}
+const withOpens = (stats, opened) => opened ? stats : { ...stats, opened: null };
 const pipelineVenueId = venue => String(venue?.venueKey || `${venue?.name || ""}|${venue?.address || ""}`);
 // The saved copy is the source of truth for transitions; drop the derived pipeline view before storing.
 const storedVenues = venues => venues.map(({ booking: { pipeline, ...booking } = {}, ...venue }) => ({ ...venue, booking }));
@@ -4769,10 +4777,10 @@ async function bookingWorkspace(event, method) {
       db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true })),
       db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: EPK_WORKSPACE_KEY } }, ConsistentRead: true }))
     ]);
-    const sends = await bookingSendItems(userId), bookingEmailCount = sentEmailCount(sends), epk = epkGate(epkRecord?.Item);
-    if (!result.Item) return reply(200, { venues: [], artist: {}, tour: cleanTourBudget({}), estimate: tourBudgetEstimate(cleanTourBudget({}), bookingEmailCount), revision: "", epk });
+    const [sends, opened] = await Promise.all([bookingSendItems(userId), openedOutreachIds(userId)]), bookingEmailCount = sentEmailCount(sends), epk = epkGate(epkRecord?.Item);
+    if (!result.Item) return reply(200, { venues: [], artist: {}, tour: cleanTourBudget({}), estimate: tourBudgetEstimate(cleanTourBudget({}), bookingEmailCount), revision: "", epk, stats: withOpens(pitchStats(sends, opened || new Set(), []), opened) });
     const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour), venues = await withVenueFreshness(withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(sends)), { sort: false });
-    return reply(200, { ...saved, venues, tour, estimate: tourBudgetEstimate(tour, bookingEmailCount, venues), revision: result.Item.revision?.S || "", epk });
+    return reply(200, { ...saved, venues, tour, estimate: tourBudgetEstimate(tour, bookingEmailCount, venues), revision: result.Item.revision?.S || "", epk, stats: withOpens(pitchStats(sends, opened || new Set(), venues), opened) });
   }
   const data = parseJsonBody(event);
   if (data?.action === "venue_report") return await bookingVenueReport(userId, data, reply);

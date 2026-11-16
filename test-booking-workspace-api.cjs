@@ -29,8 +29,11 @@ const request = (method, body, origin='https://danzstak.com') => context.booking
   authenticated = 'owner-a';
   const empty = JSON.parse((await request('GET')).body);
   assert.deepEqual(empty.venues,[]); assert.deepEqual(empty.artist,{}); assert.equal(empty.revision,''); assert.equal(empty.estimate.bookingEmails,0);
-  assert.equal(calls.at(-2).Key.userId.S,'owner-a');
-  assert.equal(calls.at(-2).ConsistentRead,true);
+  const reads = calls.filter(call => call.Key), opensQuery = calls.find(call => call.ExpressionAttributeValues?.[':prefix']?.S === 'EPK#OUTREACH#');
+  assert.equal(reads.at(-1).Key.userId.S,'owner-a');
+  assert.equal(reads.at(-1).ConsistentRead,true);
+  assert.equal(opensQuery?.ExpressionAttributeValues[':userId'].S,'owner-a', 'EPK opens are read only for the signed-in artist');
+  assert.deepEqual(empty.stats,{sent:0,delivered:0,bounced:0,opened:0,replied:0,booked:0,replyRate:null,bookedRate:null});
   assert.equal((await request('POST',{venues:Array(101).fill({name:'x'}),revision:''})).statusCode,400);
   const body = {revision:'old', artist:{name:'The Act',epk:'javascript:alert(1)'}, venues:[{name:'The Room',websites:['javascript:alert(1)','https://room.example'],booking:{stage:'made-up',showDate:'2026-02-31',notes:'x'.repeat(2500),outreachDraft:'d'.repeat(6000)}}]};
   assert.equal((await request('POST',body)).statusCode,200);
@@ -67,7 +70,7 @@ const request = (method, body, origin='https://danzstak.com') => context.booking
   conflict=false;
   authenticated='owner-b';
   await request('GET');
-  assert.equal(calls.at(-2).Key.userId.S,'owner-b','another account must use its own partition');
+  assert.ok(calls.slice(-4).every(call => (call.Key?.userId ?? call.ExpressionAttributeValues?.[':userId'])?.S === 'owner-b'),'another account must use its own partition');
   // Pipeline stages follow real events: a sent pitch is at least pitched, a venue reply at least replied.
   authenticated='owner-a';
   const pitchedAt='2026-11-01T10:00:00.000Z';
