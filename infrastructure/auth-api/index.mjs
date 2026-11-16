@@ -3982,14 +3982,16 @@ async function planTourRoute(event) {
     const oneWay = data.oneWay === true && !directional;
     let points = directional ? [home, ...suggestedMarkets, home] : await Promise.all((oneWay ? [start, ...stops, end] : [start, ...stops, end, start]).map(value => geocodeTourPlace(value)));
     let route;
-    while (points.length >= 2) {
+    // A one-way tour with no stops has only two points; route it directly (the loop below shortens generated loops).
+    if (points.length === 2) route = await geoRoutes.send(new CalculateRoutesCommand({ Origin: points[0].position, Destination: points[1].position, TravelMode: "Car", LegGeometryFormat: "Simple" }));
+    while (points.length >= 3) {
       try {
         route = await geoRoutes.send(new CalculateRoutesCommand({ Origin: points[0].position, Destination: points.at(-1).position, Waypoints: points.slice(1, -1).map(point => ({ Position: point.position })), TravelMode: "Car", LegGeometryFormat: "Simple" }));
       } catch (error) {
         if (!directional) throw error;
         route = undefined;
       }
-      if (route?.Routes?.[0]?.Summary || !directional || points.length <= 3) break;
+      if (route?.Routes?.[0]?.Summary || !directional || points.length === 3) break;
       points = [...points.slice(0, -2), points.at(-1)];
     }
     const summary = route?.Routes?.[0]?.Summary;
