@@ -57,3 +57,8 @@ Keep this file current at the end of every working session so a new Claude sessi
 - Booking email end-to-end test (who sends the pitch).
 - Recommended: remove the SOL wallet from live Stripe payouts (no crypto payouts per product boundary).
 - Still pending at AWS: SMS approval case for SYNC calls.
+
+## 2026-11-17 (night) — next session starts with docs/tasks/14-promoters-crews-and-city-sweeps.md
+- Live tonight: Booking/EPK/Record Stores/Bazaar/Shop in IT/FR/ES (+ IT/FR/ES tour briefs), one-gig plans, one-way tours reach the end city, long drives get a travel day, EPK laminate look + rider/stage-plot upload (PDF 50 MB), club database (saving), promoter search + contact reader (weak results; AI reader next).
+- Owner did: club database IAM policy, Brave key on both Lambdas.
+- Owner to do: delete the AWS root access key used on his PC.
