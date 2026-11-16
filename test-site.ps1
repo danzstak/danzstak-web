@@ -688,7 +688,7 @@ if ($termsMenuIndex -lt 0 -or $androidMenuIndex -lt $termsMenuIndex -or $appleMe
 if ($feed.Contains('This DanzStak section is being prepared.') -or $feed.Contains('const featureCopy =')) {
   Add-Failure 'Feed workspaces still run the retired placeholder click handler before the functional router'
 }
-foreach ($reelPlaybackBehavior in @('const thresholdFor=element=>inSession(element)?0.5:0.6', 'const observer=new IntersectionObserver', "document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseAll();})", 'startSession,endSession,reconcile:reconcilePlayback')) {
+foreach ($reelPlaybackBehavior in @('const thresholdFor=()=>0.5;', 'const observer=new IntersectionObserver', "document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseAll();})", 'startSession,endSession,reconcile:reconcilePlayback')) {
   if (-not $mediaVisibility.Contains($reelPlaybackBehavior)) { Add-Failure "The shared Roll playback coordinator does not pause off-screen or hidden media: $reelPlaybackBehavior" }
 }
 if ($feed.Contains('window.location.assign("./")') -or
