@@ -982,6 +982,7 @@
  const attributeExcluded='script,style,[data-no-translate],.post-content,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.value,#profileName,#profileHandle,.facebook-import-items';
  let queued=false;
  function normalize(code){const raw=String(code||'');if(supported.has(raw))return raw;const lower=raw.toLowerCase();if(/^zh-(?:tw|hk|mo|hant)/.test(lower)&&supported.has('zh-Hant'))return'zh-Hant';if(/^zh/.test(lower)&&supported.has('zh-Hans'))return'zh-Hans';const exact=[...supported].find(value=>value.toLowerCase()===lower);if(exact)return exact;const base=lower.split('-')[0];return supported.has(base)?base:'en';}
+ const patternCache={};
  function translate(raw){
   const source=String(raw),trimmed=source.trim(),language=normalize(document.documentElement.lang),dictionary=dictionaries[language]||{};
   let result=dictionary[trimmed];
@@ -1026,6 +1027,7 @@
   if(!result){const members=trimmed.match(/^(\d+) matching members?\.$/);if(members&&memberCountLabels[language])result=memberCountLabels[language](members[1]);}
   if(!result){const views=trimmed.match(/^(\d[\d,.]*) views?$/);if(views&&viewCountLabels[language])result=viewCountLabels[language](views[1]);}
   if(!result){const count=trimmed.match(/^(Notifications|Friends|Messages) \((\d+)\)$/);if(count)result=(dictionary[count[1]]||count[1])+' ('+count[2]+')';}
+  if(!result){const list=(window.danzstakPatterns||{})[language];if(list){const cache=patternCache[language]||(patternCache[language]=list.map(([en,out])=>[new RegExp('^'+en.split('{}').map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('(.*?)')+'$'),out]));for(const [pattern,out] of cache){const match=trimmed.match(pattern);if(match){result=out.replace(/\{(\d+)\}/g,(_,index)=>{const value=match[Number(index)+1]??'';return dictionary[value]||value;});break;}}}}
   if(!result)return source;
   return source.slice(0,source.indexOf(trimmed))+result+source.slice(source.indexOf(trimmed)+trimmed.length);
  }

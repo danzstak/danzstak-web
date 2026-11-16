@@ -63,3 +63,46 @@ console.log("Natural-language brief checks passed.");
   assert.match(server, /nearestMusicCity\(position, 100\)/);
   console.log("Whole-route market spread checks passed.");
 }
+{
+  // Owner 2026-11-16: "my band wants to play a gig in portland" must search Portland, not invent a route.
+  const g = parse("my band wants to play a gig in portland");
+  assert.equal(g.mode, "local"); assert.equal(g.home, "portland"); assert.equal(g.destination, undefined);
+  assert.equal(parse("we want a show in Portland, OR next month").home, "Portland, OR");
+  assert.notEqual(parse("I want to play shows near home").home, "home");
+  console.log("Single-city gig checks passed.");
+}
+{
+  // Owner 2026-11-16: Italian, French and Spanish visitors type the brief in their own language.
+  const it = parse("Punk. Da Bologna a Napoli. 14 giorni.");
+  assert.equal(it.home, "Bologna"); assert.equal(it.destination, "Napoli"); assert.equal(it.days, 14); assert.equal(it.mode, "tour");
+  const itBack = parse("Punk. Da Milano a Roma e ritorno. 10 giorni. 8 concerti.");
+  assert.equal(itBack.home, "Milano"); assert.equal(itBack.destination, "Roma"); assert.equal(itBack.shows, 8); assert.notEqual(itBack.oneWay, true);
+  const itOne = parse("da torino a bari solo andata");
+  assert.equal(itOne.destination, "bari"); assert.equal(itOne.oneWay, true);
+  const fr = parse("Punk. De Lille à Marseille. 14 jours.");
+  assert.equal(fr.home, "Lille"); assert.equal(fr.destination, "Marseille"); assert.equal(fr.days, 14);
+  const frBack = parse("Punk. De Paris à Lyon et retour. 10 jours. 8 concerts.");
+  assert.equal(frBack.home, "Paris"); assert.equal(frBack.destination, "Lyon"); assert.equal(frBack.shows, 8);
+  const es = parse("Punk. De Barcelona a Sevilla. 14 días.");
+  assert.equal(es.home, "Barcelona"); assert.equal(es.destination, "Sevilla"); assert.equal(es.days, 14);
+  const esLead = parse("una gira de 10 días de Madrid a Valencia y vuelta");
+  assert.equal(esLead.home, "Madrid"); assert.equal(esLead.destination, "Valencia"); assert.equal(esLead.days, 10);
+  for (const [brief, city] of [["la mia band vuole suonare a Bologna", "Bologna"], ["on veut jouer à Lyon", "Lyon"], ["queremos tocar en Madrid", "Madrid"], ["un concerto a Torino il mese prossimo", "Torino"]]) {
+    const p = parse(brief); assert.equal(p.mode, "local", brief); assert.equal(p.home, city, brief); assert.equal(p.singleCity, true, brief);
+  }
+  // English briefs are untouched.
+  assert.equal(parse("my band wants to play a gig in portland").home, "portland");
+  assert.equal(parse("salt lake to detroit 1 way").destination, "detroit");
+  console.log("Italian, French and Spanish brief checks passed.");
+}
+{
+  // Owner 2026-11-16 (Salt Lake → Detroit live run): no Home pin, no "back home" link and no "Detroit → Detroit" on a
+  // one-way tour; no show at the end of a drive longer than a safe driving day.
+  const agent = fs.readFileSync(require("node:path").join(__dirname, "assets/booking-agent.js"), "utf8");
+  assert.match(agent, /index === coords\.length - 1 && !route\.oneWay \? "Home"/);
+  assert.match(agent, /routeDestinations\.length > 2 && !route\.oneWay\)/);
+  assert.match(agent, /drop a repeated end/);
+  assert.match(agent, /maxLegMiles = Math\.max\(120, \(number\("maxDriveHours"\) \|\| 8\) \* 55\)/);
+  assert.match(agent, /longDrive = nextLeg !== null && nextLeg > maxLegMiles && spareDays > 0/);
+  console.log("One-way map and long-drive rest checks passed.");
+}

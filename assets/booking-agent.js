@@ -1127,7 +1127,9 @@
         .filter((point) => String(point.label || "").split(",")[0].trim().toLowerCase() !== startCity),
       points = route.local
         ? [route.start, ...(route.stops || []), route.end].filter(Boolean)
-        : [route.start, ...(targetPoints.length ? targetPoints : route.stops || []), route.end].filter(Boolean),
+        : [route.start, ...(targetPoints.length ? targetPoints : route.stops || []), route.end].filter(Boolean)
+            // One-way: the last show town is the end city, so drop a repeated end ("Detroit → Detroit").
+            .filter((point, index, list) => !route.oneWay || index === 0 || String(point.label || "").split(",")[0].trim().toLowerCase() !== String(list[index - 1].label || "").split(",")[0].trim().toLowerCase()),
       figure = document.createElement("figure"),
       caption = document.createElement("figcaption"),
       svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"),
@@ -1175,7 +1177,7 @@
       label.setAttribute("x", x);
       label.setAttribute("y", Math.max(18, y - 13));
       label.setAttribute("text-anchor", "middle");
-      label.textContent = index === coords.length - 1 ? "Home" : (point.label || `Stop ${index + 1}`).split(",")[0];
+      label.textContent = index === coords.length - 1 && !route.oneWay ? "Home" : (point.label || `Stop ${index + 1}`).split(",")[0];
       svg.append(circle);
       if (index === 0 || index === coords.length - 1 || index % labelEvery === 0) svg.append(label);
     });
@@ -1196,7 +1198,7 @@
           `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ""}&travelmode=driving`,
         ),
       );
-      if (routeDestinations.length > 2) {
+      if (routeDestinations.length > 2 && !route.oneWay) {
         navigation.append(
           navigationLink(
             "Navigate back home",
@@ -1483,12 +1485,31 @@
         directMiles = 3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return Math.max(0, Math.round((directMiles * 1.18) / 5) * 5);
     };
+    // Owner 2026-11-16: never schedule a show at the end of a drive longer than a safe driving day.
+    // Spare days go to the long legs first; any left over are spread evenly as rest days.
+    const maxLegMiles = Math.max(120, (number("maxDriveHours") || 8) * 55),
+      marketPosition = index => markets[Math.min(markets.length - 1, index)]?.position,
+      longLegsAhead = (fromIndex, fromPosition) => {
+        let count = 0, previous = fromPosition;
+        for (let index = fromIndex; index < shows; index += 1) {
+          const miles = estimatedRoadMiles(previous, marketPosition(index));
+          if (miles !== null && miles > maxLegMiles) count += 1;
+          previous = marketPosition(index) || previous;
+        }
+        return count;
+      };
+    let spareDays = restCount, travelledLastDay = false;
     for (let day = 0; day < days; day += 1) {
       const date = start ? new Date(start) : null;
       if (date) date.setUTCDate(date.getUTCDate() + day);
       const finalHomeDay = needsHomeDay && day === days - 1,
-        shouldShow = !finalHomeDay && !restDays.has(day) && showIndex < shows,
-        market = markets[Math.min(markets.length - 1, showIndex)],
+        nextLeg = showIndex < shows ? estimatedRoadMiles(lastPosition, marketPosition(showIndex)) : null,
+        longDrive = nextLeg !== null && nextLeg > maxLegMiles && spareDays > 0 && !travelledLastDay,
+        evenRest = restDays.has(day) && spareDays > longLegsAhead(showIndex, lastPosition),
+        shouldShow = !finalHomeDay && showIndex < shows && !longDrive && !evenRest;
+      if (!finalHomeDay && showIndex < shows && !shouldShow) spareDays -= 1;
+      travelledLastDay = !finalHomeDay && showIndex < shows && !shouldShow;
+      const market = markets[Math.min(markets.length - 1, showIndex)],
         row = document.createElement("tr"),
         dayCell = document.createElement("th"),
         dateCell = document.createElement("td"),
