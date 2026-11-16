@@ -1,0 +1,15 @@
+/* Extracted from purchase-terms.js so pages with a strict style-src CSP render it. */
+.ds-terms-dialog{max-width:min(440px,calc(100vw - 32px));border:1px solid #2b2b2e;border-radius:12px;padding:20px;background:#111113;color:#ededea;font:inherit}
+.ds-terms-dialog::backdrop{background:rgba(0,0,0,.6)}
+.ds-terms-dialog h2{margin:0 0 12px;font-size:1.15rem}
+.ds-terms-dialog ul{margin:0 0 14px;padding-left:20px;line-height:1.45}
+.ds-terms-dialog table{width:100%;border-collapse:collapse;margin:0 0 14px;color:inherit;font:inherit}
+.ds-terms-dialog td{padding:6px 0;border-bottom:1px solid #2b2b2e}.ds-terms-dialog td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.ds-terms-dialog tr.total td{font-weight:700;border-bottom:0}
+.ds-terms-dialog label{display:flex;gap:10px;align-items:flex-start;margin:0 0 16px;min-height:44px}
+.ds-terms-dialog input[type=checkbox]{width:22px;height:22px;flex:none;accent-color:#ff5a1f}
+.ds-terms-dialog .ds-terms-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.ds-terms-dialog button{min-height:44px;padding:0 16px;border-radius:8px;border:1px solid #3a3a3e;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.ds-terms-dialog button.ds-terms-ok{background:#ff5a1f;border-color:#ff5a1f;color:#0b0b0c;font-weight:700}
+.ds-terms-dialog button:disabled{opacity:.45;cursor:not-allowed}
+.ds-terms-dialog a{color:#ff8a5c}

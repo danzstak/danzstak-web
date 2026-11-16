@@ -30,7 +30,7 @@
   const money = cents => `$${(Number(cents || 0) / 100).toFixed(2)}`;
 
   function ensureStyles() {
-    if (document.getElementById("dsPurchaseTermsStyles")) return;
+    if (document.getElementById("dsPurchaseTermsStyles") || document.querySelector('link[href*="purchase-terms.css"]')) return;
     const style = document.createElement("style");
     style.id = "dsPurchaseTermsStyles";
     style.textContent = `.ds-terms-dialog{max-width:min(440px,calc(100vw - 32px));border:1px solid #2b2b2e;border-radius:12px;padding:20px;background:#111113;color:#ededea;font:inherit}
