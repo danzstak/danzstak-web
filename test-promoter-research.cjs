@@ -26,6 +26,19 @@ const fs = require("node:fs");
   assert.equal(leads[0].kind, "promoter"); assert.equal(leads[0].name, "Crew Bologna");
   assert.deepEqual(leads[0].emails, ["info@crewbologna.it"]); assert.equal(leads[0].phones[0], "+39 051 123 4567");
   assert.equal(leads[0].approximatePosition, true); assert.match(leads[0].venueKey, /^promoter-[a-f0-9]{20}$/);
+  // Owner live test 2026-11-17 (Bologna punk): event pages, news, city-hall listings and aggregators are not promoters.
+  const live = p.promoterLeads([
+    ["https://www.shazam.com/it-it/events/bologna-italia/-/-/punk-1006", "Concerti Punk a Bologna", ""],
+    ["https://www.tuttorock.com/news/punk-a-day-festival-punk-al-link-di-bologna-con-i", "PUNK A DAY: Festival punk al Link di Bologna", "2022-05-27-29483"],
+    ["https://concerts50.com/italy/bologna/g/punk", "Emo / Hardcore / Punk Concerts in Bologna 2026", ""],
+    ["https://zero.eu/en/eventi/252710-punk-day-festival,bologna/", "Punk Day Festival", ""],
+    ["https://www.punkadeka.it/concerti/pontelungo-hardcore-bologna/", "PONTELUNGO HARDCORE • Bologna", ""],
+    ["https://pattoletturabo.comune.bologna.it/events/bologna-punk", "Bologna Punk", ""],
+    ["https://it.ra.co/promoters/it/bologna", "Promoters in Bologna", ""],
+    ["https://www.collettivoxyz.it/", "Collettivo XYZ — concerti punk Bologna", "Booking: tel. 051 234567"]
+  ].map(([url, title, description]) => ({ query: "q", result: { url, title, description } })), point);
+  assert.deepEqual(live.map(lead => lead.sourceUrl), ["https://it.ra.co/promoters/it/bologna", "https://www.collettivoxyz.it/"]);
+  assert.equal(live[1].phones[0], "051 234567");
   const api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), agent = fs.readFileSync("assets/booking-agent.js", "utf8");
   assert.match(api, /saveFoundClubs\(\[\.\.\.venues, \.\.\.promoters\]\)/);
   assert.match(api, /venues, promoters, hotels/);
