@@ -1,6 +1,6 @@
 # Task 02 — Booking pipeline: find clubs → send EPK → replies → dates
 
-## Owner direction (2026-11-16)
+## Owner direction (2026-11-16) — Booking Agent role (gigs, EPK sends, dates, in-stores, radio on-air + ad suggestions)
 "The booking agent should handle finding the clubs and sending the EPK; when replies come in, set dates to perform; suggest record shops for meet & greets and radio stations for interviews or short ads for the upcoming gigs."
 
 ## Read first

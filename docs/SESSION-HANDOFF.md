@@ -31,7 +31,8 @@ Keep this file current at the end of every working session so a new Claude sessi
 
 ## Next (specs in docs/tasks/ — claude.ai thinks, Claude Code codes)
 - Run `docs/tasks/01-ticket-release-job.md` next.
-- Booking Agent / Tour Manager (owner 2026-11-16: find clubs → send EPK → replies → set dates → suggest record shops for meet & greets and radio for interviews or short ads): tasks 02 pipeline, 03 town plan, 04 radio directory, 05 advance + day sheet, 06 virtual tour manager (cost incl. rooms/campgrounds/van parking, day scheduler to soundcheck, itinerary book PDF + Google Maps links).
+- Booking Agent / Tour Manager (owner 2026-11-16: find clubs → send EPK → replies → set dates → suggest record shops for meet & greets and radio for interviews or short ads): tasks 02 pipeline, 03 town plan, 04 radio directory, 05 advance + day sheet, 06 virtual tour manager (cost incl. rooms/campgrounds/van parking, day scheduler to soundcheck, itinerary book PDF + Google Maps links), 07 live venue data (no pitches to dead clubs/bounced emails — benchmark Indie on the Move: 250 sent → 32 booked, many dead) + lock dates on the shortest route.
+- Roles: Booking Agent = gigs, EPK sends, locking dates, record-store meet & greets, radio on-air + radio ad suggestions (stays home). Tour Manager = the road (cost, lodging, day schedule, tour book).
 1. Release job (scheduled): pay promoters/sellers from held funds when rules are met; refunds/problems.
 2. Shop orders: shipping/tracking, buyer "I got it", 3-day / 21-day release rules.
 3. Full sandbox run-through with Shawn, lawyer review of seller/promoter terms, then live only on his OK.
