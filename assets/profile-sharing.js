@@ -23,13 +23,13 @@
   }
   function start() {
     const actions = document.querySelector('.profile-actions'); if (!actions) return;
-    const share = document.createElement('button'); share.type = 'button'; share.textContent = 'Share Profile'; share.hidden = true;
+    const share = document.createElement('button'); share.type = 'button'; share.textContent = 'Share Profile'; share.dataset.icon = 'share'; share.setAttribute('aria-label', 'Share Profile'); share.hidden = true;
     share.addEventListener('click', () => {
       const member = window.danzstakCurrentProfile?.memberId; if (!/^[a-f0-9-]{36}$/.test(member || '')) return;
       const url = new URL('profile.html', location.href); url.search = ''; url.searchParams.set('member', member);
       show('Share Profile', url.href, 'Share this profile with friends and people in your Tribes on DanzStak.', share);
     });
-    const invite = document.createElement('button'); invite.type = 'button'; invite.textContent = 'Invite People';
+    const invite = document.createElement('button'); invite.type = 'button'; invite.textContent = 'Invite People'; invite.dataset.icon = 'users'; invite.setAttribute('aria-label', 'Invite People');
     invite.hidden = Boolean(new URLSearchParams(location.search).get('user') || new URLSearchParams(location.search).get('member'));
     invite.addEventListener('click', () => show('Invite People', new URL('./', location.href).href, 'Join me on DanzStak. Create an account to connect and share your original content.', invite));
     actions.append(share, invite);

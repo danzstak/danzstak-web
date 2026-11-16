@@ -1,0 +1,30 @@
+/* Profile polish (owner directive 2026-11-16): familiar Facebook-style profile, icons instead of words,
+   mobile first and tight. Loaded last on profile.html. */
+.profile-actions{display:flex!important;flex-wrap:nowrap!important;gap:8px!important;justify-content:flex-start;margin:10px 0 4px!important}
+.profile-actions > :is(button,a).ds-icon-button{
+  display:grid!important;place-items:center;flex:0 0 auto;
+  width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;
+  border:1px solid #e7e9ee!important;border-radius:12px!important;background:#fff!important;color:#121418!important;
+}
+.profile-actions > :is(button,a).ds-icon-button:first-child{background:#ff5a1f!important;border-color:#ff5a1f!important;color:#0b0b0c!important}
+.profile-actions > :is(button,a).ds-icon-button:focus-visible{outline:2px solid #ff5a1f;outline-offset:2px}
+.profile-actions .ds-action-icon{width:20px;height:20px}
+.profile-name-edit-hint{display:none!important}
+
+/* Tabs fit one row on a phone. */
+.profile-tabs{display:flex!important;overflow-x:auto;scrollbar-width:none;gap:0}
+.profile-tabs::-webkit-scrollbar{display:none}
+.profile-tabs > button{flex:1 0 auto;min-height:44px;padding:0 10px!important;font-weight:700;white-space:nowrap}
+.profile-tabs > button[hidden]{display:none!important}
+
+/* Composer shortcuts: three icons in one row. */
+.profile-create-shortcuts{display:flex!important;gap:4px;justify-content:space-around}
+.profile-create-shortcut.ds-icon-button{display:grid!important;place-items:center;min-width:44px;min-height:40px;padding:0 14px!important;border-radius:10px}
+.profile-create-shortcut .ds-action-icon{width:20px;height:20px}
+.profile-create-shortcut:nth-child(1) .ds-action-icon{color:#e5452e}
+.profile-create-shortcut:nth-child(2) .ds-action-icon{color:#16a34a}
+.profile-create-shortcut:nth-child(3) .ds-action-icon{color:#ff5a1f}
+
+/* Friends tab: friends, then who is online now. */
+.profile-friends-heading{margin:12px 0 8px;font-size:1rem;font-weight:800}
+.profile-friends-heading:first-child{margin-top:4px}
