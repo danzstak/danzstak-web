@@ -14,6 +14,7 @@
   let stageFilter = "all";
   // EPK gate from GET /booking-pipeline. null = unknown (older backend); the server still enforces it on send.
   let epkGate = null;
+  let pitchStats = null;
   const epkBlocked = () => Boolean(epkGate && epkGate.ready === false);
   const legacyStages = { Research: "Not contacted", "Ready to pitch": "Email prepared", Contacted: "Email sent", "In conversation": "Reply received", Hold: "Interested" };
   let venues = [];
@@ -302,6 +303,20 @@
     empty.textContent = "No clubs are selected yet. Return to the map, open a club pin, and add it to the booking list.";
     cards.append(empty);
     updateControls();
+  }
+
+  // Artist stats (task 07-C): every first pitch, from the server. Hidden until the first pitch is sent.
+  function renderPitchStats() {
+    const panel = document.querySelector(".pitch-stats");
+    if (!panel) return;
+    const stats = pitchStats && Number(pitchStats.sent) > 0 ? pitchStats : null;
+    panel.hidden = !stats;
+    if (!stats) return;
+    const count = value => Number.isFinite(Number(value)) && value !== null ? String(Math.max(0, Math.round(Number(value)))) : "—";
+    for (const [id, key] of [["psSent", "sent"], ["psDelivered", "delivered"], ["psOpened", "opened"], ["psReplied", "replied"], ["psBooked", "booked"]]) document.getElementById(id).textContent = count(stats[key]);
+    const rates = [`${count(stats.replyRate)}% reply rate`, `${count(stats.bookedRate)}% booked`];
+    if (Number(stats.bounced) > 0) rates.push(`${count(stats.bounced)} bounced`);
+    document.getElementById("pitchStatsRates").textContent = rates.join(" · ");
   }
 
   function renderEpkGate() {
@@ -705,6 +720,8 @@
       venues = [...saved, ...retainedAdditions];
       revision = data.revision || "";
       epkGate = data.epk && typeof data.epk === "object" ? data.epk : null;
+      pitchStats = data.stats && typeof data.stats === "object" ? data.stats : null;
+      renderPitchStats();
       for (const [key, id] of Object.entries(artistInputs)) document.getElementById(id).value = data.artist?.[key] || "";
       for (const [key, id] of Object.entries(tourInputs)) {
         const input = document.getElementById(id), value = data.tour?.[key];

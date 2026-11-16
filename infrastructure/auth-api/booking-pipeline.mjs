@@ -133,3 +133,22 @@ export function epkGateMessage(gate) {
   const needs = [...gate.missing, ...(gate.published ? [] : ["Publish your EPK"])];
   return `Finish your EPK to start booking (${gate.done} of ${gate.total} done). Still needed: ${needs.join(", ")}.`;
 }
+
+// Artist stats (task 07-C): pitches sent, delivered, EPK opened, replied, booked.
+// First pitches only (a follow-up is not a new pitch). `opened` counts pitches whose
+// private EPK link was opened (EPK#OUTREACH# records); email opens are not tracked.
+const PITCH_SENT = new Set(["provider_accepted", "sent", "delivered", "bounced", "complained", "replied", "opted_out"]);
+const PITCH_DELIVERED = new Set(["delivered", "replied", "opted_out"]);
+export function pitchStats(sendItems = [], openedIds = new Set(), venues = []) {
+  const pitches = sendItems.filter(item => !item?.followUpTo?.S && PITCH_SENT.has(item?.status?.S || ""));
+  const pitchedVenues = new Set(pitches.map(item => item.venueKey?.S || "").filter(Boolean));
+  const id = item => String(item.tourId?.S || "").replace(/^TOUR_MANAGER#EMAIL_SEND#/, "");
+  const sent = pitches.length;
+  const delivered = pitches.filter(item => PITCH_DELIVERED.has(item.status.S) || item.repliedAt?.S).length;
+  const bounced = pitches.filter(item => item.status.S === "bounced").length;
+  const opened = pitches.filter(item => openedIds.has(id(item))).length;
+  const replied = pitches.filter(item => item.repliedAt?.S).length;
+  const booked = venues.filter(venue => pitchedVenues.has(venue?.venueKey) && ["confirmed", "played"].includes(stageOf(venue?.booking?.status))).length;
+  const rate = count => sent ? Math.round(count / sent * 100) : null;
+  return { sent, delivered, bounced, opened, replied, booked, replyRate: rate(replied), bookedRate: rate(booked) };
+}

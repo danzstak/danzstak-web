@@ -15,7 +15,9 @@ const base = { categories:["live music", "punk"], websites:["https://example.com
 const venue = (key, name, booking, extra = {}) => ({ ...base, venueKey:key, name, address:`${name} St, Sacramento, CA`, booking:{ feeCurrency:"USD", ...booking }, ...extra });
 const readyEpk = { ready:true, published:true, done:6, total:6, missing:[] };
 const gatedEpk = { ready:false, published:false, done:4, total:6, missing:["A bio", "A live video or photo"] };
-const workspace = (replied, epk = readyEpk) => ({
+const stats = { sent:25, delivered:23, bounced:2, opened:14, replied:9, booked:4, replyRate:36, bookedRate:16 };
+const noStats = { sent:0, delivered:0, bounced:0, opened:0, replied:0, booked:0, replyRate:null, bookedRate:null };
+const workspace = (replied, epk = readyEpk, pitchStats = stats) => ({
   venues:[
     venue("aaaaaaaaaaaaaaaaaaaa", "Found Room", { status:"Not contacted", showDate:"2027-02-10" }),
     venue("bbbbbbbbbbbbbbbbbbbb", "Pitched Hall", replied
@@ -28,14 +30,15 @@ const workspace = (replied, epk = readyEpk) => ({
   tour:{ currency:"USD", people:3, contingencyPercent:10 },
   revision:"rev-1",
   estimate:{ total:0, confirmedRevenue:0, potentialProfit:0, breakEvenRevenue:0, bookingEmailsUsd:0 },
-  epk
+  epk,
+  stats:pitchStats
 });
 
 function installApi(page, state) {
   return page.route("https://api.danzstak.com/**", async route => {
     const request = route.request(), url = new URL(request.url()), method = request.method();
     let body = {};
-    if (url.pathname === "/booking-pipeline" && method === "GET") body = workspace(state.replied, state.epk || readyEpk);
+    if (url.pathname === "/booking-pipeline" && method === "GET") body = workspace(state.replied, state.epk || readyEpk, state.stats || stats);
     else if (url.pathname === "/booking-pipeline" && method === "POST") { state.saves.push(JSON.parse(request.postData() || "{}")); body = { revision:"rev-2", estimate:workspace().estimate, statuses:{} }; }
     else if (url.pathname === "/tour-manager/contact-unlocks") body = { venueKeys:["bbbbbbbbbbbbbbbbbbbb"] };
     else if (url.pathname === "/tour-manager/credits") body = { bookingEmailCredits:2, purchasedCredits:2, sentEmails:1, reservedCredits:0, activity:[] };
@@ -98,6 +101,17 @@ function installApi(page, state) {
       await pitched.scrollIntoViewIfNeeded();
       await page.screenshot({ path:path.join(output, `board-${width}.png`), fullPage:false, animations:"disabled", caret:"hide" });
 
+      // Artist stats (task 07-C): every first pitch, with reply and booked rates.
+      const statsPanel = page.locator(".pitch-stats");
+      await statsPanel.waitFor({ state:"visible" });
+      assert.deepEqual(await statsPanel.locator(".tour-manager-stats strong").allTextContents(), ["25", "23", "14", "9", "4"], `${width}px pitch numbers`);
+      assert.deepEqual(await statsPanel.locator(".tour-manager-stats span").allTextContents(), ["Pitched", "Delivered", "EPK opened", "Replied", "Booked"]);
+      assert.equal((await page.locator("#pitchStatsRates").textContent()).trim(), "36% reply rate · 16% booked · 2 bounced");
+      const statsBox = await statsPanel.evaluate(node => { const box = node.getBoundingClientRect(); return { left:box.left, right:box.right, tiles:[...node.querySelectorAll(".tour-manager-stats div")].map(tile => tile.getBoundingClientRect().right) }; });
+      assert.ok(statsBox.left >= 0 && statsBox.right <= width + 1 && Math.max(...statsBox.tiles) <= width + 1, `${width}px stats panel stays on screen`);
+      await statsPanel.scrollIntoViewIfNeeded();
+      await page.screenshot({ path:path.join(output, `stats-${width}.png`), fullPage:false, animations:"disabled", caret:"hide" });
+
       // A venue reply arrives (server derives it from the reply bridge): reload moves the card to Replied.
       state.replied = true;
       await page.locator("#loadBookingAccount").click();
@@ -113,7 +127,7 @@ function installApi(page, state) {
     // EPK gate: no published EPK with the minimum, no pitching; searching and the board stay open.
     for (const width of widths) {
       const context = await browser.newContext({ viewport:{ width, height:900 }, serviceWorkers:"block" });
-      const page = await context.newPage(), pageErrors = [], state = { replied:false, saves:[], sendCalls:0, epk:gatedEpk };
+      const page = await context.newPage(), pageErrors = [], state = { replied:false, saves:[], sendCalls:0, epk:gatedEpk, stats:noStats };
       page.on("pageerror", error => pageErrors.push(error.message));
       await installApi(page, state);
       await page.goto(`${origin}/booking-selections.html`, { waitUntil:"domcontentloaded" });
@@ -129,6 +143,7 @@ function installApi(page, state) {
       for (const pitch of await page.getByRole("button", { name:"Preview exact email" }).all()) assert.equal(await pitch.isDisabled(), true, `${width}px pitch must wait for the EPK`);
       for (const follow of await page.getByRole("button", { name:"Review one follow-up · 1 credit" }).all()) assert.equal(await follow.isDisabled(), true, `${width}px follow-up must wait for the EPK`);
       assert.equal(state.sendCalls, 0);
+      assert.equal(await page.locator(".pitch-stats").isHidden(), true, `${width}px no stats panel before the first pitch`);
       const geometry = await page.evaluate(() => ({ overflow:document.documentElement.scrollWidth - document.documentElement.clientWidth, link:document.querySelector("#epkGateCard a").getBoundingClientRect().height }));
       assert.ok(geometry.overflow <= 1, `${width}px EPK gate overflows by ${geometry.overflow}px`);
       assert.ok(geometry.link >= 43.5, `${width}px EPK builder link is below 44px`);
