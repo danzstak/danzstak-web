@@ -968,6 +968,11 @@
         contactLink("Phone", value, "tel:" + value.replace(/[^+0-9]/g, "")),
       ),
     );
+    // Promoter social pages read from their own site (owner 2026-11-17: get all the info).
+    for (const [label, key] of [["Instagram", "instagram"], ["Facebook", "facebook"], ["Resident Advisor", "residentAdvisor"], ["Bandcamp", "bandcamp"], ["SoundCloud", "soundcloud"]]) {
+      const value = place.social?.[key];
+      if (typeof value === "string" && /^https:\/\//.test(value)) contacts.append(contactLink(label, value.replace(/^https:\/\/(?:www\.)?/, ""), value));
+    }
     for (const evidence of venueSources(place)) {
       const safeUrl = typeof evidence.url === "string" && /^https:\/\//.test(evidence.url) ? evidence.url : "";
       const source = document.createElement(safeUrl ? "a" : "span");
