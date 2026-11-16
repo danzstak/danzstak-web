@@ -9,7 +9,7 @@ class QueryCommand extends Command {}
 class GetItemCommand extends Command {}
 class PutItemCommand extends Command {}
 const context = vm.createContext({
-  Buffer, randomUUID: () => 'new-revision', toursTable:'tours',
+  clubRecords: async () => new Map(), clubLabel: () => "", Buffer, randomUUID: () => 'new-revision', toursTable:'tours',
   corsHeaders: () => ({}), allowedOrigins: new Set(['https://danzstak.com']),
   getAuthenticatedUser: async () => authenticated,
   parseJsonBody: event => event.body,

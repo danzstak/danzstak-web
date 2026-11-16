@@ -179,7 +179,8 @@ try {
       @{
         Sid = "SavedTourPlans"
         Effect = "Allow"
-        Action = @("dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:Query", "dynamodb:DeleteItem", "dynamodb:TransactWriteItems")
+        # UpdateItem: venue freshness signals. Scan: club database counts (owner 2026-11-16).
+        Action = @("dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:Query", "dynamodb:DeleteItem", "dynamodb:TransactWriteItems", "dynamodb:UpdateItem", "dynamodb:Scan")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Tours"
       },
       @{
@@ -198,7 +199,8 @@ try {
       @{
         Sid = "ReviewedVenueDirectory"
         Effect = "Allow"
-        Action = @("dynamodb:Scan", "dynamodb:GetItem")
+        # UpdateItem: the club database keeps every club a search finds (owner 2026-11-16).
+        Action = @("dynamodb:Scan", "dynamodb:GetItem", "dynamodb:UpdateItem")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-VenueDirectory"
       },
       @{

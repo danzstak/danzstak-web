@@ -52,6 +52,7 @@ import { createPersonalPhoneService } from "./personal-phone-service.mjs";
 import { createPersonalPhoneDynamoAdapter } from "./personal-phone-dynamodb.mjs";
 import { publicPhoneStatus } from "./personal-phone-verification.mjs";
 import QRCode from "qrcode";
+import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
@@ -3225,15 +3226,70 @@ async function reviewedVenueDirectoryRecords() {
   if (reviewedVenueLoad) return reviewedVenueLoad;
   reviewedVenueLoad = scanAll({
     TableName: venueDirectoryTable,
-    FilterExpression: "#status = :approved",
+    // Owner-approved listings plus clubs proven by DanzStak bands (replied or booked).
+    FilterExpression: "(#status = :approved OR tier IN (:verified, :replied)) AND #status <> :rejected",
     ExpressionAttributeNames: { "#status": "status" },
-    ExpressionAttributeValues: { ":approved": { S: "approved" } },
-    Limit: 500
-  }, 500).then(records => {
+    ExpressionAttributeValues: { ":approved": { S: "approved" }, ":verified": { S: "verified" }, ":replied": { S: "replied" }, ":rejected": { S: "rejected" } },
+    Limit: 1000
+  }, 5000).then(records => {
     reviewedVenueCache = { records, expiresAt: Date.now() + 300000 };
     return records;
   }).finally(() => { reviewedVenueLoad = null; });
   return reviewedVenueLoad;
+}
+
+// Club database (owner 2026-11-16): keep every club a search finds, and rank it only by what really
+// happened with DanzStak bands. See club-directory.mjs for the rules.
+let clubRecordCache = { records: new Map(), expiresAt: 0 }, clubStatsRun = 0, clubWritesBlocked = false;
+// Until the club-database permission is granted, searches keep working and skip the writes quietly.
+const clubWriteDenied = error => { if (error?.name === "AccessDeniedException") { if (!clubWritesBlocked) console.error("Club database writes need dynamodb:UpdateItem permission."); clubWritesBlocked = true; return true; } return false; };
+const CLUB_STATS_META = "meta-club-stats", CLUB_STATS_EVERY_MS = 30 * 60 * 1000;
+async function clubRecords() {
+  if (clubRecordCache.expiresAt > Date.now()) return clubRecordCache.records;
+  try {
+    const items = await scanAll({ TableName: venueDirectoryTable, FilterExpression: "attribute_exists(tier)", ProjectionExpression: "venueKey, tier, pitches, replies, bookings, medianReplyHours, payToPlayTickets, payToPlayFee" }, 20000);
+    clubRecordCache = { records: new Map(items.map(clubRecordFromItem).filter(Boolean).map(record => [record.venueKey, record])), expiresAt: Date.now() + 300000 };
+  } catch (error) {
+    console.error("Club records unavailable:", error.name);
+    clubRecordCache = { records: clubRecordCache.records, expiresAt: Date.now() + 60000 };
+  }
+  return clubRecordCache.records;
+}
+// Proven clubs move up; clubs whose contact bounced or asked to stop are left out (owner: no bounces or unsubscribes).
+function withClubRecords(venues, records) {
+  const annotated = venues.map(venue => {
+    const club = records.get(venue.venueKey) || { venueKey: venue.venueKey, tier: "found", pitches: 0, replies: 0, bookings: 0, medianReplyHours: null, payToPlay: { tickets: 0, fee: 0 } };
+    return { ...venue, club: { ...club, label: clubLabel(club) } };
+  }).filter(venue => venue.club.tier !== "removed");
+  return sortByClubTier(annotated);
+}
+async function saveFoundClubs(venues) {
+  if (clubWritesBlocked) return;
+  const at = new Date().toISOString(), clubs = venues.map(clubFromPlace).filter(Boolean);
+  if (!clubs.length) return;
+  const work = mapLimit(clubs, 8, async club => {
+    try { await db.send(new UpdateItemCommand(clubUpsert(venueDirectoryTable, club, at))); }
+    catch (error) { if (error.name !== "ConditionalCheckFailedException" && !clubWriteDenied(error)) console.error("Club not saved:", error.name); }
+  });
+  await Promise.race([work, new Promise(resolve => setTimeout(resolve, 2500))]);
+}
+// Recount every club from the stored pitches and booking lists, at most every 30 minutes.
+async function refreshClubStatsIfDue() {
+  if (clubWritesBlocked || Date.now() - clubStatsRun < CLUB_STATS_EVERY_MS) return;
+  clubStatsRun = Date.now();
+  const at = new Date().toISOString(), cutoff = new Date(Date.now() - CLUB_STATS_EVERY_MS).toISOString();
+  try {
+    await db.send(new UpdateItemCommand({ TableName: venueDirectoryTable, Key: { venueKey: { S: CLUB_STATS_META } }, UpdateExpression: "SET statsAt = :at", ConditionExpression: "attribute_not_exists(statsAt) OR statsAt < :cutoff", ExpressionAttributeValues: { ":at": { S: at }, ":cutoff": { S: cutoff } } }));
+  } catch (error) { if (error.name !== "ConditionalCheckFailedException" && !clubWriteDenied(error)) console.error("Club stats claim failed:", error.name); return; }
+  try {
+    const items = await scanAll({ TableName: toursTable, FilterExpression: "begins_with(tourId, :send) OR tourId = :workspace", ExpressionAttributeValues: { ":send": { S: "TOUR_MANAGER#EMAIL_SEND#" }, ":workspace": { S: BOOKING_WORKSPACE_ID } } }, 50000);
+    const stats = clubStats(items);
+    await mapLimit([...stats], 8, async ([venueKey, club]) => {
+      try { await db.send(new UpdateItemCommand(clubStatsUpdate(venueDirectoryTable, venueKey, club, at))); }
+      catch (error) { console.error("Club stats not saved:", error.name); }
+    });
+    clubRecordCache.expiresAt = 0;
+  } catch (error) { console.error("Club stats refresh failed:", error.name); }
 }
 
 function approximateMilesBetween(left, right) {
@@ -3250,19 +3306,19 @@ async function approvedMemberVenueLeads(point, searchBounds = null) {
   try {
     const records = await reviewedVenueDirectoryRecords();
     return records.map(item => {
-      const position = [Number(item.longitude?.N), Number(item.latitude?.N)];
+      const position = [Number(item.longitude?.N ?? item.lon?.N), Number(item.latitude?.N ?? item.lat?.N)];
       const websites = item.website?.S ? [item.website.S] : [];
       const emails = item.email?.S ? [item.email.S] : [];
       const phones = item.phone?.S ? [item.phone.S] : [];
       return {
         venueKey: item.venueKey?.S || "", name: item.name?.S || "Public venue", address: item.address?.S || "",
         locality: item.locality?.S || "", position, websites, emails, phones,
-        categories: (item.categories?.SS || ["Member-verified public live music venue"]).slice(0, 8),
+        categories: (item.categories?.SS || (item.categories?.S ? item.categories.S.split(" · ") : ["Member-verified public live music venue"])).slice(0, 8),
         distanceMiles: Math.round(approximateMilesBetween(point.position, position) * 10) / 10,
         contactVerificationRequired: true, sourceName: "DanzStak reviewed venue directory",
         sourceUrl: websites[0] || "", sources: [{ name: "DanzStak reviewed venue directory", url: websites[0] || "" }],
         discoveredAt: item.approvedAt?.S || item.createdAt?.S || "",
-        activityEvidence: "A moderator reviewed this member-supplied public venue lead. Confirm its current calendar before pitching."
+        activityEvidence: item.status?.S === "approved" ? "A moderator reviewed this member-supplied public venue lead. Confirm its current calendar before pitching." : "DanzStak bands have heard back from this club. Confirm its current calendar before pitching."
       };
     }).filter(place => place.venueKey && place.position.every(Number.isFinite))
       .filter(place => !searchBounds || (place.position[1] <= searchBounds.north && place.position[1] >= searchBounds.south && place.position[0] <= searchBounds.east && place.position[0] >= searchBounds.west));
@@ -3841,6 +3897,7 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
 }
 
 async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), variation = 0, searchBounds = null, venueType = "any") {
+  const statsRefresh = refreshClubStatsIfDue().catch(() => {});
   const search = async query => {
     const locationConstraint = searchBounds
       ? { Filter: { BoundingBox: [searchBounds.west, searchBounds.south, searchBounds.east, searchBounds.north] } }
@@ -3921,7 +3978,8 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre)
       || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
   const offset = venuePool.length ? variation % venuePool.length : 0;
-  const venues = await withVenueFreshness([...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60));
+  const venues = withClubRecords(await withVenueFreshness([...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60)), await clubRecords());
+  await Promise.all([saveFoundClubs(venues), statsRefresh]);
   const hotels = hotelResults.filter(place => nearby(place, 35)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
   const vanStops = vanRestResults.filter(place => nearby(place, 25)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
   return { stop: point.label, position: point.position, venues, hotels, vanStops, recordStores: recordDiscovery.stores || [], researchLeads: osmVenueDiscovery.researchLeads || [], providerStatus: [...(osmVenueDiscovery.providers || []), ...(recordDiscovery.providers || [])] };
@@ -4899,7 +4957,8 @@ async function bookingWorkspace(event, method) {
     ]);
     const [sends, opened] = await Promise.all([bookingSendItems(userId), openedOutreachIds(userId)]), bookingEmailCount = sentEmailCount(sends), epk = epkGate(epkRecord?.Item);
     if (!result.Item) return reply(200, { venues: [], artist: {}, tour: cleanTourBudget({}), estimate: tourBudgetEstimate(cleanTourBudget({}), bookingEmailCount), revision: "", epk, stats: withOpens(pitchStats(sends, opened || new Set(), []), opened) });
-    const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour), venues = await withVenueFreshness(withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(sends)), { sort: false });
+    const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour), venues = await withVenueFreshness(withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(sends)), { sort: false }), clubs = await clubRecords();
+    for (const venue of venues) { const club = clubs.get(venue.venueKey); if (club) venue.club = { ...club, label: clubLabel(club) }; }
     return reply(200, { ...saved, venues, tour, estimate: tourBudgetEstimate(tour, bookingEmailCount, venues), revision: result.Item.revision?.S || "", epk, stats: withOpens(pitchStats(sends, opened || new Set(), venues), opened) });
   }
   const data = parseJsonBody(event);
@@ -4920,7 +4979,7 @@ async function bookingWorkspace(event, method) {
     const status = bookingPipelineStatuses.has(requestedStatus) ? requestedStatus : "Not contacted";
     const showDate = date(b.showDate), confirmationEvidence = text(b.confirmationEvidence, 3000);
     if (status === "Confirmed" && (!showDate || !confirmationEvidence)) invalidConfirmation = true;
-    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateOptions: cleanDateOptions(b.dateOptions), dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000) } };
+    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateOptions: cleanDateOptions(b.dateOptions), dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000), payToPlay: ["tickets", "fee"].includes(String(b.payToPlay)) ? String(b.payToPlay) : "" } };
   });
   if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
   if (invalidConfirmation) return reply(400, { error: "A confirmed performance requires a show date and written confirmation evidence." });
