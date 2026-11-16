@@ -9,7 +9,7 @@ const deployment = readFileSync("aws-deploy-auth-api.ps1", "utf8");
 assert.match(billing, /\/tour-manager\/contact-unlock\/checkout/);
 assert.match(billing, /\/tour-manager\/contact-unlocks/);
 assert.match(billing, /checkout\.stripe\.com/);
-assert.match(selections, /Unlock booking contact · \$0\.75/);
+assert.match(selections, /Unlock booking contact · \$\{window\.DanzStakFees \? window\.DanzStakFees\.allInShort\(75\)/, "unlock shows the all-in price (task 12)");
 assert.match(selections, /danzstakBookingContactUnlocked/);
 assert.match(selections, /if \(dirty\)[\s\S]*Saving current venue…[\s\S]*await saveWorkspaceSnapshot\(\)[\s\S]*Opening secure checkout…/, "contact checkout must save dirty venue facts first");
 assert.match(selections, /contactUnlocked \? \(venue\.emails/);
@@ -18,10 +18,10 @@ assert.match(selections, /document\.addEventListener\("danzstak-contact-unlocks"
 assert.match(billing, /finishContactReturn[\s\S]*Verifying this booking contact…[\s\S]*refreshContactUnlocks\(\)[\s\S]*Booking contact unlocked/, "a successful Checkout return must wait for the webhook entitlement");
 assert.match(billing, /clearContactResult[\s\S]*searchParams\.delete\("contact"\)[\s\S]*searchParams\.delete\("venueKey"\)/, "completed Checkout state must leave the address bar");
 assert.match(billing, /focusVenueContact[\s\S]*scrollIntoView[\s\S]*target\.focus/, "Checkout return must take the artist back to the purchased venue contact");
-assert.match(page, /booking-billing\.js\?v=9/);
+assert.match(page, /booking-billing\.js\?v=10/);
 assert.match(billing, /creditCheckoutMarker[\s\S]*finishCreditReturn[\s\S]*Verifying your booking-email credits[\s\S]*settledCreditPurchase[\s\S]*Credits verified/, "a successful credit Checkout return must wait for a settled ledger purchase");
 assert.match(billing, /clearCreditResult[\s\S]*searchParams\.delete\("credits"\)/, "completed credit Checkout state must leave the address bar");
-assert.match(page, /booking-selections\.js\?v=31/);
+assert.match(page, /booking-selections\.js\?v=33/);
 assert.match(deployment, /POST \/tour-manager\/contact-unlock\/checkout/);
 assert.match(deployment, /GET \/tour-manager\/contact-unlocks/);
 

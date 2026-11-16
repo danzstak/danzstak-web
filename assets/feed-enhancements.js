@@ -341,7 +341,7 @@ async function renderUpcomingEvents(list) {
       let outsideHost = ""; try { outsideHost = item.ticketUrl ? new URL(item.ticketUrl).hostname.replace(/^www\./, "") : ""; } catch {}
       const link = outsideHost && !prices.length
         ? Object.assign(document.createElement("a"), { className: "primary event-flyer-tickets", href: item.ticketUrl, target: "_blank", rel: "noopener noreferrer", textContent: `Tickets on ${outsideHost} ↗` })
-        : Object.assign(document.createElement("a"), { className: "primary event-flyer-tickets", href: `event.html?id=${encodeURIComponent(item.id)}`, textContent: prices.length ? `Tickets from $${(Math.min(...prices) / 100).toFixed(2)}` : "Show details" });
+        : Object.assign(document.createElement("a"), { className: "primary event-flyer-tickets", href: `event.html?id=${encodeURIComponent(item.id)}`, textContent: prices.length ? `Tickets from ${window.DanzStakFees ? window.DanzStakFees.allInShort(Math.min(...prices)) : `$${(Math.min(...prices) / 100).toFixed(2)} + fees`}` : "Show details" });
       body.append(link); card.append(body); list.append(card);
     }
     if (!list.children.length) list.append(Object.assign(document.createElement("p"), { className: "muted", textContent: "No shows posted yet. Post the first one." }));

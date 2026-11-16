@@ -36,7 +36,7 @@
       if (product.imageUrl) { const image = document.createElement("img"); image.src = product.imageUrl; image.alt = ""; image.loading = "lazy"; image.decoding = "async"; image.referrerPolicy = "no-referrer"; frame.append(image); }
       else frame.append(node("span", "No image", "image-fallback"));
       const copy = node("span", "", "bazaar-card-copy");
-      copy.append(node("strong", product.title, "bazaar-title"), node("span", product.shopName, "bazaar-seller"), node("span", money(product.priceCents), "bazaar-price"), node("span", product.shippingCents ? `+${money(product.shippingCents)} shipping` : "Free shipping", "bazaar-shipping"));
+      copy.append(node("strong", product.title, "bazaar-title"), node("span", product.shopName, "bazaar-seller"), node("span", window.DanzStakFees ? window.DanzStakFees.money(window.DanzStakFees.withFees(product.priceCents).totalCents) : money(product.priceCents), "bazaar-price"), node("span", window.DanzStakFees ? `incl. ${window.DanzStakFees.money(window.DanzStakFees.buyerFees(product.priceCents))} fees` : "plus DanzStak fee", "bazaar-fee"), node("span", product.shippingCents ? `+${money(product.shippingCents)} shipping` : "Free shipping", "bazaar-shipping"));
       card.append(frame, copy); list.append(card);
     }
     status.textContent = `${shown.length} product${shown.length === 1 ? "" : "s"}. Fixed price, no bidding.`;

@@ -29,6 +29,13 @@
     } catch (error) { if (status && !status.textContent) status.textContent = error.message; }
   }
   window.danzstakTourManagerBilling.refreshOutreach = refreshOutreach;
+  const creditTotal = document.getElementById("bookingCreditTotal"), creditQuantity = document.getElementById("bookingCreditQuantity");
+  function showCreditTotal() {
+    if (!creditTotal || !creditQuantity || !window.DanzStakFees) return;
+    const count = Number(creditQuantity.value);
+    creditTotal.textContent = Number.isInteger(count) && count > 0 ? `${count} email${count === 1 ? "" : "s"}: ${window.DanzStakFees.allIn(count * 150)}` : "";
+  }
+  creditQuantity?.addEventListener("input", showCreditTotal); showCreditTotal();
   async function startCreditCheckout(count, venueKey = "", button = null) {
     if (!Number.isInteger(count) || count < 1 || count > 500) { status.textContent = "Choose 1 to 500 credits."; return false; }
     if (venueKey && (typeof venueKey !== "string" || venueKey.length > 240)) { status.textContent = "Choose a valid saved venue before buying this credit."; return false; }
