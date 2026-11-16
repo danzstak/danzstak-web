@@ -1,0 +1,28 @@
+/* The Roll (owner 2026-11-16): a horizontal strip of same-size tiles in Mix; tap any tile to open it full
+   screen, then swipe vertically through videos like Reels. Linked videos sit centered. Loaded last. */
+.reels-rail:not(.roll-fullscreen) .reels-list{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;gap:6px!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 0 2px!important;margin:0!important;height:auto!important;align-items:stretch!important}
+.reels-rail:not(.roll-fullscreen) .reels-list::-webkit-scrollbar{display:none}
+.reels-rail:not(.roll-fullscreen) .reel-card{position:relative!important;flex:0 0 calc((100% - 12px)/2.3)!important;width:calc((100% - 12px)/2.3)!important;max-width:200px!important;min-width:0!important;height:auto!important;min-height:0!important;aspect-ratio:9/16!important;margin:0!important;padding:0!important;border:0!important;border-radius:8px!important;overflow:hidden!important;background:#0b0b0c!important;scroll-snap-align:start;cursor:pointer}
+.reels-rail:not(.roll-fullscreen) .reel-media-stage{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;display:flex!important;align-items:center!important;justify-content:center!important;background:#0b0b0c!important}
+.reels-rail:not(.roll-fullscreen) .reel-media-stage .danzstak-media-shell{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;min-height:0!important;margin:0!important;aspect-ratio:auto!important;display:flex!important;align-items:center!important;justify-content:center!important;background:#0b0b0c!important}
+.reels-rail:not(.roll-fullscreen) video.reel-player{width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;aspect-ratio:auto!important}
+.reels-rail:not(.roll-fullscreen) iframe.reel-player{position:absolute!important;left:50%!important;top:50%!important;width:100%!important;height:auto!important;max-height:100%!important;aspect-ratio:var(--ds-media-aspect,16/9)!important;transform:translate(-50%,-50%)!important;border:0!important;pointer-events:none}
+.reels-rail:not(.roll-fullscreen) iframe.reel-player[data-video-layout=portrait],.reels-rail:not(.roll-fullscreen) iframe.reel-player[data-video-layout=square]{width:100%!important;height:100%!important;max-height:none!important;aspect-ratio:auto!important}
+/* Whole tile opens The Roll full screen (iframes would otherwise swallow the tap). */
+.reels-rail:not(.roll-fullscreen) .reel-fullscreen-trigger{position:absolute!important;inset:0!important;z-index:3!important;width:100%!important;height:100%!important;min-height:44px;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;color:transparent!important;font-size:0!important;opacity:1!important;box-shadow:none!important}
+.reels-rail:not(.roll-fullscreen) .reel-fullscreen-trigger:focus-visible{outline:2px solid #ff5a1f;outline-offset:-2px}
+.reels-rail:not(.roll-fullscreen) .reel-card .danzstak-audio-toggle,.reels-rail:not(.roll-fullscreen) .reel-card .media-sound-toggle{z-index:4}
+.reels-rail:not(.roll-fullscreen) .reel-details{position:absolute!important;left:0!important;right:0!important;bottom:0!important;z-index:2!important;margin:0!important;padding:18px 8px 6px!important;background:linear-gradient(transparent,rgba(0,0,0,.78))!important;color:#fff!important;font-size:11px!important;line-height:1.25!important;pointer-events:none;display:block!important;max-height:45%;overflow:hidden}
+.reels-rail:not(.roll-fullscreen) .reel-details>*{display:none!important}
+.reels-rail:not(.roll-fullscreen) .reel-details>strong,.reels-rail:not(.roll-fullscreen) .reel-details>.reel-author-link{display:block!important;color:#fff!important;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}
+.reels-rail:not(.roll-fullscreen) .reel-details>strong{display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal}
+.reels-rail:not(.roll-fullscreen) .reels-empty{flex:1 0 100%;aspect-ratio:auto;padding:16px 0;margin:0}
+.reels-heading>span:not([class]){display:none!important}
+/* Full screen: one video per screen, vertical snap, media centered and never stretched. */
+.reels-rail.roll-fullscreen .reel-card{display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;background:#000!important}
+.reels-rail.roll-fullscreen .reel-media-stage{flex:1 1 auto!important;width:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;min-height:0!important}
+.reels-rail.roll-fullscreen .reel-media-stage .danzstak-media-shell{width:100%!important;max-height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:0 auto!important}
+.reels-rail.roll-fullscreen video.reel-player{width:100%!important;height:100%!important;max-height:100%!important;object-fit:contain!important}
+.reels-rail.roll-fullscreen iframe.reel-player{display:block!important;margin:0 auto!important;width:100%!important;max-width:100%!important;height:auto!important;max-height:100%!important;aspect-ratio:var(--ds-media-aspect,16/9)!important}
+.reels-rail.roll-fullscreen iframe.reel-player[data-video-layout=portrait]{height:100%!important;width:auto!important;aspect-ratio:9/16!important}
+.reels-rail.roll-fullscreen .reel-fullscreen-trigger{display:none!important}

@@ -31,7 +31,7 @@ export async function safePublicUrl(raw, resolver = lookup) {
   return url;
 }
 
-const decode = text => String(text || "").replace(/&amp;/g, "&").replace(/&quot;/g, "\"").replace(/&#39;|&#x27;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).trim();
+const decode = text => String(text || "").replace(/&amp;/g, "&").replace(/&quot;/g, "\"").replace(/&#39;|&#x27;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16))).replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).trim();
 
 export function parseHead(html, base) {
   const head = String(html || "").slice(0, MAX_BYTES);
@@ -86,6 +86,12 @@ export async function linkPreview(raw, { fetcher = fetch, resolver = lookup, now
       found = parseHead(html, url.href);
       break;
     } catch { break; } finally { clearTimeout(timer); }
+  }
+  if (ytId && (!found.title || /^(youtube(\.com)?|- YouTube)$/i.test(found.title))) {
+    try {
+      const o = await fetcher("https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + ytId), { headers: { accept: "application/json" } });
+      if (o.ok) { const j = await o.json(); found.title = String(j.title || "").slice(0, 200); found.site = "YouTube"; if (!found.image && /^https:\/\//.test(j.thumbnail_url || "")) found.image = j.thumbnail_url; }
+    } catch {}
   }
   if (ytId && /^[\w-]{6,20}$/.test(ytId) && !found.image) found.image = `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
   const value = { url: url.href, host, title: found.title || host, description: found.description, site: found.site || host, image: found.image, video: Boolean(ytId) };
