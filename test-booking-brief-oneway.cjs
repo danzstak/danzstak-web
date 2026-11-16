@@ -63,3 +63,11 @@ console.log("Natural-language brief checks passed.");
   assert.match(server, /nearestMusicCity\(position, 100\)/);
   console.log("Whole-route market spread checks passed.");
 }
+{
+  // Owner 2026-11-16: "my band wants to play a gig in portland" must search Portland, not invent a route.
+  const g = parse("my band wants to play a gig in portland");
+  assert.equal(g.mode, "local"); assert.equal(g.home, "portland"); assert.equal(g.destination, undefined);
+  assert.equal(parse("we want a show in Portland, OR next month").home, "Portland, OR");
+  assert.notEqual(parse("I want to play shows near home").home, "home");
+  console.log("Single-city gig checks passed.");
+}

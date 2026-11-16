@@ -22,7 +22,7 @@ assert.match(html, /assets\/booking-map\.js\?v=451/);
 assert.match(html, /assets\/booking-discovery\.css\?v=5/);
 assert.match(html, /assets\/booking-discovery\.js\?v=5/);
 assert.match(html, /assets\/booking-agent\.js\?v=491/);
-assert.match(html, /assets\/booking-conversation\.js\?v=483/);
+assert.match(html, /assets\/booking-conversation\.js\?v=484/);
 
 assert.match(css, /\.booking-start[\s\S]*grid-template-columns: minmax\(270px, \.8fr\) minmax\(420px, 1\.2fr\)/);
 assert.match(css, /\.booking-page \.booking-lead[\s\S]*border-top: 3px solid var\(--booking-orange\)/);
@@ -79,7 +79,7 @@ assert.doesNotMatch(agent, /Choose the first date and the date the act must be h
 assert.match(map, /danzstak:booking-selection/);
 assert.match(map, /window\.danzstakToggleBookingVenue/);
 
-assert.match(worker, /danzstak-shell-v852/);
+assert.match(worker, /danzstak-shell-v853/);
 assert.match(worker, /"\/assets\/booking-workspace\.css"/);
 
 console.log("Booking workspace design checks passed: one compact planning card, truthful status timing, shared tool header, optional advanced controls, and PWA coverage.");

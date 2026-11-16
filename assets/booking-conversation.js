@@ -74,7 +74,15 @@
     // One-way runs typed without "from" or "and back", e.g. "Bellingham to San Diego" or
     // "Punk. Bellingham, WA to San Diego, CA. 14 days." (owner bug report 2026-11-16).
     const oneWay = !chainedRoute && !route && !bareRoute && routeText.match(/(?:^|[.!?;]\s+)([a-z][a-z ,'-]{1,80}?)\s+to\s+([a-z][a-z .,'-]{1,80}?)(?=\s+(?:for|in)\s+\d+\s*(?:-| )?days?|\s+starting\b|[.!?;](?:\s|$)|$)/i);
-    const oneWayOk = oneWay && !/\b(?:want|need|going|like|love|try|trying|have|plan|planning|hoping|ready|able|i|we|find|look|looking|search|book|get|clubs|shows|gigs|venues)\b/i.test(oneWay[1]) && !/\bbetween\b/i.test(text);
+    // One gig in one city: "my band wants to play a gig in portland", "book us a show in Detroit next month".
+    const singleCity = !chainedRoute && !route && !bareRoute && text.match(/\b(?:gig|gigs|show|shows|concert|play|playing|book(?:\s+us)?)\b[^.!?]*?\b(?:in|at|near)\s+([a-z][a-z .'-]*?)(?:,\s*([a-z]{2}))?(?=\s+(?:next|this|on|for|tonight|tomorrow|in\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|around|sometime)\b|[.!?,]|$)/i);
+    if (singleCity && !/^(?:home|here|me|town|my town|the area|my area)$/i.test(singleCity[1].trim()) && !/\bto\s+[a-z]+\s+(?:and back|one way|1 way)\b/i.test(text)) {
+      parsed.mode = "local";
+      parsed.home = tidyPlace(singleCity[2] ? `${singleCity[1]}, ${singleCity[2].toUpperCase()}` : singleCity[1]);
+      parsed.singleCity = true;
+      if (!parsed.shows) parsed.shows = 1;
+    }
+    const oneWayOk = !parsed.singleCity && oneWay && !/\b(?:want|wants|need|needs|going|like|love|try|trying|have|plan|planning|hoping|ready|able|i|we|my|our|band|find|look|looking|search|book|get|clubs|shows|gigs|venues)\b/i.test(oneWay[1]) && !/\bbetween\b/i.test(text);
     const parsedRoute = route || bareRoute || (oneWayOk ? oneWay : null);
     if (parsedRoute) { parsed.home = tidyPlace(parsedRoute[1]); parsed.destination = tidyPlace(parsedRoute[2]); parsed.mode = "tour"; }
     else {
