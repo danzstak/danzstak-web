@@ -21,6 +21,9 @@ booking.html, assets/booking-agent.js, booking-discovery.js, booking-selections.
    - triggers the Town plan (task 03).
 5. **Music HQ summary**: next 3 confirmed shows, replies waiting, follow-ups due.
 
+## EPK gate (owner, 2026-11-16)
+Sending any pitch requires a published EPK meeting the minimum in `00-BOOKING-AGENT-PLAN.md` (enforced server-side too). Otherwise show "Finish your EPK to start booking" with the missing items. Browsing venues stays open. Test: a pitch send without an EPK is rejected and spends no credit.
+
 ## Data
 Store per member under the existing tour tables: `RUN#<id>` and `RUN#<id>/VENUE#<venueId>` with status, timestamps, deal fields, threadId. No venue contact details beyond what discovery already stores.
 

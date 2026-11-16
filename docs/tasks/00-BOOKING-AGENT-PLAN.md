@@ -12,7 +12,7 @@ Owner: "Currently in DanzStak the booking agent does not really function as a bo
 2. **Tour**: a date window and a region. Dates are locked on the shortest route, then the tour goes to the Tour Manager.
 
 ## The flow the artist sees (phone first, Music HQ → Booking)
-1. **Start**: pick Local gigs or Tour, then dates, genre and draw. The EPK is attached automatically (prompt to finish it if it's missing basics).
+1. **Start**: pick Local gigs or Tour, then dates, genre and draw. **The band must have a published EPK to use the agent** (owner, 2026-11-16: it's up to the band to get their EPK together). Minimum: name, photo, bio, at least one music link, at least one live video or photo, and a contact. Without it, the agent shows one card: "Finish your EPK to start booking", with what's missing and a link to the EPK builder (free by hand, or $5 with AI). Searching venues is allowed; sending pitches is not.
 2. **Find clubs**: only live venues (task 07 freshness, no dead or bounced contacts), filtered to the genre (punk, metal and electronic first).
 3. **Pitch**: an editable pitch per venue with a private EPK link, previewed, then sent. Caps, suppression list and no BCC.
 4. **Replies**: they land in SYNC, and the venue card moves to `replied`. A follow-up nudge after 5 days is never auto-sent.
