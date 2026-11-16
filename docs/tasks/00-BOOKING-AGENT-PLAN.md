@@ -84,3 +84,9 @@ Example: a show in Sacramento. The agent suggests Sacramento record stores for a
 
 ## EPK pricing (confirmed, owner 2026-11-16)
 Building an EPK by hand is **free**. An **AI-built EPK costs $5**, and the band can edit every word for free afterwards (manual edits and look changes free forever; an AI redesign is another $5). This matches `docs/OWNER-DIRECTIVES.md`.
+
+## The reason to open DanzStak first thing (owner, 2026-11-16)
+- **Bands, in the morning**: Music HQ answers "how's my EPK doing?" at a glance: EPK opens since yesterday (which venues and press opened it), new replies, offers waiting, follow-ups due, today's promo to-dos (flyers, radio, in-stores), and next show.
+- **Fans, after work**: a **Tonight / this week** card: shows near you tonight, friends going, artists you follow in town, in-stores and listening parties. Tickets are one tap away.
+- Earn the open with real usefulness, not engagement-bait: no streaks, no "you're missing out", no fake urgency, chronological only (CLAUDE.md). One optional daily digest notification, off by default, that the member turns on.
+- Everyone still lands in Mix (nav directive 2026-11-15). The band's Music HQ summary and the fan's Tonight card show as one compact card at the top of Mix, tapping through to Music HQ / Events.
