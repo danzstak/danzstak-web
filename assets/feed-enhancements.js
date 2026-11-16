@@ -4287,7 +4287,8 @@ reelsRail.addEventListener("keydown", event => {
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 });
-reelsHeading.append(reelsTitle, rollSessionStatus, reelAddToggle, rollOpen, rollClose);
+reelsHeading.append(reelsTitle, rollSessionStatus, rollClose);
+// Owner 2026-11-16: no + or fullscreen icon on The Roll — tap a tile to open it; videos join The Roll from the post composer.
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
 function restoreRollFullscreenFromHistory(event) {
@@ -4647,6 +4648,37 @@ function placeReelsRail() {
   if (posts.length >= 4) posts[3].insertAdjacentElement("afterend", reelsRail);
   else feedElement.appendChild(reelsRail);
 }
+
+// Composer offers The Roll for a pasted video link too (owner 2026-11-16), not only uploaded videos.
+(() => {
+  const text = document.getElementById("postText"), toggle = document.getElementById("shareToReels"), publish = document.getElementById("publishBtn");
+  if (!text || !toggle || !publish) return;
+  const linkedVideo = () => { for (const token of text.value.split(/\s+/)) { const url = approvedVideoUrl(token.replace(/[),.!?]+$/, "")); if (url) return url; } return null; };
+  let offeredFor = "";
+  text.addEventListener("input", () => {
+    if (window.danzstakSelectedMedia) return;
+    const url = linkedVideo();
+    toggle.disabled = !url;
+    if (url && offeredFor !== url.href) { toggle.checked = true; offeredFor = url.href; toggle.closest("label")?.removeAttribute("title"); }
+    if (!url) { toggle.checked = false; offeredFor = ""; }
+  });
+  let pending = null;
+  publish.addEventListener("click", () => { pending = !window.danzstakSelectedMedia && toggle.checked && document.getElementById("originalContentCertification")?.checked ? linkedVideo() : null; }, true);
+  window.addEventListener("danzstak:post-published", async event => {
+    const url = pending; pending = null;
+    if (!url || event.detail?.mediaUrl) return;
+    toggle.checked = false; toggle.disabled = true; offeredFor = "";
+    try {
+      const response = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: url.href, rightsCertified: true }) });
+      const result = await response.json().catch(() => ({}));
+      const saved = result.reel && approvedVideoUrl(result.reel.url);
+      if (!response.ok || !saved) throw new Error(result.error || "Video could not be saved to The Roll.");
+      cloudReels = Array.isArray(cloudReels) ? cloudReels : [];
+      cloudReels.unshift({ ...result.reel, url: saved.href, platform: reelPlatform(saved.hostname) });
+      renderPlayableReels();
+    } catch (error) { showAppFeedback(error.message || "Video could not be saved to The Roll.", { urgent: true }); }
+  });
+})();
 
 addReel.addEventListener("click", async () => {
   let parsed;
