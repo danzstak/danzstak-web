@@ -34,7 +34,7 @@ assert.match(css, /@media\(max-width:760px\)/);
 assert.match(booking, /assets\/booking-selections\.js\?v=32/);
 assert.match(bookingJs, /searchParams\.get\("focusVenue"\)/);
 assert.match(bookingJs, /focusFollowUpVenue\(followUpFocusVenue\)/);
-assert.match(worker, /danzstak-shell-v858/);
+assert.match(worker, /danzstak-shell-v859/);
 assert.match(worker, /\/assets\/artist-hq\.js/);
 assert.match(worker, /\/assets\/artist-hq\.css/);
 

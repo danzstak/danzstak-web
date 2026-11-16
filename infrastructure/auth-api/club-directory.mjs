@@ -27,6 +27,7 @@ export function clubFromPlace(place) {
   if (!name) return null;
   return {
     venueKey: place.venueKey,
+    kind: place.kind === "promoter" ? "promoter" : "club",
     name,
     address: text(place.address, 300),
     locality: text(place.locality || place.city, 120),
@@ -44,9 +45,9 @@ export function clubFromPlace(place) {
 export function clubUpsert(tableName, club, at) {
   const values = {
     ":found": { S: "found" }, ":at": { S: at }, ":name": { S: club.name }, ":lon": { N: String(club.lon) }, ":lat": { N: String(club.lat) },
-    ":address": { S: club.address }, ":locality": { S: club.locality }, ":source": { S: club.sourceName }, ":one": { N: "1" }
+    ":address": { S: club.address }, ":locality": { S: club.locality }, ":source": { S: club.sourceName }, ":one": { N: "1" }, ":kind": { S: club.kind || "club" }
   };
-  const sets = ["#status = if_not_exists(#status, :found)", "firstSeenAt = if_not_exists(firstSeenAt, :at)", "lastSeenAt = :at", "#name = :name", "lon = :lon", "lat = :lat", "address = :address", "locality = :locality", "sourceName = :source"];
+  const sets = ["#status = if_not_exists(#status, :found)", "firstSeenAt = if_not_exists(firstSeenAt, :at)", "lastSeenAt = :at", "#kind = if_not_exists(#kind, :kind)", "#name = :name", "lon = :lon", "lat = :lat", "address = :address", "locality = :locality", "sourceName = :source"];
   for (const [field, value] of [["website", club.website], ["email", club.email], ["phone", club.phone], ["sourceUrl", club.sourceUrl]]) {
     if (!value) continue;
     values[`:${field}`] = { S: value };
@@ -59,7 +60,7 @@ export function clubUpsert(tableName, club, at) {
     UpdateExpression: `SET ${sets.join(", ")} ADD timesFound :one`,
     // An owner-reviewed listing keeps the owner's wording; searches never overwrite it.
     ConditionExpression: "attribute_not_exists(#status) OR #status <> :approved",
-    ExpressionAttributeNames: { "#status": "status", "#name": "name" },
+    ExpressionAttributeNames: { "#status": "status", "#name": "name", "#kind": "kind" },
     ExpressionAttributeValues: { ...values, ":approved": { S: "approved" } }
   };
 }
@@ -175,7 +176,7 @@ export function sortByClubTier(venues) {
 }
 
 const csvCell = value => { const cell = String(value ?? ""); return /[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell; };
-export const CLUB_CSV_COLUMNS = ["tier", "name", "locality", "address", "website", "email", "phone", "categories", "pitches", "replies", "bookings", "medianReplyHours", "payToPlayTickets", "payToPlayFee", "sourceName", "firstSeenAt", "lastSeenAt", "lat", "lon", "venueKey"];
+export const CLUB_CSV_COLUMNS = ["tier", "kind", "name", "locality", "address", "website", "email", "phone", "categories", "pitches", "replies", "bookings", "medianReplyHours", "payToPlayTickets", "payToPlayFee", "sourceName", "firstSeenAt", "lastSeenAt", "lat", "lon", "venueKey"];
 export function clubCsv(items = []) {
   const value = (item, field) => item[field]?.S ?? item[field]?.N ?? "";
   const rows = items.filter(item => item?.venueKey?.S)

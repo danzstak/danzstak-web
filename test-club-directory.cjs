@@ -42,7 +42,7 @@ const fs = require("node:fs");
   assert.match(upsert.UpdateExpression, /#status = if_not_exists\(#status, :found\)/);
   // CSV for the owner.
   const csv = club.clubCsv([{ venueKey: { S: "abc123" }, tier: { S: "verified" }, name: { S: "Kelly's, \"Olympian\"" }, bookings: { N: "2" } }]);
-  assert.match(csv, /^tier,name,locality/); assert.match(csv, /verified,"Kelly's, ""Olympian"""/);
+  assert.match(csv, /^tier,kind,name,locality/); assert.match(csv, /verified,,"Kelly's, ""Olympian"""/);
   // Wiring in the API.
   const api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
   assert.match(api, /const venues = withClubRecords\(await withVenueFreshness/);
