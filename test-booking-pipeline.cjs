@@ -12,6 +12,7 @@ assert.equal(context.csvCell('Buyer says "yes"'), '"Buyer says ""yes"""');
 assert.equal(context.csvCell(undefined), '""');
 const summary = source.slice(source.indexOf('function updateControls()'), source.indexOf('function persist()'));
 const state = vm.createContext({
+  pipeline: require('./assets/booking-pipeline.js'),
   venues: [{booking:{stage:'Confirmed',followUp:'2000-01-01'}}, {booking:{stage:'Declined',followUp:'2000-01-01'}}, {booking:{stage:'Contacted',followUp:'2000-01-01'}}, {booking:{stage:'Research',followUp:'2999-01-01'}}],
   printButton:{}, downloadButton:{}, clearButton:{}, status:{},
   bookingStatus: venue => ({Contacted:'Email sent',Research:'Not contacted'}[venue.booking.stage] || venue.booking.stage),

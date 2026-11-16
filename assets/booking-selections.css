@@ -36,3 +36,15 @@
 @media(max-width:620px){.booking-workspace-actions .booking-next-action{min-width:0}.booking-workspace-actions .secondary{grid-column:1/-1}}
 .venue-links a,.venue-links .unlock-contact{display:inline-flex;min-height:44px;align-items:center}
 .credit-panel .refund-note{grid-column:1/-1;margin:0;font-size:.82rem;opacity:.75}
+/* Booking pipeline (task 02): one-column board, stage chips and filters, phone first. */
+.pipeline-filters{display:flex;gap:6px;margin:10px 0 0;padding:2px 0 4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.pipeline-filters::-webkit-scrollbar{display:none}
+.pipeline-chip{flex:0 0 auto;min-height:44px;padding:6px 12px;border:1px solid #b8c4d2;border-radius:999px;background:#fff;color:#172033;font-size:14px;font-weight:750;white-space:nowrap}
+.pipeline-chip[aria-pressed="true"]{border-color:#121418;background:#121418;color:#fff}
+.pipeline-stage{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px}
+.pipeline-stage span{display:inline-block;padding:3px 9px;border:1px solid #121418;border-radius:999px;font-size:12px;font-weight:850;letter-spacing:.06em;text-transform:uppercase;color:#121418;background:#fff}
+.pipeline-stage.stage-replied span,.pipeline-stage.stage-offer span{background:#ffe3d6}
+.pipeline-stage.stage-confirmed span,.pipeline-stage.stage-played span{border-color:#ff5a1f;background:#ff5a1f;color:#121418}
+.pipeline-stage.stage-passed span,.pipeline-stage.stage-no_reply span{border-color:#98a2b3;color:#475467}
+.pipeline-thread{display:inline-flex;min-height:44px;align-items:center;padding:0 4px;color:#121418;font-weight:800}
+.booking-follow-up label{display:grid;gap:6px;font-weight:650}
+@media print{.pipeline-filters,.pipeline-thread{display:none}}

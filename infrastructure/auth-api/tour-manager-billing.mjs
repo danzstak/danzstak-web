@@ -1,4 +1,5 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+import { followUpDate, followUpEligible } from "./booking-pipeline.mjs";
 
 export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UcAtqDoNxcsrqZsAWuhsZb8";
 export const TOUR_MANAGER_PRODUCT_ID = "prod_VdRn459Fo3WpXT";
@@ -403,9 +404,9 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (followUpTo) {
       if (!/^[a-zA-Z0-9_-]{16,100}$/.test(followUpTo)) return response(400, { error: "Choose a valid booking thread to follow up." }, headers);
       followUpSource = (await db.send(new GetItemCommand({ TableName: tableName, Key: sendKey(userId, followUpTo), ConsistentRead: true }))).Item;
-      const due = String(venue.booking?.followUp || ""), today = new Date(preflightMs).toISOString().slice(0, 10);
+      const pitchSentAt = followUpSource?.sentAt?.S || followUpSource?.providerAcceptedAt?.S || followUpSource?.createdAt?.S || "", due = followUpDate(String(venue.booking?.followUp || ""), pitchSentAt), today = new Date(preflightMs).toISOString().slice(0, 10);
       if (!followUpSource || followUpSource.venueKey?.S !== venueKey || followUpSource.recipient?.S !== to) return response(409, { error: "This follow-up does not match the saved venue thread." }, headers);
-      if (!due || due > today) return response(409, { error: "This follow-up is not due yet." }, headers);
+      if (!due || due > today || !followUpEligible(pitchSentAt, preflightMs)) return response(409, { error: "This follow-up is not due yet. Give the venue 5 days to answer the first pitch." }, headers);
       if (followUpSource.repliedAt?.S) return response(409, { error: "This venue already replied. Continue the existing thread instead of sending a follow-up." }, headers);
       if (followUpSource.followUpSendId?.S) return response(409, { error: "The one allowed follow-up has already been prepared or sent." }, headers);
       if (!["sent", "delivered"].includes(followUpSource.status?.S || "")) return response(409, { error: "Only a successfully submitted booking pitch can be followed up." }, headers);
@@ -865,8 +866,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     let followUpSource;
     if (followUpTo) {
       followUpSource = (await db.send(new GetItemCommand({ TableName: tableName, Key: sendKey(userId, followUpTo), ConsistentRead: true }))).Item;
-      const due = String(venue.booking?.followUp || ""), today = new Date(reservationMs).toISOString().slice(0, 10);
-      if (!followUpSource || followUpSource.venueKey?.S !== venueKey || followUpSource.recipient?.S !== to || !due || due > today || followUpSource.repliedAt?.S || followUpSource.followUpSendId?.S || !["sent", "delivered"].includes(followUpSource.status?.S || "")) return response(409, { error: "This follow-up is no longer eligible. Reload the booking thread before sending." }, headers);
+      const pitchSentAt = followUpSource?.sentAt?.S || followUpSource?.providerAcceptedAt?.S || followUpSource?.createdAt?.S || "", due = followUpDate(String(venue.booking?.followUp || ""), pitchSentAt), today = new Date(reservationMs).toISOString().slice(0, 10);
+      if (!followUpSource || followUpSource.venueKey?.S !== venueKey || followUpSource.recipient?.S !== to || !due || due > today || !followUpEligible(pitchSentAt, reservationMs) || followUpSource.repliedAt?.S || followUpSource.followUpSendId?.S || !["sent", "delivered"].includes(followUpSource.status?.S || "")) return response(409, { error: "This follow-up is no longer eligible. Reload the booking thread before sending." }, headers);
     }
     const { previousHourCount, currentHourCount, total: recentOutreachCount } = outreachWindow(hourlyResult.Items, reservationMs);
     if (recentOutreachCount >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
