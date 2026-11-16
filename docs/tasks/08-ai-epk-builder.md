@@ -32,6 +32,11 @@ epk.html, assets/epk.js (the `kit` fields: artistName, actType, genres, hometown
 - Budget guard per build: max searches, max pages fetched, max tokens. Log cost per build (no content) so $5 covers it, with a target cost under $1 per build.
 - Runs as an async job (DynamoDB job record + the client polling `/epk/ai/status`) so the Lambda doesn't time out; one active job per member.
 
+## AI output disclaimer (owner, 2026-11-16; legal text ToS 8D pending the lawyer)
+- Before purchase and on the build screen: "AI drafts can be wrong or out of date. DanzStak doesn't verify them. You must review every word, and you're responsible for what you publish or send. No guarantee of bookings or press. We never train AI on your content."
+- Every AI-written field is labeled "AI draft — check it" until the artist edits or confirms it. Publish requires ticking "I reviewed all AI-written sections and have permission for every quote and image."
+- Public EPK pages don't show an AI label once the artist has reviewed and published (the artist is the author). Re-check with the lawyer (EU AI Act transparency).
+
 ## Rewrites and redesign
 - Included with each paid EPK: **3 AI rewrites** (any section, e.g. "shorter", "more punk", "in Italian"). After that, a rewrite pack or redesign is another $5.
 - **AI redesign ($5)** = a new full draft (text + suggested look) from the current EPK + sources. Manual edits and manual look switching are always free.
