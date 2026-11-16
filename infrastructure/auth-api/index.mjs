@@ -53,6 +53,7 @@ import { createPersonalPhoneDynamoAdapter } from "./personal-phone-dynamodb.mjs"
 import { publicPhoneStatus } from "./personal-phone-verification.mjs";
 import QRCode from "qrcode";
 import { promoterQueries, promoterLeads } from "./promoter-research.mjs";
+import { enrichPromoter } from "./promoter-contact.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -3064,7 +3065,13 @@ async function webPromoterResearch(point, genre = "") {
     } catch (error) { console.error("Promoter search failed:", error.name); }
     finally { clearTimeout(timeout); }
   });
-  const promoters = promoterLeads(results, point);
+  // Open each promoter's own page (and its contact page) for the booking email and phone. 7 s budget.
+  const leads = promoterLeads(results, point), enriched = leads.slice();
+  await Promise.race([
+    mapLimit(leads.slice(0, 8), 4, async (lead, index) => { try { enriched[index] = await enrichPromoter(lead); } catch {} }),
+    new Promise(resolve => setTimeout(resolve, 7000))
+  ]);
+  const promoters = enriched.map(lead => ({ ...lead })).sort((a, b) => Number(Boolean(b.emails?.length || b.phones?.length)) - Number(Boolean(a.emails?.length || a.phones?.length)));
   promoterCache.set(cacheKey, { promoters, expiresAt: Date.now() + 6 * 3600000 });
   if (promoterCache.size > 200) promoterCache.delete(promoterCache.keys().next().value);
   return { skipped: false, promoters };
