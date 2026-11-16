@@ -32,3 +32,15 @@
 .post-share-socials{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .post-share-social{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border:1px solid #e7e9ee;border-radius:999px;background:#fff;color:#121418;font:inherit;font-weight:700;font-size:13px;text-decoration:none;cursor:pointer}
 .post-share-social:hover,.post-share-social:focus-visible{border-color:#ff5a1f;color:#d9480f;outline:none}
+
+/* Profile wall (owner 2026-11-16): one continuous surface like Mix — no grey gaps between boxed posts;
+   tight rhythm so members' own posts and media carry the page. */
+body.profile-page{background:#fff!important}
+.profile-page .profile-post-card{padding:10px 16px 4px!important;margin-bottom:0!important;border-bottom:1px solid #e7e9ee!important}
+.profile-page .profile-post-card + .profile-post-card{margin-top:0!important}
+.profile-page .profile-post-header{gap:8px!important;min-height:36px!important;margin-bottom:6px!important}
+.profile-page .profile-post-avatar,.profile-page .profile-post-avatar img{width:36px!important;height:36px!important}
+.profile-page .profile-post-content{margin:0 0 6px!important;line-height:1.4}
+.profile-page .profile-post-media{margin-top:0!important;margin-bottom:0!important}
+.profile-page .profile-post-tools{margin-top:2px!important;padding-top:0!important;border-top:0!important}
+.profile-page .card{box-shadow:none!important;border:0!important;border-radius:0!important}

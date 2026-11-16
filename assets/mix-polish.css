@@ -107,3 +107,16 @@ body:has(#feed){background:var(--mix-surface)!important}
 .post-share-socials{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .post-share-social{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border:1px solid #e7e9ee;border-radius:999px;background:#fff;color:#121418;font:inherit;font-weight:700;font-size:13px;text-decoration:none;cursor:pointer}
 .post-share-social:hover,.post-share-social:focus-visible{border-color:#ff5a1f;color:#d9480f;outline:none}
+/* Tighter rhythm (owner 2026-11-16): 36px avatars, time + audience on one line, no idle gaps. */
+#feed > .post{padding:10px var(--mix-pad) 0!important}
+#feed > .post .post-header{margin:0 0 6px!important;gap:8px!important}
+#feed > .post .post-avatar img{width:36px!important;height:36px!important}
+#feed > .post .post-author-details{display:grid!important;grid-template-columns:auto 1fr;column-gap:6px;row-gap:0;align-items:baseline}
+#feed > .post .post-author{grid-column:1/-1;line-height:1.2}
+#feed > .post .post-time,#feed > .post .post-audience{line-height:1.25!important;margin:0!important}
+#feed > .post .post-content{margin:0 0 6px!important}
+#feed > .post .link-preview-card{margin-top:0!important}
+#feed > .post .post-view-count{margin:4px 0 0!important;line-height:1.2}
+#feed > .post .post-actions{margin:0!important;padding:0!important}
+#feed > .post .commentList:empty{margin:0!important}
+#feed > .post .comments[hidden]{display:none!important}
