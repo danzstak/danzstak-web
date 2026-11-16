@@ -289,6 +289,7 @@
 "Heavy rain or poor visibility": "Pioggia forte o scarsa visibilità",
 "High Desert Club Run: Los Angeles to Las Vegas": "Giro dei club nel deserto: da Los Angeles a Las Vegas",
 "High Desert Leg: Los Angeles to Denver via Salt Lake City": "Tappa High Desert: da Los Angeles a Denver passando per Salt Lake City",
+"Hip-Hop": "Hip-hop",
 "Holiday Inn Tour": "Tour Holiday Inn",
 "Home": "Casa",
 "Home Safe": "A casa sani e salvi",
@@ -840,7 +841,80 @@
 "build and publish one": "creane e pubblicane uno",
 "date open": "data libera",
 "days minimum": "giorni minimo",
-"ready to send": "pronto da inviare"
+"ready to send": "pronto da inviare",
+"Showing bookable live-music leads. Press Search again for different clubs; verify the booking contact before treating a date as booked.": "Ecco locali live dove proporsi. Premi di nuovo Cerca per altri locali; verifica il contatto per il booking prima di considerare una data confermata.",
+"Ask for a city and music style. Every result shows where it came from; a listing is not a confirmed booking.": "Scrivi una città e uno stile musicale. Ogni risultato mostra da dove viene; un annuncio non è un concerto confermato.",
+"Add a public live-music room to your private booking list. DanzStak will place its address on the map; this does not publish it to the shared directory.": "Aggiungi un locale pubblico di musica dal vivo alla tua lista privata. DanzStak mette l'indirizzo sulla mappa; non lo pubblica nell'elenco condiviso.",
+"Tour removes privacy and reveals habits. Agree on the hard parts before departure. The bass player often handles Tour Manager duty because they are the level-headed one—but give the job to whoever can manage the money, schedule, settlements, and people.": "In tour non c'è privacy e le abitudini vengono fuori. Mettetevi d'accordo sulle cose difficili prima di partire. Spesso il bassista fa il Tour Manager perché è quello con la testa sulle spalle, ma date il ruolo a chi sa gestire soldi, orari, conti e persone.",
+"Guarantees, merch, expenses, per diem, and payment splits are agreed in writing.": "Garanzie, merch, spese, diaria e divisione dei pagamenti sono concordati per iscritto.",
+"Sleeping, hygiene, noise, guests, substances, and shared-space expectations are agreed.": "Sonno, igiene, rumore, ospiti, sostanze e spazi comuni sono concordati.",
+"The drummer often takes a driving shift. On long legs, name a qualified backup driver, switch before fatigue sets in, and protect both drivers' sleep. The schedule never outranks a safe driver.": "Spesso il batterista fa un turno di guida. Sulle tappe lunghe indicate un secondo autista abilitato, cambiate prima della stanchezza e proteggete il sonno di entrambi. L'orario non conta mai più di un autista sicuro.",
+"A closure, breakdown, lost key, illness, stolen gear, or bad room should not end the tour.": "Una chiusura, un guasto, una chiave persa, una malattia, attrezzatura rubata o un locale pessimo non devono chiudere il tour.",
+"Roadside assistance, tow, repair, tire, and vehicle recovery plan is ready.": "Piano per soccorso stradale, traino, riparazioni, gomme e recupero del veicolo pronto.",
+"Fallback lodging, route, venue contacts, and addresses are available offline.": "Alloggi di riserva, percorso, contatti e indirizzi dei locali sono disponibili offline.",
+"Gear and merch inventory, serial numbers, and insurance contacts are recorded.": "Inventario di attrezzatura e merch, numeri di serie e contatti dell'assicurazione registrati.",
+"A spare vehicle key is held separately from the main key.": "Una chiave di riserva del veicolo è tenuta separata da quella principale.",
+"Emergency contacts and essential medical information are available offline.": "Contatti d'emergenza e informazioni mediche essenziali sono disponibili offline.",
+"Backup payment and emergency funds are separate from daily tour cash.": "Soldi di riserva e d'emergenza separati dalla cassa quotidiana del tour.",
+"🚌 Driver Card": "🚌 Scheda autista",
+"This is a working pitch plan, not a confirmed tour. Sourced lead means a public source was found—not that the venue agreed. Leg miles are estimates; use the route map for live navigation.": "È un piano di lavoro per proporsi, non un tour confermato. \"Contatto con fonte\" vuol dire che c'è una fonte pubblica, non che il locale ha accettato. Le distanze sono stime; usa la mappa del percorso per navigare.",
+"Day": "Giorno",
+"City": "Città",
+"Date": "Data",
+"Club to pitch": "Locale da contattare",
+"Sleep plan": "Dove dormire",
+"Road plan": "Piano di viaggio",
+"Show target": "Concerto previsto",
+"arrive 4:00 PM": "arrivo 16:00",
+"soundcheck 5:00 PM": "soundcheck 17:00",
+"Safe return drive; finish with everyone and the vehicle home.": "Viaggio di rientro sicuro; si finisce con tutti e il furgone a casa.",
+"Drive toward the next show; load-in buffer, laundry, or sleep.": "Guida verso il prossimo concerto; margine per il carico, bucato o sonno.",
+"No sourced club lead yet; research this market.": "Ancora nessun locale con fonte; cerca in questa città.",
+"Merch profit/show": "Guadagno merch/concerto",
+"Vehicle + road costs": "Veicolo + costi di viaggio",
+"Finish-line reserve": "Riserva per arrivare in fondo",
+"Break-even per show": "Pareggio per concerto",
+"Pay per show": "Cachet per concerto",
+"Estimated tour": "Tour stimato",
+"Projected money in": "Entrate previste",
+"Working tour money": "Conti del tour",
+"Change the expected show pay or merch profit here. Costs still use your crew and van settings.": "Cambia qui il cachet o il guadagno merch previsti. I costi usano sempre le impostazioni di crew e furgone.",
+"Suggested from your profile. Check and save.": "Suggerito dal tuo profilo. Controlla e salva.",
+"Tour Manager with road authority": "Tour Manager con autorità in viaggio",
+"Daily quiet or personal time": "Tempo tranquillo o personale ogni giorno",
+"Conflict plan": "Piano per i litigi",
+"DanzStak member route": "Percorso del membro DanzStak",
+"Search different clubs": "Cerca altri locali",
+"Zoom in": "Ingrandisci",
+"Zoom out": "Rimpicciolisci",
+"Draw a route on the map": "Traccia un percorso sulla mappa",
+"Draw a route": "Traccia un percorso",
+"Public source found; booking and availability are not confirmed.": "Fonte pubblica trovata; booking e disponibilità non sono confermati.",
+"$500 guarantee or 80% after expenses": "500 $ garantiti o 80% dopo le spese",
+"1. Tell us what you play": "1. Dicci cosa suoni",
+"2. Choose the tour style": "2. Scegli lo stile del tour",
+"3. Keep the touring crew together": "3. Tieni unita la crew",
+"4. Put the driver on the bus": "4. Metti l'autista al volante",
+"5. Expect the unexpected": "5. Aspettati l'imprevisto",
+"6. Price the tour": "6. Calcola i costi del tour",
+"Live Music Venue": "Locale di musica dal vivo",
+"DIY Music Venue": "Locale DIY",
+"Independent Music Venue": "Locale indipendente",
+"Bar or Pub": "Bar o pub",
+"Campground": "Campeggio",
+"Park-Recreation Area": "Parco / area ricreativa",
+"Record, CD & Video": "Dischi, CD e video",
+"Live Entertainment-Music": "Musica dal vivo",
+"A public venue or booking page is available; confirm the current calendar before pitching.": "C'è una pagina pubblica del locale o per il booking; verifica il calendario attuale prima di proporti.",
+"Current public place data includes this venue website. Check its live calendar and booking instructions before pitching.": "I dati pubblici includono il sito del locale. Controlla il calendario e le istruzioni per il booking prima di proporti.",
+"Current public place data includes a direct contact. Confirm that it handles live-show booking before pitching.": "I dati pubblici includono un contatto diretto. Verifica che organizzi concerti prima di proporti.",
+"Unverified": "Non verificato",
+"no recent activity on DanzStak. Public contact found. Verify that it books this kind of show; DanzStak has not contacted this location.": "nessuna attività recente su DanzStak. Contatto pubblico trovato. Verifica che organizzi questo tipo di concerti; DanzStak non ha contattato questo locale.",
+"no recent activity on DanzStak. Needs research. The public listing does not prove programming for this act yet.": "nessuna attività recente su DanzStak. Servono ricerche. L'annuncio pubblico non dimostra ancora che programmi questo genere.",
+"Confirm current programming and find the correct public booking contact.": "Verifica la programmazione attuale e trova il contatto pubblico giusto per il booking.",
+"DanzStak curated public venue directory": "elenco pubblico dei locali curato da DanzStak",
+"AWS Places public listing": "annuncio pubblico AWS Places",
+"A JavaScript library for interactive maps": "Una libreria JavaScript per mappe interattive"
 },
 "fr": {
 "A private review link is active. Replace it to get a new secret or revoke access.": "Un lien privé d'avis est actif. Remplace-le pour obtenir un nouveau secret ou révoque l'accès.",
@@ -1130,6 +1204,7 @@
 "Heavy rain or poor visibility": "Forte pluie ou mauvaise visibilité",
 "High Desert Club Run: Los Angeles to Las Vegas": "Tournée des clubs du désert : de Los Angeles à Las Vegas",
 "High Desert Leg: Los Angeles to Denver via Salt Lake City": "Étape High Desert : de Los Angeles à Denver via Salt Lake City",
+"Hip-Hop": "Hip-hop",
 "Holiday Inn Tour": "Tournée Holiday Inn",
 "Home": "Maison",
 "Home Safe": "Rentrés sains et saufs",
@@ -1675,7 +1750,79 @@
 "build and publish one": "crée et publie-en un",
 "date open": "date libre",
 "days minimum": "jours minimum",
-"ready to send": "prêt à envoyer"
+"ready to send": "prêt à envoyer",
+"Showing bookable live-music leads. Press Search again for different clubs; verify the booking contact before treating a date as booked.": "Voici des salles live à démarcher. Relance la recherche pour d'autres clubs ; vérifie le contact booking avant de considérer une date comme bookée.",
+"Ask for a city and music style. Every result shows where it came from; a listing is not a confirmed booking.": "Indique une ville et un style musical. Chaque résultat montre sa source ; une fiche n'est pas un concert confirmé.",
+"Add a public live-music room to your private booking list. DanzStak will place its address on the map; this does not publish it to the shared directory.": "Ajoute une salle de musique live publique à ta liste privée. DanzStak place son adresse sur la carte ; elle n'est pas publiée dans l'annuaire partagé.",
+"Tour removes privacy and reveals habits. Agree on the hard parts before departure. The bass player often handles Tour Manager duty because they are the level-headed one—but give the job to whoever can manage the money, schedule, settlements, and people.": "En tournée, plus d'intimité et les habitudes ressortent. Mettez-vous d'accord sur les points durs avant de partir. Souvent le bassiste fait Tour Manager parce que c'est le plus posé, mais confiez le rôle à qui sait gérer l'argent, le planning, les règlements et les gens.",
+"Guarantees, merch, expenses, per diem, and payment splits are agreed in writing.": "Garanties, merch, dépenses, per diem et partage des paiements sont convenus par écrit.",
+"Sleeping, hygiene, noise, guests, substances, and shared-space expectations are agreed.": "Sommeil, hygiène, bruit, invités, substances et espaces partagés sont convenus.",
+"The drummer often takes a driving shift. On long legs, name a qualified backup driver, switch before fatigue sets in, and protect both drivers' sleep. The schedule never outranks a safe driver.": "Souvent le batteur prend un tour de volant. Sur les longues étapes, désigne un second conducteur qualifié, changez avant la fatigue et protégez le sommeil des deux. Le planning ne passe jamais avant un conducteur en forme.",
+"A closure, breakdown, lost key, illness, stolen gear, or bad room should not end the tour.": "Une fermeture, une panne, une clé perdue, une maladie, du matériel volé ou une mauvaise salle ne doivent pas tuer la tournée.",
+"Roadside assistance, tow, repair, tire, and vehicle recovery plan is ready.": "Plan d'assistance, dépannage, réparation, pneus et récupération du véhicule prêt.",
+"Fallback lodging, route, venue contacts, and addresses are available offline.": "Hébergements de secours, itinéraire, contacts et adresses des salles sont disponibles hors ligne.",
+"Gear and merch inventory, serial numbers, and insurance contacts are recorded.": "Inventaire du matériel et du merch, numéros de série et contacts d'assurance notés.",
+"A spare vehicle key is held separately from the main key.": "Un double de la clé du véhicule est gardé à part de la clé principale.",
+"Emergency contacts and essential medical information are available offline.": "Contacts d'urgence et informations médicales essentielles disponibles hors ligne.",
+"Backup payment and emergency funds are separate from daily tour cash.": "Argent de secours et d'urgence séparé de la caisse quotidienne.",
+"🚌 Driver Card": "🚌 Fiche conducteur",
+"This is a working pitch plan, not a confirmed tour. Sourced lead means a public source was found—not that the venue agreed. Leg miles are estimates; use the route map for live navigation.": "C'est un plan de démarchage, pas une tournée confirmée. « Piste sourcée » veut dire qu'une source publique existe, pas que la salle a accepté. Les distances sont estimées ; utilise la carte pour naviguer.",
+"Day": "Jour",
+"City": "Ville",
+"Club to pitch": "Club à démarcher",
+"Sleep plan": "Où dormir",
+"Road plan": "Plan de route",
+"Show target": "Concert visé",
+"arrive 4:00 PM": "arrivée 16 h",
+"soundcheck 5:00 PM": "balances 17 h",
+"Safe return drive; finish with everyone and the vehicle home.": "Retour en sécurité ; on finit avec tout le monde et le véhicule à la maison.",
+"Drive toward the next show; load-in buffer, laundry, or sleep.": "Route vers le prochain concert ; marge pour le chargement, la lessive ou le sommeil.",
+"No sourced club lead yet; research this market.": "Pas encore de club sourcé ; cherche dans cette ville.",
+"Merch profit/show": "Bénéfice merch/concert",
+"Vehicle + road costs": "Véhicule + frais de route",
+"Finish-line reserve": "Réserve pour finir",
+"Break-even per show": "Seuil par concert",
+"Pay per show": "Cachet par concert",
+"Estimated tour": "Tournée estimée",
+"Projected money in": "Rentrées prévues",
+"Working tour money": "Argent de la tournée",
+"Change the expected show pay or merch profit here. Costs still use your crew and van settings.": "Change ici le cachet ou le bénéfice merch prévu. Les coûts utilisent toujours tes réglages équipe et van.",
+"Suggested from your profile. Check and save.": "Suggéré depuis ton profil. Vérifie et enregistre.",
+"Tour Manager with road authority": "Tour Manager avec autorité sur la route",
+"Daily quiet or personal time": "Moment calme ou personnel chaque jour",
+"Conflict plan": "Plan en cas de conflit",
+"DanzStak member route": "Itinéraire du membre DanzStak",
+"Search different clubs": "Chercher d'autres clubs",
+"Zoom in": "Zoom avant",
+"Zoom out": "Zoom arrière",
+"Draw a route on the map": "Trace un itinéraire sur la carte",
+"Draw a route": "Tracer un itinéraire",
+"Public source found; booking and availability are not confirmed.": "Source publique trouvée ; booking et disponibilité non confirmés.",
+"$500 guarantee or 80% after expenses": "500 $ garantis ou 80 % après frais",
+"1. Tell us what you play": "1. Dis-nous ce que tu joues",
+"2. Choose the tour style": "2. Choisis le style de tournée",
+"3. Keep the touring crew together": "3. Garde l'équipe soudée",
+"4. Put the driver on the bus": "4. Mets le conducteur au volant",
+"5. Expect the unexpected": "5. Prévois l'imprévu",
+"6. Price the tour": "6. Chiffre la tournée",
+"Live Music Venue": "Salle de musique live",
+"DIY Music Venue": "Salle DIY",
+"Independent Music Venue": "Salle indépendante",
+"Bar or Pub": "Bar ou pub",
+"Campground": "Camping",
+"Park-Recreation Area": "Parc / espace de loisirs",
+"Record, CD & Video": "Disques, CD et vidéo",
+"Live Entertainment-Music": "Musique live",
+"A public venue or booking page is available; confirm the current calendar before pitching.": "Une page publique de la salle ou de booking existe ; vérifie le calendrier actuel avant de démarcher.",
+"Current public place data includes this venue website. Check its live calendar and booking instructions before pitching.": "Les données publiques incluent le site de la salle. Vérifie son calendrier et ses consignes de booking avant de démarcher.",
+"Current public place data includes a direct contact. Confirm that it handles live-show booking before pitching.": "Les données publiques incluent un contact direct. Vérifie qu'il gère la programmation live avant de démarcher.",
+"Unverified": "Non vérifié",
+"no recent activity on DanzStak. Public contact found. Verify that it books this kind of show; DanzStak has not contacted this location.": "aucune activité récente sur DanzStak. Contact public trouvé. Vérifie qu'il programme ce genre de concert ; DanzStak n'a pas contacté ce lieu.",
+"no recent activity on DanzStak. Needs research. The public listing does not prove programming for this act yet.": "aucune activité récente sur DanzStak. Recherche nécessaire. La fiche publique ne prouve pas encore qu'il programme ce genre de projet.",
+"Confirm current programming and find the correct public booking contact.": "Vérifie la programmation actuelle et trouve le bon contact booking public.",
+"DanzStak curated public venue directory": "annuaire public des salles de DanzStak",
+"AWS Places public listing": "fiche publique AWS Places",
+"A JavaScript library for interactive maps": "Une bibliothèque JavaScript pour cartes interactives"
 },
 "es": {
 "A private review link is active. Replace it to get a new secret or revoke access.": "Hay un enlace privado de reseñas activo. Sustitúyelo para obtener un nuevo secreto o revoca el acceso.",
@@ -1970,6 +2117,7 @@
 "Heavy rain or poor visibility": "Lluvia fuerte o poca visibilidad",
 "High Desert Club Run: Los Angeles to Las Vegas": "Ruta de salas por el desierto: de Los Ángeles a Las Vegas",
 "High Desert Leg: Los Angeles to Denver via Salt Lake City": "Tramo High Desert: de Los Ángeles a Denver por Salt Lake City",
+"Hip-Hop": "Hip-hop",
 "Holiday Inn Tour": "Gira Holiday Inn",
 "Home": "Casa",
 "Home Safe": "En casa sanos y salvos",
@@ -2523,7 +2671,80 @@
 "build and publish one": "crea y publica uno",
 "date open": "fecha libre",
 "days minimum": "días mínimo",
-"ready to send": "listo para enviar"
+"ready to send": "listo para enviar",
+"Showing bookable live-music leads. Press Search again for different clubs; verify the booking contact before treating a date as booked.": "Estas son salas en directo donde proponerte. Pulsa Buscar otra vez para otras salas; verifica el contacto antes de dar una fecha por cerrada.",
+"Ask for a city and music style. Every result shows where it came from; a listing is not a confirmed booking.": "Escribe una ciudad y un estilo musical. Cada resultado muestra de dónde sale; un anuncio no es un concierto confirmado.",
+"Add a public live-music room to your private booking list. DanzStak will place its address on the map; this does not publish it to the shared directory.": "Añade una sala pública de música en directo a tu lista privada. DanzStak pone su dirección en el mapa; no la publica en el directorio compartido.",
+"Tour removes privacy and reveals habits. Agree on the hard parts before departure. The bass player often handles Tour Manager duty because they are the level-headed one—but give the job to whoever can manage the money, schedule, settlements, and people.": "De gira no hay intimidad y salen los hábitos. Poneos de acuerdo en lo difícil antes de salir. A menudo el bajista hace de Tour Manager porque es el más sensato, pero dad el puesto a quien sepa llevar el dinero, el horario, las liquidaciones y la gente.",
+"Guarantees, merch, expenses, per diem, and payment splits are agreed in writing.": "Garantías, merch, gastos, dietas y reparto de pagos están acordados por escrito.",
+"Sleeping, hygiene, noise, guests, substances, and shared-space expectations are agreed.": "Sueño, higiene, ruido, invitados, sustancias y espacios compartidos están acordados.",
+"The drummer often takes a driving shift. On long legs, name a qualified backup driver, switch before fatigue sets in, and protect both drivers' sleep. The schedule never outranks a safe driver.": "A menudo el batería hace un turno al volante. En tramos largos nombrad un conductor de reserva cualificado, cambiad antes del cansancio y proteged el sueño de los dos. El horario nunca va por delante de un conductor seguro.",
+"A closure, breakdown, lost key, illness, stolen gear, or bad room should not end the tour.": "Un cierre, una avería, una llave perdida, una enfermedad, equipo robado o una mala sala no deben acabar con la gira.",
+"Roadside assistance, tow, repair, tire, and vehicle recovery plan is ready.": "Plan de asistencia, grúa, reparación, neumáticos y recuperación del vehículo listo.",
+"Fallback lodging, route, venue contacts, and addresses are available offline.": "Alojamientos de reserva, ruta, contactos y direcciones de salas disponibles sin conexión.",
+"Gear and merch inventory, serial numbers, and insurance contacts are recorded.": "Inventario de equipo y merch, números de serie y contactos del seguro anotados.",
+"A spare vehicle key is held separately from the main key.": "Una llave de repuesto del vehículo se guarda aparte de la principal.",
+"Emergency contacts and essential medical information are available offline.": "Contactos de emergencia e información médica esencial disponibles sin conexión.",
+"Backup payment and emergency funds are separate from daily tour cash.": "Dinero de reserva y de emergencia separado de la caja diaria de la gira.",
+"🚌 Driver Card": "🚌 Ficha del conductor",
+"This is a working pitch plan, not a confirmed tour. Sourced lead means a public source was found—not that the venue agreed. Leg miles are estimates; use the route map for live navigation.": "Es un plan de trabajo para proponerse, no una gira confirmada. «Pista con fuente» significa que hay una fuente pública, no que la sala haya aceptado. Las distancias son estimaciones; usa el mapa de la ruta para navegar.",
+"Day": "Día",
+"City": "Ciudad",
+"Date": "Fecha",
+"Club to pitch": "Sala a contactar",
+"Sleep plan": "Dónde dormir",
+"Road plan": "Plan de ruta",
+"Show target": "Concierto previsto",
+"arrive 4:00 PM": "llegada 16:00",
+"soundcheck 5:00 PM": "prueba de sonido 17:00",
+"Safe return drive; finish with everyone and the vehicle home.": "Vuelta segura; se termina con todos y el vehículo en casa.",
+"Drive toward the next show; load-in buffer, laundry, or sleep.": "Conduce hacia el próximo concierto; margen para la carga, la colada o dormir.",
+"No sourced club lead yet; research this market.": "Aún no hay sala con fuente; investiga esta ciudad.",
+"Merch profit/show": "Beneficio merch/concierto",
+"Vehicle + road costs": "Vehículo + gastos de carretera",
+"Finish-line reserve": "Reserva para llegar al final",
+"Break-even per show": "Punto de equilibrio por concierto",
+"Pay per show": "Caché por concierto",
+"Estimated tour": "Gira estimada",
+"Projected money in": "Ingresos previstos",
+"Working tour money": "Dinero de la gira",
+"Change the expected show pay or merch profit here. Costs still use your crew and van settings.": "Cambia aquí el caché o el beneficio de merch previstos. Los costes siguen usando tus ajustes de equipo y furgoneta.",
+"Suggested from your profile. Check and save.": "Sugerido desde tu perfil. Revisa y guarda.",
+"Tour Manager with road authority": "Tour Manager con autoridad en ruta",
+"Daily quiet or personal time": "Tiempo tranquilo o personal cada día",
+"Conflict plan": "Plan para conflictos",
+"DanzStak member route": "Ruta del miembro de DanzStak",
+"Search different clubs": "Buscar otras salas",
+"Zoom in": "Acercar",
+"Zoom out": "Alejar",
+"Draw a route on the map": "Dibuja una ruta en el mapa",
+"Draw a route": "Dibujar ruta",
+"Public source found; booking and availability are not confirmed.": "Fuente pública encontrada; contratación y disponibilidad sin confirmar.",
+"$500 guarantee or 80% after expenses": "500 $ garantizados o el 80 % tras gastos",
+"1. Tell us what you play": "1. Cuéntanos qué tocas",
+"2. Choose the tour style": "2. Elige el estilo de gira",
+"3. Keep the touring crew together": "3. Mantén unido al equipo",
+"4. Put the driver on the bus": "4. Pon al conductor al volante",
+"5. Expect the unexpected": "5. Espera lo inesperado",
+"6. Price the tour": "6. Calcula los costes de la gira",
+"Live Music Venue": "Sala de música en directo",
+"DIY Music Venue": "Sala DIY",
+"Independent Music Venue": "Sala independiente",
+"Bar or Pub": "Bar o pub",
+"Campground": "Camping",
+"Park-Recreation Area": "Parque / zona recreativa",
+"Record, CD & Video": "Discos, CD y vídeo",
+"Live Entertainment-Music": "Música en directo",
+"A public venue or booking page is available; confirm the current calendar before pitching.": "Hay una página pública de la sala o de contratación; comprueba el calendario actual antes de proponerte.",
+"Current public place data includes this venue website. Check its live calendar and booking instructions before pitching.": "Los datos públicos incluyen la web de la sala. Revisa su calendario y sus instrucciones de contratación antes de proponerte.",
+"Current public place data includes a direct contact. Confirm that it handles live-show booking before pitching.": "Los datos públicos incluyen un contacto directo. Confirma que programa conciertos antes de proponerte.",
+"Unverified": "Sin verificar",
+"no recent activity on DanzStak. Public contact found. Verify that it books this kind of show; DanzStak has not contacted this location.": "sin actividad reciente en DanzStak. Contacto público encontrado. Comprueba que programa este tipo de conciertos; DanzStak no ha contactado con este sitio.",
+"no recent activity on DanzStak. Needs research. The public listing does not prove programming for this act yet.": "sin actividad reciente en DanzStak. Hace falta investigar. El anuncio público aún no demuestra que programe este tipo de proyecto.",
+"Confirm current programming and find the correct public booking contact.": "Confirma la programación actual y encuentra el contacto público correcto.",
+"DanzStak curated public venue directory": "directorio público de salas de DanzStak",
+"AWS Places public listing": "anuncio público de AWS Places",
+"A JavaScript library for interactive maps": "Una biblioteca JavaScript para mapas interactivos"
 }
 };
  for(const [lang,words] of Object.entries(add))Object.assign(t[lang]||(t[lang]={}),words);
@@ -2737,6 +2958,82 @@
 [
 "💿 Record stores along the route ({})",
 "💿 Negozi di dischi lungo il percorso ({0})"
+],
+[
+"{} clubs selected",
+"Locali scelti: {0}"
+],
+[
+"{} club selected",
+"Locali scelti: {0}"
+],
+[
+"{} clubs pinned. Move or zoom the map and press Search this area, or search different clubs below the results.",
+"Locali sulla mappa: {0}. Sposta o ingrandisci la mappa e premi Cerca in quest'area, oppure cerca altri locali sotto i risultati."
+],
+[
+"{} hours",
+"{0} ore"
+],
+[
+"{} days minimum",
+"minimo {0} giorni"
+],
+[
+"{} items",
+"{0} articoli"
+],
+[
+"{} of {} completed",
+"{0} di {1} completati"
+],
+[
+"Loss {}",
+"Perdita {0}"
+],
+[
+"Profit {}",
+"Utile {0}"
+],
+[
+"≈{} road mi",
+"≈{0} mi di strada"
+],
+[
+"{} → Turnaround → {}",
+"{0} → inversione → {1}"
+],
+[
+"{} → Home",
+"{0} → casa"
+],
+[
+"Website: {}",
+"Sito: {0}"
+],
+[
+"Email: {}",
+"Email: {0}"
+],
+[
+"Phone: {}",
+"Telefono: {0}"
+],
+[
+"Source: {}",
+"Fonte: {0}"
+],
+[
+"{} - {} mi from stop center",
+"{0} - {1} mi dal centro della tappa"
+],
+[
+"Named roster has {}; expected aboard is {}. Reconcile the roster.",
+"Nella lista ci sono {0} nomi; a bordo ne sono attesi {1}. Allinea la lista."
+],
+[
+"{} (one way)",
+"{0} (solo andata)"
 ]
 ],
 "fr": [
@@ -2947,6 +3244,82 @@
 [
 "💿 Record stores along the route ({})",
 "💿 Disquaires sur l'itinéraire ({0})"
+],
+[
+"{} clubs selected",
+"Clubs choisis : {0}"
+],
+[
+"{} club selected",
+"Clubs choisis : {0}"
+],
+[
+"{} clubs pinned. Move or zoom the map and press Search this area, or search different clubs below the results.",
+"Clubs épinglés : {0}. Déplace ou zoome la carte et appuie sur Chercher dans cette zone, ou cherche d'autres clubs sous les résultats."
+],
+[
+"{} hours",
+"{0} heures"
+],
+[
+"{} days minimum",
+"{0} jours minimum"
+],
+[
+"{} items",
+"{0} articles"
+],
+[
+"{} of {} completed",
+"{0} sur {1} terminés"
+],
+[
+"Loss {}",
+"Perte {0}"
+],
+[
+"Profit {}",
+"Bénéfice {0}"
+],
+[
+"≈{} road mi",
+"≈{0} mi de route"
+],
+[
+"{} → Turnaround → {}",
+"{0} → demi-tour → {1}"
+],
+[
+"{} → Home",
+"{0} → maison"
+],
+[
+"Website: {}",
+"Site : {0}"
+],
+[
+"Email: {}",
+"E-mail : {0}"
+],
+[
+"Phone: {}",
+"Téléphone : {0}"
+],
+[
+"Source: {}",
+"Source : {0}"
+],
+[
+"{} - {} mi from stop center",
+"{0} - {1} mi du centre de l'étape"
+],
+[
+"Named roster has {}; expected aboard is {}. Reconcile the roster.",
+"La liste compte {0} noms ; {1} attendus à bord. Mets la liste à jour."
+],
+[
+"{} (one way)",
+"{0} (aller simple)"
 ]
 ],
 "es": [
@@ -3157,6 +3530,82 @@
 [
 "💿 Record stores along the route ({})",
 "💿 Tiendas de discos en la ruta ({0})"
+],
+[
+"{} clubs selected",
+"Salas elegidas: {0}"
+],
+[
+"{} club selected",
+"Salas elegidas: {0}"
+],
+[
+"{} clubs pinned. Move or zoom the map and press Search this area, or search different clubs below the results.",
+"Salas en el mapa: {0}. Mueve o amplía el mapa y pulsa Buscar en esta zona, o busca otras salas debajo de los resultados."
+],
+[
+"{} hours",
+"{0} horas"
+],
+[
+"{} days minimum",
+"mínimo {0} días"
+],
+[
+"{} items",
+"{0} artículos"
+],
+[
+"{} of {} completed",
+"{0} de {1} completados"
+],
+[
+"Loss {}",
+"Pérdida {0}"
+],
+[
+"Profit {}",
+"Beneficio {0}"
+],
+[
+"≈{} road mi",
+"≈{0} mi de carretera"
+],
+[
+"{} → Turnaround → {}",
+"{0} → vuelta → {1}"
+],
+[
+"{} → Home",
+"{0} → casa"
+],
+[
+"Website: {}",
+"Web: {0}"
+],
+[
+"Email: {}",
+"Email: {0}"
+],
+[
+"Phone: {}",
+"Teléfono: {0}"
+],
+[
+"Source: {}",
+"Fuente: {0}"
+],
+[
+"{} - {} mi from stop center",
+"{0} - {1} mi del centro de la parada"
+],
+[
+"Named roster has {}; expected aboard is {}. Reconcile the roster.",
+"La lista tiene {0} nombres; se esperan {1} a bordo. Cuadra la lista."
+],
+[
+"{} (one way)",
+"{0} (solo ida)"
 ]
 ]
 };

@@ -106,3 +106,10 @@ console.log("Natural-language brief checks passed.");
   assert.match(agent, /longDrive = nextLeg !== null && nextLeg > maxLegMiles && spareDays > 0/);
   console.log("One-way map and long-drive rest checks passed.");
 }
+{
+  // Owner live run 2026-11-16: one gig in Portland is a one-day plan, not ten days of "return toward Portland".
+  assert.equal(parse("my band wants to play a gig in portland").days, 1);
+  assert.equal(parse("la mia band vuole suonare a Portland").days, 1);
+  assert.equal(parse("book us 2 shows in Detroit").days, 2);
+  console.log("Single-city day count checks passed.");
+}

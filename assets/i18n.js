@@ -984,8 +984,10 @@
  function normalize(code){const raw=String(code||'');if(supported.has(raw))return raw;const lower=raw.toLowerCase();if(/^zh-(?:tw|hk|mo|hant)/.test(lower)&&supported.has('zh-Hant'))return'zh-Hant';if(/^zh/.test(lower)&&supported.has('zh-Hans'))return'zh-Hans';const exact=[...supported].find(value=>value.toLowerCase()===lower);if(exact)return exact;const base=lower.split('-')[0];return supported.has(base)?base:'en';}
  const patternCache={};
  function translate(raw){
-  const source=String(raw),trimmed=source.trim(),language=normalize(document.documentElement.lang),dictionary=dictionaries[language]||{};
-  let result=dictionary[trimmed];
+  const source=String(raw),original=source.trim(),language=normalize(document.documentElement.lang),dictionary=dictionaries[language]||{};
+  let result=dictionary[original];
+  const trimmed=result||!/\s{2,}|\n/.test(original)?original:original.replace(/\s+/g,' ');
+  if(!result&&trimmed!==original)result=dictionary[trimmed];
   if(!result){
    const fill=(template,values)=>template?.replace(/\{(\w+)\}/g,(_,key)=>values[key]??"");
    let match=trimmed.match(/^(\d+) signed-in device\.$/);if(match)result=fill(dictionary["{count} signed-in device."],{count:match[1]});
@@ -1028,8 +1030,9 @@
   if(!result){const views=trimmed.match(/^(\d[\d,.]*) views?$/);if(views&&viewCountLabels[language])result=viewCountLabels[language](views[1]);}
   if(!result){const count=trimmed.match(/^(Notifications|Friends|Messages) \((\d+)\)$/);if(count)result=(dictionary[count[1]]||count[1])+' ('+count[2]+')';}
   if(!result){const list=(window.danzstakPatterns||{})[language];if(list){const cache=patternCache[language]||(patternCache[language]=list.map(([en,out])=>[new RegExp('^'+en.split('{}').map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('(.*?)')+'$'),out]));for(const [pattern,out] of cache){const match=trimmed.match(pattern);if(match){result=out.replace(/\{(\d+)\}/g,(_,index)=>{const value=match[Number(index)+1]??'';return dictionary[value]||value;});break;}}}}
+  if(!result&&language!=='en'){for(const separator of [' — ',' · ']){if(!trimmed.includes(separator))continue;const parts=trimmed.split(separator),translated=parts.map(part=>translate(part));if(translated.some((part,index)=>part!==parts[index])){result=translated.join(separator);break;}}}
   if(!result)return source;
-  return source.slice(0,source.indexOf(trimmed))+result+source.slice(source.indexOf(trimmed)+trimmed.length);
+  return source.slice(0,source.indexOf(original))+result+source.slice(source.indexOf(original)+original.length);
  }
  function apply(){
   queued=false;if(!document.body)return;

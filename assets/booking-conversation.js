@@ -112,6 +112,8 @@
       parsed.home = tidyPlace(singleCity[2] ? `${singleCity[1]}, ${singleCity[2].toUpperCase()}` : singleCity[1]);
       parsed.singleCity = true;
       if (!parsed.shows) parsed.shows = 1;
+      // One gig is one night: no 10-day calendar of "return toward Portland" rows.
+      if (!parsed.days) parsed.days = parsed.shows;
     }
     const oneWayOk = !parsed.singleCity && oneWay && !/\b(?:want|wants|need|needs|going|like|love|try|trying|have|plan|planning|hoping|ready|able|i|we|my|our|band|find|look|looking|search|book|get|clubs|shows|gigs|venues)\b/i.test(oneWay[1]) && !/\bbetween\b/i.test(text);
     const parsedRoute = route || bareRoute || (oneWayOk ? oneWay : null);
