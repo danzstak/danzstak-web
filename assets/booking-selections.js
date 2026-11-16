@@ -290,10 +290,50 @@
       });
       label.append(input); fields.append(label);
     }
+    if (["replied", "offer"].includes(pipeline.stageOf(bookingStatus(venue)))) fields.append(dateOptionsField(venue, booking));
     const hint = document.createElement("small");
     hint.textContent = "Save after editing. Cards move one step at a time; sending a pitch and a venue reply move them for you. Confirmed requires a date and written evidence of the promoter's agreement. Played unlocks after the show date.";
     fields.append(hint);
     return fields;
+  }
+
+  // Task 07-D: every date a club offered, not just one. "Any Thursday in March" expands to dates.
+  const MAX_DATE_OPTIONS = 30, WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value;
+  function weekdayDates(weekday, from, to) {
+    const dates = [];
+    if (!validDate(from) || !validDate(to)) return dates;
+    for (let day = Date.parse(`${from}T00:00:00Z`); day <= Date.parse(`${to}T00:00:00Z`) && dates.length < MAX_DATE_OPTIONS; day += 86400000) if (new Date(day).getUTCDay() === weekday) dates.push(new Date(day).toISOString().slice(0, 10));
+    return dates;
+  }
+  function dateOptionsField(venue, booking) {
+    const box = document.createElement("div"), title = document.createElement("h3"), list = document.createElement("ul");
+    box.className = "date-options"; title.textContent = "Dates they offered";
+    const options = () => (Array.isArray(booking.dateOptions) ? booking.dateOptions : []).filter(validDate);
+    const set = dates => { booking.dateOptions = [...new Set(dates.filter(validDate))].sort().slice(0, MAX_DATE_OPTIONS); persist(); render(); };
+    list.className = "date-option-list"; list.setAttribute("aria-label", `Dates ${venue.name || "this venue"} offered`);
+    for (const value of options()) {
+      const item = document.createElement("li"), remove = document.createElement("button");
+      remove.type = "button"; remove.className = "date-option-remove"; remove.textContent = "×"; remove.setAttribute("aria-label", `Remove ${value}`);
+      remove.addEventListener("click", () => set(options().filter(date => date !== value)));
+      item.append(document.createTextNode(value), remove); list.append(item);
+    }
+    if (!options().length) list.append(Object.assign(document.createElement("li"), { className: "date-option-empty", textContent: "None yet. Add each date they can do." }));
+    const one = document.createElement("div"), single = document.createElement("input"), addOne = document.createElement("button");
+    one.className = "date-option-add"; single.type = "date"; single.setAttribute("aria-label", "Date they offered");
+    addOne.type = "button"; addOne.className = "secondary"; addOne.textContent = "Add date";
+    addOne.addEventListener("click", () => { if (validDate(single.value)) set([...options(), single.value]); });
+    one.append(single, addOne);
+    const run = document.createElement("div"), weekday = document.createElement("select"), from = document.createElement("input"), to = document.createElement("input"), addRun = document.createElement("button");
+    run.className = "date-option-add date-option-run";
+    WEEKDAYS.forEach((name, index) => weekday.append(Object.assign(document.createElement("option"), { value: String(index), textContent: `Any ${name}` })));
+    weekday.value = "4"; weekday.setAttribute("aria-label", "Weekday they offered");
+    from.type = "date"; from.setAttribute("aria-label", "From"); to.type = "date"; to.setAttribute("aria-label", "To");
+    addRun.type = "button"; addRun.className = "secondary"; addRun.textContent = "Add these";
+    addRun.addEventListener("click", () => { const dates = weekdayDates(Number(weekday.value), from.value, to.value); if (dates.length) set([...options(), ...dates]); else window.danzstakShowFeedback?.("Pick a from and to date that include that weekday.", { urgent: true }); });
+    run.append(weekday, from, to, addRun);
+    box.append(title, list, one, run);
+    return box;
   }
 
   function showEmpty() {
@@ -393,6 +433,7 @@
   function render() {
     renderEpkGate();
     renderStageFilters();
+    renderRouteDatesPanel();
     if (!venues.length) { showEmpty(); return; }
     cards.replaceChildren();
     updateControls();
@@ -778,6 +819,64 @@
   }
   saveAccount?.addEventListener("click", saveWorkspaceSnapshot);
   loadAccount?.addEventListener("click", () => loadWorkspace(true));
+
+  // Task 07-D: route-aware date picker. Suggestions only; accepting dates is a separate, approved step.
+  let routeDates = null;
+  const routeForm = document.getElementById("routeDatesForm"), routeResult = document.getElementById("routeDatesResult");
+  const prettyDate = value => { try { return new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`)); } catch { return value; } };
+  const miles = value => `${Math.round(Number(value) || 0).toLocaleString()} mi`;
+  function renderRouteDatesPanel() {
+    const panel = document.querySelector(".route-dates");
+    if (!panel) return;
+    panel.hidden = !venues.some(venue => ["replied", "offer", "confirmed"].includes(pipeline.stageOf(bookingStatus(venue))));
+    const home = document.getElementById("routeHome"), hometown = document.getElementById(artistInputs.hometown)?.value || "";
+    if (home && !home.value && hometown) home.value = hometown;
+  }
+  function renderRouteDates(result) {
+    routeResult.replaceChildren();
+    if (!result) return;
+    const t = result.totals || {}, summary = document.createElement("p"), list = document.createElement("ol");
+    summary.className = "route-summary";
+    const compare = t.shows > t.baselineShows ? `${t.shows - t.baselineShows} more show${t.shows - t.baselineShows === 1 ? "" : "s"} than taking dates first-come` : t.savedMiles > 0 ? `${miles(t.savedMiles)} less driving than taking dates first-come` : "same as taking dates first-come";
+    summary.textContent = t.shows ? `${t.shows} show${t.shows === 1 ? "" : "s"} · ${miles(t.miles)} round trip, about ${Math.round(t.hours || 0)} h driving${t.estimated ? " (estimated)" : ""} · ${compare}` : "No dates fit yet. See what didn't fit below.";
+    list.className = "route-plan";
+    for (const stop of result.plan || []) {
+      const item = document.createElement("li");
+      item.append(Object.assign(document.createElement("strong"), { textContent: `${prettyDate(stop.date)} · ${stop.name}` }), Object.assign(document.createElement("span"), { textContent: `${miles(stop.driveMiles)}, ${stop.driveHours} h${stop.fixed ? " · confirmed" : ""}` }));
+      if (stop.fixed) item.className = "route-fixed";
+      list.append(item);
+    }
+    if (result.returnLeg && result.plan?.length) list.append(Object.assign(document.createElement("li"), { className: "route-home", textContent: `Home · ${miles(result.returnLeg.miles)}, ${result.returnLeg.hours} h` }));
+    routeResult.append(summary, list);
+    const section = (title, items, className) => {
+      if (!items.length) return;
+      const box = document.createElement("div"), heading = document.createElement("h3"), ul = document.createElement("ul");
+      box.className = className; heading.textContent = title;
+      for (const node of items) ul.append(node);
+      box.append(heading, ul); routeResult.append(box);
+    };
+    section("Conflicts", (result.conflicts || []).map(item => Object.assign(document.createElement("li"), { textContent: item.text })), "route-conflicts");
+    section("Didn't fit", (result.unplaced || []).map(item => Object.assign(document.createElement("li"), { textContent: `${item.name}: ${item.reason}` })), "route-unplaced");
+    section("Open nights to fill", (result.gaps || []).map(gap => {
+      const li = document.createElement("li"), link = document.createElement("a");
+      li.textContent = `${prettyDate(gap.from)}–${prettyDate(gap.to)}: ${gap.nights} open nights between ${gap.after} and ${gap.before}. `;
+      link.href = "booking.html"; link.textContent = "Find clubs to pitch";
+      li.append(link); return li;
+    }), "route-gaps");
+  }
+  routeForm?.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (dirty) { window.danzstakShowFeedback?.("Save to your account first so the picker uses your latest dates.", { urgent: true }); return; }
+    const button = document.getElementById("routeDatesButton");
+    button.disabled = true; routeResult.textContent = "Working out the shortest route…";
+    try {
+      const data = await accountRequest("POST", { action: "route_dates", home: document.getElementById("routeHome").value.trim(), settings: { maxDriveHours: Number(document.getElementById("routeMaxDrive").value), nightsInARow: Number(document.getElementById("routeNights").value) } });
+      routeDates = data.routeDates || null;
+      renderRouteDates(routeDates);
+    } catch (error) {
+      routeDates = null; routeResult.textContent = error.message || "Dates could not be suggested. Try again.";
+    } finally { button.disabled = false; }
+  });
   for (const id of Object.values(artistInputs)) document.getElementById(id)?.addEventListener("change", () => { persist(); render(); });
   for (const id of Object.values(tourInputs)) document.getElementById(id)?.addEventListener("change", () => { serverEstimate = null; persist(); renderDashboard(); });
   window.addEventListener("beforeunload", event => { if (dirty) { event.preventDefault(); event.returnValue = ""; } });

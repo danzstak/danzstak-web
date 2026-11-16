@@ -8,7 +8,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; img-src 'self' data: https:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
   <title>Selected Clubs | DanzStak Booking Agent</title>
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="assets/booking-selections.css?v=22">
+  <link rel="stylesheet" href="assets/booking-selections.css?v=23">
   <link rel="stylesheet" href="assets/app-feedback.css?v=3">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=5">
 <link rel="stylesheet" href="assets/purchase-terms.css?v=1">
@@ -71,6 +71,17 @@
       </div>
       <p class="hint" id="pitchStatsNote">Bounced addresses never cost a credit. "EPK opened" counts pitches whose private EPK link was opened; email opens aren't tracked.</p>
     </section>
+    <section class="route-dates" aria-labelledby="routeDatesTitle" hidden>
+      <div class="dashboard-heading"><div><p class="eyebrow">Replies are in</p><h2 id="routeDatesTitle">Lock dates on the shortest route</h2></div></div>
+      <p class="hint">Uses your tour dates, every date each club offered, and your confirmed shows. Suggestions only: nothing is saved or sent until you accept.</p>
+      <form id="routeDatesForm" class="route-dates-form">
+        <label>Home base<input id="routeHome" maxlength="160" autocomplete="address-level2" placeholder="City, State"></label>
+        <label>Max driving a day (hours)<input id="routeMaxDrive" type="number" min="1" max="16" step="0.5" value="6"></label>
+        <label>Day off after this many nights in a row<input id="routeNights" type="number" min="1" max="14" step="1" value="5"></label>
+        <button type="submit" id="routeDatesButton">Suggest dates</button>
+      </form>
+      <div id="routeDatesResult" class="route-dates-result" role="status" aria-live="polite"></div>
+    </section>
     <section class="artist-workspace" aria-labelledby="artistWorkspaceTitle">
       <h2 id="artistWorkspaceTitle">Your act, ready to pitch</h2>
       <div class="artist-fields">
@@ -100,6 +111,6 @@
   <script src="assets/booking-billing.js?v=9" defer></script>
   <script src="assets/booking-pipeline.js?v=1" defer></script>
   <script src="assets/booking-freshness.js?v=1" defer></script>
-  <script src="assets/booking-selections.js?v=30" defer></script>
+  <script src="assets/booking-selections.js?v=31" defer></script>
 </body>
 </html>

@@ -42,6 +42,7 @@ import {
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import { EPK_WORKSPACE_KEY, canMove, epkGate, pitchStats, stageOf, venueEvents, withPipeline } from "./booking-pipeline.mjs";
+import { MAX_ROUTE_STOPS, cleanDateOptions, planRouteDates, withRoadLegs } from "./booking-route-dates.mjs";
 import { VENUE_REPORT_OWNER, cleanReport, freshness, signalFromItem, signalUpdate, sortByFreshness, validSignalVenueKey, venueSignalKey } from "./booking-venue-signals.mjs";
 import { createMarketplace } from "./marketplace.mjs";
 import { createTicketing } from "./ticketing.mjs";
@@ -4747,6 +4748,45 @@ async function bookingVenueReport(userId, data, reply) {
   return reply(201, { reported: true, alreadyReported: false, freshness: freshness(signal, Date.now()) });
 }
 
+// Route-aware date picker (task 07-D): suggests dates only; nothing is saved or sent here.
+// Ordering uses estimated drive times; the chosen order is then checked against real road
+// legs from Amazon Location (CalculateRoutes). If routing fails, the estimate is returned.
+async function roadLegs(points) {
+  const legs = [];
+  for (let start = 0; start < points.length - 1; start += 20) {
+    const chunk = points.slice(start, Math.min(points.length, start + 21));
+    const route = await geoRoutes.send(new CalculateRoutesCommand({ Origin: chunk[0], Destination: chunk.at(-1), Waypoints: chunk.slice(1, -1).map(Position => ({ Position })), TravelMode: "Car", LegAdditionalFeatures: ["Summary"] }));
+    const found = route?.Routes?.[0]?.Legs || [];
+    if (found.length !== chunk.length - 1) return null;
+    for (const leg of found) {
+      const overview = leg.VehicleLegDetails?.Summary?.Overview, meters = Number(overview?.Distance), seconds = Number(overview?.Duration);
+      if (!Number.isFinite(meters) || !Number.isFinite(seconds)) return null;
+      legs.push({ miles: meters / 1609.344, hours: seconds / 3600 });
+    }
+  }
+  return legs;
+}
+async function bookingRouteDates(userId, data, reply) {
+  const workspace = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: bookingWorkspaceId } }, ConsistentRead: true }));
+  let saved = {}; try { saved = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { saved = {}; }
+  const venues = withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(await bookingSendItems(userId)));
+  const tour = cleanTourBudget(saved.tour), homeText = String(data.home || saved.artist?.hometown || "").trim().slice(0, 160);
+  if (!tour.departOn || !tour.returnBy) return reply(400, { error: "Add your tour's departure and return dates, then save, before picking dates." });
+  if (!homeText) return reply(400, { error: "Add your home base (home town) so the route can start and end there." });
+  let home;
+  try { const place = await geocodeTourPlace(homeText); home = { name: place.label, position: place.position }; }
+  catch { return reply(422, { error: `We couldn't find "${homeText}" on the map. Try "City, State" or "City, Country".` }); }
+  let result = planRouteDates({ home, window: { start: tour.departOn, end: tour.returnBy }, venues, settings: data.settings || {} });
+  if (result.error) return reply(400, { error: result.error });
+  if (result.plan.length && result.plan.length <= MAX_ROUTE_STOPS) {
+    try {
+      const legs = await roadLegs([home.position, ...result.plan.map(stop => stop.position), home.position]);
+      if (legs) result = withRoadLegs(result, legs);
+    } catch (error) { console.error("Road legs unavailable:", error.name); }
+  }
+  return reply(200, { routeDates: result });
+}
+
 // Booking sends are the real events behind pipeline stages (pitched, replied) and the email-credit count.
 async function bookingSendItems(userId) {
   const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#EMAIL_SEND#" } }, ProjectionExpression: "tourId, venueKey, #status, sentAt, providerAcceptedAt, createdAt, followUpTo, repliedAt", ExpressionAttributeNames: { "#status": "status" }, ConsistentRead: true, Limit: 500 }));
@@ -4784,6 +4824,7 @@ async function bookingWorkspace(event, method) {
   }
   const data = parseJsonBody(event);
   if (data?.action === "venue_report") return await bookingVenueReport(userId, data, reply);
+  if (data?.action === "route_dates") return await bookingRouteDates(userId, data, reply);
   if (!data || !Array.isArray(data.venues) || data.venues.length > 100 || typeof data.revision !== "string") return reply(400, { error: "Provide up to 100 venues and the loaded revision." });
   const text = (value, max = 300) => typeof value === "string" ? value.trim().slice(0, max) : "";
   const https = value => /^https:\/\//i.test(text(value, 600)) ? text(value, 600) : "";
@@ -4799,7 +4840,7 @@ async function bookingWorkspace(event, method) {
     const status = bookingPipelineStatuses.has(requestedStatus) ? requestedStatus : "Not contacted";
     const showDate = date(b.showDate), confirmationEvidence = text(b.confirmationEvidence, 3000);
     if (status === "Confirmed" && (!showDate || !confirmationEvidence)) invalidConfirmation = true;
-    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000) } };
+    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateOptions: cleanDateOptions(b.dateOptions), dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000) } };
   });
   if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
   if (invalidConfirmation) return reply(400, { error: "A confirmed performance requires a show date and written confirmation evidence." });

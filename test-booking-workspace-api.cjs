@@ -20,6 +20,7 @@ let sends = [];
 const request = (method, body, origin='https://danzstak.com') => context.bookingWorkspace({headers:{origin},body}, method);
 (async () => {
   Object.assign(context, await import('./infrastructure/auth-api/booking-pipeline.mjs'));
+  Object.assign(context, await import('./infrastructure/auth-api/booking-route-dates.mjs'));
   Object.assign(context, await import('./infrastructure/auth-api/booking-venue-signals.mjs'), { BatchGetItemCommand: class extends Command {}, UpdateItemCommand: class extends Command {}, TransactWriteItemsCommand: class extends Command {}, createHash: require('node:crypto').createHash });
   vm.runInContext(helper, context);
   assert.equal((await request('GET', null, 'https://evil.example')).statusCode,403);
@@ -105,5 +106,13 @@ const request = (method, body, origin='https://danzstak.com') => context.booking
   const workspace = { venues: [{name:'The Room',booking:{stage:'Contacted'}}], artist: {name:'The Act'} };
   const archive = exportCore.buildAccountArchive({bookingWorkspace:workspace}, {}, {});
   assert.deepEqual(archive.bookingWorkspace,workspace,'owned booking records must remain portable in the account export');
+  // Task 07-D: date options are cleaned on save; the picker needs tour dates and never writes.
+  authenticated='owner-a'; conflict=false; sends=[];
+  stored={userId:{S:'owner-a'},tourId:{S:'booking-workspace-v1'},revision:{S:'r9'},plan:{S:JSON.stringify({venues:[{name:'Opt Room',venueKey:'opt',booking:{status:'Reply received'}}],artist:{},tour:{}})}};
+  assert.equal((await request('POST',{revision:'r9',artist:{},tour:{},venues:[{name:'Opt Room',venueKey:'opt',booking:{status:'Reply received',dateOptions:['2027-03-04','bad','2027-02-30','2027-03-01','2027-03-04']}}]})).statusCode,200);
+  assert.deepEqual(JSON.parse(calls.at(-1).Item.plan.S).venues[0].booking.dateOptions,['2027-03-01','2027-03-04']);
+  const before = calls.length, noDates = await request('POST',{action:'route_dates'});
+  assert.equal(noDates.statusCode,400); assert.match(JSON.parse(noDates.body).error,/departure and return dates/);
+  assert.ok(calls.slice(before).every(call => !call.Item),'the date picker never writes');
   console.log('Booking workspace API checks passed: pipeline stages from real events, no backward moves, account isolation, identity preservation, origins, validation, bounded records, and conflict protection.');
 })().catch(error => {console.error(error);process.exitCode=1;});

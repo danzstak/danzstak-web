@@ -558,7 +558,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       if (offer.appliedStatus.S !== status) return response(409, { error: "This venue reply was already applied with a different booking status." }, headers);
       return response(200, { saved: true, duplicate: true, proposedDate, venueName: String(venue.name || "Venue"), status, revision: workspace.revision.S }, headers);
     }
-    venue.booking = { ...(venue.booking || {}), status, showDate: proposedDate, replySummary, ...(confirmDate ? { confirmationEvidence: `Venue confirmed ${proposedDate}: ${replySummary}`.slice(0, 3000) } : {}) };
+    const dateOptions = [...new Set([...(Array.isArray(venue.booking?.dateOptions) ? venue.booking.dateOptions : []), proposedDate])].filter(value => /^\d{4}-\d{2}-\d{2}$/.test(value)).sort().slice(-30);
+    venue.booking = { ...(venue.booking || {}), status, showDate: proposedDate, dateOptions, replySummary, ...(confirmDate ? { confirmationEvidence: `Venue confirmed ${proposedDate}: ${replySummary}`.slice(0, 3000) } : {}) };
     const revision = randomUUID(), at = nowIso();
     try {
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
