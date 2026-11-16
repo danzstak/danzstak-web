@@ -62,6 +62,9 @@ const OPT_OUT_TOKEN_OWNER = "TOUR_MANAGER#OPT_OUT_TOKEN";
 const PROVIDER_MESSAGE_OWNER = "TOUR_MANAGER#PROVIDER_MESSAGE";
 const PROVIDER_EVENT_OWNER = "TOUR_MANAGER#PROVIDER_EVENT";
 const DANZSTAK_POSTAL_ADDRESS = "DanzStak LLC, 2063 Main St. #237, Oakley, CA 94561, USA";
+// Owner 2026-11-16 (task 12): booking emails are bought 20 at a time minimum ($30.00 + 6% = $31.80, no $1 fee).
+// The Starter (AI EPK + 10 emails) is the only way to buy fewer.
+export const MIN_CREDITS_PER_CHECKOUT = 20;
 const MAX_CREDITS_PER_CHECKOUT = 500;
 export const MAX_NEW_PITCHES_PER_24_HOURS = 20;
 export const BOOKING_CONTACT_COOLDOWN_SECONDS = 30 * 24 * 60 * 60;
@@ -247,11 +250,11 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const userId = await authenticate(event);
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
     const body = parseBody(event), quantity = Number(body?.quantity);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_CREDITS_PER_CHECKOUT) return response(400, { error: `Choose 1 to ${MAX_CREDITS_PER_CHECKOUT} booking emails.` }, headers);
+    if (!Number.isInteger(quantity) || quantity < MIN_CREDITS_PER_CHECKOUT || quantity > MAX_CREDITS_PER_CHECKOUT) return response(400, { error: `Booking emails come ${MIN_CREDITS_PER_CHECKOUT} at a time: choose ${MIN_CREDITS_PER_CHECKOUT} to ${MAX_CREDITS_PER_CHECKOUT}.` }, headers);
     const catalog = stripeCatalog(!testMode()), requestId = randomUUID(), form = new URLSearchParams({ mode: "payment", ...REFUND_NOTICE, "line_items[0][price]": catalog.tour.priceId, "line_items[0][quantity]": String(quantity), ...feeLineForm(1, quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS), client_reference_id: userId, "metadata[product]": PRODUCT, "metadata[userId]": userId, "metadata[priceId]": catalog.tour.priceId, "metadata[quantity]": String(quantity), success_url: "https://danzstak.com/booking-selections.html?credits=success", cancel_url: "https://danzstak.com/booking-selections.html?credits=cancelled" });
     const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `tour-manager-${userId}-${requestId}` }, body: form.toString() });
     if (!/^cs_(?:test|live)_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
-    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, quantity: { N: String(quantity) }, priceId: { S: catalog.tour.priceId }, environment: { S: testMode() ? "test" : "live" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
+    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, quantity: { N: String(quantity) }, minimumQuantity: { N: String(MIN_CREDITS_PER_CHECKOUT) }, priceId: { S: catalog.tour.priceId }, environment: { S: testMode() ? "test" : "live" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
     return response(200, { checkoutUrl: session.url, quantity, unitAmountCents: TOUR_MANAGER_EMAIL_UNIT_CENTS, ...priced(quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS), currency: "usd", testMode: testMode() }, headers);
   }
 
@@ -637,7 +640,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PRODUCT && metadata.userId === userId && metadata.priceId === catalog.tour.priceId && Number(metadata.quantity) === quantity && line?.price?.id === catalog.tour.priceId && line?.price?.product === catalog.tour.productId && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === TOUR_MANAGER_EMAIL_UNIT_CENTS && Number.isInteger(quantity) && quantity >= 1 && quantity <= MAX_CREDITS_PER_CHECKOUT && session.currency === "usd" && paid !== null;
     if (!valid) return null;
     const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
-    return item?.sessionId?.S === session.id && item.priceId?.S === catalog.tour.priceId && Number(item.quantity?.N) === quantity && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, quantity } : null;
+    // A checkout created under the 20 minimum must be paid for at least 20; checkouts opened before the rule keep their own quantity.
+    return item?.sessionId?.S === session.id && item.priceId?.S === catalog.tour.priceId && Number(item.quantity?.N) === quantity && quantity >= Number(item.minimumQuantity?.N || 1) && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, quantity } : null;
   }
 
   async function loadVerifiedContactSession(session, expectedLive) {

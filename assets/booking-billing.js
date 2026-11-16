@@ -29,15 +29,16 @@
     } catch (error) { if (status && !status.textContent) status.textContent = error.message; }
   }
   window.danzstakTourManagerBilling.refreshOutreach = refreshOutreach;
+  const MIN_CREDITS = 20; // owner 2026-11-16: booking emails are bought 20 at a time
   const creditTotal = document.getElementById("bookingCreditTotal"), creditQuantity = document.getElementById("bookingCreditQuantity");
   function showCreditTotal() {
     if (!creditTotal || !creditQuantity || !window.DanzStakFees) return;
     const count = Number(creditQuantity.value);
-    creditTotal.textContent = Number.isInteger(count) && count > 0 ? `${count} email${count === 1 ? "" : "s"}: ${window.DanzStakFees.allIn(count * 150)}` : "";
+    creditTotal.textContent = Number.isInteger(count) && count >= MIN_CREDITS ? `${count} emails: ${window.DanzStakFees.allIn(count * 150)}` : `Minimum ${MIN_CREDITS} pitches`;
   }
   creditQuantity?.addEventListener("input", showCreditTotal); showCreditTotal();
   async function startCreditCheckout(count, venueKey = "", button = null) {
-    if (!Number.isInteger(count) || count < 1 || count > 500) { status.textContent = "Choose 1 to 500 credits."; return false; }
+    if (!Number.isInteger(count) || count < MIN_CREDITS || count > 500) { status.textContent = `Minimum ${MIN_CREDITS} pitches per purchase (up to 500).`; return false; }
     if (venueKey && (typeof venueKey !== "string" || venueKey.length > 240)) { status.textContent = "Choose a valid saved venue before buying this credit."; return false; }
     if (window.danzstakConfirmPurchase && !(await window.danzstakConfirmPurchase({ kind: "credits", priceCents: count * 150 }))) { status.textContent = "Checkout cancelled. Nothing was charged."; return false; }
     if (button) button.disabled = true;
@@ -50,7 +51,7 @@
       return true;
     } catch (error) { status.textContent = error.message; if (button) button.disabled = false; return false; }
   }
-  window.danzstakStartBookingCreditCheckout = ({ quantity:count = 1, venueKey = "", button = null } = {}) => startCreditCheckout(Number(count), String(venueKey || ""), button);
+  window.danzstakStartBookingCreditCheckout = ({ quantity:count = MIN_CREDITS, venueKey = "", button = null } = {}) => startCreditCheckout(Number(count), String(venueKey || ""), button);
   form?.addEventListener("submit", async event => {
     event.preventDefault();
     await startCreditCheckout(Number(quantity.value), "", form.querySelector("button"));

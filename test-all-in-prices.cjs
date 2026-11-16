@@ -30,7 +30,7 @@ const vm = require("node:vm");
   assert.match(read("assets/feed-enhancements.js"), /Tickets from \$\{window\.DanzStakFees \? window\.DanzStakFees\.allInShort/, "Mix event flyers quote the all-in ticket price");
   const selections = read("assets/booking-selections.js");
   assert.match(selections, /allInShort\(75\)/, "contact unlock button shows the all-in price");
-  assert.match(selections, /allInShort\(150\)/, "single credit button shows the all-in price");
+  assert.match(selections, /allInShort\(20 \* 150\)/, "20-pitch credit button shows the all-in price");
   assert.doesNotMatch(selections, /"Unlock booking contact · \$0\.75"|"Buy 1 credit · \$1\.50"/, "no fee-less button prices remain");
   assert.match(read("assets/booking-billing.js"), /DanzStakFees\.allIn\(count \* 150\)/, "credit picker shows a live all-in total");
   assert.match(read("booking-selections.html"), /<output id="bookingCreditTotal"/);

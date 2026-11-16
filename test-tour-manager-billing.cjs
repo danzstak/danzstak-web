@@ -51,9 +51,9 @@ const { createHmac } = require("node:crypto");
   let createdForm, sessionOverrides = {};
   const session = () => ({
     id: "cs_test_credit123", mode: "payment", payment_status: "paid", status: "complete", livemode: false,
-    client_reference_id: "user_12345678", currency: "usd", amount_total: 450 + buyerFees(450),
-    metadata: { product: "tour_manager_booking_email", userId: "user_12345678", priceId: TOUR_MANAGER_EMAIL_PRICE_ID, quantity: "3" },
-    line_items: { data: [{ quantity: 3, price: { id: TOUR_MANAGER_EMAIL_PRICE_ID, product: TOUR_MANAGER_PRODUCT_ID, currency: "usd", unit_amount: TOUR_MANAGER_EMAIL_UNIT_CENTS } }, { description: "DanzStak fee", quantity: 1, amount_total: buyerFees(450), price: { id: "price_inline_fee", currency: "usd", unit_amount: buyerFees(450) } }] },
+    client_reference_id: "user_12345678", currency: "usd", amount_total: 3000 + buyerFees(3000),
+    metadata: { product: "tour_manager_booking_email", userId: "user_12345678", priceId: TOUR_MANAGER_EMAIL_PRICE_ID, quantity: "20" },
+    line_items: { data: [{ quantity: 20, price: { id: TOUR_MANAGER_EMAIL_PRICE_ID, product: TOUR_MANAGER_PRODUCT_ID, currency: "usd", unit_amount: TOUR_MANAGER_EMAIL_UNIT_CENTS } }, { description: "DanzStak fee", quantity: 1, amount_total: buyerFees(3000), price: { id: "price_inline_fee", currency: "usd", unit_amount: buyerFees(3000) } }] },
     ...sessionOverrides
   });
   const fetcher = async (url, options = {}) => {
@@ -68,19 +68,22 @@ const { createHmac } = require("node:crypto");
   const service = createTourManagerBilling({ db, commands, authenticate: async () => "user_12345678", corsHeaders, tableName: "Tours", env, fetcher, clock: () => now });
   const event = (method, path, body = "", headers = { origin: "https://danzstak.com" }) => ({ requestContext: { http: { method } }, rawPath: path, headers, body });
 
-  const checkout = await service(event("POST", "/tour-manager/checkout", JSON.stringify({ quantity: 3 })));
+  const checkout = await service(event("POST", "/tour-manager/checkout", JSON.stringify({ quantity: 20 })));
   assert.equal(checkout.statusCode, 200);
   assert.equal(createdForm.get("line_items[0][price]"), TOUR_MANAGER_EMAIL_PRICE_ID);
-  assert.equal(createdForm.get("line_items[0][quantity]"), "3");
-  // Task 12: the buyer fee is its own receipt line: 3 x $1.50 = $4.50 -> 27c + $1 = $1.27.
+  assert.equal(createdForm.get("line_items[0][quantity]"), "20");
+  // Task 12: the buyer fee is its own receipt line: 20 x $1.50 = $30.00 -> $1.80, no $1 at $30.
   assert.equal(createdForm.get("line_items[1][price_data][product_data][name]"), "DanzStak fee");
-  assert.equal(createdForm.get("line_items[1][price_data][unit_amount]"), "127");
+  assert.equal(createdForm.get("line_items[1][price_data][unit_amount]"), "180");
   assert.equal(createdForm.get("line_items[1][price_data][currency]"), "usd");
   assert.equal(createdForm.get("line_items[1][quantity]"), "1");
-  assert.deepEqual([JSON.parse(checkout.body).feeCents, JSON.parse(checkout.body).totalCents], [127, 577], "checkout reports the all-in total");
+  assert.deepEqual([JSON.parse(checkout.body).feeCents, JSON.parse(checkout.body).totalCents], [180, 3180], "checkout reports the all-in total: 20 emails = $31.80");
+  assert.equal(records.get("user_12345678|TOUR_MANAGER#CHECKOUT#cs_test_credit123").minimumQuantity.N, "20", "the 20 minimum is stored for the webhook");
+  for (const quantity of [1, 10, 19]) assert.equal((await service(event("POST", "/tour-manager/checkout", JSON.stringify({ quantity })))).statusCode, 400, `${quantity} booking emails is under the 20 minimum`);
+  assert.match(JSON.parse((await service(event("POST", "/tour-manager/checkout", JSON.stringify({ quantity: 19 })))).body).error, /20 at a time/);
   assert.equal(createdForm.get("metadata[userId]"), "user_12345678");
   assert.equal((await service(event("POST", "/tour-manager/checkout", JSON.stringify({ quantity: 0 })))).statusCode, 400);
-  assert.equal((await service(event("POST", "/tour-manager/checkout", JSON.stringify({ quantity: 3 }), { origin: "https://evil.example" }))).statusCode, 403);
+  assert.equal((await service(event("POST", "/tour-manager/checkout", JSON.stringify({ quantity: 20 }), { origin: "https://evil.example" }))).statusCode, 403);
 
   const stripeEvent = { id: "evt_credit123", type: "checkout.session.completed", livemode: false, data: { object: { id: "cs_test_credit123" } } };
   const payload = JSON.stringify(stripeEvent), timestamp = Math.floor(now / 1000);
@@ -96,7 +99,7 @@ const { createHmac } = require("node:crypto");
   assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS"), undefined);
 
   // Task 12: a session whose amount_total is not price + fee never grants anything.
-  for (const [index, bad] of [{ amount_total: 450 }, { amount_total: 450 + buyerFees(450) + 1 }, { line_items: { data: [{ quantity: 3, price: { id: TOUR_MANAGER_EMAIL_PRICE_ID, product: TOUR_MANAGER_PRODUCT_ID, currency: "usd", unit_amount: TOUR_MANAGER_EMAIL_UNIT_CENTS } }] } }].entries()) {
+  for (const [index, bad] of [{ amount_total: 3000 }, { amount_total: 3000 + buyerFees(3000) + 1 }, { line_items: { data: [{ quantity: 20, price: { id: TOUR_MANAGER_EMAIL_PRICE_ID, product: TOUR_MANAGER_PRODUCT_ID, currency: "usd", unit_amount: TOUR_MANAGER_EMAIL_UNIT_CENTS } }] } }].entries()) {
     sessionOverrides = bad;
     const badPayload = JSON.stringify({ ...stripeEvent, id: `evt_badtotal${index}` });
     const rejected = await service(event("POST", "/tour-manager/stripe/webhook", badPayload, { "stripe-signature": signed(badPayload) }));
@@ -108,15 +111,15 @@ const { createHmac } = require("node:crypto");
   const asyncPayload = JSON.stringify(asyncEvent);
   const paid = await service(event("POST", "/tour-manager/stripe/webhook", asyncPayload, { "stripe-signature": signed(asyncPayload) }));
   assert.equal(paid.statusCode, 200);
-  assert.equal(JSON.parse(paid.body).creditsIssued, 3);
-  assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS").credits.N, "3");
+  assert.equal(JSON.parse(paid.body).creditsIssued, 20);
+  assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS").credits.N, "20");
   assert.equal(records.get("user_12345678|TOUR_MANAGER#PROFESSIONAL_ENTITLEMENT").status.S, "active");
   const duplicate = await service(event("POST", "/tour-manager/stripe/webhook", asyncPayload, { "stripe-signature": signed(asyncPayload) }));
   assert.equal(JSON.parse(duplicate.body).duplicate, true);
-  assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS").credits.N, "3", "Stripe retries must not issue credits twice");
+  assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS").credits.N, "20", "Stripe retries must not issue credits twice");
 
   const balance = await service(event("GET", "/tour-manager/credits"));
-  assert.equal(JSON.parse(balance.body).bookingEmailCredits, 3);
+  assert.equal(JSON.parse(balance.body).bookingEmailCredits, 20);
 
   const disabled = createTourManagerBilling({ db, commands, authenticate: async () => "user_12345678", corsHeaders, tableName: "Tours", env: {}, fetcher, clock: () => now });
   assert.equal((await disabled(event("POST", "/tour-manager/stripe/webhook", payload, { "stripe-signature": signed(payload) }))).statusCode, 503);
