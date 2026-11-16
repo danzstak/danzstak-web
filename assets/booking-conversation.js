@@ -92,6 +92,27 @@
       const direction = lower.match(/\b(?:travel|tour|head|go)\s+(northwest|northeast|southwest|southeast|north|south|east|west)\b/);
       if (direction) { parsed.direction = direction[1]; parsed.mode = "direction"; }
     }
+    // Natural-language fallback (owner test 2026-11-16): "i want to tour 20 days bellingham to san diego and back tacoma
+    // find me clubs ...". Walk outward from the "to" between two places, stopping at filler words.
+    if (!parsed.mode) {
+      const stop = new Set("i we me my our want wanna would like to tour tours touring play playing go going do book booking find get show shows gig gigs day days week weeks a an the for from in on and then back return returning home with of clubs venues places stay record stores radio stations there calculate cost costs please run trip drive driving up down via".split(" "));
+      const words = text.replace(/[.!?;]/g, " , ").split(/\s+/).filter(Boolean);
+      const isWord = w => /^[a-z][a-z'-]*,?$/i.test(w) && !stop.has(w.toLowerCase().replace(/,$/, ""));
+      const placeBack = i => { const out = []; for (let j = i; j >= 0 && (isWord(words[j]) || (/^[A-Z]{2},?$/.test(words[j]) && out.length === 0)); j--) out.unshift(words[j]); return tidyPlace(out.join(" ")); };
+      const placeFwd = i => { const out = []; for (let j = i; j < words.length && (isWord(words[j]) || (/^[A-Z]{2},?$/.test(words[j]) && out.length)); j++) { out.push(words[j]); if (/,$/.test(words[j]) && !/^[A-Z]{2},$/.test(words[j + 1] || "")) break; } return tidyPlace(out.join(" ")); };
+      for (let i = 1; i < words.length - 1; i++) {
+        if (words[i].toLowerCase() !== "to") continue;
+        const from = placeBack(i - 1), to = placeFwd(i + 1);
+        if (from && to) {
+          parsed.home = from; parsed.destination = to; parsed.mode = "tour";
+          const rest = words.slice(i + 1).join(" ");
+          const back = rest.match(/\b(?:and|then)\s+back(?:\s+to)?\s+([a-z][a-z' -]*?)(?=\s+(?:find|and|for|with|in|then)\b|[,]|$)/i);
+          if (back && !stop.has(back[1].trim().toLowerCase())) parsed.returnTo = tidyPlace(back[1]);
+          break;
+        }
+      }
+    }
+    if (parsed.home) parsed.home = parsed.home.replace(/^\d+\s*(?:-| )?days?\s+/i, "");
     parsed.departOn = parseDepartureDate(text) || undefined;
     return parsed;
   }
@@ -108,7 +129,9 @@
     if (parsed.destination) setValue("endCity", parsed.destination);
     if (parsed.mode) {
       const stops = field("tourStops");
-      if (stops) stops.value = (parsed.stops || []).join("\n");
+      const allStops = [...(parsed.stops || [])];
+      if (parsed.returnTo && parsed.returnTo.toLowerCase() !== String(parsed.home || "").toLowerCase()) allStops.push(parsed.returnTo);
+      if (stops) stops.value = allStops.join("\n");
     }
   }
 
