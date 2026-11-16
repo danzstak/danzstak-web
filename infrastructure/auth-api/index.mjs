@@ -3352,7 +3352,40 @@ async function geocodeTourPlace(query, { requireDisambiguation = false } = {}) {
   return resolved;
 }
 
+// Music cities a touring band actually plays (owner 2026-11-16: Salt Lake → Detroit picked Wauneta, NE and Urbandale, IA).
+// A sampled road point snaps to the nearest one within ~75 miles before falling back to reverse geocoding.
+const usMusicCities = [
+  ["Seattle, WA", -122.33, 47.61], ["Tacoma, WA", -122.44, 47.25], ["Spokane, WA", -117.43, 47.66], ["Bellingham, WA", -122.48, 48.75], ["Olympia, WA", -122.90, 47.04],
+  ["Portland, OR", -122.68, 45.52], ["Eugene, OR", -123.09, 44.05], ["Boise, ID", -116.20, 43.62], ["Missoula, MT", -114.00, 46.87], ["Bozeman, MT", -111.04, 45.68], ["Billings, MT", -108.50, 45.78],
+  ["Sacramento, CA", -121.49, 38.58], ["Oakland, CA", -122.27, 37.80], ["San Francisco, CA", -122.42, 37.77], ["San Jose, CA", -121.89, 37.34], ["Fresno, CA", -119.79, 36.74], ["Bakersfield, CA", -119.02, 35.37],
+  ["Los Angeles, CA", -118.24, 34.05], ["Santa Ana, CA", -117.87, 33.75], ["San Diego, CA", -117.16, 32.72], ["Reno, NV", -119.81, 39.53], ["Las Vegas, NV", -115.14, 36.17],
+  ["Salt Lake City, UT", -111.89, 40.76], ["Provo, UT", -111.66, 40.23], ["Ogden, UT", -111.97, 41.22], ["Phoenix, AZ", -112.07, 33.45], ["Tucson, AZ", -110.97, 32.22], ["Flagstaff, AZ", -111.65, 35.20],
+  ["Albuquerque, NM", -106.65, 35.08], ["Santa Fe, NM", -105.94, 35.69], ["El Paso, TX", -106.49, 31.76], ["Denver, CO", -104.99, 39.74], ["Fort Collins, CO", -105.08, 40.59], ["Colorado Springs, CO", -104.82, 38.83], ["Boulder, CO", -105.27, 40.01],
+  ["Cheyenne, WY", -104.82, 41.14], ["Laramie, WY", -105.59, 41.31], ["Casper, WY", -106.31, 42.85], ["Rapid City, SD", -103.23, 44.08], ["Sioux Falls, SD", -96.73, 43.55], ["Fargo, ND", -96.79, 46.88],
+  ["Lincoln, NE", -96.70, 40.81], ["Omaha, NE", -95.93, 41.26], ["North Platte, NE", -100.77, 41.12], ["Kearney, NE", -99.08, 40.70], ["Lawrence, KS", -95.24, 38.97], ["Wichita, KS", -97.34, 37.69], ["Kansas City, MO", -94.58, 39.10],
+  ["Des Moines, IA", -93.61, 41.59], ["Iowa City, IA", -91.53, 41.66], ["Davenport, IA", -90.58, 41.52], ["Cedar Rapids, IA", -91.67, 41.98], ["Minneapolis, MN", -93.27, 44.98], ["Duluth, MN", -92.10, 46.79],
+  ["Madison, WI", -89.40, 43.07], ["Milwaukee, WI", -87.91, 43.04], ["Chicago, IL", -87.63, 41.88], ["Champaign, IL", -88.24, 40.12], ["Peoria, IL", -89.59, 40.69], ["St. Louis, MO", -90.20, 38.63], ["Columbia, MO", -92.33, 38.95],
+  ["Indianapolis, IN", -86.16, 39.77], ["Bloomington, IN", -86.53, 39.17], ["Fort Wayne, IN", -85.14, 41.08], ["South Bend, IN", -86.25, 41.68], ["Kalamazoo, MI", -85.59, 42.29], ["Grand Rapids, MI", -85.67, 42.96], ["Lansing, MI", -84.56, 42.73], ["Ann Arbor, MI", -83.74, 42.28], ["Detroit, MI", -83.05, 42.33],
+  ["Toledo, OH", -83.56, 41.65], ["Cleveland, OH", -81.69, 41.50], ["Columbus, OH", -83.00, 39.96], ["Cincinnati, OH", -84.51, 39.10], ["Dayton, OH", -84.19, 39.76], ["Pittsburgh, PA", -79.99, 40.44], ["Philadelphia, PA", -75.17, 39.95], ["Harrisburg, PA", -76.88, 40.27],
+  ["Buffalo, NY", -78.88, 42.89], ["Rochester, NY", -77.61, 43.16], ["Syracuse, NY", -76.15, 43.05], ["Albany, NY", -73.76, 42.65], ["New York, NY", -74.00, 40.71], ["Boston, MA", -71.06, 42.36], ["Providence, RI", -71.41, 41.82], ["New Haven, CT", -72.93, 41.31], ["Portland, ME", -70.26, 43.66], ["Burlington, VT", -73.21, 44.48],
+  ["Baltimore, MD", -76.61, 39.29], ["Washington, DC", -77.04, 38.91], ["Richmond, VA", -77.44, 37.54], ["Norfolk, VA", -76.29, 36.85], ["Raleigh, NC", -78.64, 35.78], ["Durham, NC", -78.90, 35.99], ["Greensboro, NC", -79.79, 36.07], ["Asheville, NC", -82.55, 35.60], ["Charlotte, NC", -80.84, 35.23],
+  ["Columbia, SC", -81.03, 34.00], ["Charleston, SC", -79.93, 32.78], ["Atlanta, GA", -84.39, 33.75], ["Athens, GA", -83.38, 33.96], ["Savannah, GA", -81.10, 32.08], ["Jacksonville, FL", -81.66, 30.33], ["Gainesville, FL", -82.32, 29.65], ["Orlando, FL", -81.38, 28.54], ["Tampa, FL", -82.46, 27.95], ["Miami, FL", -80.19, 25.76],
+  ["Birmingham, AL", -86.80, 33.52], ["Nashville, TN", -86.78, 36.16], ["Memphis, TN", -90.05, 35.15], ["Knoxville, TN", -83.92, 35.96], ["Chattanooga, TN", -85.31, 35.05], ["Louisville, KY", -85.76, 38.25], ["Lexington, KY", -84.50, 38.04],
+  ["New Orleans, LA", -90.07, 29.95], ["Baton Rouge, LA", -91.15, 30.45], ["Jackson, MS", -90.18, 32.30], ["Little Rock, AR", -92.29, 34.75], ["Fayetteville, AR", -94.16, 36.06], ["Tulsa, OK", -95.99, 36.15], ["Oklahoma City, OK", -97.52, 35.47],
+  ["Dallas, TX", -96.80, 32.78], ["Denton, TX", -97.13, 33.21], ["Fort Worth, TX", -97.33, 32.76], ["Austin, TX", -97.74, 30.27], ["San Antonio, TX", -98.49, 29.42], ["Houston, TX", -95.37, 29.76], ["Amarillo, TX", -101.83, 35.22], ["Lubbock, TX", -101.86, 33.58]
+];
+function nearestMusicCity(position, maxMiles = 75) {
+  if (!Array.isArray(position) || position.length < 2) return null;
+  let best = null, bestMiles = Infinity;
+  for (const [label, lng, lat] of usMusicCities) {
+    const miles = approximateMilesBetween(position.slice(0, 2).map(Number), [lng, lat]);
+    if (miles < bestMiles) { best = { label: `${label}, United States`, position: [lng, lat] }; bestMiles = miles; }
+  }
+  return bestMiles <= maxMiles ? best : null;
+}
 async function reverseGeocodeTourMarket(position) {
+  const musicCity = nearestMusicCity(position);
+  if (musicCity) return musicCity;
   try {
     const result = await geoPlaces.send(new ReverseGeocodeCommand({
       QueryPosition: position,
@@ -3380,7 +3413,9 @@ async function discoverRouteMarkets(route, allRoutePoints, requestedDays, reques
   const explicitMarkets = allRoutePoints.slice(1, -1);
   const legs = (route?.Routes?.[0]?.Legs || []).map(leg => leg.Geometry?.LineString || []).filter(line => line.length >= 3);
   const line = legs.flat();
-  const desired = Math.max(4, Math.min(10, Math.max(Math.ceil(Math.max(1, requestedDays) / 3), Math.ceil(Math.max(1, requestedShows) / 2))));
+  // Roughly one market every ~2 hours of driving (owner 2026-11-16), at least enough for the requested shows.
+  const routeMiles = Number(route?.Routes?.[0]?.Summary?.Distance || 0) / 1609.344;
+  const desired = Math.max(4, Math.min(16, Math.max(Math.ceil(routeMiles / 120), Math.ceil(Math.max(1, requestedDays) / 3), Math.ceil(Math.max(1, requestedShows) / 2))));
   const sampleDescriptors = line.length >= 3
     ? Array.from({ length: desired }, (_, index) => {
         const pointIndex = Math.round(((index + 1) * (line.length - 1)) / (desired + 1));

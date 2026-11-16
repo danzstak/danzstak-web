@@ -1097,6 +1097,8 @@
       requestedShows = Math.max(1, Math.min(days, Number(data.route.requestedShows) || number("showCount") || 1)),
       shows = Math.min(requestedShows, Math.max(1, markets.length * 2 - 1));
     if (data.route.local || markets.length < 2) return markets.slice(0, shows);
+    // One-way tours (owner 2026-11-16) play every show on the way there and end at the destination.
+    if (data.route.oneWay) return strongestRouteMarkets(markets, Math.min(markets.length, shows));
     const outwardCount = Math.min(markets.length, Math.max(2, Math.ceil((shows + 1) * 0.55))),
       returnCount = Math.max(0, shows - outwardCount),
       outward = strongestRouteMarkets(markets, outwardCount),
@@ -1178,7 +1180,7 @@
       if (index === 0 || index === coords.length - 1 || index % labelEvery === 0) svg.append(label);
     });
     stopLine.className = "route-stop-line";
-    stopLine.textContent = points.map((point, index) => index === points.length - 1 ? "Home" : (point.label || `Stop ${index + 1}`).split(",")[0]).join(" → ");
+    stopLine.textContent = points.map((point, index) => index === points.length - 1 && !route.oneWay ? "Home" : (point.label || `Stop ${index + 1}`).split(",")[0]).join(" → ");
     navigation.className = "route-navigation";
     const allDestinations = points.map(mapDestination).filter(Boolean),
       routeDestinations = allDestinations.length <= 10
@@ -1223,7 +1225,9 @@
       ? `Local booking near ${data.route.start.label}`
       : data.route.direction
         ? `${data.route.requestedDays}-day ${data.route.direction} loop from ${data.route.start.label}`
-        : turnaround
+        : data.route.oneWay
+          ? `${data.route.start.label} → ${data.route.end?.label || turnaround} (one way)`
+          : turnaround
           ? `${data.route.start.label} → ${turnaround} → ${data.route.start.label}`
           : `${data.route.start.label} round trip`;
     details.textContent = data.route.local
