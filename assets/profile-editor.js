@@ -145,11 +145,13 @@ const editButton = document.createElement("button");
 editButton.type = "button";
 editButton.className = "button";
 editButton.textContent = profileEditorWords.edit;
+editButton.dataset.icon = "edit"; editButton.setAttribute("aria-label", profileEditorWords.edit);
 actions.appendChild(editButton);
 const shopManagementLink = document.createElement("a");
 shopManagementLink.className = "button";
 shopManagementLink.href = "store.html?manage=1";
 shopManagementLink.textContent = "Open my shop";
+shopManagementLink.setAttribute("role", "button"); shopManagementLink.dataset.icon = "store"; shopManagementLink.setAttribute("aria-label", "Open my shop");
 shopManagementLink.hidden = viewingOtherProfile;
 actions.appendChild(shopManagementLink);
 bioElement.insertAdjacentElement("afterend", actions);
@@ -452,7 +454,7 @@ const tabs = document.createElement("nav");
 tabs.className = "profile-tabs";
 tabs.setAttribute("aria-label", "Profile sections");
 tabs.setAttribute("role", "tablist");
-for (const name of ["Posts", "About", "Photos", "Videos", "More"]) {
+for (const name of ["Posts", "About", "Friends", "Photos", "Videos", "More"]) {
   const tab = document.createElement("button");
   tab.type = "button";
   tab.textContent = name;
@@ -461,6 +463,7 @@ for (const name of ["Posts", "About", "Photos", "Videos", "More"]) {
   tab.setAttribute("role", "tab");
   tab.setAttribute("aria-selected", String(name === "Posts"));
   tab.tabIndex = name === "Posts" ? 0 : -1;
+  if (name === "More") tab.hidden = true; // shown (as "Shop") only when the member has a shop
   tabs.appendChild(tab);
 }
 const tabMessage = document.createElement("div");
@@ -752,18 +755,18 @@ function profileWallComposer(profile) {
     const symbol = document.createElement("span");
     symbol.setAttribute("aria-hidden", "true");
     symbol.textContent = icon;
-    const copy = document.createElement("span");
-    copy.textContent = label;
-    button.append(symbol, copy);
+    button.setAttribute("aria-label", label); button.title = label;
+    button.dataset.icon = icon; // icon-buttons.js draws it
+    button.append(symbol);
     button.addEventListener("click", handler);
     shortcuts.appendChild(button);
   };
-  addShortcut("Video", "▶", () => { mediaInput.accept = "video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
-  addShortcut("Photo/Video", "▧", () => { mediaInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
+  addShortcut("Add a video", "video", () => { mediaInput.accept = "video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
+  addShortcut("Add a photo or video", "image", () => { mediaInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
   const eventLink = document.createElement("a");
   eventLink.className = "profile-create-shortcut";
   eventLink.href = "feed.html?view=feed#events";
-  eventLink.innerHTML = '<span aria-hidden="true">◆</span><span>Life Event</span>';
+  eventLink.setAttribute("role", "button"); eventLink.dataset.icon = "calendar"; eventLink.setAttribute("aria-label", "Add an event"); eventLink.title = "Add an event";
   shortcuts.appendChild(eventLink);
 
   const certifyLabel = document.createElement("label");
@@ -840,15 +843,15 @@ function profileWallComposer(profile) {
 }
 
 const profileTabRoutes = new Map([
-  ["posts", "Posts"], ["about", "About"], ["photos", "Photos"], ["videos", "Videos"], ["more", "More"],
-  ["featured", "More"], ["memories", "More"], ["friends", "More"], ["media", "More"], ["shop", "More"]
+  ["posts", "Posts"], ["about", "About"], ["friends", "Friends"], ["photos", "Photos"], ["videos", "Videos"], ["more", "More"],
+  ["shop", "More"]
 ]);
 function requestedProfileTab() {
   return profileTabRoutes.get(String(window.location?.hash || "").replace(/^#/, "").toLowerCase()) || "Posts";
 }
 function requestedProfileMoreSection() {
   const route = String(window.location?.hash || "").replace(/^#/, "").toLowerCase();
-  return new Map([["featured", "Featured"], ["memories", "Memories"], ["friends", "Friends"], ["media", "Media"], ["shop", "Shop"]]).get(route) || "";
+  return new Map([["shop", "Shop"]]).get(route) || "";
 }
 
 let profileTabVersion = 0;
@@ -930,16 +933,17 @@ async function loadProfileFriends() {
     if (!response?.ok) throw new Error("Friends could not be loaded");
     const data = await response.json();
     const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;
-    const online = new Set(directoryResponse?.ok
-      ? ((await directoryResponse.json()).users || [])
-        .filter(user => user.online === true)
-        .map(user => String(user.email || "").toLowerCase())
-      : []);
+    const onlineDirectory = directoryResponse?.ok ? ((await directoryResponse.json()).users || []).filter(user => user.online === true) : [];
+    const online = new Set(onlineDirectory.map(user => String(user.email || "").toLowerCase()));
     if (version !== profileTabVersion) return;
     tabMessage.replaceChildren();
-    if (!(data.friends || []).length) { tabMessage.textContent = "No friends yet."; return; }
+    const friendEmails = new Set((data.friends || []).map(friend => String(friend.email || "").toLowerCase()));
+    const sortedFriends = [...(data.friends || [])].sort((a, b) => Number(online.has(String(b.email || "").toLowerCase())) - Number(online.has(String(a.email || "").toLowerCase())) || String(a.name || "").localeCompare(String(b.name || "")));
+    const friendsHeading = document.createElement("h3"); friendsHeading.className = "profile-friends-heading"; friendsHeading.textContent = `Friends · ${sortedFriends.length}`;
+    tabMessage.appendChild(friendsHeading);
+    if (!sortedFriends.length) { const none = document.createElement("p"); none.className = "muted"; none.textContent = "No friends yet."; tabMessage.appendChild(none); }
     const grid = document.createElement("div"); grid.className = "profile-friend-grid";
-    for (const friend of data.friends) {
+    for (const friend of sortedFriends) {
       const link = document.createElement("a"); link.className = "profile-friend-card"; link.href = "profile.html?member=" + encodeURIComponent(friend.memberId);
       const avatar = friend.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "profile-friend-avatar";
       if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, friend); }
@@ -954,7 +958,24 @@ async function loadProfileFriends() {
       const availability = document.createElement("small"); availability.textContent = isOnline ? "Online" : "Offline";
       copy.append(name, availability); link.append(avatar, copy, status); grid.appendChild(link);
     }
-    tabMessage.appendChild(grid);
+    if (sortedFriends.length) tabMessage.appendChild(grid);
+    // Members online now (not already friends), like a familiar "active now" list.
+    const onlineMembers = onlineDirectory.filter(user => !friendEmails.has(String(user.email || "").toLowerCase()) && /^[a-f0-9-]{36}$/.test(String(user.memberId || "")));
+    if (onlineMembers.length) {
+      const onlineHeading = document.createElement("h3"); onlineHeading.className = "profile-friends-heading"; onlineHeading.textContent = `Online now · ${onlineMembers.length}`;
+      const onlineGrid = document.createElement("div"); onlineGrid.className = "profile-friend-grid";
+      for (const member of onlineMembers) {
+        const link = document.createElement("a"); link.className = "profile-friend-card"; link.href = "profile.html?member=" + encodeURIComponent(member.memberId);
+        const avatar = member.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "profile-friend-avatar";
+        if (member.picture) { avatar.src = member.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+        else { avatar.textContent = (member.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
+        const copy = document.createElement("span"); const name = document.createElement("strong"); name.textContent = member.name || "DanzStak member";
+        const availability = document.createElement("small"); availability.textContent = "Online";
+        const status = document.createElement("span"); status.className = "profile-friend-presence online"; status.title = "Online"; status.setAttribute("aria-hidden", "true");
+        copy.append(name, availability); link.append(avatar, copy, status); onlineGrid.appendChild(link);
+      }
+      tabMessage.append(onlineHeading, onlineGrid);
+    }
   } catch (error) { if (version === profileTabVersion) tabMessage.textContent = error.message; }
 }
 
@@ -988,7 +1009,8 @@ async function configureProfileShop(profile = {}) {
     const data = await response.json().catch(() => ({}));
     if (!data.shop) return;
     profileShop = data.shop;
-    shopManagementLink.textContent = "Manage my shop";
+    shopManagementLink.setAttribute("aria-label", "Manage my shop"); shopManagementLink.title = "Manage my shop";
+    const moreTab = tabs.querySelector('[data-profile-tab="More"]'); if (moreTab) { moreTab.hidden = false; moreTab.textContent = "Shop"; }
     if (requestedProfileMoreSection() === "Shop" && tabs.dataset.initialized === "true") void openProfileMoreSection("Shop");
   } catch { /* A shop is optional; leave the tab hidden when unavailable. */ }
 }
@@ -997,7 +1019,7 @@ function profileMoreNavigation(active = "") {
   const navigation = document.createElement("div");
   navigation.className = "profile-more-navigation";
   navigation.setAttribute("aria-label", "More profile sections");
-  const choices = ["Featured", ...(window.danzstakCurrentProfile?.isOwner === true ? ["Memories"] : []), "Friends", "Media", ...(profileShop ? ["Shop"] : [])];
+  const choices = profileShop ? ["Shop"] : [];
   for (const name of choices) {
     const button = document.createElement("button");
     button.type = "button";
@@ -1021,7 +1043,7 @@ async function openProfileMoreSection(name = "") {
     tabMessage.replaceChildren(profileMoreNavigation());
     const note = document.createElement("p");
     note.className = "muted profile-more-note";
-    note.textContent = "Featured posts, friends, media and this member’s shop stay together here.";
+    note.textContent = profileShop ? "" : "Nothing here yet.";
     tabMessage.appendChild(note);
     return;
   }
@@ -1048,7 +1070,8 @@ tabs.addEventListener("click", async event => {
   if (name === "Posts") await loadProfilePosts(false);
   else if (name === "Photos") await loadProfilePosts(true, "posts", "image");
   else if (name === "Videos") await loadProfilePosts(true, "posts", "video");
-  else if (name === "More") await openProfileMoreSection(requestedMoreSection);
+  else if (name === "Friends") await loadProfileFriends();
+  else if (name === "More") await openProfileMoreSection(profileShop ? "Shop" : requestedMoreSection);
 });
 tabs.addEventListener("keydown", event => {
   if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -1229,7 +1252,7 @@ function applyLoadedProfile(profile = {}) {
   if (profile.isOwner === true) {
     viewingOtherProfile = false;
     editButton.hidden = false;
-    nameEditHint.hidden = false;
+    nameEditHint.hidden = true; // owner 2026-11-16: no "tap your name" instruction; the name is tappable
     const profileName = document.getElementById("profileName");
     profileName.classList.add("profile-name-editable");
     profileName.tabIndex = 0;
@@ -1267,7 +1290,6 @@ function applyLoadedProfile(profile = {}) {
     const requested = requestedProfileTab();
     const requestedTab = tabs.querySelector(`[data-profile-tab="${requested}"]`);
     let target = requested;
-    if (requested === "More" && requestedProfileMoreSection() === "Memories" && profile.isOwner !== true) target = "Posts";
     if (requestedTab?.hidden) target = "Posts";
     if (target === "More") tabs.querySelector('[data-profile-tab="More"]').dataset.openSection = requestedProfileMoreSection();
     tabs.querySelector(`[data-profile-tab="${target}"]`).click();
