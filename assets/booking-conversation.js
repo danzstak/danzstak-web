@@ -112,6 +112,9 @@
         }
       }
     }
+    // One-way runs (owner test 2026-11-16: "salt lake to detroit 1 way").
+    if (/\b(?:one|1)[- ]?way\b|\bno return\b|\bdon'?t (?:drive|come) (?:back|home)\b/i.test(text)) parsed.oneWay = true;
+    if (parsed.destination) parsed.destination = tidyPlace(parsed.destination.replace(/\s*\b(?:one|1)[- ]?way\b.*$/i, ""));
     if (parsed.home) parsed.home = parsed.home.replace(/^\d+\s*(?:-| )?days?\s+/i, "");
     parsed.departOn = parseDepartureDate(text) || undefined;
     return parsed;
@@ -122,11 +125,14 @@
     setValue("startCity", parsed.home);
     setValue("musicGenre", parsed.genre);
     setValue("days", parsed.days);
-    setValue("showCount", parsed.shows);
+    // No show count given: plan about 70% of the days as show nights (owner test 2026-11-16: 20 days gave only 8 shows).
+    setValue("showCount", parsed.shows || (parsed.days > 2 ? Math.max(1, Math.round(parsed.days * 0.7)) : undefined));
     setValue("departOn", parsed.departOn);
     if (parsed.mode) setValue("bookingMode", parsed.mode);
     if (parsed.direction) setValue("travelDirection", parsed.direction);
     if (parsed.destination) setValue("endCity", parsed.destination);
+    const oneWayBox = field("oneWayTour");
+    if (oneWayBox) { oneWayBox.checked = Boolean(parsed.oneWay); oneWayBox.dispatchEvent(new Event("change", { bubbles: true })); }
     if (parsed.mode) {
       const stops = field("tourStops");
       const allStops = [...(parsed.stops || [])];
