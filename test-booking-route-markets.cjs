@@ -130,3 +130,19 @@ vm.runInContext(discoverySource, discoveryContext);
   assert.ok(markets.length >= 6, "round-trip sampling should retain a useful set of distinct intermediate markets");
   console.log("Booking route-market checks passed: I-5 cities and road-geometry sampling cover intermediate tour markets.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
+{
+  // Owner test 2026-11-16: Bellingham → San Diego must search markets all along I-5 / the coast.
+  const ctxSrc = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
+  const part = ctxSrc.slice(ctxSrc.indexOf("// Any north–south West Coast run"), ctxSrc.indexOf("async function addManualBookingVenue("));
+  const ctx = vm.createContext({}); vm.runInContext(part, ctx);
+  const bellingham = { label: "Bellingham, Washington, United States", position: [-122.48, 48.75] };
+  const sanDiego = { label: "San Diego, California, United States", position: [-117.16, 32.72] };
+  const tacoma = { label: "Tacoma, Washington, United States", position: [-122.44, 47.25] };
+  const corridor = Array.from(ctx.westCoastTourCorridor([bellingham, tacoma, sanDiego, bellingham]));
+  assert.equal(corridor[0], "Bellingham, Washington"); assert.equal(corridor.at(-1), "San Diego, California");
+  for (const m of ["Seattle, Washington", "Portland, Oregon", "Eugene, Oregon", "Sacramento, California", "San Francisco, California", "Los Angeles, California"]) assert.ok(corridor.includes(m), `${m} on the Bellingham–San Diego circuit`);
+  const sampled = Array.from(ctx.sampleTourCorridorMarkets(corridor, 20, 14));
+  for (const m of ["Portland, Oregon", "Sacramento, California", "Los Angeles, California"]) assert.ok(sampled.includes(m), `${m} searched for a 20-day run`);
+  assert.equal(ctx.westCoastTourCorridor([{ label: "Austin, Texas", position: [-97.74, 30.27] }, { label: "Denver, Colorado", position: [-104.99, 39.74] }]), null, "non-West-Coast routes keep the generic path");
+  console.log("Bellingham–San Diego corridor checks passed.");
+}

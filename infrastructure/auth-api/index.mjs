@@ -3413,9 +3413,35 @@ async function discoverRouteMarkets(route, allRoutePoints, requestedDays, reques
   return unique.slice(0, 8);
 }
 
+// Any north–south West Coast run (e.g. Bellingham → San Diego, owner test 2026-11-16) uses the
+// I-5 / coast circuit: a club market roughly every 1–2 hours of driving, sliced to the requested ends.
+const westCoastCircuit = [
+  ["Bellingham, Washington", 48.75], ["Mount Vernon, Washington", 48.42], ["Everett, Washington", 47.98],
+  ["Seattle, Washington", 47.61], ["Tacoma, Washington", 47.25], ["Olympia, Washington", 47.04],
+  ["Centralia, Washington", 46.72], ["Longview, Washington", 46.14], ["Vancouver, Washington", 45.64],
+  ["Portland, Oregon", 45.52], ["Salem, Oregon", 44.94], ["Corvallis, Oregon", 44.56], ["Eugene, Oregon", 44.05],
+  ["Roseburg, Oregon", 43.22], ["Grants Pass, Oregon", 42.44], ["Medford, Oregon", 42.33], ["Ashland, Oregon", 42.19],
+  ["Weed, California", 41.42], ["Redding, California", 40.59], ["Chico, California", 39.73],
+  ["Sacramento, California", 38.58], ["Oakland, California", 37.80], ["San Francisco, California", 37.77],
+  ["San Jose, California", 37.34], ["Santa Cruz, California", 36.97], ["San Luis Obispo, California", 35.28],
+  ["Santa Barbara, California", 34.42], ["Ventura, California", 34.27], ["Los Angeles, California", 34.05],
+  ["Long Beach, California", 33.77], ["Santa Ana, California", 33.75], ["Oceanside, California", 33.20],
+  ["San Diego, California", 32.72]
+];
+function genericWestCoastCorridor(points) {
+  const positions = points.map(point => point?.position).filter(position => Array.isArray(position) && position.length === 2);
+  if (positions.length < 2 || !positions.every(([lng, lat]) => lng >= -125 && lng <= -114 && lat >= 32 && lat <= 49.5)) return null;
+  const startLat = positions[0][1];
+  const far = positions.reduce((best, position) => Math.abs(position[1] - startLat) > Math.abs(best[1] - startLat) ? position : best, positions[0]);
+  if (Math.abs(far[1] - startLat) < 3) return null;
+  const nearest = lat => westCoastCircuit.reduce((best, [, marketLat], index) => Math.abs(marketLat - lat) < Math.abs(westCoastCircuit[best][1] - lat) ? index : best, 0);
+  const from = nearest(startLat), to = nearest(far[1]);
+  const slice = westCoastCircuit.slice(Math.min(from, to), Math.max(from, to) + 1).map(([name]) => name);
+  return from <= to ? slice : slice.reverse();
+}
 function westCoastTourCorridor(points) {
   const labels = points.map(point => point.label.toLowerCase()).join(" | ");
-  if (!labels.includes("san francisco") || !labels.includes("seattle")) return null;
+  if (!labels.includes("san francisco") || !labels.includes("seattle")) return genericWestCoastCorridor(points);
   if (!labels.includes("los angeles")) {
     const i5Markets = [
       "Seattle, Washington", "Tacoma, Washington", "Olympia, Washington",
@@ -3463,7 +3489,7 @@ function sampleTourCorridorMarkets(corridor, requestedDays = 1, requestedShows =
   const limit = Math.min(corridor.length, Math.max(8, Math.min(12, requestedShows + 2, Math.ceil(requestedDays / 2) + 5)));
   if (corridor.length <= limit) return [...corridor];
 
-  const anchorPattern = /^(seattle|tacoma|portland|eugene|medford|redding|sacramento|san francisco),/i;
+  const anchorPattern = /^(seattle|tacoma|portland|eugene|medford|redding|sacramento|san francisco|oakland|los angeles|san diego),/i;
   const selectedIndexes = new Set([0, corridor.length - 1]);
   corridor.forEach((market, index) => {
     if (selectedIndexes.size < limit && anchorPattern.test(String(market))) selectedIndexes.add(index);
