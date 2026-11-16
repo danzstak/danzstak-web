@@ -1,0 +1,1014 @@
+{
+ "version": 1,
+ "generatedAt": "2026-11-16",
+ "scope": "US West Coast seed — Sacramento/Davis, SF Bay Area, Los Angeles, Portland, Seattle/Olympia + national metal press",
+ "note": "Public organization info only (names, websites, public pages). No personal emails. 'status: seed' = found in public sources on checkedAt; 'unverified' = needs a check before use. Refreshed by the monthly directory job (docs/tasks/09).",
+ "fields": {
+  "ads": "yes | underwriting | no | unknown — college/community stations are usually non-commercial: use underwriting/announcement wording",
+  "inStores": "yes | sometimes | unknown"
+ },
+ "items": [
+  {
+   "type": "radio",
+   "name": "KDVS 90.3 FM",
+   "city": "Davis / Sacramento, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "metal",
+    "electronic",
+    "freeform"
+   ],
+   "website": "https://kdvs.org",
+   "stationType": "college",
+   "ads": "underwriting",
+   "rotation": true,
+   "notes": "Student-run freeform college/community station covering the greater Sacramento area; punk, metal and local shows; runs its own label (KDVS Recordings) and live events.",
+   "sources": [
+    "https://kdvs.org/about/faq",
+    "https://www.ucdavis.edu/index%2ephp/news/kdvs-50-asking-quarters-and-more-during-annual-fundraiser"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-001"
+  },
+  {
+   "type": "record_store",
+   "name": "Phono Select Records",
+   "city": "Sacramento, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "metal",
+    "industrial",
+    "darkwave"
+   ],
+   "website": "https://phonoselect.com",
+   "address": "2475 Fruitridge Rd, Sacramento, CA",
+   "inStores": "sometimes",
+   "notes": "Specializes in punk, metal, industrial, darkwave; carries local bands' 45s; occasionally holds live music.",
+   "sources": [
+    "https://www.newsreview.com/sacramento/content/the-next-hunt/28334308",
+    "https://sactoday.6amcity.com/record-shops-sacramento-ca"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-002"
+  },
+  {
+   "type": "record_store",
+   "name": "Kicksville Vinyl & Vintage",
+   "city": "Sacramento, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "garage"
+   ],
+   "website": "https://kicksvilleshop.com",
+   "address": "1104 R St #140, Sacramento, CA",
+   "inStores": "unknown",
+   "sources": [
+    "https://www.comstocksmag.com/web-only/untold-story-used-records-stores"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-003"
+  },
+  {
+   "type": "record_store",
+   "name": "Delta Breeze Records",
+   "city": "West Sacramento, CA",
+   "region": "US-West",
+   "genres": [
+    "all"
+   ],
+   "website": "",
+   "address": "1049 Jefferson Blvd #110, West Sacramento, CA",
+   "inStores": "unknown",
+   "sources": [
+    "https://www.comstocksmag.com/web-only/untold-story-used-records-stores"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-004"
+  },
+  {
+   "type": "record_store",
+   "name": "Armadillo Music",
+   "city": "Davis, CA",
+   "region": "US-West",
+   "genres": [
+    "all"
+   ],
+   "website": "",
+   "inStores": "unknown",
+   "sources": [
+    "https://vinylpackman.com/store/2514"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-005"
+  },
+  {
+   "type": "press",
+   "name": "Submerge Magazine",
+   "city": "Sacramento, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "metal",
+    "electronic",
+    "local"
+   ],
+   "website": "https://submergemag.com",
+   "format": "free biweekly print + web",
+   "notes": "Independent Sacramento music/arts publication covering local bands and venues.",
+   "sources": [
+    "https://submergemag.com/?p=212"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "press-006"
+  },
+  {
+   "type": "press",
+   "name": "Spinning Platters",
+   "city": "Bay Area / Northern CA",
+   "region": "US-West",
+   "genres": [
+    "rock",
+    "punk",
+    "metal"
+   ],
+   "website": "https://spinningplatters.com",
+   "format": "music blog",
+   "notes": "Long-running Bay Area-based music blog (show reviews, guides); has covered Sacramento-area shows.",
+   "sources": [
+    "https://spinningplatters.com/tag/sacramento"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "press-007"
+  },
+  {
+   "type": "radio",
+   "name": "KALX 90.7 FM",
+   "city": "Berkeley, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "metal",
+    "freeform"
+   ],
+   "website": "https://kalx.berkeley.edu",
+   "stationType": "college",
+   "ads": "unknown",
+   "rotation": true,
+   "onAir": "KALX Live! local showcase (Saturday nights) — request via the FAQ contact",
+   "sources": [
+    "https://www.kalx.berkeley.edu/faq-page",
+    "https://kalx.berkeley.edu/about/faqs"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-008"
+  },
+  {
+   "type": "radio",
+   "name": "KZSU 90.1 FM",
+   "city": "Stanford, CA",
+   "region": "US-West",
+   "genres": [
+    "freeform"
+   ],
+   "website": "https://kzsu.stanford.edu",
+   "stationType": "college",
+   "ads": "unknown",
+   "rotation": true,
+   "sources": [
+    "https://wiki.riteme.site/wiki/List_of_radio_stations_in_the_San_Francisco_Bay_Area"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-009"
+  },
+  {
+   "type": "radio",
+   "name": "KFJC 89.7 FM",
+   "city": "Los Altos, CA",
+   "region": "US-West",
+   "genres": [
+    "freeform",
+    "punk",
+    "metal"
+   ],
+   "website": "https://kfjc.org",
+   "stationType": "college",
+   "ads": "unknown",
+   "rotation": true,
+   "sources": [
+    "https://wiki.riteme.site/wiki/List_of_radio_stations_in_the_San_Francisco_Bay_Area"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-010"
+  },
+  {
+   "type": "radio",
+   "name": "KPOO 89.5 FM",
+   "city": "San Francisco, CA",
+   "region": "US-West",
+   "genres": [
+    "community",
+    "variety"
+   ],
+   "website": "https://kpoo.com",
+   "stationType": "community",
+   "ads": "unknown",
+   "sources": [
+    "https://wiki.riteme.site/wiki/List_of_radio_stations_in_the_San_Francisco_Bay_Area"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-011"
+  },
+  {
+   "type": "radio",
+   "name": "MRR Radio (Maximum Rocknroll)",
+   "city": "Oakland, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "hardcore",
+    "garage"
+   ],
+   "website": "https://www.maximumrocknroll.com/submit/",
+   "stationType": "online",
+   "ads": "no",
+   "rotation": true,
+   "notes": "Physical releases sent to MRR are considered for review and radio play.",
+   "sources": [
+    "https://www.maximumrocknroll.com/reviews/page/72"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-012"
+  },
+  {
+   "type": "record_store",
+   "name": "Thrillhouse Records",
+   "city": "San Francisco, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "hardcore",
+    "metal"
+   ],
+   "website": "https://thrillhouserecords.com",
+   "address": "3422 Mission St, San Francisco, CA",
+   "inStores": "yes",
+   "notes": "Volunteer-run non-profit punk record store; community events and shows; stocks local bands.",
+   "sources": [
+    "https://www.insidehook.com/music/music-lovers-guide-san-francisco/amp",
+    "https://www.axios.com/local/san-francisco/2025/08/12/record-stores-san-francisco-oakland"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-013"
+  },
+  {
+   "type": "record_store",
+   "name": "Amoeba Music (San Francisco)",
+   "city": "San Francisco, CA",
+   "region": "US-West",
+   "genres": [
+    "all"
+   ],
+   "website": "https://www.amoeba.com",
+   "address": "1855 Haight St, San Francisco, CA",
+   "inStores": "yes",
+   "sources": [
+    "https://www.insidehook.com/music/music-lovers-guide-san-francisco/amp"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-014"
+  },
+  {
+   "type": "record_store",
+   "name": "1-2-3-4 Go! Records",
+   "city": "Oakland, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "garage"
+   ],
+   "website": "",
+   "address": "420 40th St #5, Oakland, CA",
+   "inStores": "yes",
+   "notes": "Hosts in-store band shows.",
+   "sources": [
+    "https://sfist.com/2014/08/20/the_9_best_record_stores_in_the_ba/"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-015"
+  },
+  {
+   "type": "record_store",
+   "name": "Stranded",
+   "city": "San Francisco & Oakland, CA",
+   "region": "US-West",
+   "genres": [
+    "experimental",
+    "punk",
+    "all"
+   ],
+   "website": "https://strandedrecords.com",
+   "inStores": "unknown",
+   "notes": "Retail arm of archival label Superior Viaduct.",
+   "sources": [
+    "https://www.sfstation.com/music/business-directory/cd-vinyl-and-dvd-store"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-016"
+  },
+  {
+   "type": "record_store",
+   "name": "Shaxul Records",
+   "city": "San Francisco, CA",
+   "region": "US-West",
+   "genres": [
+    "metal"
+   ],
+   "website": "",
+   "inStores": "unknown",
+   "status": "unverified",
+   "notes": "Listed as an all-heavy-metal store; current status not confirmed.",
+   "sources": [
+    "https://www.sfstation.com/music/business-directory/cd-vinyl-and-dvd-store"
+   ],
+   "checkedAt": "2026-11-16",
+   "id": "record_store-017"
+  },
+  {
+   "type": "press",
+   "name": "Maximum Rocknroll",
+   "city": "Oakland, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "hardcore",
+    "garage"
+   ],
+   "website": "https://www.maximumrocknroll.com/submit/",
+   "format": "zine + radio",
+   "submissions": "Physical releases only (vinyl/cassette/CD), DIY punk/garage/hardcore, no major-label or major-distributed releases. Mail: PO Box 3852, Oakland, CA 94609.",
+   "sources": [
+    "https://www.maximumrocknroll.com/submit/",
+    "https://www.maximumrocknroll.com/reviews/page/72"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "press-018"
+  },
+  {
+   "type": "radio",
+   "name": "KXLU 88.9 FM",
+   "city": "Los Angeles, CA",
+   "region": "US-West",
+   "genres": [
+    "freeform",
+    "punk",
+    "underground"
+   ],
+   "website": "https://kxlu.com",
+   "stationType": "college",
+   "ads": "no",
+   "rotation": true,
+   "notes": "Commercial-free and underwriting-free freeform college/community station; on-air/rotation only, no ads.",
+   "sources": [
+    "https://kxlu.com/about/",
+    "https://easyreadernews.com/?p=34469"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-019"
+  },
+  {
+   "type": "radio",
+   "name": "KCRW 89.9 FM",
+   "city": "Santa Monica, CA",
+   "region": "US-West",
+   "genres": [
+    "eclectic",
+    "electronic",
+    "indie"
+   ],
+   "website": "https://www.kcrw.com",
+   "stationType": "public (NPR member)",
+   "ads": "underwriting",
+   "rotation": true,
+   "notes": "Large public station; underwriting is priced for businesses, not cheap.",
+   "sources": [
+    "https://www.radiosurvivor.com/?p=6985"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-020"
+  },
+  {
+   "type": "record_store",
+   "name": "Headline Records",
+   "city": "Los Angeles, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "hardcore",
+    "ska"
+   ],
+   "website": "",
+   "address": "7706 Melrose Ave, Los Angeles, CA",
+   "inStores": "yes",
+   "notes": "Punk shop on Melrose for 20+ years; live in-store performances; zines.",
+   "sources": [
+    "https://www.discoverlosangeles.com/things-to-do/the-best-record-stores-in-los-angeles",
+    "https://www.insidehook.com/culture/best-record-stores-in-la"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-021"
+  },
+  {
+   "type": "record_store",
+   "name": "Vacation Vinyl",
+   "city": "Los Angeles (Silver Lake), CA",
+   "region": "US-West",
+   "genres": [
+    "metal",
+    "punk",
+    "hardcore"
+   ],
+   "website": "",
+   "address": "3815 Sunset Blvd, Los Angeles, CA",
+   "inStores": "unknown",
+   "notes": "Metal and hard rock specialist; sells zines.",
+   "sources": [
+    "https://www.insidehook.com/culture-los-angeles/best-record-stores-in-la",
+    "https://www.garrettleight.com/blogs/stories/la-record-stores"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-022"
+  },
+  {
+   "type": "record_store",
+   "name": "Permanent Records Roadhouse",
+   "city": "Los Angeles (Cypress Park), CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "garage",
+    "post-punk"
+   ],
+   "website": "https://www.permanentrecordsla.com",
+   "address": "1906 Cypress Ave, Los Angeles, CA",
+   "inStores": "yes",
+   "notes": "Record store that doubles as a bar/venue with live music.",
+   "sources": [
+    "https://thelagirl.com/?p=10318"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-023"
+  },
+  {
+   "type": "record_store",
+   "name": "Mono Records",
+   "city": "Glendale, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "metal",
+    "new wave"
+   ],
+   "website": "",
+   "inStores": "unknown",
+   "sources": [
+    "https://laist.com/news/entertainment/the-10-best-record-stores-in-los-angeles",
+    "https://www.garrettleight.com/blogs/stories/la-record-stores"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-024"
+  },
+  {
+   "type": "record_store",
+   "name": "Amoeba Music (Hollywood)",
+   "city": "Los Angeles, CA",
+   "region": "US-West",
+   "genres": [
+    "all"
+   ],
+   "website": "https://www.amoeba.com",
+   "inStores": "yes",
+   "notes": "Check current address on the website (store relocated in recent years).",
+   "sources": [
+    "https://www.cbsnews.com/losangeles/news/best-music-stores-in-los-angeles"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-025"
+  },
+  {
+   "type": "press",
+   "name": "Razorcake",
+   "city": "Los Angeles, CA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "DIY"
+   ],
+   "website": "https://razorcake.org",
+   "format": "non-profit punk zine",
+   "status": "unverified",
+   "notes": "Not checked this run; verify submission rules before use.",
+   "sources": [],
+   "checkedAt": "2026-11-16",
+   "id": "press-026"
+  },
+  {
+   "type": "radio",
+   "name": "KBOO 90.7 FM",
+   "city": "Portland, OR",
+   "region": "US-West",
+   "genres": [
+    "community",
+    "punk",
+    "variety"
+   ],
+   "website": "https://kboo.fm",
+   "stationType": "community",
+   "ads": "no",
+   "notes": "Volunteer-powered, non-commercial, listener-sponsored community station.",
+   "sources": [
+    "https://helpdesk.kboo.fm/book/export/html/819"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-027"
+  },
+  {
+   "type": "radio",
+   "name": "XRAY.fm (KXRY 91.1)",
+   "city": "Portland, OR",
+   "region": "US-West",
+   "genres": [
+    "community",
+    "indie",
+    "variety"
+   ],
+   "website": "https://xray.fm",
+   "stationType": "community",
+   "ads": "underwriting",
+   "sources": [
+    "https://www.wikiwand.com/en/articles/KXRY"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-028"
+  },
+  {
+   "type": "radio",
+   "name": "KPSU",
+   "city": "Portland, OR",
+   "region": "US-West",
+   "genres": [
+    "freeform"
+   ],
+   "website": "https://kpsu.org",
+   "stationType": "college (online)",
+   "ads": "unknown",
+   "rotation": true,
+   "notes": "Portland State student-run freeform station, streams online.",
+   "sources": [
+    "https://bafybeiemxf5abjwjbikoz4mc3a3dla6ual3jsgpdr4cjr3oz3evfyavhwq.ipfs.4everland.io/wiki/KPSU_(Portland).html"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-029"
+  },
+  {
+   "type": "record_store",
+   "name": "Music Millennium",
+   "city": "Portland, OR",
+   "region": "US-West",
+   "genres": [
+    "all",
+    "punk",
+    "indie"
+   ],
+   "website": "https://www.musicmillennium.com",
+   "address": "3158 E Burnside St, Portland, OR",
+   "inStores": "yes",
+   "notes": "Oldest record store in the Pacific Northwest; ~150 in-store events a year; has invited EPK submissions for in-store performances.",
+   "sources": [
+    "https://www.vrtxmag.com/businesses/music-millennium",
+    "https://www.sonicbids.com/find-gigs/musicmillennium/"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-030"
+  },
+  {
+   "type": "record_store",
+   "name": "2nd Avenue Records",
+   "city": "Portland, OR",
+   "region": "US-West",
+   "genres": [
+    "metal",
+    "hardcore",
+    "punk"
+   ],
+   "website": "",
+   "inStores": "unknown",
+   "notes": "Downtown fixture; massive metal and hardcore punk selection.",
+   "sources": [
+    "https://travelportland.com/attractions/vinyl-shopping-portland/%7B%7B%20data.postSocialURLs[facebook]"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-031"
+  },
+  {
+   "type": "record_store",
+   "name": "City Noise",
+   "city": "Portland, OR",
+   "region": "US-West",
+   "genres": [
+    "metal",
+    "punk",
+    "industrial",
+    "darkwave",
+    "goth"
+   ],
+   "website": "",
+   "inStores": "unknown",
+   "sources": [
+    "https://www.pdxmonthly.com/articles/best-record-stores-music-portland"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-032"
+  },
+  {
+   "type": "record_store",
+   "name": "Anthem Records",
+   "city": "Portland, OR",
+   "region": "US-West",
+   "genres": [
+    "electronic",
+    "metal"
+   ],
+   "website": "",
+   "inStores": "unknown",
+   "status": "unverified",
+   "notes": "Small electronic/metal specialist (older listing).",
+   "sources": [
+    "https://www.wweek.com/portland/article-24387-a-guide-to-portland-record-stores.html"
+   ],
+   "checkedAt": "2026-11-16",
+   "id": "record_store-033"
+  },
+  {
+   "type": "record_store",
+   "name": "Beacon Sound",
+   "city": "Portland, OR",
+   "region": "US-West",
+   "genres": [
+    "electronic",
+    "experimental"
+   ],
+   "website": "https://wearebeaconsound.com",
+   "address": "3636 N Mississippi Ave, Portland, OR",
+   "inStores": "unknown",
+   "sources": [
+    "https://www.wweek.com/uncategorized/2015/04/14/a-guide-to-portland-record-stores"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-034"
+  },
+  {
+   "type": "press",
+   "name": "Vortex Music Magazine",
+   "city": "Portland, OR",
+   "region": "US-West",
+   "genres": [
+    "local",
+    "all"
+   ],
+   "website": "https://vrtxmag.com",
+   "format": "print + web",
+   "notes": "Music-specific Portland publication covering local artists.",
+   "sources": [
+    "https://vrtxmag.com/about/",
+    "https://issuu.com/dailyvanguard/docs/1.26.2021_final_v2/12"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "press-035"
+  },
+  {
+   "type": "press",
+   "name": "Willamette Week",
+   "city": "Portland, OR",
+   "region": "US-West",
+   "genres": [
+    "local"
+   ],
+   "website": "https://www.wweek.com",
+   "format": "alt-weekly",
+   "sources": [
+    "https://www.wweek.com/uncategorized/2015/04/14/a-guide-to-portland-record-stores"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "press-036"
+  },
+  {
+   "type": "press",
+   "name": "Portland Mercury",
+   "city": "Portland, OR",
+   "region": "US-West",
+   "genres": [
+    "local"
+   ],
+   "website": "https://www.portlandmercury.com",
+   "format": "alt-weekly",
+   "status": "unverified",
+   "sources": [
+    "https://www.portlandmercury.com/?p=36494"
+   ],
+   "checkedAt": "2026-11-16",
+   "id": "press-037"
+  },
+  {
+   "type": "radio",
+   "name": "KEXP 90.3 FM",
+   "city": "Seattle, WA",
+   "region": "US-West",
+   "genres": [
+    "indie",
+    "punk",
+    "metal",
+    "electronic"
+   ],
+   "website": "https://www.kexp.org",
+   "stationType": "community (non-commercial)",
+   "ads": "underwriting",
+   "rotation": true,
+   "notes": "Large listener-powered station with a strong local-music focus; competitive.",
+   "sources": [
+    "https://Wikipedia.com/wiki/KEXP",
+    "https://www.historylink.org/file/20790"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-038"
+  },
+  {
+   "type": "radio",
+   "name": "Rainy Dawg Radio",
+   "city": "Seattle, WA",
+   "region": "US-West",
+   "genres": [
+    "college",
+    "indie"
+   ],
+   "website": "",
+   "stationType": "college (online)",
+   "ads": "unknown",
+   "rotation": true,
+   "notes": "University of Washington student-run station; books campus shows.",
+   "sources": [
+    "https://careers.uw.edu/organizations/asuw-rainydawg-radio/",
+    "https://www.thestranger.com/?p=188996"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-039"
+  },
+  {
+   "type": "radio",
+   "name": "KXSU 102.1 FM",
+   "city": "Seattle, WA",
+   "region": "US-West",
+   "genres": [
+    "college",
+    "alternative"
+   ],
+   "website": "",
+   "stationType": "college (LPFM)",
+   "ads": "unknown",
+   "rotation": true,
+   "sources": [
+    "https://streema.com/radios/country/United_States/state/Washington"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-040"
+  },
+  {
+   "type": "radio",
+   "name": "KAOS 89.3 FM",
+   "city": "Olympia, WA",
+   "region": "US-West",
+   "genres": [
+    "community",
+    "eclectic"
+   ],
+   "website": "",
+   "stationType": "community (Evergreen State College)",
+   "ads": "unknown",
+   "rotation": true,
+   "sources": [
+    "https://qzvx.com/?p=37123"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "radio-041"
+  },
+  {
+   "type": "record_store",
+   "name": "Easy Street Records & Cafe",
+   "city": "Seattle, WA",
+   "region": "US-West",
+   "genres": [
+    "all",
+    "punk",
+    "indie"
+   ],
+   "website": "",
+   "address": "4559 California Ave SW, Seattle, WA",
+   "inStores": "yes",
+   "notes": "Hosts in-store performances by national and local acts.",
+   "sources": [
+    "https://Www.wikipedia.org/wiki/Easy_Street_Records",
+    "https://dailyhive.com/seattle/best-seattle-record-stores"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-042"
+  },
+  {
+   "type": "record_store",
+   "name": "Singles Going Steady",
+   "city": "Seattle, WA",
+   "region": "US-West",
+   "genres": [
+    "punk",
+    "metal",
+    "crust"
+   ],
+   "website": "",
+   "address": "2219 2nd Ave, Seattle, WA",
+   "inStores": "unknown",
+   "notes": "Punk specialist in Belltown.",
+   "sources": [
+    "https://secretseattle.co/seattle-record-stores/",
+    "https://www.seattleweekly.com/?p=107466"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-043"
+  },
+  {
+   "type": "record_store",
+   "name": "Zion's Gate Records",
+   "city": "Seattle, WA",
+   "region": "US-West",
+   "genres": [
+    "metal",
+    "punk",
+    "reggae"
+   ],
+   "website": "https://zionsgate.com",
+   "address": "1100 E Pike St, Seattle, WA",
+   "inStores": "unknown",
+   "sources": [
+    "https://www.lonelyplanet.com/articles/viva-vinyl-in-seattle-finding-emerald-citys-music-through-its-record-stores"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-044"
+  },
+  {
+   "type": "record_store",
+   "name": "Sonic Boom Records",
+   "city": "Seattle (Ballard), WA",
+   "region": "US-West",
+   "genres": [
+    "all",
+    "indie"
+   ],
+   "website": "",
+   "address": "2209 NW Market St, Seattle, WA",
+   "inStores": "unknown",
+   "sources": [
+    "https://dailyhive.com/seattle/best-seattle-record-stores"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "record_store-045"
+  },
+  {
+   "type": "press",
+   "name": "The Stranger",
+   "city": "Seattle, WA",
+   "region": "US-West",
+   "genres": [
+    "local"
+   ],
+   "website": "https://www.thestranger.com",
+   "format": "alt-weekly / web",
+   "sources": [
+    "https://www.thestranger.com/things-to-do/2019/04/12/39888185/11-record-store-day-2019-events-in-seattle"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "press-046"
+  },
+  {
+   "type": "press",
+   "name": "Invisible Oranges",
+   "city": "national",
+   "region": "US-national",
+   "genres": [
+    "metal"
+   ],
+   "website": "https://www.invisibleoranges.com",
+   "format": "metal blog",
+   "submissions": "Promos by email, streaming links preferred; not via social media.",
+   "sources": [
+    "https://www.invisibleoranges.com/?p=45792"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "press-047"
+  },
+  {
+   "type": "press",
+   "name": "Decibel Magazine",
+   "city": "national",
+   "region": "US-national",
+   "genres": [
+    "metal"
+   ],
+   "website": "https://www.decibelmagazine.com",
+   "format": "print + web",
+   "status": "unverified",
+   "sources": [
+    "https://blog.sonicbids.com/start-getting-press-top-7-niche-blogs-for-rising-metal-bands"
+   ],
+   "checkedAt": "2026-11-16",
+   "id": "press-048"
+  },
+  {
+   "type": "press",
+   "name": "Heavy Blog is Heavy",
+   "city": "national",
+   "region": "US-national",
+   "genres": [
+    "metal"
+   ],
+   "website": "https://heavyblogisheavy.com",
+   "format": "blog",
+   "sources": [
+    "https://themetalverse.net/the-best-metal-blogs-in-2024"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "press-049"
+  },
+  {
+   "type": "press",
+   "name": "Angry Metal Guy",
+   "city": "national",
+   "region": "US-national",
+   "genres": [
+    "metal"
+   ],
+   "website": "https://www.angrymetalguy.com",
+   "format": "blog",
+   "submissions": "Has a promo-submission post to read before sending.",
+   "sources": [
+    "https://bloggers.feedspot.com/avant_garde_metal_blogs/"
+   ],
+   "checkedAt": "2026-11-16",
+   "status": "seed",
+   "id": "press-050"
+  }
+ ]
+}
