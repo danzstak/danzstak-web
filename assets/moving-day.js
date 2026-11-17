@@ -5,7 +5,77 @@
   const parser = window.DanzStakMovingDay;
   const byId = id => document.getElementById(id);
   const status = byId("movingStatus");
-  let items = [], shown = PAGE, moving = false;
+  let items = [], shown = PAGE, moving = false, activeSource = "discogs";
+
+  // Same pattern and words as Pivot's Moving Day for timelines: platform tabs, the platform's own export steps, then choose the export here.
+  const guides = {
+    discogs: {
+      label: "Discogs",
+      title: "Get your Discogs inventory export",
+      steps: [
+        "Sign in to Discogs in a browser and open your Dashboard, then your Inventory.",
+        "Choose Export and request an inventory export. Use the inventory export, not the collection export.",
+        "When Discogs says it is ready, download the CSV and keep it private.",
+        "Come back here and choose it below."
+      ],
+      checked: "Guide checked November 17, 2026"
+    },
+    ebay: {
+      label: "eBay",
+      title: "Download your eBay active listings",
+      steps: [
+        "Open Seller Hub, then Reports, then Downloads.",
+        "Choose Download report, select Listings as the source and All active listings as the type.",
+        "Download the CSV when it's ready.",
+        "Come back here and choose it below."
+      ],
+      link: "https://www.ebay.com/help/selling/selling-tools/seller-hub-reports?id=4096",
+      linkLabel: "Open eBay Seller Hub Reports help",
+      checked: "Guide checked November 17, 2026"
+    },
+    shopify: {
+      label: "Shopify",
+      title: "Export your Shopify products",
+      steps: [
+        "In your Shopify admin, go to Products and click Export.",
+        "Choose All products and a CSV file. Big catalogs arrive by email.",
+        "Download the CSV and keep it private.",
+        "Come back here and choose it below."
+      ],
+      link: "https://help.shopify.com/en/manual/products/export-products",
+      linkLabel: "Open Shopify export help",
+      checked: "Guide checked November 17, 2026"
+    },
+    spreadsheet: {
+      label: "Spreadsheet",
+      title: "Use your own stock list",
+      steps: [
+        "Open your stock list in Excel, Numbers or Google Sheets.",
+        "Use one row per item and a header row: artist, title, label, catno, format, condition, price, quantity (only title and price are required).",
+        "Save or download it as CSV.",
+        "Come back here and choose it below."
+      ],
+      checked: "Guide checked November 17, 2026"
+    }
+  };
+
+  function renderGuide() {
+    const data = guides[activeSource], guide = byId("movingGuide");
+    for (const button of document.querySelectorAll(".moving-platforms button")) {
+      const selected = button.dataset.platform === activeSource;
+      button.setAttribute("aria-selected", String(selected)); button.tabIndex = selected ? 0 : -1;
+    }
+    const list = document.createElement("ol");
+    for (const step of data.steps) list.append(node("li", step));
+    guide.replaceChildren(node("h3", data.title), list);
+    if (data.link) {
+      const actions = node("div", "", "pivot-guide-actions"), official = document.createElement("a");
+      official.href = data.link; official.target = "_blank"; official.rel = "noopener noreferrer"; official.referrerPolicy = "no-referrer"; official.textContent = data.linkLabel;
+      actions.append(official); guide.append(actions);
+    }
+    guide.append(node("p", data.checked, "pivot-checked"));
+    byId("movingDropLabel").textContent = `Choose your ${data.label === "Spreadsheet" ? "spreadsheet" : `${data.label} export`}`;
+  }
 
   const money = cents => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(cents / 100);
   const node = (tag, text = "", className = "") => { const el = document.createElement(tag); el.textContent = text; if (className) el.className = className; return el; };
@@ -114,6 +184,18 @@
       if (error.status === 409) { byId("moveDone").hidden = false; byId("moveDone").firstElementChild.textContent = "Name my shop"; }
     } finally { moving = false; render(); }
   }
+
+  const tabs = document.querySelector(".moving-platforms");
+  for (const [key, data] of Object.entries(guides)) {
+    const button = node("button", data.label, "pivot-platform"); button.type = "button"; button.dataset.platform = key; button.setAttribute("role", "tab");
+    button.addEventListener("click", () => { activeSource = key; renderGuide(); }); tabs.append(button);
+  }
+  tabs.addEventListener("keydown", event => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    const buttons = [...tabs.querySelectorAll("button")], current = buttons.indexOf(document.activeElement); if (current < 0) return;
+    event.preventDefault(); const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length; buttons[next].click(); buttons[next].focus();
+  });
+  renderGuide();
 
   byId("movingFile").addEventListener("change", event => readFile(event.target.files[0]).catch(() => { status.textContent = "That file couldn't be read. Save it as CSV and try again."; }));
   byId("pickFilter").addEventListener("input", () => { shown = PAGE; render(); });

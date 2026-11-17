@@ -41,6 +41,13 @@ const parser = require("./assets/moving-day-parse.js");
 
   const page = fs.readFileSync("moving-day.html", "utf8");
   assert.match(page, /moving-day-parse\.js/);
+  assert.match(page, /<p class="store-eyebrow">Pivot<\/p>/, "Moving Day for shops is part of Pivot");
+  assert.match(page, /Clean house before you move your shop\./, "same words as Pivot's Moving Day");
+  assert.match(page, /You own the data you choose to move\./);
+  assert.match(page, /Nothing moves automatically\./);
+  const pageScript = fs.readFileSync("assets/moving-day.js", "utf8");
+  for (const platform of ["Discogs", "eBay", "Shopify", "Spreadsheet"]) assert.match(pageScript, new RegExp(`label: "${platform}"`), `${platform} has its own export steps`);
+  assert.match(pageScript, /inventory export, not the collection export/);
   assert.doesNotMatch(page, /oauth|api\.discogs|discogs\.com\/oauth/i, "Moving Day never asks for a platform login or API");
   assert.match(fs.readFileSync("store.html", "utf8"), /href="moving-day\.html"/, "My Shop links to Moving Day");
   assert.match(fs.readFileSync("service-worker.js", "utf8"), /"\/moving-day\.html"/);
