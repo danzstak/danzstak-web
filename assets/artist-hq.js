@@ -57,7 +57,7 @@
   }
   async function render(root, description, isCurrent = () => true) {
     root.classList.add("artist-hq-workspace");
-    description.textContent = "Your EPK and booking work in one place. Nothing is sent or confirmed without you.";
+    description.textContent = ""; // fix-it 18: no explanatory sub-line under the title
     const intro = node("section", "", "artist-hq-intro");
     intro.append(node("p", "ARTIST HQ", "artist-hq-kicker"), node("h2", "What needs you"), node("p", "Finish the EPK, answer venues, and move real date offers into the tour."));
     const grid = node("div", "", "artist-hq-grid");

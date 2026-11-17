@@ -9,7 +9,7 @@ const SHELL = [
   "/assets/post-sharing.js", "/assets/post-views.js",
   "/assets/profile-sharing.js",
   "/assets/facebook-import.js", "/assets/facebook-import.css", "/assets/facebook-import-worker.js", "/assets/facebook-import-core.js", "/assets/pivot.js", "/assets/pivot.css", "/assets/vendor/fflate-0.8.3.js",
-  "/assets/people-search.js", "/assets/top-search.js", "/assets/top-search.css", "/assets/i18n-people.js",
+  "/assets/people-search.js", "/assets/top-search.js", "/assets/top-search.css", "/assets/site-chrome.js", "/assets/site-chrome.css", "/assets/i18n-people.js",
   "/assets/mobile-keyboard.js",
   "/assets/languages.js", "/assets/brand-language-aliases.js", "/assets/i18n-music.js", "/assets/i18n.js",
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html", "/support.html", "/booking.html", "/booking-selections.html", "/booking-opt-out.html", "/booking-reply.html", "/record-stores.html", "/epk.html", "/store.html", "/bazaar.html", "/moving-day.html", "/product.html", "/event.html",
