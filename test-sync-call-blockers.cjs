@@ -8,7 +8,7 @@ const devices = fs.readFileSync("assets/call-devices.js", "utf8");
 const chat = fs.readFileSync("assets/chat.js", "utf8");
 const incoming = fs.readFileSync("assets/incoming-calls.js", "utf8");
 const friend = fs.readFileSync("assets/profile-friend.js", "utf8");
-const speaker = fs.readFileSync("assets/call-speaker.js", "utf8");
+const speaker = fs.readFileSync("assets/call-setup.js", "utf8"); // the Speaker button became the computer Audio & video check
 const html = fs.readFileSync("messages.html", "utf8");
 
 // Root cause: one failed /calls/devices during identify() left the page with no device credential all session.
@@ -35,7 +35,6 @@ assert.match(devices, /if\(verifySection\)verifySection\.hidden=registered;/, "a
 // Friend state refreshes on return; speaker routing where supported, honest note where not.
 assert.match(friend, /document\.addEventListener\("visibilitychange", onReturn\);/);
 assert.match(chat, /mediaElement\.muted=false;mediaElement\.volume=1;mediaElement\.playsInline=true;/, "remote call audio is unmuted at full volume");
-assert.match(speaker, /navigator\.mediaDevices\?\.selectAudioOutput/);
-assert.match(speaker, /"setSinkId" in HTMLMediaElement\.prototype/);
-assert.match(html, /<script src="assets\/call-speaker\.js\?v=\d+" defer><\/script>/);
+assert.match(speaker, /"setSinkId" in HTMLMediaElement\.prototype/, "speaker routing on computers");
+assert.match(html, /<script src="assets\/call-setup\.js\?v=\d+" defer><\/script>/);
 console.log("SYNC call blocker checks passed: identify retries, errors keep state, pollers back off, refused calls explain, one-line panel, inline rename, speaker.");

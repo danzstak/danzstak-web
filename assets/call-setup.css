@@ -1,0 +1,28 @@
+/* Call audio setup (owner 2026-11-17): a centered box on computers; the blocked-permission explainer everywhere. */
+.call-setup-dialog{position:fixed;inset:0;width:min(440px,calc(100vw - 24px));max-height:calc(100dvh - 24px);margin:auto;padding:0;overflow:auto;border:0;border-radius:18px;background:#fff;color:#16191f;box-shadow:0 24px 64px rgba(16,24,40,.32)}
+.call-setup-dialog::backdrop{background:rgba(11,11,12,.55)}
+.call-setup-dialog>header{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 12px 10px 20px;background:#fff;border-bottom:1px solid #e7e9ee}
+.call-setup-dialog h2{margin:0;font-size:1.1rem;line-height:1.3}
+.call-setup-close{display:grid!important;place-items:center;width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;color:#16191f!important;cursor:pointer}
+.call-setup-close:active{background:rgba(22,25,31,.08)!important}
+.call-setup-dialog>label,.call-setup-dialog>p,.call-setup-dialog>div,.call-setup-dialog>video{margin:12px 20px 0}
+.call-setup-dialog label{display:grid;gap:6px;font-weight:600}
+.call-setup-dialog select{min-height:44px;padding:0 10px;border:1px solid #cfd5dd;border-radius:10px;background:#fff;font:inherit;font-weight:500;min-width:0;width:100%}
+.call-setup-dialog input[type=range]{width:100%;min-height:44px;accent-color:#c2410c}
+.call-setup-level{position:relative;height:10px;border-radius:999px;background:#eef0f3;overflow:hidden}
+.call-setup-level span{position:absolute;inset:0;transform:scaleX(0);transform-origin:left;background:#16a34a;transition:transform .06s linear}
+.call-setup-hint{margin-top:6px!important;color:#5b6472;font-size:13px}
+.call-setup-status:empty{display:none}
+.call-setup-status{color:#9a3412;font-weight:600}
+.call-setup-preview{display:block;width:calc(100% - 40px);aspect-ratio:16/9;border-radius:12px;background:#0b0b0c;object-fit:cover}
+.call-setup-row{display:flex;gap:8px}
+.call-setup-dialog .secondary,.call-setup-dialog .primary{min-height:44px;padding:0 18px;border:0;border-radius:999px;font:inherit;font-weight:600;white-space:nowrap;cursor:pointer}
+.call-setup-dialog .secondary{background:rgba(239,108,32,.12);color:#9a3412}
+.call-setup-dialog .primary{background:#c2410c;color:#fff}
+.call-setup-actions{display:flex;justify-content:flex-end;padding-bottom:18px}
+.call-blocked-steps{line-height:1.45}
+.call-setup-entry{margin:12px 18px 0;min-height:44px;border-radius:999px}
+.call-speaker-note{margin:6px 16px 0;color:#c8ced8;font-size:13px;line-height:1.35;text-align:center}
+@media(max-width:360px){.call-setup-dialog>label,.call-setup-dialog>p,.call-setup-dialog>div,.call-setup-dialog>video{margin-left:14px;margin-right:14px}.call-setup-preview{width:calc(100% - 28px)}}
+#mediaControls[hidden]+.call-speaker-note{display:none}
+.call-setup-dialog .danzstak-audio-toggle{display:none!important}

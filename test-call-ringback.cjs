@@ -21,6 +21,7 @@ assert.match(chat, /document\.addEventListener\("visibilitychange",\(\)=>\{if\(d
 const scheduled = new Map();
 let nextTimer = 1;
 const state = vm.createContext({
+  window: {},
   ringTimer: null,
   incomingRingStopTimer: null,
   incomingRingDeadline: Date.now() + 25000,

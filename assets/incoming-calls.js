@@ -46,7 +46,7 @@
       const oscillator = ringtoneContext.createOscillator();
       const gain = ringtoneContext.createGain();
       oscillator.frequency.value = frequency;
-      gain.gain.value = 0.4; // owner 2026-11-17: the ring was too quiet to hear (was 0.055)
+      gain.gain.value = window.danzstakCallSetup?.ringVolume?.() ?? 0.4; // owner 2026-11-17: louder ring (was 0.055); the member's ring-volume setting on computers
       oscillator.connect(gain).connect(ringtoneContext.destination);
       oscillator.start();
       oscillator.stop(ringtoneContext.currentTime + 0.24);
