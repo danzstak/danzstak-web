@@ -117,3 +117,9 @@ body.profile-page{background:#fff!important}
 .profile-post-card .danzstak-native-video-shell>.danzstak-audio-toggle{right:12px!important;bottom:12px!important}
 .profile-post-card .profile-post-media{cursor:zoom-in}
 .profile-post-card .profile-post-media:focus-visible{outline:3px solid #ff5a1f;outline-offset:-3px}
+
+/* Fix-it 18 (owner 2026-11-17): "+ bio" for the owner instead of instructional copy; one-line empty wall. */
+.profile-add-bio{display:inline-flex;align-items:center;gap:4px;min-height:44px;margin:4px 0 0;padding:0 12px;border:0;border-radius:999px;background:rgba(239,108,32,.12);color:#9a3412;font:inherit;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.profile-add-bio[hidden]{display:none!important}
+.profile-add-bio:active{background:rgba(239,108,32,.22)}
+.profile-empty-wall{margin:0;padding:24px 16px;color:#5b6472;text-align:center;font-size:15px}

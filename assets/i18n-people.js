@@ -4,6 +4,8 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Add a bio": "Aggiungi una bio",
+"No posts yet": "Ancora nessun post",
 "Profile post photo": "Foto del post",
 "Profile post video": "Video del post",
 "Back": "Indietro",
@@ -56,6 +58,8 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"Add a bio": "Ajouter une bio",
+"No posts yet": "Pas encore de publications",
 "Profile post photo": "Photo de la publication",
 "Profile post video": "Vidéo de la publication",
 "Back": "Retour",
@@ -108,6 +112,8 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"Add a bio": "Añadir una bio",
+"No posts yet": "Aún no hay publicaciones",
 "Profile post photo": "Foto de la publicación",
 "Profile post video": "Video de la publicación",
 "Back": "Atrás",

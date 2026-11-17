@@ -111,8 +111,15 @@ async function uploadCloudProfileMedia(file, field) {
 
 const bioElement = document.createElement("p");
 bioElement.className = "profile-bio";
-bioElement.textContent = "Add a short bio so people know more about you.";
+// Fix-it 18 (owner 2026-11-17): no instructional placeholder. Visitors see nothing until there is a bio; the owner
+// gets one small "+ bio" icon that opens the editor.
+bioElement.hidden = true;
 handleElement.insertAdjacentElement("afterend", bioElement);
+const addBioButton = document.createElement("button");
+addBioButton.type = "button"; addBioButton.className = "profile-add-bio"; addBioButton.hidden = true;
+addBioButton.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 5v14M5 12h14"/></svg><span>bio</span>';
+addBioButton.setAttribute("aria-label", profileTranslate("Add a bio")); addBioButton.title = addBioButton.getAttribute("aria-label");
+bioElement.insertAdjacentElement("afterend", addBioButton);
 
 function detail(label, id) {
   const box = document.createElement("div");
@@ -897,6 +904,8 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
         }
       }
     }
+    // Fix-it 18: an empty wall says so in one friendly line, below the composer and any Dailies.
+    if (!posts.length && !mediaOnly && collection === "posts" && tabMessage.childElementCount) { const empty = document.createElement("p"); empty.className = "profile-empty-wall"; empty.textContent = profileTranslate("No posts yet"); tabMessage.appendChild(empty); return; }
     if (!posts.length && !tabMessage.childElementCount) { tabMessage.textContent = mediaOnly ? `No ${mediaType === "image" ? "photos" : mediaType === "video" ? "videos" : "photos or videos"} to show yet.` : "No posts to show yet."; return; }
   } catch (error) {
     if (version !== profileTabVersion) return;
@@ -1145,7 +1154,9 @@ function renderProfileWebsite(value) {
 function applyProfile(profile) {
   if (profile.name) document.getElementById("profileName").textContent = profile.name;
   if (profile.handle) handleElement.textContent = "@" + profile.handle;
-  bioElement.textContent = profile.bio || "Add a short bio so people know more about you.";
+  bioElement.textContent = profile.bio || "";
+  bioElement.hidden = !profile.bio;
+  addBioButton.hidden = Boolean(profile.bio) || profile.isOwner !== true || viewingOtherProfile;
   window.danzstakLinkifyUserText?.(bioElement);
   setProfileDetail("profileLocation", profile.location);
   setProfileDetail("profileWork", profile.work);
@@ -1169,6 +1180,7 @@ function applyProfile(profile) {
   }
 }
 
+addBioButton.addEventListener("click", () => { editButton.click(); setTimeout(() => { const field = document.querySelector(".edit-profile-panel [name='bio']"); const section = field?.closest("details"); if (section) section.open = true; field?.focus(); field?.scrollIntoView({ block: "center" }); }, 200); });
 editButton.addEventListener("click", () => {
   const profile = window.danzstakCurrentProfile?.cloudProfile ? window.danzstakCurrentProfile : savedProfile();
   panel.elements.name.value = profile.name || document.getElementById("profileName").textContent;
