@@ -114,8 +114,23 @@
     update();
   }
 
+  // Floating new-chat button on the chat list (phones); it does what the top bar's pencil did.
+  function mountNewChat() {
+    const pencil = document.getElementById("newChat");
+    if (!pencil || document.querySelector(".sync-new-chat")) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "sync-new-chat";
+    button.setAttribute("aria-label", t("Start a new chat"));
+    button.title = t("Start a new chat");
+    button.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 3C6.5 3 2 6.9 2 11.7c0 2.6 1.3 4.9 3.4 6.5L5 22l4-2.1c.9.2 1.9.4 3 .4 5.5 0 10-3.9 10-8.6S17.5 3 12 3Zm4 9.7h-3.3V16h-1.4v-3.3H8v-1.4h3.3V8h1.4v3.3H16v1.4Z"/></svg>';
+    button.addEventListener("click", () => { buzz(6); pencil.click(); });
+    document.body.append(button);
+  }
+
   function mount() {
     mountThread();
+    mountNewChat();
     document.getElementById("messageForm")?.addEventListener("submit", () => buzz(8), true);
     new MutationObserver(fit).observe(document.body, { attributes: true, attributeFilter: ["class", "data-call-mode"] });
     fit();
