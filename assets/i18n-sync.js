@@ -5,6 +5,13 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Calls on this device": "Chiamate su questo dispositivo",
+"This device is registered, but DanzStak could not confirm it for this call. Try again in a moment.": "Questo dispositivo è registrato, ma DanzStak non è riuscito a confermarlo per questa chiamata. Riprova tra un momento.",
+"Calls and voice messages need this device's own SMS code. Text messaging works without registering.": "Chiamate e messaggi vocali richiedono il codice SMS di questo dispositivo. I messaggi di testo funzionano senza registrazione.",
+"Device name": "Nome del dispositivo",
+"Speaker": "Altoparlante",
+"Only one speaker is available on this device.": "Su questo dispositivo è disponibile un solo altoparlante.",
+"Use your phone's volume buttons or its speaker control to change where the call plays.": "Usa i tasti del volume o il controllo altoparlante del telefono per cambiare dove si sente la chiamata.",
 "Use this phone for this account?": "Usare questo telefono per questo account?",
 "This phone is already registered (number ending {NN}). Use it for this account too?": "Questo telefono è già registrato (numero che termina con {NN}). Usarlo anche per questo account?",
 "No new text is needed. Another phone or computer still needs its own code.": "Non serve un nuovo SMS. Un altro telefono o computer ha comunque bisogno del suo codice.",
@@ -40,6 +47,13 @@
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
 },
 "fr": {
+"Calls on this device": "Appels sur cet appareil",
+"This device is registered, but DanzStak could not confirm it for this call. Try again in a moment.": "Cet appareil est enregistré, mais DanzStak n’a pas pu le confirmer pour cet appel. Réessayez dans un instant.",
+"Calls and voice messages need this device's own SMS code. Text messaging works without registering.": "Les appels et messages vocaux exigent le code SMS de cet appareil. Les messages texte fonctionnent sans inscription.",
+"Device name": "Nom de l’appareil",
+"Speaker": "Haut-parleur",
+"Only one speaker is available on this device.": "Un seul haut-parleur est disponible sur cet appareil.",
+"Use your phone's volume buttons or its speaker control to change where the call plays.": "Utilisez les boutons de volume ou la commande haut-parleur du téléphone pour changer la sortie de l’appel.",
 "Use this phone for this account?": "Utiliser ce téléphone pour ce compte ?",
 "This phone is already registered (number ending {NN}). Use it for this account too?": "Ce téléphone est déjà enregistré (numéro se terminant par {NN}). L’utiliser aussi pour ce compte ?",
 "No new text is needed. Another phone or computer still needs its own code.": "Aucun nouveau SMS n’est nécessaire. Un autre téléphone ou ordinateur a toujours besoin de son propre code.",
@@ -75,6 +89,13 @@
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
 },
 "es": {
+"Calls on this device": "Llamadas en este dispositivo",
+"This device is registered, but DanzStak could not confirm it for this call. Try again in a moment.": "Este dispositivo está registrado, pero DanzStak no pudo confirmarlo para esta llamada. Inténtalo de nuevo en un momento.",
+"Calls and voice messages need this device's own SMS code. Text messaging works without registering.": "Las llamadas y los mensajes de voz necesitan el código SMS de este dispositivo. Los mensajes de texto funcionan sin registrarse.",
+"Device name": "Nombre del dispositivo",
+"Speaker": "Altavoz",
+"Only one speaker is available on this device.": "Solo hay un altavoz disponible en este dispositivo.",
+"Use your phone's volume buttons or its speaker control to change where the call plays.": "Usa los botones de volumen o el control del altavoz del teléfono para cambiar dónde suena la llamada.",
 "Use this phone for this account?": "¿Usar este teléfono para esta cuenta?",
 "This phone is already registered (number ending {NN}). Use it for this account too?": "Este teléfono ya está registrado (número que termina en {NN}). ¿Usarlo también para esta cuenta?",
 "No new text is needed. Another phone or computer still needs its own code.": "No hace falta un nuevo SMS. Otro teléfono u ordenador sigue necesitando su propio código.",

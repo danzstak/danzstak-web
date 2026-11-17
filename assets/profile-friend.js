@@ -23,11 +23,19 @@
       friend.dataset.state = state;
     };
     setState("none");
-    try {
-      const response = await fetch(API + "/friends", { credentials: "include", cache: "no-store" });
-      const data = response.ok ? await response.json() : {};
-      if ((data.friends || []).some(f => f.memberId === profile.memberId)) setState("friends");
-    } catch {}
+    // Owner SYNC call test 2026-11-17: the button stayed on "Requested" after the other member accepted. Re-check the
+    // relationship whenever the page comes back into view, not only on first load.
+    const refresh = async () => {
+      try {
+        const response = await fetch(API + "/friends", { credentials: "include", cache: "no-store" });
+        const data = response.ok ? await response.json() : {};
+        if ((data.friends || []).some(f => f.memberId === profile.memberId)) setState("friends");
+      } catch {}
+    };
+    await refresh();
+    const onReturn = () => { if (!document.hidden && friend.isConnected && friend.dataset.state !== "friends") refresh(); };
+    document.addEventListener("visibilitychange", onReturn);
+    window.addEventListener("focus", onReturn);
     friend.addEventListener("click", async () => {
       if (friend.dataset.state === "incoming") { location.href = "feed.html#friends"; return; }
       friend.disabled = true; friend.textContent = "Sending…";

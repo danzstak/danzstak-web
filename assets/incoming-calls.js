@@ -4,7 +4,7 @@
   const API = "https://api.danzstak.com";
   let current = null;
   let polling = false;
-  let callDeviceRegistrationRequired = false;
+  let callDeviceRegistrationRequired = false, registrationBackoffUntil = 0;
   let previousFocus = null;
   let ringtoneContext = null;
   let ringtoneTimer = null;
@@ -115,6 +115,9 @@
   function showCall(event) {
     if (current?.callId === event.callId || handledCalls.has(event.callId)) return;
     if (window.danzstakSyncDeviceRegistered?.() !== true) {
+      // Prompt once per call. Re-prompting on every 2s poll reopened the window the moment the member closed it,
+      // so its × looked dead (owner SYNC call test 2026-11-17).
+      handledCalls.set(event.callId, Date.now() + 120000);
       window.danzstakRequireCallingDevice?.({ incoming: true });
       return;
     }
@@ -211,7 +214,9 @@
   });
 
   async function poll() {
-    if (document.hidden || polling || callDeviceRegistrationRequired) return;
+    // Owner SYNC call test 2026-11-17: "registration required" used to stop this poller for good, so a call offer only
+    // appeared after a reload. Now it backs off and keeps listening; it never stops on one bad answer.
+    if (document.hidden || polling || Date.now() < registrationBackoffUntil) return;
     polling = true;
     for (const [callId, expiry] of handledCalls) if (expiry <= Date.now()) handledCalls.delete(callId);
     try {
@@ -230,8 +235,9 @@
       const offer = (inbox.events || []).find(event => event.signalType === "offer" && ["phone", "video"].includes(event.mode) && !handledCalls.has(event.callId));
       if (offer) showCall(offer);
       callDeviceRegistrationRequired = false;
+      registrationBackoffUntil = 0;
     } catch (error) {
-      if (error.code === "CALL_DEVICE_REGISTRATION_REQUIRED") callDeviceRegistrationRequired = true;
+      if (error.code === "CALL_DEVICE_REGISTRATION_REQUIRED") { callDeviceRegistrationRequired = true; registrationBackoffUntil = Date.now() + 15000; }
       /* Other transient failures retry quietly while the user remains on the site. */
     }
     finally { polling = false; }
@@ -241,8 +247,11 @@
   document.addEventListener("keydown", unlockRingtone, { capture: true });
   window.addEventListener?.("danzstak:call-device-registered", () => {
     callDeviceRegistrationRequired = false;
+    registrationBackoffUntil = 0;
     poll();
   });
+  // The device credential loads asynchronously; poll again as soon as it is ready instead of waiting out a backoff.
+  window.addEventListener?.("danzstak:call-device-ready", event => { if (event.detail?.registered !== true) return; registrationBackoffUntil = 0; callDeviceRegistrationRequired = false; poll(); });
   poll();
   setInterval(poll, 2000);
   document.addEventListener("visibilitychange", () => {
