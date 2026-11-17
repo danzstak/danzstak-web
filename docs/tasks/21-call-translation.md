@@ -8,7 +8,8 @@ Owner, 2026-11-17: "add a real-time voice translator in video calls." Bands on t
 - Call screen button **Translate** (icon + accessible name). Each person picks their own language (default: the app language).
 - The other person's speech appears as captions translated into your language, with the original text small underneath. Target: under ~2 seconds behind.
 - Speech-to-text: **Amazon Transcribe streaming**; translation: **Amazon Translate**. No Google or Apple speech services (independence rule). Provider kept swappable.
-- Captions sit above the call controls, two lines max, large readable type, never covering faces' centre or the buttons.
+- **Teleprompter style (owner, 2026-11-17).** Subtitles roll like a teleprompter: words appear as they're spoken (partial results update live, then settle when the sentence is final), the text scrolls smoothly upward, the newest line sits at the bottom of a band above the call controls, and older lines fade out. Large, high-contrast type with a soft dark backdrop for readability on any video; never covers the centre of the other person's face or the buttons. A size control (S/M/L) and a pause-scroll (tap and hold to read back the last few lines) on the band.
+- **Languages (owner, 2026-11-17):** English to and from every language the providers support, and **Italian, French, German and Spanish must work at launch** (both directions, including Italian ↔ German etc., not only via English). Test each of these pairs with real speech before release. Show only languages both Transcribe streaming and Translate support.
 
 ## Step 2 — spoken translation (later, optional)
 - The translated captions read out with **Amazon Polly** while the real voice plays quieter underneath (interpreter style). Opt-in per person; more delay and cost than captions.
