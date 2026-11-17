@@ -1,0 +1,160 @@
+/* DanzStak button system (task 16-C, owner 2026-11-17): buttons that don't look like HTML.
+   Four kinds, one set of tokens, used everywhere:
+   - icon:    44px touch target, 24px glyph, no border, soft round press state
+   - primary: pill, accent fill, medium weight, no heavy border or shadow
+   - tonal:   secondary, accent at ~12%
+   - text:    text only
+   Opt in with .ds-btn-icon / .ds-btn-primary / .ds-btn-tonal / .ds-btn-text, or map an area's existing selectors
+   onto the same tokens (SYNC below; the site-wide sweep maps one area per PR). */
+:root{
+  --ds-btn-accent:#ef6c20;            /* brand orange: glyphs, tonal tint, focus */
+  --ds-btn-primary:#c2410c;           /* primary fill: white text stays above 4.5:1 */
+  --ds-btn-primary-press:#9a3412;
+  --ds-btn-on-primary:#fff;
+  --ds-btn-tonal:rgba(239,108,32,.12);
+  --ds-btn-tonal-press:rgba(239,108,32,.22);
+  --ds-btn-tonal-ink:#9a3412;
+  --ds-btn-ink:#16191f;
+  --ds-btn-muted:#5b6472;
+  --ds-btn-press:rgba(22,25,31,.08);
+  --ds-btn-danger:#b42318;
+  --ds-btn-danger-tonal:rgba(180,35,24,.1);
+  --ds-btn-disabled:#e6e8ec;
+  --ds-btn-disabled-ink:#8b93a1;
+  --ds-btn-focus:#ef6c20;
+  --ds-btn-radius:999px;
+  --ds-btn-size:44px;
+  --ds-btn-glyph:24px;
+}
+
+/* ---- the four kinds ---- */
+.ds-btn-icon,.ds-btn-primary,.ds-btn-tonal,.ds-btn-text{
+  -webkit-tap-highlight-color:transparent;appearance:none;-webkit-appearance:none;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:var(--ds-btn-size);border:0;border-radius:var(--ds-btn-radius);box-shadow:none;
+  font:inherit;font-weight:600;letter-spacing:0;text-transform:none;white-space:nowrap;line-height:1.1;
+  cursor:pointer;touch-action:manipulation;user-select:none;
+  transition:background-color .12s ease,transform .08s ease,color .12s ease;
+}
+.ds-btn-icon{width:var(--ds-btn-size);min-width:var(--ds-btn-size);height:var(--ds-btn-size);padding:0;background:transparent;color:var(--ds-btn-ink)}
+.ds-btn-icon svg{width:var(--ds-btn-glyph);height:var(--ds-btn-glyph)}
+.ds-btn-primary{padding:0 20px;background:var(--ds-btn-primary);color:var(--ds-btn-on-primary)}
+.ds-btn-tonal{padding:0 18px;background:var(--ds-btn-tonal);color:var(--ds-btn-tonal-ink)}
+.ds-btn-text{padding:0 12px;background:transparent;color:var(--ds-btn-tonal-ink)}
+.ds-btn-icon:active{background:var(--ds-btn-press);transform:scale(.94)}
+.ds-btn-primary:active{background:var(--ds-btn-primary-press);transform:scale(.97)}
+.ds-btn-tonal:active,.ds-btn-text:active{background:var(--ds-btn-tonal-press);transform:scale(.97)}
+.ds-btn-icon:focus-visible,.ds-btn-primary:focus-visible,.ds-btn-tonal:focus-visible,.ds-btn-text:focus-visible{outline:2px solid var(--ds-btn-focus);outline-offset:2px}
+.ds-btn-icon:disabled,.ds-btn-text:disabled{color:var(--ds-btn-disabled-ink);background:transparent;transform:none;cursor:default}
+.ds-btn-primary:disabled,.ds-btn-tonal:disabled{background:var(--ds-btn-disabled);color:var(--ds-btn-disabled-ink);transform:none;cursor:default}
+@media(hover:hover){
+  .ds-btn-icon:hover:not(:disabled){background:var(--ds-btn-press)}
+  .ds-btn-tonal:hover:not(:disabled),.ds-btn-text:hover:not(:disabled){background:var(--ds-btn-tonal-press)}
+}
+
+/* ---- SYNC (first area mapped onto the system) ---- */
+body.messages-page button,body.messages-page label[data-icon],body.messages-page a.button{-webkit-tap-highlight-color:transparent}
+
+/* Icon buttons: top bar, thread header, composer tools, sheet close/back. No border, no fill until pressed. */
+body.messages-page .chat-heading-actions>button,
+body.messages-page #conversationHeader .conversation-header-actions>button,
+body.messages-page #closeContactDetails,
+body.messages-page #closeCallingDevices,
+body.messages-page .plans-close,
+body.messages-page .message-attach,
+body.messages-page .message-camera,
+body.messages-page #copySelectedMessages,
+body.messages-page #cancelMessageSelection{
+  width:var(--ds-btn-size)!important;min-width:var(--ds-btn-size)!important;height:var(--ds-btn-size)!important;min-height:var(--ds-btn-size)!important;
+  padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;box-shadow:none!important;
+  color:var(--ds-btn-ink)!important;transition:background-color .12s ease,transform .08s ease;touch-action:manipulation;
+}
+body.messages-page .chat-heading-actions>button .ds-action-icon,
+body.messages-page #conversationHeader .conversation-header-actions>button .ds-action-icon,
+body.messages-page #conversationHeader .conversation-header-actions>button .call-action-icon,
+body.messages-page #closeContactDetails .ds-action-icon,
+body.messages-page #closeCallingDevices .ds-action-icon,
+body.messages-page .plans-close .ds-action-icon,
+body.messages-page .message-attach .ds-action-icon,
+body.messages-page .message-camera .ds-action-icon{width:var(--ds-btn-glyph)!important;height:var(--ds-btn-glyph)!important}
+body.messages-page .message-attach,body.messages-page .message-camera{color:var(--ds-btn-muted)!important}
+body.messages-page .chat-heading-actions>button:active,
+body.messages-page #conversationHeader .conversation-header-actions>button:active,
+body.messages-page #closeContactDetails:active,body.messages-page #closeCallingDevices:active,body.messages-page .plans-close:active,
+body.messages-page .message-attach:active,body.messages-page .message-camera:active,
+body.messages-page #copySelectedMessages:active,body.messages-page #cancelMessageSelection:active{background:var(--ds-btn-press)!important;transform:scale(.94)}
+body.messages-page #conversationHeader .conversation-header-actions>button:disabled{background:transparent!important;color:var(--ds-btn-disabled-ink)!important;opacity:1!important}
+@media(hover:hover){
+  body.messages-page .chat-heading-actions>button:hover,
+  body.messages-page #conversationHeader .conversation-header-actions>button:hover:not(:disabled),
+  body.messages-page #closeContactDetails:hover,body.messages-page #closeCallingDevices:hover,body.messages-page .plans-close:hover,
+  body.messages-page .message-attach:hover,body.messages-page .message-camera:hover{background:var(--ds-btn-press)!important}
+}
+body.messages-page .chat-heading-actions>button:focus-visible,
+body.messages-page #conversationHeader .conversation-header-actions>button:focus-visible,
+body.messages-page #closeContactDetails:focus-visible,body.messages-page #closeCallingDevices:focus-visible{outline:2px solid var(--ds-btn-focus)!important;outline-offset:0!important;box-shadow:none!important}
+/* The alert bell keeps its meaning without a loud yellow fill. */
+body.messages-page #enableRinging .ds-action-icon{fill:none}
+
+/* Send: a round primary, white glyph; empty composer = calm grey, not a dead black disc. */
+body.messages-page .message-send{
+  width:48px!important;min-width:48px!important;height:48px!important;padding:0!important;border:0!important;border-radius:50%!important;
+  background:var(--ds-btn-primary)!important;color:var(--ds-btn-on-primary)!important;box-shadow:none!important;
+  transition:background-color .15s ease,transform .08s ease;touch-action:manipulation;
+}
+body.messages-page .message-send .ds-action-icon{width:22px!important;height:22px!important;color:inherit!important;stroke:currentColor}
+body.messages-page .message-send:active:not(:disabled){background:var(--ds-btn-primary-press)!important;transform:scale(.92)}
+/* Nothing typed and nothing attached: calm grey (still tappable for keyboards that submit). Accent as soon as there is something to send. */
+body.messages-page .message-form:has(#messageInput:placeholder-shown):not(:has(#messageMediaPreview:not([hidden]))) .message-send{background:var(--ds-btn-disabled)!important;color:var(--ds-btn-disabled-ink)!important}
+body.messages-page .message-send:disabled{background:var(--ds-btn-disabled)!important;color:var(--ds-btn-disabled-ink)!important;opacity:1!important;transform:none}
+body.messages-page .message-input-shell{border:0!important;background:#fff!important;box-shadow:0 0 0 1px rgba(22,25,31,.08)!important}
+
+/* Floating new chat: round primary, white glyph, one soft shadow. */
+body.messages-page .sync-new-chat{border-radius:50%!important;background:var(--ds-btn-primary)!important;color:var(--ds-btn-on-primary)!important;box-shadow:0 4px 12px rgba(22,25,31,.22)!important;transition:transform .08s ease,background-color .12s ease;-webkit-tap-highlight-color:transparent}
+body.messages-page .sync-new-chat:active{background:var(--ds-btn-primary-press)!important;transform:scale(.94)}
+body.messages-page .sync-new-chat svg,body.messages-page .sync-new-chat .ds-action-icon{width:26px;height:26px;color:#fff!important}
+body.messages-page .sync-new-chat svg path{fill:#fff!important}
+
+/* Section tabs: pills, single line; the active one is tonal, not a white card. */
+body.messages-page .sync-sections button{
+  min-height:var(--ds-btn-size)!important;padding:0 14px!important;border:0!important;border-radius:var(--ds-btn-radius)!important;
+  background:transparent!important;box-shadow:none!important;color:var(--ds-btn-muted)!important;font-weight:600!important;white-space:nowrap!important;text-transform:none!important;
+  transition:background-color .12s ease,color .12s ease;
+}
+body.messages-page .sync-sections button.active,body.messages-page .sync-sections button[aria-selected="true"]{background:var(--ds-btn-tonal)!important;color:var(--ds-btn-tonal-ink)!important}
+body.messages-page .sync-sections button:active{background:var(--ds-btn-tonal-press)!important}
+
+/* Primary and secondary buttons in SYNC sheets and the new-chat panel. */
+body.messages-page button.primary,body.messages-page .plans-save{
+  min-height:var(--ds-btn-size)!important;padding:0 20px!important;border:0!important;border-radius:var(--ds-btn-radius)!important;
+  background:var(--ds-btn-primary)!important;color:var(--ds-btn-on-primary)!important;box-shadow:none!important;font-weight:600!important;text-transform:none!important;letter-spacing:0!important;white-space:nowrap;
+}
+body.messages-page button.primary:active:not(:disabled),body.messages-page .plans-save:active{background:var(--ds-btn-primary-press)!important;transform:scale(.97)}
+body.messages-page button.secondary:not(.delete-chat),body.messages-page .plans-cancel{
+  min-height:var(--ds-btn-size)!important;padding:0 18px!important;border:0!important;border-radius:var(--ds-btn-radius)!important;
+  background:var(--ds-btn-tonal)!important;color:var(--ds-btn-tonal-ink)!important;box-shadow:none!important;font-weight:600!important;text-transform:none!important;letter-spacing:0!important;white-space:nowrap;
+}
+body.messages-page button.secondary:not(.delete-chat):active{background:var(--ds-btn-tonal-press)!important;transform:scale(.97)}
+body.messages-page button.primary:disabled,body.messages-page button.secondary:disabled{background:var(--ds-btn-disabled)!important;color:var(--ds-btn-disabled-ink)!important;opacity:1!important;transform:none}
+body.messages-page button.danger:not(.ds-icon-button){border:0!important;border-radius:var(--ds-btn-radius)!important;box-shadow:none!important;text-transform:none!important}
+
+/* Contact details: three tonal tiles (icon over a one-line label), and Block as a quiet danger text button. */
+body.messages-page .contact-details-actions>a,body.messages-page .contact-details-actions>button{
+  border:0!important;box-shadow:none!important;background:var(--ds-btn-tonal)!important;color:var(--ds-btn-tonal-ink)!important;border-radius:16px!important;
+  min-height:64px!important;white-space:nowrap!important;transition:background-color .12s ease,transform .08s ease;-webkit-tap-highlight-color:transparent;
+}
+body.messages-page .contact-details-actions>a span:last-child,body.messages-page .contact-details-actions>button span:last-child{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+body.messages-page .contact-details-actions>a:active,body.messages-page .contact-details-actions>button:active{background:var(--ds-btn-tonal-press)!important;transform:scale(.97)}
+body.messages-page .contact-details-actions>button:disabled{background:var(--ds-btn-disabled)!important;color:var(--ds-btn-disabled-ink)!important}
+body.messages-page .contact-details-block{
+  min-height:var(--ds-btn-size)!important;padding:0 16px!important;border:0!important;border-radius:var(--ds-btn-radius)!important;box-shadow:none!important;
+  background:var(--ds-btn-danger-tonal)!important;color:var(--ds-btn-danger)!important;font-weight:600!important;
+}
+body.messages-page .contact-details-block:active{transform:scale(.97)}
+
+@media(prefers-reduced-motion:reduce){
+  .ds-btn-icon,.ds-btn-primary,.ds-btn-tonal,.ds-btn-text,
+  body.messages-page button,body.messages-page label[data-icon],body.messages-page .contact-details-actions>a{transition:none!important}
+  .ds-btn-icon:active,.ds-btn-primary:active,.ds-btn-tonal:active,.ds-btn-text:active,
+  body.messages-page button:active,body.messages-page label[data-icon]:active,body.messages-page .contact-details-actions>a:active{transform:none!important}
+}
