@@ -71,6 +71,15 @@ export function twilioCredentialsFromEnv(env = process.env) {
   return { ok: true, accountSid, serviceSid, username: useKey ? keySid : accountSid, password: useKey ? keySecret : authToken };
 }
 
+// Owner rule: secrets live in AWS Secrets Manager. The secret danzstak/twilio/verify holds JSON
+// {accountSid, serviceSid, authToken} (or apiKeySid + apiKeySecret). Key names are trimmed in case of stray spaces.
+export function twilioCredentialsFromSecret(raw) {
+  let data = {};
+  try { data = JSON.parse(String(raw || "{}")) || {}; } catch { data = {}; }
+  const value = name => { const key = Object.keys(data).find(item => item.replace(/\s+/g, "") === name); return key ? String(data[key] ?? "").trim() : ""; };
+  return twilioCredentialsFromEnv({ TWILIO_ACCOUNT_SID: value("accountSid"), TWILIO_VERIFY_SERVICE_SID: value("serviceSid"), TWILIO_AUTH_TOKEN: value("authToken"), TWILIO_API_KEY_SID: value("apiKeySid"), TWILIO_API_KEY_SECRET: value("apiKeySecret") });
+}
+
 export function createTwilioVerifyClient({ credentials, fetchImpl = fetch, timeoutMs = 10000, log = () => {} }) {
   if (!credentials?.ok) throw new TypeError("Twilio Verify credentials are not configured");
   const auth = "Basic " + Buffer.from(`${credentials.username}:${credentials.password}`).toString("base64");

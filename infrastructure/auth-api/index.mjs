@@ -49,7 +49,7 @@ import { createTicketing } from "./ticketing.mjs";
 import { createPayouts } from "./payouts.mjs";
 import { createTicketOrders } from "./ticket-orders.mjs";
 import { createPersonalPhoneService } from "./personal-phone-service.mjs";
-import { createTwilioVerifyClient, twilioCredentialsFromEnv, verifyLocale } from "./personal-phone-twilio.mjs";
+import { createTwilioVerifyClient, twilioCredentialsFromEnv, twilioCredentialsFromSecret, verifyLocale } from "./personal-phone-twilio.mjs";
 import { createPersonalPhoneDynamoAdapter } from "./personal-phone-dynamodb.mjs";
 import { publicPhoneStatus } from "./personal-phone-verification.mjs";
 import QRCode from "qrcode";
@@ -95,10 +95,24 @@ const phoneNotifyTemplateId = String(process.env.PHONE_NOTIFY_TEMPLATE_ID || "")
 // SYNC verification texts (owner 2026-11-17): OTP_PROVIDER=twilio (default) or aws. Twilio credentials come only from
 // environment variables; with any missing, texts stay off (fail-closed). AWS Notify stays available behind the switch.
 const otpProvider = String(process.env.OTP_PROVIDER || "twilio").toLowerCase() === "aws" ? "aws" : "twilio";
-const twilioCredentials = twilioCredentialsFromEnv(process.env);
-if (otpProvider === "twilio" && !twilioCredentials.ok) console.warn("SYNC texts are off: missing Twilio settings", twilioCredentials.missing.join(", "));
+// Twilio credentials come from Secrets Manager (TWILIO_VERIFY_SECRET_NAME, default danzstak/twilio/verify); environment
+// variables are only a fallback. Missing or unreadable → texts stay off (fail-closed); only setting names are logged.
+const twilioSecretName = process.env.TWILIO_VERIFY_SECRET_NAME || "danzstak/twilio/verify";
+let twilioCredentials = twilioCredentialsFromEnv(process.env), twilioCredentialsPromise = null;
+async function loadTwilioCredentials() {
+  if (otpProvider !== "twilio" || twilioCredentials.ok) return twilioCredentials;
+  if (!twilioCredentialsPromise) twilioCredentialsPromise = secretsManager.send(new GetSecretValueCommand({ SecretId: twilioSecretName }))
+    .then(result => {
+      const loaded = twilioCredentialsFromSecret(typeof result?.SecretString === "string" ? result.SecretString : "");
+      if (loaded.ok) twilioCredentials = loaded; else console.warn("SYNC texts are off: Twilio secret is missing", loaded.missing.join(", "));
+      return twilioCredentials;
+    })
+    .catch(error => { console.warn("SYNC texts are off: Twilio secret unavailable", error.name); twilioCredentialsPromise = null; return twilioCredentials; });
+  return twilioCredentialsPromise;
+}
+async function phoneTextsAvailable() { return otpProvider === "twilio" ? (await loadTwilioCredentials()).ok : phoneVerificationEnabled; }
 const phoneVerificationEnabled = otpProvider === "twilio"
-  ? twilioCredentials.ok
+  ? false
   : process.env.PHONE_VERIFICATION_ENABLED === "true" && /^notify-[a-z0-9]+$/i.test(phoneNotifyConfigurationId);
 // Registration policy must never depend on provider health. If AWS cannot send
 // an OTP, the device stays unregistered instead of silently falling back to an
@@ -210,10 +224,11 @@ let twilioVerifyClient = null;
 async function personalPhoneService() {
   const secret = await phoneVerificationSecret();
   if (otpProvider === "twilio") {
+    await loadTwilioCredentials();
     if (twilioCredentials.ok && !twilioVerifyClient) twilioVerifyClient = createTwilioVerifyClient({ credentials: twilioCredentials, log: phoneLog });
     // Without credentials the service still loads (status, remove) but every send is refused.
     const verifier = twilioVerifyClient || { async start() { throw Object.assign(new Error("off"), { name: "TwilioVerifyError", statusCode: 503, code: "provider_unavailable", message: "SYNC verification texts aren't available yet. No text was sent." }); }, async check() { return { approved: false }; } };
-    return createPersonalPhoneService({ adapter: personalPhoneAdapter, secret, enabled: phoneVerificationEnabled, verifier, log: phoneLog });
+    return createPersonalPhoneService({ adapter: personalPhoneAdapter, secret, enabled: twilioCredentials.ok, verifier, log: phoneLog });
   }
   return createPersonalPhoneService({
     adapter: personalPhoneAdapter,
@@ -5447,7 +5462,7 @@ async function getPersonalPhoneStatus(event) {
   const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const record = await personalPhoneAdapter.getByUser(userId);
-  return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(record), providerAvailable: phoneVerificationEnabled, deviceOtpRequired: phoneDeviceOtpRequired }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(record), providerAvailable: await phoneTextsAvailable(), deviceOtpRequired: phoneDeviceOtpRequired }) };
 }
 
 async function sendPersonalPhoneCode(event) {
@@ -5492,7 +5507,7 @@ async function removePersonalPhone(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   try {
     await personalPhoneAdapter.remove(userId);
-    return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(null), providerAvailable: phoneVerificationEnabled }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(null), providerAvailable: await phoneTextsAvailable() }) };
   } catch {
     return { statusCode: 503, headers, body: JSON.stringify({ error: "Phone verification is unavailable." }) };
   }
