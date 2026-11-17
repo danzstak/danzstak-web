@@ -85,3 +85,10 @@ export function trustedPromotersNear(items = [], point = {}, genre = "", miles =
 export function withoutContacts(places = []) {
   return places.map(place => ({ ...place, emails: [], phones: [], contactsHidden: Boolean(place.emails?.length || place.phones?.length) }));
 }
+
+// Saved with UpdateItem (the Lambda's club-database permission), setting every field of the record.
+export function trustedContactUpdate(tableName, item) {
+  const { venueKey, ...fields } = item, names = {}, values = {}, sets = [];
+  Object.entries(fields).forEach(([field, value], index) => { names[`#f${index}`] = field; values[`:v${index}`] = value; sets.push(`#f${index} = :v${index}`); });
+  return { TableName: tableName, Key: { venueKey }, UpdateExpression: `SET ${sets.join(", ")}`, ExpressionAttributeNames: names, ExpressionAttributeValues: values };
+}
