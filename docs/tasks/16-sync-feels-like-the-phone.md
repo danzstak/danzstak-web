@@ -52,6 +52,14 @@ Someone opening SYNC from the installed PWA can't tell it apart from their phone
    - Strip EXIF/GPS before upload. Max 4 MB, resized to the device. Images only, no video or audio.
 5. Per-chat wallpaper overrides the global one. "Reset to default" is always one tap.
 
+## 16-B2 — Ringtones (owner, 2026-11-17: "users should be able to change their ring tone")
+
+1. **Ringtone** and **message tone** pickers in SYNC settings, plus a per-contact override in the contact's ⋯ menu. Each one has a preview button and a Vibrate on/off switch.
+2. The choices are a set of **original DanzStak tones** made for DanzStak or properly licensed: punk, metal, techno, house, industrial and classic phone rings, about 12 to start, each 1–3 s and loopable, shipped with the app. No member audio uploads: the CLAUDE.md "no music files, ever" rule stands, so there are no custom MP3/WAV files and no songs.
+3. Playback: the chosen tone loops while an incoming call rings with the app open, and stops the instant the call is answered, declined or answered elsewhere. It respects the phone's silent mode where the browser exposes it, never plays two tones at once, and gives up after 30 s of ringing.
+4. Platform limit, to be stated honestly in settings: with the app closed or the phone locked, the phone's own notification sound plays. Web push can't set a custom sound on iOS, and Android uses its notification channel sound. The in-app tone takes over once the app is open.
+5. Tests: one tone at a time, stops on answer/decline/answered-elsewhere, the per-contact override wins, and the setting survives cache updates.
+
 ## 16-C — Buttons that don't look like HTML (SYNC first, then site-wide)
 
 1. One button system in the design tokens, used everywhere:
