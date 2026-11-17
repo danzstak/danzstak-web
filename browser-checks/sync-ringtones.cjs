@@ -105,6 +105,7 @@ const instrument = () => {
       await page.waitForTimeout(900);
       const ringing = await page.evaluate(() => ({ live: window.danzstakSyncTones.isPlaying(), freqs: [...new Set(window.__osc.map(o => Math.round(o.f)))] }));
       if (!ringing.live) failures.push(`${label}: no ringtone while ringing`);
+      if (process.env.DEBUG) console.log(label, await page.evaluate(f => ({ url: location.href, tone: window.danzstakSyncTones.toneFor("ring", f), raw: localStorage.getItem("danzstak_sync_tones"), osc: window.__osc.slice(0, 12) }), FRIEND));
       if (!ringing.freqs.includes(150)) failures.push(`${label}: SFScoop's Techno override did not ring (${ringing.freqs.join(",")})`);
       if (ringing.freqs.includes(82)) failures.push(`${label}: the global ringtone played instead of the contact override`);
       // A message tone must not play over the ring.

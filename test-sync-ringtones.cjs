@@ -49,7 +49,7 @@ assert.match(chat, /function stopIncomingRingtone\(\)\{if\(ringTimer\?\.stop\)ri
 assert.match(incoming, /ringtoneTimer = window\.danzstakSyncTones\.startRing\(ringtoneContext, \{ contact: current\.senderEmail \|\| "", durationMs: remaining \}\)/);
 assert.match(incoming, /if \(ringtoneTimer\?\.stop\) ringtoneTimer\.stop\(\);/);
 assert.match(dm, /if \(incomingArrived\) window\.danzstakSyncTones\?\.messageArrived\?\.\(contact\);/);
-assert.match(dm, /if \(toneFor && unreadPrimed\) window\.danzstakSyncTones\?\.messageArrived\?\.\(toneFor\);/);
+assert.match(dm, /if \(toneFor && unreadPrimed\) globalThis\.danzstakSyncTones\?\.messageArrived\?\.\(toneFor\);/);
 // Settings row, chat menu, setup step, honest locked-phone note.
 assert.match(tones, /danzstakSyncSettings\?\.add\(\{ id: "tones"/);
 assert.match(tones, /item\.id = "headerRingtoneMenu"/);

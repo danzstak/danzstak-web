@@ -62,7 +62,7 @@
       const hp = audio.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = Math.min(frequency, audio.sampleRate / 2 - 100);
       source.connect(hp).connect(amp);
     } else {
-      source = audio.createOscillator(); source.type = wave;
+      source = audio.createOscillator(); source.type = wave; source.frequency.value = frequency;
       source.frequency.setValueAtTime(frequency, begin);
       if (slideTo) source.frequency.exponentialRampToValueAtTime(slideTo, end);
       source.connect(amp);
@@ -180,8 +180,8 @@
       dialog.className = "call-setup-dialog sync-wallpaper-dialog sync-tones-dialog";
       dialog.setAttribute("aria-labelledby", "syncTonesTitle");
       dialog.innerHTML = '<header><div><p class="phone-setup-count" data-scope></p><h2 id="syncTonesTitle"></h2></div><button type="button" class="call-setup-close" data-icon="close"></button></header><div class="sync-tone-body"></div><p class="sync-wp-note" data-note></p><div class="phone-setup-actions"><button type="button" class="secondary" data-reset></button><span></span><button type="button" class="primary" data-done></button></div>';
-      dialog.querySelector(".call-setup-close").addEventListener("click", () => dialog.close());
-      dialog.querySelector("[data-done]").addEventListener("click", () => { dialog.close(); window.dispatchEvent(new CustomEvent("danzstak:sync-tones-saved")); });
+      dialog.querySelector(".call-setup-close").addEventListener("click", () => { stop(); dialog.close(); });
+      dialog.querySelector("[data-done]").addEventListener("click", () => { stop(); dialog.close(); window.dispatchEvent(new CustomEvent("danzstak:sync-tones-saved")); });
       dialog.querySelector("[data-reset]").addEventListener("click", () => { reset(scopeContact); open(scopeContact); });
       dialog.addEventListener("close", stop);
       document.body.appendChild(dialog);

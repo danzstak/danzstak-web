@@ -110,8 +110,6 @@ let mobileHistoryConversation = null;
 let activeConversation = null;
 let lastChatContactSignature = "";
 let lastConversationListSignature = "";
-const unreadSeen = new Map(); // 16-B2: unread counts from the last list refresh (message tone on increase)
-let unreadPrimed = false;
 
 function stableIdentityPicture(value) {
   const picture = String(value || "").trim();
@@ -1036,6 +1034,8 @@ async function loadDirectMessages(reset = false) {
 }
 
 let loadingConversations = false;
+const unreadSeen = new Map(); // 16-B2: unread counts from the last list refresh (message tone on increase)
+let unreadPrimed = false;
 async function readMessagingArrayResponse(response, key) {
   if (!response?.ok) return { available: false, items: [] };
   try {
@@ -1185,17 +1185,17 @@ async function loadConversations() {
       if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), { ...conversation, hasConversation: true });
     }
     // 16-B2: a chat that is not open gained unread messages since the last refresh → one message tone.
-    if (conversationSource.available) {
-      const openContact = document.body.classList.contains("is-conversation-open") ? String(contactInput?.value || "").toLowerCase() : "";
+    if (conversationSource.available) try {
+      const openContact = document.body?.classList?.contains("is-conversation-open") ? String(document.getElementById?.("contactEmail")?.value || "").toLowerCase() : "";
       let toneFor = "";
       for (const conversation of conversationSource.items) {
         const email = String(conversation.contactEmail || "").toLowerCase(), unread = Math.max(0, Number(conversation.unread || 0));
         if (email && unreadSeen.has(email) && unread > unreadSeen.get(email) && email !== openContact) toneFor = toneFor || email;
         if (email) unreadSeen.set(email, unread);
       }
-      if (toneFor && unreadPrimed) window.danzstakSyncTones?.messageArrived?.(toneFor);
+      if (toneFor && unreadPrimed) globalThis.danzstakSyncTones?.messageArrived?.(toneFor);
       unreadPrimed = true;
-    }
+    } catch { /* a tone is never worth breaking the chat list */ }
     for (const friend of friendsSource.items) {
       const email = String(friend.email || "").toLowerCase();
       if (!email) continue;
