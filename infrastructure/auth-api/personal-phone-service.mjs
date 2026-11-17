@@ -27,6 +27,8 @@ export function createPersonalPhoneService({ adapter, sender = null, verifier = 
     const inWindow = sameTarget && Number(previous.sendWindowStart || 0) > seconds - RESEND_WINDOW_SECONDS;
     const sendsInWindow = inWindow ? Number(previous.sendsInWindow || 1) : 0;
     if (sendsInWindow >= SENDS_PER_WINDOW) throw serviceError("You can resend once. Try again in 10 minutes.", 429, "resend_window");
+    // One number, up to 10 DanzStak accounts (owner 2026-11-17). Checked before any text is sent.
+    if (typeof adapter.linkCapacity === "function" && !await adapter.linkCapacity(phoneHash, userId)) throw serviceError("This number is already linked to 10 DanzStak accounts.", 409, "number_limit");
     const code = createCode(), challenge = challengeRecord({ secret, userId, number, challengeId: createId(), code, now: currentTime, purpose, deviceChallengeId, deviceChallengeHash: boundHash });
     challenge.sendWindowStart = inWindow ? Number(previous.sendWindowStart) : seconds;
     challenge.sendsInWindow = sendsInWindow + 1;
