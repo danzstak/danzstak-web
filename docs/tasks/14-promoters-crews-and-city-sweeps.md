@@ -27,3 +27,20 @@ Owner directives 2026-11-16/17. First job next session.
 ## Also queued
 - Notification when a club or promoter replies to a pitch ("[club] answered your pitch") — booking replies land in SYNC but no push fires today.
 - Owner: delete the root access key in AWS before doors (wiping the PC does not revoke it).
+
+## 14-D Events page: not another HTML form (owner 2026-11-17)
+- Same treatment the EPK builder got (assets/epk-skin.css): DanzStak black/silver/hazard orange, Archivo wide display, mono labels.
+- Creating an event should feel like making a gig poster: a live poster/flyer preview (flyer or 15 s video, headline, date, venue, price) that fills in as the promoter types; ticket options as ticket stubs; one orange primary action (Publish event).
+- Public event page: the poster up top, ticket stub to buy, lineup, venue map link. Phone first, 44 px targets, IT/FR/ES strings.
+- Inviting to promoters, not a form to fill out (owner 2026-11-17):
+  - Open with what the promoter gets: "Sell tickets to your night. You keep the full ticket price; buyers pay the 6% fee." Plus door list, QR + plain-text tickets, named tickets against scalpers, your crowd sees it in Mix and Events.
+  - Start with one big drop zone: "Drop your flyer" (or a 15 s video). The poster preview appears right away; then a few quick questions one at a time (name of the night, date and doors, venue, ticket price), not a long page of fields.
+  - Optional extras (seating sections, ticket delivery, named tickets on/off, outside ticket link) folded under "More options".
+  - Show past/upcoming events from local promoters as inspiration on the empty state.
+- What Events is for (owner 2026-11-17): fans discover nights in Mix (the event post goes in Mix). Fans open Events already knowing which night they want, so Events is not a feed to scroll:
+  - Top: search ("night, artist, venue or city") and "My tickets" (show the ticket / door code fast, works offline).
+  - Then: tonight and this weekend near me as a short list, not an endless scroll.
+  - For promoters: "Sell tickets to your night" (the flyer-first creator above) and their own events with sales so far.
+  - The public event page (from Mix or a shared link) is the ticket stub: poster, date, venue, price, Buy, done.
+- "DanzStak ads" (owner 2026-11-17) means members' own items, merch and tickets shown as house promotion (e.g. "tonight near you" in Events, a member's new item once in Mix). Free and fair: ordered by time and distance, no payment, no boosting. Third-party paid ads stay Bazaar-only.
+- Mix item slot (owner 2026-11-17, supersedes "once in Mix"): at most every 4th post in Mix, adaptive (skip the slot unless the member has a fresh, relevant item they have not seen in 2 weeks; early on that may be 1 in 10-20 posts; gigs and merch rotate with other items; the 4 is an owner setting). Friends' posts stay the bulk of Mix, unlike Facebook. Every slot shows something different: a different seller and a different kind (gig ticket, band merch, record, craft) than the slot before. is a members' item, merch or ticket; labelled "For sale" / "Tickets"; never paid; fair rotation (nearby and followed first, then newer); the same item does not repeat within 2 weeks; skip the slot when nothing relevant exists. Mix stays chronological and finite otherwise.
