@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const looks = require("./assets/hometown-looks.js");
 const { block } = require("./scripts/build-hometown-css.cjs");
-const css = fs.readFileSync("assets/epk-looks.css", "utf8");
+const css = fs.readFileSync("assets/epk-looks.css", "utf8").replace(/\r\n/g, "\n"); // CI checks out with CRLF on Windows
 
 // Curated scene cities from the spec, punk/metal/electronic first.
 const expected = ["tacoma", "seattle", "bremerton", "olympia", "portland", "san-francisco", "oakland", "los-angeles", "san-diego", "milwaukee", "chicago", "detroit", "nashville", "austin", "new-york", "philadelphia", "berlin", "mannheim", "bologna", "milan", "rome", "paris", "london", "manchester", "amsterdam", "barcelona"];
