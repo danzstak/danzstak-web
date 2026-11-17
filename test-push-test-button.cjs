@@ -11,4 +11,5 @@ assert.match(template, /Wait a minute before sending another test/, "tests are r
 assert.match(template, /dynamodb:UpdateItem\]\s+Resource: !GetAtt PushSubscriptionsTable\.Arn/);
 assert.match(fs.readFileSync("messages.html", "utf8"), /id="pushTestButton"/);
 assert.match(fs.readFileSync("assets/push-notifications.js", "utf8"), /api\("\/push\/test"/);
+assert.match(fs.readFileSync("assets/call-devices.js", "utf8"), /function linkPushToDevice\(\)\{if\(pushLinked\|\|!state\.registered\|\|globalThis\.Notification\?\.permission!=="granted"/, "registered devices re-link their push subscription so calls ring a closed app");
 console.log("Push test checks passed: own devices only, rate limited, button in SYNC device settings.");
