@@ -73,10 +73,12 @@
   function setSession(type) { try { if (navigator.audioSession) { const before = navigator.audioSession.type; navigator.audioSession.type = type; return before; } } catch {} return null; }
 
   // Plays one tone, looping until stop() or maxMs. Only one tone ever sounds: a new one stops the previous one.
-  function play(id, { audio, volume = 0.4, loop = false, maxMs = MAX_RING_MS, vibrate = null } = {}) {
+  function play(id, { audio, volume = 0.4, loop = false, maxMs = MAX_RING_MS, vibrate = null, quiet = false } = {}) {
     stop();
     const tone = TONES[id]; const out = context(audio);
     if (!tone || !out) return { stop() {} };
+    // 16-H quiet hours: rings and message tones stay silent (previews always play).
+    if (quiet && window.danzstakSyncPrefs?.quiet?.(tone.kind === "ring" ? "call" : "message")) return { id, stop() {} };
     // "ambient" makes iOS/Safari respect the silent switch while a tone plays (where the browser exposes it).
     const previousSession = setSession("ambient");
     const master = out.createGain(); master.gain.value = Math.max(0, Math.min(1, volume)); master.connect(out.destination);
@@ -107,13 +109,13 @@
 
   // Incoming call: the member's ringtone (the caller's override first), looping until answered/declined, 30 s at most.
   function startRing(audio, { contact = "", volume, durationMs = MAX_RING_MS } = {}) {
-    return play(toneFor("ring", contact), { audio, volume: volume ?? window.danzstakCallSetup?.ringVolume?.() ?? 0.4, loop: true, maxMs: durationMs, vibrate: vibrates("ring", contact) ? [400, 200, 400] : null });
+    return play(toneFor("ring", contact), { audio, volume: volume ?? window.danzstakCallSetup?.ringVolume?.() ?? 0.4, loop: true, maxMs: durationMs, quiet: true, vibrate: vibrates("ring", contact) ? (window.danzstakSyncPrefs ? window.danzstakSyncPrefs.vibration() : [400, 200, 400]) : null });
   }
   // A new message while the app is open: once, quietly, and never on top of a ringing call.
   function messageArrived(contact) {
     if (active || document.hidden) return false;
     const out = context(); if (!out || out.state !== "running") { if (vibrates("message", contact)) try { navigator.vibrate?.(120); } catch {} return false; }
-    play(toneFor("message", contact), { audio: out, volume: 0.35, loop: false, maxMs: 1500, vibrate: vibrates("message", contact) ? [120] : null });
+    play(toneFor("message", contact), { audio: out, volume: 0.35, loop: false, maxMs: 1500, quiet: true, vibrate: vibrates("message", contact) && (!window.danzstakSyncPrefs || window.danzstakSyncPrefs.vibration()) ? [120] : null });
     return true;
   }
   function preview(id) { clearTimeout(previewTimer); const out = context(); if (!out) return null; out.resume?.().catch(() => {}); const h = play(id, { audio: out, volume: window.danzstakCallSetup?.ringVolume?.() ?? 0.4, loop: TONES[id]?.kind === "ring", maxMs: 3000 }); previewTimer = setTimeout(() => h.stop(), 3000); return h; }

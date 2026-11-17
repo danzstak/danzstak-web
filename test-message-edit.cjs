@@ -10,7 +10,7 @@ assert.match(source, /body: JSON\.stringify\(\{ action: "edit", contactEmail: di
 assert.match(source, /text\.textContent = message\.content/, "message text remains XSS-safe");
 assert.match(source, /message\.senderEmail === currentEmail && message\.content/, "only sent text offers Edit");
 assert.match(source, /edit\.textContent = "✎ " \+ messageTranslate\("Edit message"\)/, "the long-press palette contains a translated Edit action");
-assert.match(source, /for \(const emoji of \["👍","❤️","😂","😮","😢","😡"\]\)/, "long press retains emoji reactions");
+assert.match(source, /for \(const emoji of \(globalThis\.danzstakSyncPrefs\?\.reactions\?\.\(\) \|\| \["👍","❤️","😂","😮","😢","😡"\]\)\)/, "long press retains emoji reactions");
 assert.match(source, /message\.editedAt \? " · " \+ messageTranslate\("edited"\) : ""/, "edited messages are labeled in the selected language");
 assert.match(source, /event\.key\.toLowerCase\(\) === "e"/, "keyboard users can edit sent text");
 assert.match(css, /\.message-edit-form\{/, "message editor is styled");

@@ -107,7 +107,7 @@ const offer = (recipient, callId = CALL) => ({ recipientEmail: { S: recipient },
 
   // Payload shape (static: delivery itself needs a real push service).
   const src = source.join("\n");
-  assert.match(src, /payload=\{type:'booking',title:`\$\{venue\} \$\{words\[action\]\}`\.slice\(0,80\),body:String\(notice\.preview\?\.S\|\|words\.body\)\.slice\(0,160\),tag:`booking-\$\{outreachId\}`,url:`\/messages\.html\?section=bookings&outreach=\$\{encodeURIComponent\(outreachId\)\}`\}/);
+  assert.match(src, /payload=\{type:'booking',title:`\$\{venue\} \$\{words\[action\]\}`\.slice\(0,80\),body:String\(\(!syncPrefs\?\.hidePreviews&&notice\.preview\?\.S\)\|\|words\.body\)\.slice\(0,160\),silent:inQuietHours\(syncPrefs,'message'\),tag:`booking-\$\{outreachId\}`,url:`\/messages\.html\?section=bookings&outreach=\$\{encodeURIComponent\(outreachId\)\}`\}/);
   assert.match(src, /if\(item\.type\?\.S==='booking_reply'\)return processBookingPush\(eventId,item\);/);
   assert.match(template, /DeclineRoute: \{Type: AWS::ApiGatewayV2::Route, Properties: \{ApiId: !Ref ApiId, RouteKey: POST \/calls\/decline,/);
   assert.match(src, /if\(key==='POST \/calls\/decline'\)return await declineFromNotification\(event,user\);/);

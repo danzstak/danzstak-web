@@ -21,3 +21,8 @@
 .dark-mode .message-quote{background:rgba(255,255,255,.08)!important}.dark-mode .message-quote span,.dark-mode .message-reply-bar-text small{color:#d0d5dd}
 @media (prefers-reduced-motion:reduce){.message{transition:none}.message.is-jump-target{animation:none;box-shadow:0 0 0 3px rgba(194,65,12,.45)}}
 .sync-forward-dialog [data-send]{flex:0 0 auto;width:auto!important;min-width:120px!important;max-width:none!important;height:auto!important;min-height:44px!important;padding:0 20px!important;border-radius:999px!important;white-space:nowrap;overflow:visible!important}
+/* Long-press menu action row: plain 44px icon buttons, "Select" as a slim text pill (no stray half-circle borders). */
+.message-reaction-palette .message-reply-choice,.message-reaction-palette .message-forward-choice,.message-reaction-palette .message-copy-choice,.message-reaction-palette .message-edit-choice,.message-reaction-palette .message-delete-choice{min-width:44px!important;min-height:44px!important;border:0!important;border-radius:50%!important;background:transparent!important;box-shadow:none!important;color:inherit!important}
+.message-reaction-palette .message-select-choice{grid-column:span 2;min-height:44px!important;padding:0 10px!important;border:0!important;border-radius:999px!important;background:rgba(15,23,42,.06)!important;box-shadow:none!important;color:inherit!important;font-size:13px!important;line-height:1.1!important;white-space:normal}
+.message-reaction-palette .message-delete-choice{color:#b42318!important}
+.dark-mode .message-reaction-palette .message-select-choice{background:rgba(255,255,255,.1)!important}
