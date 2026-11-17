@@ -115,26 +115,29 @@
     dialog = document.createElement("dialog");
     dialog.className = "call-setup-dialog sync-wallpaper-dialog";
     dialog.setAttribute("aria-labelledby", "syncWallpaperTitle");
-    const presetTiles = Object.entries(PRESETS).map(([id, p]) => `<button type="button" class="sync-wp-tile" data-preset="${id}" aria-label="${p.name}"><span style="background:${p.image},${p.color}"></span><small data-t="${p.name}"></small></button>`).join("");
-    const colorTiles = COLORS.map(color => `<button type="button" class="sync-wp-swatch" data-color="${color}" style="background:${color}"></button>`).join("");
+    const presetTiles = Object.entries(PRESETS).map(([id, p]) => `<button type="button" class="sync-wp-tile" data-preset="${id}" aria-label="${p.name}"><span></span><small data-t="${p.name}"></small></button>`).join("");
+    const colorTiles = COLORS.map(color => `<button type="button" class="sync-wp-swatch" data-color="${color}"></button>`).join("");
     dialog.innerHTML = '<header><div><p class="phone-setup-count" data-scope></p><h2 id="syncWallpaperTitle" data-t="Chat wallpaper"></h2></div><button type="button" class="call-setup-close" data-icon="close" data-close></button></header>'
       + '<div class="sync-wp-preview message-list" aria-hidden="true"><p class="system-message" data-t="Today"></p><div class="message"><span data-t="Load-in at 6, doors at 8."></span></div><div class="message mine"><span data-t="See you at soundcheck."></span></div></div>'
-      + '<div class="sync-wp-row"><label class="sync-wp-photo"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-photo><span data-icon="image" aria-hidden="true"></span><span data-t="Your photo"></span></label>'
-      + '<label class="sync-wp-photo"><input type="file" accept="image/*" capture="environment" data-camera><span data-icon="camera" aria-hidden="true"></span><span data-t="Camera"></span></label>'
-      + '<button type="button" class="sync-wp-photo" data-default><span data-icon="refresh" aria-hidden="true"></span><span data-t="Default"></span></button></div>'
+      + '<div class="sync-wp-row"><label class="sync-wp-photo"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-photo><span data-menu-icon="image" aria-hidden="true"></span><span data-t="Your photo"></span></label>'
+      + '<label class="sync-wp-photo"><input type="file" accept="image/*" capture="environment" data-camera><span data-menu-icon="camera" aria-hidden="true"></span><span data-t="Camera"></span></label>'
+      + '<button type="button" class="sync-wp-photo" data-default><span data-menu-icon="refresh" aria-hidden="true"></span><span data-t="Default"></span></button></div>'
       + `<p class="sync-wp-label" data-t="DanzStak wallpapers"></p><div class="sync-wp-grid">${presetTiles}</div>`
       + `<p class="sync-wp-label" data-t="Colors"></p><div class="sync-wp-swatches">${colorTiles}</div>`
       + '<label class="sync-wp-dim"><span><span data-t="Dim"></span> <output data-dim-out>0%</output></span><input type="range" min="0" max="60" step="5" value="0" data-dim></label>'
       + '<p class="sync-wp-note" data-t="Only you see your wallpaper. Your photo stays on this device and is never sent to the other person."></p>'
       + '<p class="phone-setup-status call-setup-status" role="status" data-status></p>'
       + '<div class="phone-setup-actions"><button type="button" class="secondary" data-reset data-t="Reset to default"></button><span></span><button type="button" class="primary" data-save data-t="Set wallpaper"></button></div>';
+    // The page CSP blocks style="" attributes, so tiles are painted through the CSSOM.
+    for (const tile of dialog.querySelectorAll("[data-preset]")) paint(tile.querySelector("span"), { kind: "preset", preset: tile.dataset.preset, dim: 0 });
+    for (const swatch of dialog.querySelectorAll("[data-color]")) swatch.style.setProperty("background", swatch.dataset.color, "important");
     const status = dialog.querySelector("[data-status]");
     const preview = () => { paint(dialog.querySelector(".sync-wp-preview"), editing); dialog.querySelector("[data-dim-out]").textContent = clampDim(editing.dim) + "%"; markSelected(); };
-    const pick = next => { editing = { ...next, dim: next.kind === "default" ? 0 : clampDim(editing?.dim ?? 20) }; dialog.querySelector("[data-dim]").value = String(editing.dim); status.textContent = ""; preview(); };
+    const pick = next => { editing = { ...next, dim: next.kind === "default" ? 0 : clampDim(!editing || editing.kind === "default" ? 20 : editing.dim) }; dialog.querySelector("[data-dim]").value = String(editing.dim); status.textContent = ""; preview(); };
     for (const input of dialog.querySelectorAll("[data-photo],[data-camera]")) input.addEventListener("change", async () => {
       const file = input.files?.[0]; input.value = "";
       if (!file) return;
-      try { pick({ kind: "photo", blob: await cleanPhoto(file), dim: editing?.dim ?? 20 }); } catch (error) { status.textContent = error.message; }
+      try { pick({ kind: "photo", blob: await cleanPhoto(file) }); } catch (error) { status.textContent = error.message; }
     });
     dialog.querySelector("[data-default]").addEventListener("click", () => pick(DEFAULT));
     for (const tile of dialog.querySelectorAll("[data-preset]")) tile.addEventListener("click", () => pick({ kind: "preset", preset: tile.dataset.preset }));
