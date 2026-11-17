@@ -49,7 +49,7 @@ const fs = require("node:fs");
   assert.deepEqual(live.map(lead => lead.sourceUrl), ["https://it.ra.co/promoters/it/bologna", "https://www.collettivoxyz.it/"]);
   assert.equal(live[1].phones[0], "051 234567");
   const api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), agent = fs.readFileSync("assets/booking-agent.js", "utf8");
-  assert.match(api, /saveFoundClubs\(\[\.\.\.venues, \.\.\.promoters\]\)/);
+  assert.match(api, /saveFoundClubs\(\[\.\.\.venues, \.\.\.webPromoters\]\)/);
   assert.match(api, /venues, promoters, hotels/);
   assert.match(api, /!place\.venueKey\.startsWith\("promoter-"\)/, "promoters never pose as venues on the map");
   assert.match(agent, /placeCard\(place, "promoter"\)/);

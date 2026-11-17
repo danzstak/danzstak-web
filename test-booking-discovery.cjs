@@ -13,7 +13,7 @@ async function run(fail, genre = "DIY Punk") {
     // Freshness is covered by test-booking-venue-freshness.cjs; discovery order is tested here unchanged.
     withVenueFreshness: async venues => venues,
     // Club ranking is covered by test-club-directory.cjs; pass venues through here.
-    withClubRecords: venues => venues, clubRecords: async () => new Map(), saveFoundClubs: async () => {}, refreshClubStatsIfDue: async () => {}, webPromoterResearch: async () => ({ skipped: true, promoters: [] }),
+    withClubRecords: venues => venues, clubRecords: async () => new Map(), saveFoundClubs: async () => {}, refreshClubStatsIfDue: async () => {}, webPromoterResearch: async () => ({ skipped: true, promoters: [] }), trustedPromotersNear: () => [], reviewedVenueDirectoryRecords: async () => [],
     mapLimit: async (items, limit, worker) => {
       const results = new Array(items.length);
       let next = 0;
