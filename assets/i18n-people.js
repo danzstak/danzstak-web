@@ -4,6 +4,8 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Pivot your data": "Porta i tuoi dati",
+"Install DanzStak": "Installa DanzStak",
 "People": "Persone",
 "Search chats and people": "Cerca chat e persone",
 "Open {name} profile": "Apri il profilo di {name}",
@@ -39,6 +41,8 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"Pivot your data": "Transférez vos données",
+"Install DanzStak": "Installer DanzStak",
 "People": "Personnes",
 "Search chats and people": "Rechercher chats et personnes",
 "Open {name} profile": "Ouvrir le profil de {name}",
@@ -74,6 +78,8 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"Pivot your data": "Trae tus datos",
+"Install DanzStak": "Instalar DanzStak",
 "People": "Personas",
 "Search chats and people": "Buscar chats y personas",
 "Open {name} profile": "Abrir el perfil de {name}",
