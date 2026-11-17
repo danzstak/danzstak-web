@@ -83,7 +83,8 @@ const pressPhoto = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height=
       page.on("pageerror",error=>errors.push(error.message));
       await page.route("https://api.danzstak.com/epk",async route=>{ if(route.request().method()==="GET") return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({kit:kit("dj"),published:false,publicId:"signal-room"})}); return route.fulfill({status:200,contentType:"application/json",body:"{}"}); });
       await page.goto(`${baseUrl}/epk.html`,{waitUntil:"networkidle"});
-      await page.locator("#productionTitle",{hasText:"Booth plot and input list"}).waitFor();
+      // 15-D: the visible heading is short ("Booth & inputs"); the full name stays the accessible name.
+      await page.locator('#productionTitle[aria-label="Booth plot and input list"]',{hasText:"Booth & inputs"}).waitFor();
       await page.locator("#plotLabel").fill("Second monitor"); await page.locator("#plotKind").selectOption("monitor"); await page.locator("#plotPosition").selectOption("front-left"); await page.locator("#addPlotItem").click();
       await page.locator("#inputSource").fill("Talkback mic"); await page.locator("#inputConnection").selectOption("mic"); await page.locator("#inputStand").selectOption("straight"); await page.locator("#addInputItem").click();
       assert.equal(await page.locator("#plotItems .epk-production-item").count(),5); assert.equal(await page.locator("#inputItems .epk-production-item").count(),4);

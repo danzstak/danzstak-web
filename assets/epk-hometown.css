@@ -1,0 +1,52 @@
+/* Hometown skin on the EPK (task 15-B, owner 2026-11-17). Tokens: assets/epk-looks.css + assets/hometown-looks.js.
+   15-D: the skin is the page itself, edge to edge; no panels inside panels; labels stay on one line at 320px.
+   Navigation, forms and buttons keep the DanzStak frame. Print drops textures. */
+
+/* Preview and public EPK: the composed ground, ink and accent come in as inline variables; the motif tiles the page. */
+.epk-preview[data-hometown]{background-color:var(--epk-ground);background-image:var(--home-motif,none);background-repeat:repeat}
+.epk-preview[data-hometown] .epk-hero,.epk-preview[data-hometown] .epk-body{background-color:transparent}
+.epk-preview[data-hometown] .epk-hero{background-image:var(--home-motif,none);background-size:auto;background-repeat:repeat;background-position:0 0}
+.epk-preview[data-hometown] .epk-hero.has-image{background-image:none}
+.epk-hometown-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:10px 0 0;font-family:var(--epk-detail);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--epk-ink)}
+.epk-hometown-line strong{color:var(--epk-accent);font-weight:700}
+/* Genre looks style hero lines (House draws pills); the hometown line stays plain text on the ground. */
+.epk-preview[data-look] .epk-hero p.epk-hometown-line{display:flex;padding:0;border-radius:0;background:none;color:var(--epk-ink);font-weight:400}
+.epk-hometown-coords{white-space:nowrap;opacity:.9}
+
+/* Public EPK: no card on a coloured page. The hometown ground and motif run edge to edge behind everything. */
+body.public-mode[data-epk-hometown]{background-color:var(--epk-page-ground);background-image:var(--home-motif,none)}
+body.public-mode .epk-preview{border:0;border-radius:0;box-shadow:none}
+body.public-mode .epk-public-actions{white-space:nowrap}
+body.public-mode .epk-public-actions button{white-space:nowrap}
+
+/* Builder: the motif of the chosen hometown wraps the whole page; the frame (fields, buttons, nav) stays DanzStak. */
+body.epk-skin:not(.public-mode)[data-epk-hometown]{background-image:var(--home-motif,none)}
+body.epk-skin:not(.public-mode) .epk-guide{background:transparent;border:0;border-top:1px solid var(--sk-rule);border-bottom:1px solid var(--sk-rule);border-left:0;padding-inline:0}
+body.epk-skin:not(.public-mode) .epk-guide :is(ul,ol,li){background:transparent}
+.epk-hometown{display:grid;gap:4px;margin:14px 0 0;padding:12px 0 0;border:0;border-top:1px solid var(--sk-rule,#d8dee8)}
+.epk-hometown legend{padding:0;margin:0 0 6px;font-weight:700}
+.epk-choice{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;white-space:nowrap}
+.epk-choice input{width:20px;height:20px;margin:0;flex:none}
+.epk-choice-city{overflow:hidden;text-overflow:ellipsis;opacity:.85}
+.epk-city-pick{display:grid;gap:4px;margin:0 0 4px 30px}
+.epk-city-pick[hidden]{display:none!important}
+.epk-city-pick input{min-height:44px}
+.epk-hometown-vibe{margin:6px 0 14px}
+
+/* Laminate: the city on the band, coordinates on the card, motif on the band. */
+.epk-laminate__band{background-image:var(--home-motif,none)}
+.epk-laminate__city{display:block;margin-top:4px;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase}
+.epk-laminate__city:empty{display:none}
+
+/* One-line labels at phone width (15-D): stack the laminate under the title instead of squeezing both. */
+@media (max-width:480px){
+  body.epk-skin:not(.public-mode) .intro{grid-template-columns:minmax(0,1fr)}
+  body.epk-skin:not(.public-mode) .epk-laminate{width:min(220px,70vw);transform:rotate(2deg);justify-self:start}
+  body.epk-skin:not(.public-mode) :is(.intro h1,section > h2,.epk-guide h2,summary,legend,.epk-rider-slot__title){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+
+@media (prefers-reduced-motion:reduce){body.epk-skin:not(.public-mode) .epk-laminate{transform:none}}
+@media print{
+  .epk-preview[data-hometown],.epk-preview[data-hometown] .epk-hero,body.public-mode[data-epk-hometown],.epk-laminate__band{background-image:none!important}
+  .epk-hometown-line{color:#000}
+}

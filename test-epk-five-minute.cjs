@@ -8,7 +8,7 @@ const client = fs.readFileSync("assets/epk.js", "utf8");
 const css = fs.readFileSync("assets/epk.css", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 
-assert.match(html, /Build your EPK in 5 minutes/, "new artists need a clear guided starting point");
+assert.match(html, /<h2 id="epkGuideTitle" aria-label="Build your EPK in 5 minutes">5-minute EPK<\/h2>/, "new artists need a clear guided starting point (one line at 320px)");
 assert.match(html, /id="epkGuideProgress"[^>]*max="5"/, "the guide should disclose five essentials");
 for (const key of ["identity", "story", "links", "photo", "contact"]) {
   assert.match(html, new RegExp(`data-check="${key}"`), `the ${key} essential is missing`);
@@ -28,5 +28,5 @@ assert.match(client, /kit\.media\.some\(item => item\.contentType\?\.startsWith\
 assert.match(css, /\.epk-guided \.epk-form \[data-epk-step\]/, "guided mode should show one step without deleting advanced fields");
 assert.match(css, /\.epk-preview-open \.epk-form\{display:none\}/, "the phone preview should not overlap the editor");
 assert.match(css, /grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/, "desktop essentials should use a compact single row");
-assert.match(worker, /danzstak-shell-v868/, "the installed PWA must retain the guided EPK assets");
+assert.match(worker, /danzstak-shell-v869/, "the installed PWA must retain the guided EPK assets");
 console.log("Five-minute EPK checks passed: private guide, bounded steps, live preview, link-only media, and PWA refresh.");
