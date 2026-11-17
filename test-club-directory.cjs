@@ -49,6 +49,6 @@ const fs = require("node:fs");
   assert.match(api, /filter\(venue => venue\.club\.tier !== "removed"\)/);
   assert.match(api, /tier IN \(:verified, :replied\)/);
   assert.match(api, /payToPlay: \["tickets", "fee"\]\.includes/);
-  assert.match(fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), /withVenueFreshness\(ranked\.slice\(offset, offset \+ 20\)\);\n\s+\/\/[^\n]*\n\s+await saveFoundClubs\(venues\)/, "venue searches save what they find (city sweeps)");
+  assert.match(fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), /withVenueFreshness\(ranked\.slice\(offset, offset \+ 20\)\);\s+\/\/[^\n]*\s+await saveFoundClubs\(venues\)/, "venue searches save what they find (city sweeps)");
   console.log("Club database checks passed.");
 })().catch(error => { console.error(error); process.exit(1); });
