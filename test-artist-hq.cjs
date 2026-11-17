@@ -31,10 +31,10 @@ assert.doesNotMatch(hq, /messages\.html#bookings/, "the retired hash handoff doe
 assert.doesNotMatch(hq, /innerHTML|insertAdjacentHTML|outerHTML/);
 assert.match(css, /min-height:44px/);
 assert.match(css, /@media\(max-width:760px\)/);
-assert.match(booking, /assets\/booking-selections\.js\?v=32/);
+assert.match(booking, /assets\/booking-selections\.js\?v=33/);
 assert.match(bookingJs, /searchParams\.get\("focusVenue"\)/);
 assert.match(bookingJs, /focusFollowUpVenue\(followUpFocusVenue\)/);
-assert.match(worker, /danzstak-shell-v865/);
+assert.match(worker, /danzstak-shell-v866/);
 assert.match(worker, /\/assets\/artist-hq\.js/);
 assert.match(worker, /\/assets\/artist-hq\.css/);
 

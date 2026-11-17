@@ -55,6 +55,7 @@ import QRCode from "qrcode";
 import { promoterQueries, promoterLeads } from "./promoter-research.mjs";
 import { enrichPromoter } from "./promoter-contact.mjs";
 import { bookingReplyNotice } from "./booking-reply-notice.mjs";
+import { unopenedRefunds, unopenedRefundTransaction } from "./unopened-credit.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -3326,7 +3327,13 @@ async function refreshClubStatsIfDue() {
     await db.send(new UpdateItemCommand({ TableName: venueDirectoryTable, Key: { venueKey: { S: CLUB_STATS_META } }, UpdateExpression: "SET statsAt = :at", ConditionExpression: "attribute_not_exists(statsAt) OR statsAt < :cutoff", ExpressionAttributeValues: { ":at": { S: at }, ":cutoff": { S: cutoff } } }));
   } catch (error) { if (error.name !== "ConditionalCheckFailedException" && !clubWriteDenied(error)) console.error("Club stats claim failed:", error.name); return; }
   try {
-    const items = await scanAll({ TableName: toursTable, FilterExpression: "begins_with(tourId, :send) OR tourId = :workspace", ExpressionAttributeValues: { ":send": { S: "TOUR_MANAGER#EMAIL_SEND#" }, ":workspace": { S: BOOKING_WORKSPACE_ID } } }, 50000);
+    const items = await scanAll({ TableName: toursTable, FilterExpression: "begins_with(tourId, :send) OR begins_with(tourId, :outreach) OR tourId = :workspace", ExpressionAttributeValues: { ":send": { S: "TOUR_MANAGER#EMAIL_SEND#" }, ":outreach": { S: epkOutreachPrefix }, ":workspace": { S: BOOKING_WORKSPACE_ID } } }, 100000);
+    // Owner 2026-11-17: a pitch unopened after 30 days gives the band its credit back (DanzStak credits, not Stripe).
+    // Each refund is its own conditional transaction, so a late open, reply or second run never doubles it.
+    for (const entry of unopenedRefunds(items).slice(0, 200)) {
+      try { await db.send(new TransactWriteItemsCommand({ TransactItems: unopenedRefundTransaction(toursTable, entry, new Date().toISOString()) })); }
+      catch (error) { if (error.name !== "TransactionCanceledException") console.error("Unopened credit not returned:", error.name); }
+    }
     const stats = clubStats(items);
     await mapLimit([...stats], 8, async ([venueKey, club]) => {
       try { await db.send(new UpdateItemCommand(clubStatsUpdate(venueDirectoryTable, venueKey, club, at))); }
@@ -4617,7 +4624,7 @@ async function outreachEpkShare(event, method, shareId = "") {
   if (!userId) return reply(401, { error: "Authentication required." });
   if (method === "GET") {
     const items = await queryAll({ TableName: toursTable, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: userId }, ":prefix": { S: epkOutreachPrefix } }, ConsistentRead: true }, 500);
-    return reply(200, { shares: items.map(item => ({ outreachId: String(item.outreachId?.S || item.tourId?.S?.slice(epkOutreachPrefix.length) || ""), venueKey: item.venueKey?.S || "", venueName: item.venueName?.S || "Venue", shareId: item.shareId?.S || "", openCount: Number(item.openCount?.N || 0), firstOpenedAt: item.firstOpenedAt?.S || "", lastOpenedAt: item.lastOpenedAt?.S || "", expiresAt: item.expiresAt?.N ? new Date(Number(item.expiresAt.N) * 1000).toISOString() : "", revoked: item.revoked?.BOOL === true })) });
+    return reply(200, { shares: items.map(item => ({ outreachId: String(item.outreachId?.S || item.tourId?.S?.slice(epkOutreachPrefix.length) || ""), venueKey: item.venueKey?.S || "", venueName: item.venueName?.S || "Venue", shareId: item.shareId?.S || "", openCount: Number(item.openCount?.N || 0), firstOpenedAt: item.firstOpenedAt?.S || "", lastOpenedAt: item.lastOpenedAt?.S || "", expiresAt: item.expiresAt?.N ? new Date(Number(item.expiresAt.N) * 1000).toISOString() : "", revoked: item.revoked?.BOOL === true, creditReturnedAt: item.creditReturnedAt?.S || "" })) });
   }
   const data = parseJsonBody(event), action = String(data?.action || "create"), venueKey = String(data?.venueKey || "").trim(), outreachId = String(data?.outreachId || "").trim();
   if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !venueKey || venueKey.length > 240) return reply(400, { error: "Choose a saved venue and a valid outreach draft." });
