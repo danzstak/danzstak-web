@@ -5,6 +5,13 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Your DanzStak chats, calls and booking replies as their own app. Same account, no second login.": "Chat, chiamate e risposte di booking di DanzStak in un'app tutta loro. Stesso account, nessun secondo accesso.",
+"Install SYNC": "Installa SYNC",
+"On iPhone: tap Share, then Add to Home Screen.": "Su iPhone: tocca Condividi, poi Aggiungi a Home.",
+"Open SYNC": "Apri SYNC",
+"Your phone number is never shown or shared in SYNC.": "Il tuo numero di telefono non viene mai mostrato né condiviso in SYNC.",
+"Get SYNC as its own app": "SYNC come app a sé",
+"Its own icon on your home screen, straight to your chats": "La sua icona nella schermata Home, dritto alle chat",
 "Make it yours": "Personalizza",
 "Theme, accent, bubbles, text size, vibration, quiet hours, reactions": "Tema, colore, fumetti, testo, vibrazione, ore di silenzio, reazioni",
 "Theme": "Tema",
@@ -210,6 +217,13 @@
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
 },
 "fr": {
+"Your DanzStak chats, calls and booking replies as their own app. Same account, no second login.": "Tes discussions, appels et réponses de booking DanzStak dans leur propre app. Même compte, pas de deuxième connexion.",
+"Install SYNC": "Installer SYNC",
+"On iPhone: tap Share, then Add to Home Screen.": "Sur iPhone : touche Partager, puis Sur l'écran d'accueil.",
+"Open SYNC": "Ouvrir SYNC",
+"Your phone number is never shown or shared in SYNC.": "Ton numéro n'est jamais affiché ni partagé dans SYNC.",
+"Get SYNC as its own app": "SYNC en app séparée",
+"Its own icon on your home screen, straight to your chats": "Sa propre icône sur l'écran d'accueil, directement vers tes discussions",
 "Make it yours": "À ta façon",
 "Theme, accent, bubbles, text size, vibration, quiet hours, reactions": "Thème, couleur, bulles, texte, vibreur, heures calmes, réactions",
 "Theme": "Thème",
@@ -415,6 +429,13 @@
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
 },
 "es": {
+"Your DanzStak chats, calls and booking replies as their own app. Same account, no second login.": "Tus chats, llamadas y respuestas de booking de DanzStak en su propia app. Misma cuenta, sin segundo inicio de sesión.",
+"Install SYNC": "Instalar SYNC",
+"On iPhone: tap Share, then Add to Home Screen.": "En iPhone: toca Compartir y luego Añadir a pantalla de inicio.",
+"Open SYNC": "Abrir SYNC",
+"Your phone number is never shown or shared in SYNC.": "Tu número nunca se muestra ni se comparte en SYNC.",
+"Get SYNC as its own app": "SYNC como app propia",
+"Its own icon on your home screen, straight to your chats": "Su propio icono en la pantalla de inicio, directo a tus chats",
 "Make it yours": "Hazlo tuyo",
 "Theme, accent, bubbles, text size, vibration, quiet hours, reactions": "Tema, color, burbujas, texto, vibración, horas de silencio, reacciones",
 "Theme": "Tema",
