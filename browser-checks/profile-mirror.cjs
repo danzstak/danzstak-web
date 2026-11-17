@@ -110,8 +110,64 @@ const audit = page => page.evaluate(() => {
         if (w.strip && w.post && Math.abs(w.post.top - w.strip.bottom) > 1.5) failures.push(`${label}: gap between Dailies and posts (${Math.round(w.post.top - w.strip.bottom)}px)`);
         if (owner && w.strip && w.composer && Math.abs(w.strip.top - w.composer.bottom) > 1.5) failures.push(`${label}: gap between composer and Dailies (${Math.round(w.strip.top - w.composer.bottom)}px)`);
       }
+      // Familiar navigation: action row, top bar, tab row.
+      const nav = await page.evaluate(() => {
+        const visible = node => { if (!node) return false; const r = node.getBoundingClientRect(), cs = getComputedStyle(node); return r.width > 0 && r.height > 0 && cs.display !== "none" && cs.visibility !== "hidden"; };
+        const row = [...document.querySelectorAll(".profile-actions:not(.profile-locked-friend) > *")].filter(visible);
+        const label = node => (node.getAttribute("aria-label") || node.querySelector("[aria-label]")?.getAttribute("aria-label") || node.textContent).trim();
+        const header = document.querySelector("header.profile-app-header");
+        const tabs = [...document.querySelectorAll(".profile-tabs > button")].filter(visible);
+        const tops = new Set(row.map(node => Math.round(node.getBoundingClientRect().top)));
+        return {
+          row: row.map(label), rowLines: tops.size, rowTargets: row.every(node => { const r = (node.matches(".profile-more-wrap") ? node.firstElementChild : node).getBoundingClientRect(); return r.width >= 43.5 && r.height >= 43.5; }),
+          header: header ? [...header.children].filter(visible).map(node => node.className || node.tagName) : [], headerName: header?.querySelector(".profile-header-name")?.textContent.trim() || "",
+          headerHeight: header?.getBoundingClientRect().height || 0,
+          // Contrast of the top bar's name and icons against the bar (WCAG ratio).
+          headerContrast: (() => {
+            const parse = value => (value.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+            const lum = ([r, g, b]) => [r, g, b].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+            let bgNode = header, bg = "rgba(0, 0, 0, 0)";
+            while (bgNode && /rgba\(0, 0, 0, 0\)|transparent/.test(bg = getComputedStyle(bgNode).backgroundColor)) bgNode = bgNode.parentElement;
+            return [".profile-header-name", ".profile-back", ".profile-search-toggle"].map(selector => { const node = header?.querySelector(selector); if (!node) return 0; const a = lum(parse(getComputedStyle(node).color)), b = lum(parse(bg)); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); });
+          })(),
+          note: /Only this member can post|Only accepted friends can post/.test(document.body.innerText),
+          tabs: tabs.map(button => { const r = button.getBoundingClientRect(), range = document.createRange(); range.selectNodeContents(button); const lines = new Set([...range.getClientRects()].filter(x => x.width > 1).map(x => Math.round(x.top))).size; return { text: button.textContent.trim(), lines, h: r.height, active: button.classList.contains("active") || button.getAttribute("aria-selected") === "true" }; }),
+          tabTops: new Set(tabs.map(button => Math.round(button.getBoundingClientRect().top))).size
+        };
+      });
+      if (owner) {
+        if (nav.row.some(text => /friend|^Message/i.test(text))) failures.push(`${label}: owner sees Add friend / Message (${nav.row.join(" | ")})`);
+      } else {
+        if (nav.row.length !== 3 || !/friend/i.test(nav.row[0]) || !/^Message/.test(nav.row[1]) || !/^More$/.test(nav.row[2])) failures.push(`${label}: visitor row is not Add friend / Message / More (${nav.row.join(" | ")})`);
+        if (nav.row.some(text => /Edit Profile|Open my shop|Invite People/.test(text))) failures.push(`${label}: visitor sees owner-only controls (${nav.row.join(" | ")})`);
+      }
+      if (nav.rowLines !== 1 || !nav.rowTargets) failures.push(`${label}: action row wraps or has small targets (${nav.rowLines} lines)`);
+      if (nav.note) failures.push(`${label}: instructional "only … can post" copy is shown`);
+      if (width <= 700) {
+        const header = nav.header.join(" ");
+        if (!/profile-back/.test(header) || !/profile-header-name/.test(header) || !/profile-search-toggle/.test(header)) failures.push(`${label}: top bar is not back / name / search (${header})`);
+        if (/brand|pivot-header-button|profile-header-search/.test(header)) failures.push(`${label}: top bar still shows ${header}`);
+        if (nav.headerName !== "Night Shift") failures.push(`${label}: top bar name "${nav.headerName}"`);
+        if (nav.headerHeight > 60) failures.push(`${label}: top bar is not slim (${nav.headerHeight}px)`);
+        if (nav.headerContrast.some(ratio => ratio < 4.5)) failures.push(`${label}: top bar name/icons are hard to see (contrast ${nav.headerContrast.map(r => r.toFixed(1)).join(", ")})`);
+      }
+      if (nav.tabTops !== 1 || nav.tabs.some(tab => tab.lines !== 1 || tab.h < 43.5) || nav.tabs.filter(tab => tab.active).length !== 1) failures.push(`${label}: tab row is not one tidy single-line row ${JSON.stringify(nav.tabs)}`);
       if ([360, 390].includes(width)) {
         await page.screenshot({ path: path.join(output, `${prefix}-${who}-top-${width}.png`) });
+        if (!owner) {
+          await page.locator(".profile-more").click();
+          await page.waitForTimeout(150);
+          const menuOpen = await page.evaluate(() => { const m = document.querySelector(".profile-more-menu"); return m && !m.hidden ? m.textContent.trim() : ""; });
+          if (menuOpen !== "Share profile") failures.push(`${label}: More menu does not offer Share profile ("${menuOpen}")`);
+          await page.screenshot({ path: path.join(output, `${prefix}-${who}-more-${width}.png`) });
+          await page.keyboard.press("Escape");
+        }
+        await page.locator(".profile-search-toggle").click();
+        await page.waitForTimeout(150);
+        const searching = await page.evaluate(() => { const i = document.getElementById("profileHeaderSearch"); const r = i.getBoundingClientRect(); return { focused: document.activeElement === i, w: r.width }; });
+        if (!searching.focused || searching.w < 150) failures.push(`${label}: search toggle does not open a usable search field ${JSON.stringify(searching)}`);
+        await page.screenshot({ path: path.join(output, `${prefix}-${who}-search-${width}.png`) });
+        await page.locator("#profileHeaderSearch").press("Escape");
         if (w.strip) {
           await page.evaluate(() => { const r = document.querySelector(".profile-dailies").getBoundingClientRect(); scrollBy(0, r.top - 180); });
           await page.waitForTimeout(250);
@@ -152,5 +208,5 @@ const audit = page => page.evaluate(() => {
     if (!process.env.AUDIT_ONLY) process.exitCode = 1;
     return;
   }
-  console.log(`Profile mirror checks passed at ${widths.join(", ")}px (owner and visitor): no big text buttons, one edge-to-edge wall, Dailies strip directly above the posts with a full-screen viewer and Back.`);
+  console.log(`Profile mirror checks passed at ${widths.join(", ")}px (owner and visitor): no big text buttons, back / name / search top bar, Add friend / Message / More row, tidy tabs, one edge-to-edge wall, Dailies strip directly above the posts with a full-screen viewer and Back.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

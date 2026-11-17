@@ -4,6 +4,12 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Back": "Indietro",
+"Search": "Cerca",
+"More": "Altro",
+"Share profile": "Condividi profilo",
+"Message {name}": "Scrivi a {name}",
+"this member": "questo membro",
 "Dailies": "Dailies",
 "Open Daily from {time}": "Apri il Daily delle {time}",
 "Daily from {time}": "Daily delle {time}",
@@ -48,6 +54,12 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"Back": "Retour",
+"Search": "Rechercher",
+"More": "Plus",
+"Share profile": "Partager le profil",
+"Message {name}": "Écrire à {name}",
+"this member": "ce membre",
 "Dailies": "Dailies",
 "Open Daily from {time}": "Ouvrir le Daily de {time}",
 "Daily from {time}": "Daily de {time}",
@@ -92,6 +104,12 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"Back": "Atrás",
+"Search": "Buscar",
+"More": "Más",
+"Share profile": "Compartir perfil",
+"Message {name}": "Escribir a {name}",
+"this member": "este miembro",
 "Dailies": "Dailies",
 "Open Daily from {time}": "Abrir el Daily de las {time}",
 "Daily from {time}": "Daily de las {time}",

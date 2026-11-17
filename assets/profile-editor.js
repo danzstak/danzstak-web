@@ -631,10 +631,8 @@ function profileWallComposer(profile) {
   const section = document.createElement("section");
   section.className = "profile-wall-composer";
   if (!profile.canPostToProfile && profile.isOwner !== true) {
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent = profile.profilePostPermission === "friends" ? "Only accepted friends can post on this profile." : "Only this member can post on their profile.";
-    section.appendChild(note);
+    // Fix-it 18: no instructional copy where there is nothing to do; a visitor who can't post simply sees no composer.
+    section.hidden = true;
     return section;
   }
   section.classList.toggle("profile-wall-composer-owner", profile.isOwner === true);
