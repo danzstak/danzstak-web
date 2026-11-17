@@ -29,8 +29,57 @@
   const lines = value => String(value || "").split(/\r?\n/).map(item => item.trim()).filter(Boolean);
   const linkLines = value => lines(value).map(item => { const [label, ...rest] = item.split("|"); const url = rest.join("|").trim(); return { label: label.trim(), url }; }).filter(item => item.label && /^https:\/\//i.test(item.url));
   const quoteLines = value => lines(value).map(item => { const [quote, source, ...rest] = item.split("|"); return { quote: quote?.trim(), source: source?.trim(), url: rest.join("|").trim() }; }).filter(item => item.quote && item.source);
+  // Hometown skin (task 15-B): auto (from the hometown field), a chosen scene city, or off. Matching is local.
+  const homeLooks = () => window.danzstakHometownLooks;
+  const HOMETOWN_MODES = new Set(["auto", "city", "off"]);
+  function hometownSkinFromForm() {
+    const mode = document.querySelector('input[name="hometownMode"]:checked')?.value || "auto";
+    if (mode !== "city") return { mode: HOMETOWN_MODES.has(mode) ? mode : "auto" };
+    const look = homeLooks()?.hometownLook(byId("hometownCity")?.value || "");
+    return look?.curated ? { mode: "city", city: look.id } : { mode: "auto" };
+  }
+  function resolveHometown(kit = {}) {
+    const L = homeLooks(); if (!L) return null;
+    const skin = kit.hometownSkin && typeof kit.hometownSkin === "object" ? kit.hometownSkin : { mode: "auto" }; // old kits act as "auto"
+    if (skin.mode === "off") return null;
+    if (skin.mode === "city") { const city = L.cityById(skin.city); if (city) return L.hometownLook(city.name); }
+    return L.hometownLook(kit.hometown || "");
+  }
+  const coordText = home => {
+    const lat = home?.tokens?.lat, lon = home?.tokens?.lon;
+    return Number.isFinite(lat) && Number.isFinite(lon) ? `${Math.abs(lat).toFixed(2)}° ${lat >= 0 ? "N" : "S"} · ${Math.abs(lon).toFixed(2)}° ${lon >= 0 ? "E" : "W"}` : "";
+  };
+  const SKIN_VARS = ["--epk-ground", "--epk-ink", "--epk-accent", "--home-motif"];
+  function applyHometown(look, home) {
+    const L = homeLooks(), isPublic = document.body.classList.contains("public-mode");
+    for (const name of SKIN_VARS) preview.style.removeProperty(name);
+    delete preview.dataset.hometown; delete preview.dataset.hometownName; delete preview.dataset.hometownCoords; delete preview.dataset.hometownAccent;
+    delete document.body.dataset.epkHometown; document.body.style.removeProperty("--epk-page-ground"); document.body.style.removeProperty("--home-motif");
+    if (!L || !home) return;
+    const vars = L.cssVars(look, home), composed = L.compose(look, home);
+    for (const [name, value] of Object.entries(vars)) preview.style.setProperty(name, value);
+    preview.dataset.hometown = home.id; preview.dataset.hometownName = home.name; preview.dataset.hometownAccent = composed.accent;
+    const coords = coordText(home); if (coords) preview.dataset.hometownCoords = coords;
+    // The skin wraps the whole page: the public EPK takes the composed ground; the dark builder takes the motif only.
+    document.body.dataset.epkHometown = home.id;
+    if (isPublic) { document.body.style.setProperty("--epk-page-ground", composed.ground); document.body.style.setProperty("--home-motif", composed.motif); }
+    else document.body.style.setProperty("--home-motif", L.compose("techno", home).motif);
+  }
+  function updateHometownControls() {
+    const L = homeLooks(), auto = byId("hometownAutoCity"), vibe = byId("hometownVibe"), pick = byId("hometownCityPick");
+    if (!auto || !vibe) return;
+    const mode = document.querySelector('input[name="hometownMode"]:checked')?.value || "auto";
+    if (pick) pick.hidden = mode !== "city";
+    const fromField = L?.hometownLook(byId("hometown").value);
+    auto.textContent = fromField ? `(${fromField.name})` : "";
+    const active = resolveHometown({ hometown: byId("hometown").value, hometownSkin: hometownSkinFromForm() });
+    vibe.replaceChildren();
+    if (mode === "off") vibe.append(document.createTextNode("The genre look on its own."));
+    else if (active) { vibe.append(Object.assign(document.createElement("strong"), { textContent: active.name })); if (active.tokens.vibe) vibe.append(" · ", Object.assign(document.createElement("span"), { textContent: active.tokens.vibe })); }
+    else vibe.append(document.createTextNode(mode === "city" ? "Pick a city from the list." : "Add your home town to see its skin."));
+  }
   const kitFromForm = (includeLocalPreviews = false) => ({
-    artistName: byId("artistName").value.trim(), hometown: byId("hometown").value.trim(), actType: byId("actType").value, genres: byId("genres").value.split(",").map(item => item.trim()).filter(Boolean), look: epkLooks.has(byId("epkLook").value) ? byId("epkLook").value : "techno", shortPitch: byId("shortPitch").value.trim(), shortBio: byId("shortBio").value.trim(), bio: byId("bio").value.trim(),
+    artistName: byId("artistName").value.trim(), hometown: byId("hometown").value.trim(), hometownSkin: hometownSkinFromForm(), actType: byId("actType").value, genres: byId("genres").value.split(",").map(item => item.trim()).filter(Boolean), look: epkLooks.has(byId("epkLook").value) ? byId("epkLook").value : "techno", shortPitch: byId("shortPitch").value.trim(), shortBio: byId("shortBio").value.trim(), bio: byId("bio").value.trim(),
     lineup: lines(byId("lineup").value), releases: lines(byId("releases").value), notableShows: lines(byId("notableShows").value), achievements: lines(byId("achievements").value), musicLinks: linkLines(byId("musicLinks").value), videoLinks: linkLines(byId("videoLinks").value), socialLinks: linkLines(byId("socialLinks").value), heroImage: byId("heroImage").value.trim(), logoImage: byId("logoImage").value.trim(), media: epkMedia.map(({url,previewUrl,...item}) => includeLocalPreviews ? {...item,url,previewUrl} : item), pressQuotes: quoteLines(byId("pressQuotes").value), stageRequirements: byId("stageRequirements").value.trim(), production:window.danzstakEpkProduction?.getData?.() || {plotItems:[],inputs:[]}, techRequirements: byId("techRequirements").value.trim(), hospitalityRequirements: byId("hospitalityRequirements").value.trim(), bookingName: byId("bookingName").value.trim(), bookingEmail: byId("bookingEmail").value.trim(), bookingPhone: byId("bookingPhone").value.trim(), website: byId("website").value.trim(), publicDetails: { bookingEmail:byId("publicBookingEmail").checked, bookingPhone:byId("publicBookingPhone").checked, technical:byId("publicTechnical").checked, hospitality:byId("publicHospitality").checked }
   });
   function guideCompletion() {
@@ -177,6 +226,8 @@
     const look = epkLooks.has(kit.look) ? kit.look : "techno";
     preview.dataset.look = look;
     if (document.body.classList.contains("public-mode")) document.body.dataset.epkLook = look;
+    const home = resolveHometown(kit);
+    applyHometown(look, home);
     const publicDetails = kit.publicDetails && typeof kit.publicDetails === "object" ? kit.publicDetails : { bookingEmail:true, bookingPhone:true, technical:true, hospitality:true };
     const imageSource = value => /^(?:https:\/\/|blob:)/i.test(value || "") ? value : "";
     const featuredMedia = (kit.media || []).find(item => item.featured && item.contentType?.startsWith("image/") && imageSource(item.url || item.previewUrl));
@@ -187,6 +238,7 @@
     const logoSource = imageSource(kit.logoImage) || imageSource(logoMedia?.url || logoMedia?.previewUrl);
     if (logoSource) { const logo = document.createElement("img"); logo.className = "epk-logo"; logo.src = logoSource; logo.alt = `${kit.artistName || "Artist"} logo`; hero.append(logo); }
     hero.append(text("h1", kit.artistName || "Your act"), text("p", [kit.hometown, ...(kit.genres || [])].filter(Boolean).join(" | ")));
+    if (home) { const line = text("p", "", "epk-hometown-line"); line.append(text("span", "Out of"), " ", text("strong", home.name)); const coords = coordText(home); if (coords) { const c = text("span", coords, "epk-hometown-coords"); c.dataset.noTranslate = ""; line.append(c); } hero.append(line); }
     preview.append(hero, body); if (kit.shortPitch) body.append(text("p", kit.shortPitch, "lead"));
     section("About", kit.shortBio || kit.bio ? text("p", kit.shortBio || kit.bio) : null); if (kit.shortBio && kit.bio) section("Full biography", text("p", kit.bio)); section("Lineup", list(kit.lineup)); section("Releases", list(kit.releases)); section("Listen", mediaLinks(kit.musicLinks)); section("Watch", mediaLinks(kit.videoLinks)); section("Follow", links(kit.socialLinks)); section("Notable shows", list(kit.notableShows)); section("Achievements", list(kit.achievements));
     if (kit.pressQuotes?.length) { const wrap = document.createElement("div"); kit.pressQuotes.forEach(item => { const q = text("blockquote", `“${item.quote}” — ${item.source}`, "quote"); if (/^https:\/\//i.test(item.url || "")) { const a = text("a", "Source"); a.href = item.url; a.target = "_blank"; a.rel = "noopener noreferrer"; q.append(document.createElement("br"), a); } wrap.append(q); }); section("Press", wrap); }
@@ -195,7 +247,15 @@
     const publicEmail = publicDetails.bookingEmail ? kit.bookingEmail : "", publicPhone = publicDetails.bookingPhone ? kit.bookingPhone : "", contactBits = [kit.bookingName, publicEmail, publicPhone].filter(Boolean); if (contactBits.length || kit.website) { const wrap = document.createElement("div"); wrap.className = "epk-contact"; if (kit.bookingName) wrap.append(text("p", kit.bookingName)); if (publicEmail) { const a = text("a", `Email ${kit.bookingName || "booking contact"}`); a.href = `mailto:${publicEmail}`; wrap.append(a); } if (publicPhone) { const phone = text("a", publicPhone); if (/^\+?[0-9 ()-]{7,24}$/.test(publicPhone)) phone.href = `tel:${publicPhone.replace(/[^+\d]/g, "")}`; wrap.append(phone); } if (/^https:\/\//i.test(kit.website || "")) { const a = text("a", "Official website"); a.href = kit.website; a.target = "_blank"; a.rel = "noopener noreferrer"; wrap.append(a); } section("Booking", wrap); }
   }
   const releasePreview = item => { if (/^blob:/i.test(item?.previewUrl || "")) URL.revokeObjectURL(item.previewUrl); };
-  function fill(kit = {}) { epkMedia.forEach(releasePreview); fields.forEach(id => { if (["genres","lineup","releases","notableShows","achievements","musicLinks","videoLinks","socialLinks","pressQuotes"].includes(id)) return; byId(id).value = kit[id] || (id === "actType" ? "band" : ""); }); byId("epkLook").value = epkLooks.has(kit.look) ? kit.look : "techno"; byId("actType").value = ["band","dj","electronic","solo"].includes(kit.actType) ? kit.actType : "band"; byId("genres").value = (kit.genres || []).join(", "); for (const id of ["lineup","releases","notableShows","achievements"]) byId(id).value = (kit[id] || []).join("\n"); for (const id of ["musicLinks","videoLinks","socialLinks"]) byId(id).value = (kit[id] || []).map(item => `${item.label} | ${item.url}`).join("\n"); byId("pressQuotes").value = (kit.pressQuotes || []).map(item => `${item.quote} | ${item.source}${item.url ? ` | ${item.url}` : ""}`).join("\n"); window.danzstakEpkProduction?.setData?.(kit.production || {}); const details = kit.publicDetails && typeof kit.publicDetails === "object" ? kit.publicDetails : { bookingEmail:true, bookingPhone:true, technical:true, hospitality:true }; byId("publicBookingEmail").checked = details.bookingEmail === true; byId("publicBookingPhone").checked = details.bookingPhone === true; byId("publicTechnical").checked = details.technical === true; byId("publicHospitality").checked = details.hospitality === true; epkMedia = Array.isArray(kit.media) ? kit.media : []; renderMediaManager(); render(kit); updateGuide(); }
+  function fillHometownSkin(kit = {}) {
+    const skin = kit.hometownSkin && typeof kit.hometownSkin === "object" ? kit.hometownSkin : { mode: "auto" };
+    const mode = HOMETOWN_MODES.has(skin.mode) ? skin.mode : "auto", input = document.querySelector(`input[name="hometownMode"][value="${mode}"]`);
+    if (input) input.checked = true;
+    const city = homeLooks()?.cityById(skin.city), cityInput = byId("hometownCity");
+    if (cityInput) cityInput.value = mode === "city" && city ? city.name : "";
+    queueMicrotask(updateHometownControls); // after fill() has written the hometown field
+  }
+  function fill(kit = {}) { fillHometownSkin(kit); epkMedia.forEach(releasePreview); fields.forEach(id => { if (["genres","lineup","releases","notableShows","achievements","musicLinks","videoLinks","socialLinks","pressQuotes"].includes(id)) return; byId(id).value = kit[id] || (id === "actType" ? "band" : ""); }); byId("epkLook").value = epkLooks.has(kit.look) ? kit.look : "techno"; byId("actType").value = ["band","dj","electronic","solo"].includes(kit.actType) ? kit.actType : "band"; byId("genres").value = (kit.genres || []).join(", "); for (const id of ["lineup","releases","notableShows","achievements"]) byId(id).value = (kit[id] || []).join("\n"); for (const id of ["musicLinks","videoLinks","socialLinks"]) byId(id).value = (kit[id] || []).map(item => `${item.label} | ${item.url}`).join("\n"); byId("pressQuotes").value = (kit.pressQuotes || []).map(item => `${item.quote} | ${item.source}${item.url ? ` | ${item.url}` : ""}`).join("\n"); window.danzstakEpkProduction?.setData?.(kit.production || {}); const details = kit.publicDetails && typeof kit.publicDetails === "object" ? kit.publicDetails : { bookingEmail:true, bookingPhone:true, technical:true, hospitality:true }; byId("publicBookingEmail").checked = details.bookingEmail === true; byId("publicBookingPhone").checked = details.bookingPhone === true; byId("publicTechnical").checked = details.technical === true; byId("publicHospitality").checked = details.hospitality === true; epkMedia = Array.isArray(kit.media) ? kit.media : []; renderMediaManager(); render(kit); updateGuide(); }
   function showLink(publicId, published) { const row = byId("publicLinkRow"), link = byId("publicLink"), handoff = byId("epkBookingHandoff"); row.hidden = !publicId || !published; if (handoff) handoff.hidden = row.hidden; if (!row.hidden) { link.href = `epk.html?id=${encodeURIComponent(publicId)}`; link.textContent = new URL(link.href, location.href).href; } }
   function showPrivateShare(shared, href = "") { const create = byId("createPrivateLink"), revoke = byId("revokePrivateLink"), row = byId("privateLinkRow"), link = byId("privateLink"); create.textContent = shared ? "Replace private link" : "Create private link"; revoke.hidden = !shared; row.hidden = !href; if (href) { link.href = href; link.textContent = href; } else { link.removeAttribute("href"); link.textContent = ""; } }
   const mediaRoles = [
@@ -336,6 +396,11 @@
   request(`${api}/epk`, { credentials:"include", cache:"no-store" }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Could not load your EPK."); if (data.kit) { fill(data.kit); setGuidedMode(false); } else { render({}); setGuidedMode(true); } showLink(data.publicId, data.published); showPrivateShare(data.privateShared === true); byId("privateShareStatus").textContent = data.privateShared ? "A private review link is active. Replace it to get a new secret or revoke access." : "No private review link is active."; status.textContent = data.kit ? (data.published ? "Published EPK loaded." : "Private draft loaded.") : "Start with the act name. Your draft is private."; }).catch(error => { render({}); setGuidedMode(true); status.textContent = error.message; });
   for (const [role, publicField] of riderSlots) document.querySelector(`[data-rider-slot="${role}"] input[type=file]`)?.addEventListener("change", event => { const file = event.target.files?.[0]; event.target.value = ""; if (file) uploadRider(role, publicField, file); });
   const mediaInput = byId("epkMediaInput"), dropZone = byId("epkDropZone"); mediaInput.addEventListener("change", () => uploadFiles([...mediaInput.files])); for (const eventName of ["dragenter","dragover"]) dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.add("is-dragging"); }); for (const eventName of ["dragleave","drop"]) dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.remove("is-dragging"); }); dropZone.addEventListener("drop", event => uploadFiles([...event.dataTransfer.files]));
+  const cityList = byId("hometownCities");
+  if (cityList && homeLooks()) cityList.replaceChildren(...homeLooks().CITIES.map(city => Object.assign(document.createElement("option"), { value: city.name })));
+  form.addEventListener("change", event => { if (event.target.name === "hometownMode") { updateHometownControls(); render(kitFromForm(true)); if (event.target.value === "city") byId("hometownCity")?.focus(); } });
+  form.addEventListener("input", event => { if (["hometown", "hometownCity"].includes(event.target.id)) updateHometownControls(); });
+  updateHometownControls();
   form.addEventListener("input", event => { if (!event.target.closest(".epk-media-item")) render(kitFromForm(true)); updateGuide(); });
   form.addEventListener("epkproductionchange", () => render(kitFromForm(true)));
   byId("epkLook").addEventListener("change", () => render(kitFromForm(true)));

@@ -9,8 +9,8 @@ assert.match(html, /id="epkLook"/, "artists need a content-independent EPK look 
 for (const field of ["publicBookingEmail","publicBookingPhone","publicTechnical","publicHospitality"]) assert.match(html, new RegExp(`id="${field}"[^>]*type="checkbox"|type="checkbox"[^>]*id="${field}"`), `public EPK choice ${field} is missing`);
 assert.match(html, /Save private draft/, "EPKs must be private by default");
 assert.match(html, /Publish EPK/, "publishing must be explicit");
-assert.match(html, /id="printEpkOnePage"[\s\S]*One-page press PDF/, "public EPK visitors need a one-page press PDF action");
-assert.match(html, /id="printEpk"[\s\S]*Full press PDF/, "public EPK visitors need a full press PDF action");
+assert.match(html, /id="printEpkOnePage"[^>]*aria-label="One-page press PDF">Press PDF</, "public EPK visitors need a one-page press PDF action (short label, full accessible name)");
+assert.match(html, /id="printEpk"[^>]*aria-label="Full press PDF">Full PDF</, "public EPK visitors need a full press PDF action (short label, full accessible name)");
 assert.match(html, /id="copyEpkLink"/, "public EPK visitors need an explicit link-copy action");
 assert.match(html, /id="createPrivateLink"[\s\S]*id="revokePrivateLink"/, "artists need revocable private review links for bookers and managers");
 assert.match(html, /id="deleteEpk"/, "artists must be able to permanently delete an EPK");

@@ -4392,6 +4392,11 @@ function cleanEpk(data, ownerPrefix = "") {
   if (media.length !== rawMedia.length) return null;
   const look = new Set(["techno", "punk", "metal", "house"]).has(data.look) ? data.look : "techno";
   const actType = new Set(["band", "dj", "electronic", "solo"]).has(data.actType) ? data.actType : "band";
+  // Task 15-B: hometown skin. "auto" follows the hometown field (old kits without it behave as auto), "city" is a curated
+  // scene-city id from assets/hometown-looks.js, "off" shows the genre look alone. Nothing else is stored.
+  const hometownSkinMode = new Set(["auto", "city", "off"]).has(data.hometownSkin?.mode) ? data.hometownSkin.mode : "auto";
+  const hometownSkinCity = hometownSkinMode === "city" && /^[a-z][a-z-]{1,29}$/.test(String(data.hometownSkin?.city || "")) ? String(data.hometownSkin.city) : "";
+  const hometownSkin = hometownSkinMode === "city" ? (hometownSkinCity ? { mode:"city", city:hometownSkinCity } : { mode:"auto" }) : { mode:hometownSkinMode };
   const plotKinds = new Set(["vocal-mic", "instrument-mic", "di", "monitor", "amplifier", "drum-kit", "keyboard", "dj-mixer", "playback", "power", "other"]), plotPositions = new Set(["rear-left", "rear-center", "rear-right", "front-left", "front-center", "front-right"]), inputConnections = new Set(["mic", "di", "stereo-di", "line", "power"]), inputStands = new Set(["none", "straight", "boom", "short"]);
   const plotItems = list(data.production?.plotItems, 24, item => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return null;
@@ -4404,7 +4409,7 @@ function cleanEpk(data, ownerPrefix = "") {
     return source && connection && stand ? { id:text(item.id,64), source, connection, stand, phantom:item.phantom === true, notes:text(item.notes,240) } : null;
   });
   const kit = {
-    artistName: text(data.artistName, 120), hometown: text(data.hometown, 160), actType, look,
+    artistName: text(data.artistName, 120), hometown: text(data.hometown, 160), hometownSkin, actType, look,
     genres: list(data.genres, 8, item => text(item, 60)), shortPitch: text(data.shortPitch, 300),
     shortBio: text(data.shortBio, 1000), bio: text(data.bio, 5000), lineup: list(data.lineup, 16, item => text(item, 160)),
     releases: list(data.releases, 20, item => text(item, 300)), achievements: list(data.achievements, 20, item => text(item, 300)),

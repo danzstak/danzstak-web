@@ -8,7 +8,7 @@ assert.match(html, /<body class="ds-tool-page epk-skin">/);
 assert.match(html, /assets\/epk-skin\.css\?v=1/);
 assert.ok(html.indexOf("epk-skin.css") > html.indexOf("mobile-design-system.css"), "skin loads after the shared design system");
 assert.match(html, /class="epk-laminate" aria-hidden="true"/);
-assert.match(html, /assets\/epk-laminate\.js\?v=1/);
+assert.match(html, /assets\/epk-laminate\.js\?v=2/);
 // Builder only: the public EPK keeps the artist's chosen genre look.
 for (const rule of css.split("}").filter(rule => rule.includes("{") && /\.epk-skin/.test(rule))) assert.match(rule, /\.epk-skin:not\(\.public-mode\)/, `skin rule must skip public EPKs: ${rule.slice(0, 80)}`);
 assert.match(css, /--sk-ground:#0b0b0c/); assert.match(css, /--sk-accent:#ff5a1f/);
