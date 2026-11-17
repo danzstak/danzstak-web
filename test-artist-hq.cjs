@@ -14,8 +14,8 @@ const worker = read("service-worker.js");
 assert.match(feed, /href="#hq" data-feature="HQ"/);
 assert.match(feed, /Music HQ/);
 assert.match(feed, /booking-selections\.html#tourManagerTitle/);
-assert.match(feed, /assets\/artist-hq\.css\?v=3/);
-assert.match(feed, /assets\/artist-hq\.js\?v=3/);
+assert.match(feed, /assets\/artist-hq\.css\?v=4/);
+assert.match(feed, /assets\/artist-hq\.js\?v=4/);
 assert.match(enhancements, /\["HQ", "Friends"/);
 assert.match(enhancements, /danzstakArtistHq\?\.render/);
 assert.match(hq, /get\("\/epk"\)/);
@@ -31,10 +31,10 @@ assert.doesNotMatch(hq, /messages\.html#bookings/, "the retired hash handoff doe
 assert.doesNotMatch(hq, /innerHTML|insertAdjacentHTML|outerHTML/);
 assert.match(css, /min-height:44px/);
 assert.match(css, /@media\(max-width:760px\)/);
-assert.match(booking, /assets\/booking-selections\.js\?v=33/);
+assert.match(booking, /assets\/booking-selections\.js\?v=35/);
 assert.match(bookingJs, /searchParams\.get\("focusVenue"\)/);
 assert.match(bookingJs, /focusFollowUpVenue\(followUpFocusVenue\)/);
-assert.match(worker, /danzstak-shell-v869/);
+assert.match(worker, /danzstak-shell-v870/);
 assert.match(worker, /\/assets\/artist-hq\.js/);
 assert.match(worker, /\/assets\/artist-hq\.css/);
 

@@ -91,7 +91,16 @@
     hint.className = "hint";
     hint.textContent = t("Start the next leg from here. Pick a freeway; DanzStak finds clubs in the music towns along it.");
     if (legs.length > 1) {
+      // 15-D: the number of legs opens the leg list and says what it counts.
+      const legsButton = document.createElement("button"), legsNumber = document.createElement("strong"), legsWord = document.createElement("span");
+      legsButton.type = "button"; legsButton.className = "tour-stat tour-stat-inline"; legsButton.dataset.metric = "legs";
+      legsNumber.textContent = String(legs.length); legsWord.textContent = t("Legs");
+      legsButton.append(legsNumber, " ", legsWord);
+      legsButton.setAttribute("aria-label", `${legs.length} ${t("legs on this tour so far. Show the list.")}`);
+      legsButton.setAttribute("aria-expanded", "true");
+      heading.append(" ", legsButton);
       const sofar = document.createElement("p");
+      legsButton.addEventListener("click", () => { sofar.hidden = !sofar.hidden; legsButton.setAttribute("aria-expanded", String(!sofar.hidden)); if (!sofar.hidden) sofar.scrollIntoView({ behavior: "smooth", block: "center" }); });
       sofar.className = "tour-legs-so-far";
       sofar.textContent = `${t("Tour so far")}: ${legs.map((leg, index) => `${index + 1}. ${town(leg.start).replace(/\b\w/g, c => c.toUpperCase())} → ${town(leg.end).replace(/\b\w/g, c => c.toUpperCase())}`).join(" · ")}`;
       section.append(heading, sofar, hint, grid);

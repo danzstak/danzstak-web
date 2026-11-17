@@ -11,12 +11,12 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 assert.match(html, /class="tool-header"/);
 assert.match(html, /class="tool-brand"[\s\S]*?<span>DANZSTAK<\/span>/);
 assert.match(html, /<section class="booking-start"[\s\S]*?<section class="booking-identity"[\s\S]*?<section class="booking-brief"/);
-assert.match(html, /<h1 id="bookingBriefTitle">Where do you want to play\?<\/h1>/);
+assert.match(html, /<h1 id="bookingBriefTitle" aria-label="Where do you want to play\?">Where to play\?<\/h1>/);
 assert.match(html, />Plan my run<\/button>/);
 assert.match(html, /Exact dates are optional while researching/);
 assert.match(html, /id="bookingBriefExample">Example<\/button>/);
-assert.match(html, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/);
-assert.match(html, /<details class="planner-drawer">[\s\S]*?<summary>More tour options: genre, crew, van and budget<\/summary>/);
+assert.match(html, /<details class="booking-tools">[\s\S]*?<summary aria-label="Use the map or fill in the details yourself">Map or manual<\/summary>/);
+assert.match(html, /<details class="planner-drawer">[\s\S]*?<summary aria-label="More tour options: genre, crew, van and budget">More options<\/summary>/);
 assert.match(html, /assets\/booking-workspace\.css\?v=14/);
 assert.match(html, /assets\/booking-map\.js\?v=451/);
 assert.match(html, /assets\/booking-discovery\.css\?v=5/);
@@ -79,7 +79,7 @@ assert.doesNotMatch(agent, /Choose the first date and the date the act must be h
 assert.match(map, /danzstak:booking-selection/);
 assert.match(map, /window\.danzstakToggleBookingVenue/);
 
-assert.match(worker, /danzstak-shell-v869/);
+assert.match(worker, /danzstak-shell-v870/);
 assert.match(worker, /"\/assets\/booking-workspace\.css"/);
 
 console.log("Booking workspace design checks passed: one compact planning card, truthful status timing, shared tool header, optional advanced controls, and PWA coverage.");

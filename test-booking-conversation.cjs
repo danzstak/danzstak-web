@@ -107,12 +107,13 @@ const bookingAgent = fs.readFileSync("assets/booking-agent.js", "utf8");
 const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 assert.match(markup, /id="bookingBriefForm"/);
 assert.match(markup, /assets\/booking-conversation\.js\?v=486/);
-assert.match(markup, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/, "manual fields and the venue map should stay behind one optional disclosure");
+assert.match(markup, /<details class="booking-tools">[\s\S]*?<summary aria-label="Use the map or fill in the details yourself">Map or manual<\/summary>/, "manual fields and the venue map should stay behind one optional disclosure");
 assert.match(bookingConversation, /details\.booking-tools/,
   "a missing plain-language field should reveal the optional manual controls before moving focus");
 assert.match(markup, /Where do you want to play\?/);
-assert.match(markup, /More tour options: genre, crew, van and budget/);
-assert.match(bookingAgent, /target calendar/);
+assert.match(markup, /aria-label="More tour options: genre, crew, van and budget">More options</);
+assert.match(bookingAgent, /summary\.textContent = "Day sheet"/); // 15-D: one-line title, counts are buttons
+assert.match(bookingAgent, /statButton\("Shows", showIndex,/);
 assert.match(bookingAgent, /arrive 4:00 PM · soundcheck 5:00 PM/);
 assert.match(bookingAgent, /Safe return drive; finish with everyone and the vehicle home/);
 assert.match(authApi, /San Jose, California[\s\S]*Santa Cruz, California[\s\S]*Portland, Oregon[\s\S]*Seattle, Washington/);
