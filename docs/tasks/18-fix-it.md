@@ -89,3 +89,7 @@ Fix these before item 5 (16-C) is called done; they block a real call between tw
   - Ring volume slider with a preview ring (feeds the ringtone gain, default the new louder level).
   - Choices saved on that device only (not synced, not sent to the server). One ✕ that always closes, 44px targets, works at 320px.
 - [ ] If the browser blocks the microphone or camera, the box says exactly how to allow it in that browser instead of failing silently (today "Accept" just does nothing).
+
+### Call screen (owner, 2026-11-17)
+- [ ] **Move the small camera window.** Long-press (about 300 ms) the picture-in-picture self view, then drag it anywhere; on release it snaps to the nearest corner and stays inside the safe area, never over the hang-up/mute/camera buttons. A quick tap still does what it does today (swap big/small view). Same on computers with a mouse drag. Remember the corner for the next call on that device.
+- [ ] **Center the big window.** The other person's video is centered on the call screen, horizontally and vertically, at its own aspect ratio (portrait phone video fills a phone screen; landscape video is centered with even space above and below), never stretched or pushed to one side, on phones and computers. Same for the "calling…" avatar before they answer.
