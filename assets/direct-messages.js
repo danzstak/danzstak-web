@@ -133,7 +133,8 @@ function conversationVisualState(conversation) {
     canContact: conversation?.canContact !== false,
     unread: Math.max(0, Number(conversation?.unread || 0)),
     hasConversation: conversation?.hasConversation === true,
-    sharedGroup: conversation?.sharedGroup === true
+    sharedGroup: conversation?.sharedGroup === true,
+    typing: conversation?.typing === true
   };
 }
 
@@ -635,15 +636,26 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
   if (focusFirst) palette.querySelector("button")?.focus();
 }
 
+// 16-D: "last seen today at 22:41" / "yesterday" / a date; nothing when the member hides it.
+function lastSeenText(iso) {
+  const at = new Date(iso);
+  if (!iso || Number.isNaN(at.getTime())) return "";
+  const time = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), today = new Date(), yesterday = new Date(today.getTime() - 86400000);
+  if (at.toDateString() === today.toDateString()) return messageFormat("last seen today at {time}", { time });
+  if (at.toDateString() === yesterday.toDateString()) return messageFormat("last seen yesterday at {time}", { time });
+  return messageFormat("last seen {date}", { date: at.toLocaleDateString([], { day: "numeric", month: "short" }) });
+}
+let contactTyping = false;
 function updateConversationPresence(conversation) {
   if (!conversationPresence) return;
   const isOnline = conversation?.online === true;
   const contactName = conversation?.name || conversationName?.textContent || "DanzStak member";
-  const translatedPresence = messageTranslate(isOnline ? "Online" : "Offline");
-  conversationPresence.hidden = false;
+  const translatedPresence = contactTyping ? messageTranslate("typing…") : isOnline ? messageTranslate("Online") : lastSeenText(conversation?.lastSeenAt);
+  conversationPresence.hidden = !translatedPresence;
   conversationPresence.textContent = translatedPresence;
-  conversationPresence.classList.toggle("is-offline", !isOnline);
-  conversationPresence.setAttribute("aria-label", `${contactName}: ${translatedPresence}`);
+  conversationPresence.classList.toggle("is-offline", !isOnline && !contactTyping);
+  conversationPresence.classList.toggle("is-typing", contactTyping);
+  conversationPresence.setAttribute("aria-label", translatedPresence ? `${contactName}: ${translatedPresence}` : contactName);
 }
 
 function openConversation(conversation, { updateHistory = true } = {}) {
@@ -832,10 +844,9 @@ function directMessageItem(message) {
   meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · " + messageTranslate("edited") : "");
   if (mine) {
     const receipt = document.createElement("span");
-    receipt.className = message.read ? "message-receipt is-read" : "message-receipt";
-    receipt.textContent = message.read ? "✓✓" : "✓";
-    receipt.setAttribute("aria-label", messageTranslate(message.read ? "Read" : "Sent"));
+    receipt.className = "message-receipt";
     meta.append(" ", receipt);
+    updateDirectMessageReceipt(item, message, receipt);
   }
   item.appendChild(meta);
   updateMessageReactionBadge(item, message);
@@ -860,13 +871,15 @@ function directMessageItem(message) {
   return item;
 }
 
-function updateDirectMessageReceipt(item, message) {
-  const receipt = item?.querySelector?.(".message-receipt");
+// 16-D: ✓ sent, ✓✓ delivered (grey), ✓✓ read (blue) — server-side states, like familiar messengers.
+function updateDirectMessageReceipt(item, message, given) {
+  const receipt = given || item?.querySelector?.(".message-receipt");
   if (!receipt || message.senderEmail !== currentEmail) return;
-  const read = message.read === true;
+  const read = message.read === true, delivered = read || message.delivered === true;
   receipt.classList.toggle("is-read", read);
-  receipt.textContent = read ? "✓✓" : "✓";
-  receipt.setAttribute("aria-label", messageTranslate(read ? "Read" : "Sent"));
+  receipt.classList.toggle("is-delivered", delivered && !read);
+  receipt.textContent = delivered ? "✓✓" : "✓";
+  receipt.setAttribute("aria-label", messageTranslate(read ? "Read" : delivered ? "Delivered" : "Sent"));
 }
 
 function firstSafeMessageUrl(content) {
@@ -1009,6 +1022,7 @@ async function loadDirectMessages(reset = false) {
     if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-read", contact }, location.origin);
     if (followNewest && appended) messageList.scrollTop = messageList.scrollHeight;
     activeCanContact = data.canContact !== false;
+    if (contactTyping !== (data.typing === true)) { contactTyping = data.typing === true; updateConversationPresence(activeConversation); }
     setConversationActionsEnabled(activeCanContact);
     messageInput.disabled = !activeCanContact;
     sendButton.disabled = !activeCanContact;
@@ -1226,6 +1240,7 @@ async function loadConversations() {
         updatedAt: existing?.updatedAt || "",
         sharedGroup: existing?.sharedGroup === true || member.sharedGroup === true,
         online: member.online === true,
+        lastSeenAt: member.lastSeenAt || existing?.lastSeenAt || "",
         hasConversation: existing?.hasConversation === true
       });
     }
@@ -1296,7 +1311,8 @@ async function loadConversations() {
       }
       const copy = document.createElement("span"); copy.className = "conversation-copy";
       const name = document.createElement("strong"); name.textContent = conversation.name || "DanzStak member";
-      const preview = document.createElement("small"); preview.textContent = conversation.preview || messageTranslate("Open chat");
+      const preview = document.createElement("small"); preview.textContent = conversation.typing === true ? messageTranslate("typing…") : conversation.preview || messageTranslate("Open chat");
+      preview.classList.toggle("is-typing", conversation.typing === true);
       const unread = Number(conversation.unread || 0) > 0;
       button.classList.toggle("is-unread", Boolean(unread));
       const meta = document.createElement("span"); meta.className = "conversation-list-meta";
@@ -1454,6 +1470,17 @@ window.addEventListener("danzstak-contact-selected", event => {
 });
 
 messageInput?.addEventListener("input", () => saveChatDraft(contactInput.value.trim().toLowerCase(), messageInput.value));
+// 16-D: tell the other person "typing…" at most every 4 s; it fades by itself after 6 s on the server.
+let typingSentAt = 0;
+function sendTyping(typing) {
+  const contact = String(contactInput?.value || "").trim().toLowerCase();
+  if (!contact || !activeCanContact) return;
+  if (typing && Date.now() - typingSentAt < 4000) return;
+  typingSentAt = typing ? Date.now() : 0;
+  directFetch("/messages/typing", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ contactEmail: contact, typing }) }).catch(() => {});
+}
+messageInput?.addEventListener("input", () => { if (messageInput.value.trim()) sendTyping(true); });
+globalThis.danzstakStopTyping = () => { if (typingSentAt) sendTyping(false); };
 
 // Mobile Return and physical Enter use the same guarded send path.
 messageInput?.addEventListener("keydown", event => {
@@ -1469,6 +1496,7 @@ messageForm?.addEventListener("submit", async event => {
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
   if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
+  globalThis.danzstakStopTyping?.(); // 16-D: "typing…" stops the moment the message goes
   conversationFeedbackVersion += 1;
   availabilityNoticePending = false;
   const mediaFile = selectedMessageMedia;

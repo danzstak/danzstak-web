@@ -352,7 +352,7 @@ foreach ($chatPresenceBehavior in @('conversation-avatar-wrap', 'conversation.on
   if (-not ($directMessagesJs + $chatStyles).Contains($chatPresenceBehavior)) { Add-Failure "Messages: online friends lack a visible accessible presence marker: $chatPresenceBehavior" }
 }
 $messagesMarkupForPresence = Get-Content -LiteralPath (Join-Path $root 'messages.html') -Raw -Encoding utf8
-foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'function updateConversationPresence(conversation)', 'conversationPresence.hidden = false', 'conversationPresence.textContent = translatedPresence', 'updateConversationPresence(activeConversation)', 'conversationPresence.hidden = true', '.conversation-presence[hidden]{display:none}', '.conversation-presence.is-offline')) {
+foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'function updateConversationPresence(conversation)', 'conversationPresence.hidden = !translatedPresence', 'conversationPresence.textContent = translatedPresence', 'updateConversationPresence(activeConversation)', 'conversationPresence.hidden = true', '.conversation-presence[hidden]{display:none}', '.conversation-presence.is-offline')) {
   if (-not ($messagesMarkupForPresence + $directMessagesJs + $chatStyles).Contains($activeChatPresenceControl)) { Add-Failure "Messages: active conversation does not accurately expose online presence: $activeChatPresenceControl" }
 }
 foreach ($activeChatActionLabel in @('function labelConversationHeaderActions(name = "")', '`${translated}: ${name}`', 'labelConversationHeaderActions(conversationName.textContent)', 'labelConversationHeaderActions()')) {
