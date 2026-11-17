@@ -959,6 +959,9 @@ async function loadProfileFriends() {
       copy.append(name, availability); link.append(avatar, copy, status); grid.appendChild(link);
     }
     if (sortedFriends.length) tabMessage.appendChild(grid);
+    // Owner 2026-11-17: pending requests live on the Friends tab too — incoming to answer, sent ones marked "Request sent".
+    appendProfileFriendRequests(data.incoming, "incoming");
+    appendProfileFriendRequests(data.outgoing, "outgoing");
     // Members online now (not already friends), like a familiar "active now" list.
     const onlineMembers = onlineDirectory.filter(user => !friendEmails.has(String(user.email || "").toLowerCase()) && /^[a-f0-9-]{36}$/.test(String(user.memberId || "")));
     if (onlineMembers.length) {
@@ -977,6 +980,51 @@ async function loadProfileFriends() {
       tabMessage.append(onlineHeading, onlineGrid);
     }
   } catch (error) { if (version === profileTabVersion) tabMessage.textContent = error.message; }
+}
+
+function appendProfileFriendRequests(people, relationship) {
+  const list = (Array.isArray(people) ? people : []).filter(person => /^[a-f0-9-]{36}$/.test(String(person.memberId || "")));
+  if (!list.length) return;
+  const heading = document.createElement("h3"); heading.className = "profile-friends-heading";
+  heading.textContent = `${relationship === "incoming" ? "Friend requests" : "Requests sent"} · ${list.length}`;
+  const grid = document.createElement("div"); grid.className = "profile-friend-grid";
+  for (const person of [...list].sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")))) {
+    const displayName = person.name || "DanzStak member";
+    const card = document.createElement("div"); card.className = "profile-friend-card profile-friend-request"; card.dataset.relationship = relationship;
+    const link = document.createElement("a"); link.className = "profile-friend-request-link"; link.href = "profile.html?member=" + encodeURIComponent(person.memberId);
+    const avatar = person.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "profile-friend-avatar";
+    if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, person); }
+    else { avatar.textContent = displayName.charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
+    const copy = document.createElement("span"); const name = document.createElement("strong"); name.textContent = displayName;
+    const detail = document.createElement("small"); detail.textContent = relationship === "incoming" ? "Wants to be friends" : "Request sent";
+    copy.append(name, detail); link.append(avatar, copy); card.appendChild(link);
+    if (relationship === "incoming") {
+      const actions = document.createElement("span"); actions.className = "profile-friend-request-actions";
+      for (const [accept, label, icon] of [[true, "Accept", "person-check"], [false, "Decline", "close"]]) {
+        const button = document.createElement("button"); button.type = "button"; button.dataset.icon = icon;
+        button.className = accept ? "profile-friend-accept" : "profile-friend-decline";
+        button.setAttribute("aria-label", `${label}: ${displayName}`); button.title = button.getAttribute("aria-label"); button.textContent = label;
+        button.addEventListener("click", async () => {
+          actions.querySelectorAll("button").forEach(item => { item.disabled = true; });
+          try {
+            const response = await profileFetch(profileApi + "/friends/respond", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: person.email, accept }) });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || "Friend request could not be updated.");
+            window.danzstakShowFeedback?.(accept ? "You are now friends." : "Friend request declined.");
+            void loadProfileFriends();
+          } catch (error) {
+            actions.querySelectorAll("button").forEach(item => { item.disabled = false; });
+            window.danzstakShowFeedback?.(error.message, { urgent: true });
+          }
+        });
+        actions.appendChild(button);
+      }
+      card.appendChild(actions);
+    }
+    grid.appendChild(card);
+  }
+  tabMessage.append(heading, grid);
+  window.danzstakIcons?.enhance?.(grid);
 }
 
 let profileShop = null;
