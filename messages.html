@@ -141,6 +141,7 @@
   <p class="calling-device-account"><span>Account name</span><strong id="callingAccountName">Loading account…</strong></p>
   <p id="deviceStatus" class="device-status" role="status">Checking this device…</p>
   <ul id="registeredDevices" class="registered-devices" aria-label="Your registered calling devices"></ul>
+  <p class="push-test-row"><button id="pushTestButton" type="button">Send a test notification</button><span id="pushTestStatus" role="status"></span></p>
   <section class="sync-phone-verification" aria-labelledby="syncPhoneTitle">
     <h3 id="syncPhoneTitle">Verify this device by SMS</h3>
     <p id="syncPhoneIntro">DanzStak stores only a protected phone fingerprint and the last four digits. The number stays private, unsearchable, and is never a public SYNC identity.</p>
@@ -166,11 +167,11 @@
     <p class="sync-network-number-test-note">Use Stripe's Test Mode checkout. No real money is charged.</p>
   </section>
 </dialog>
-<script src="assets/call-devices.js?v=12" defer></script>
+<script src="assets/call-devices.js?v=14" defer></script>
 <script src="assets/phone-verification.js?v=9" defer></script>
 <script src="assets/purchase-terms.js?v=2" defer></script>
 <script src="assets/sync-network-number.js?v=2" defer></script>
-<script src="assets/push-notifications.js?v=308" defer></script>
+<script src="assets/push-notifications.js?v=309" defer></script>
 <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
   <a role="button" data-icon="home" aria-label="Mix" title="Mix" href="feed.html?view=feed"></a>
   <a role="button" data-icon="disc" aria-label="Music HQ" title="Music HQ" href="feed.html?view=hq"></a>
@@ -182,7 +183,7 @@
 <script src="assets/icon-buttons.js?v=13" defer></script>
 <script src="assets/invite-sharing.js?v=1" defer></script>
 <script src="assets/identity-media.js?v=2" defer></script>
-<script src="assets/chat.js?v=459" defer></script>
+<script src="assets/chat.js?v=460" defer></script>
 <script src="assets/direct-messages.js?v=499" defer></script>
 <script src="assets/booking-sync.js?v=6" defer></script>
 <script src="assets/make-plans.js?v=3" defer></script>

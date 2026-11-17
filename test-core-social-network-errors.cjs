@@ -41,7 +41,7 @@ async function helper(file, startText, endText, invocation, expected) {
   await helper(
     "assets/incoming-calls.js",
     "async function api",
-    "function showCall",
+    "async function showCall",
     'api("/calls/events")',
     /DanzStak cannot connect to calls right now/
   );
