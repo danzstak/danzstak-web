@@ -57,6 +57,16 @@ The Tour Manager (booking workspace, day sheets, route planner) is the band's ow
 4. Uses the same `hometownSkin` setting as the EPK (one setting, both places). If the band has no EPK yet, fall back to the account's home town, then to off.
 5. Tests + visual fax of `booking.html` and `booking-selections.html` at phone widths in light and dark.
 
+## 15-D — Owner notes, 2026-11-17 (apply in 15-B and 15-C)
+
+1. **Wrap the pages.** The skin covers the whole EPK and Tour Manager page edge to edge, behind every section, not a themed card sitting on a plain page.
+2. **No two-line box names.** Section titles, card names, stat labels, tabs and button labels fit on one line at 320px. Shorten the words, or use an icon plus a short word. Never wrap a label onto a second line, and never shrink it below readable size to make it fit. Add a test that checks for wrapped labels at 320px.
+3. **Every number is clickable and says what it counts.** Each count in the Tour Manager and Music HQ (Sent, Delivered, Opened, Replied, Booked, credits, shows, days, legs, the "Tour so far" totals) is a link or button that:
+   - opens the matching part of the tour doc: the list of those pitches, those shows or that day sheet, filtered to what the number counts;
+   - carries a short visible label on one line ("Opened 4") and an accessible name that says exactly what is counted ("4 venues opened your private EPK").
+
+   A number that cannot open anything is not shown as a number on its own.
+
 ## Done means
 
 Each PR: tests green, contrast test green, visual fax screenshots attached, i18n strings added, shell + asset versions bumped with test pins, deployed PWA verified (service worker version, assets served), no regressions in booking, EPK publish, PDF export.
