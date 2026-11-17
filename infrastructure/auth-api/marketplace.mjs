@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 const SECURITY_HEADERS = Object.freeze({
   "content-type": "application/json",
@@ -16,6 +16,10 @@ const PRODUCT_DESCRIPTION_MAX = 2000;
 const MAX_PRODUCT_CENTS = 5_000_000;
 const MAX_SHIPPING_CENTS = 250_000;
 const MAX_INVENTORY = 99_999;
+const MAX_SHOP_PRODUCTS = 5_000;
+const IMPORT_BATCH_MAX = 100;
+const SOURCE_REF_MAX = 120;
+const BAZAAR_PAGE_MAX = 60;
 const OFFICIAL_OWNER = "official";
 const PRODUCT_ID = /^[a-f0-9-]{36}$/i;
 const MEMBER_ID = /^[A-Za-z0-9_-]{8,128}$/;
@@ -147,6 +151,29 @@ function hasInflatedShipping(body) {
   return price !== null && shipping !== null && shipping > price;
 }
 
+// Moving Day (owner 2026-11-17): a shop moves its inventory from its own export.
+// The same row moved twice gets the same id, so a retried batch never duplicates.
+function importProductId(ownerId, sourceRef) {
+  const hex = createHash("sha256").update(`moving-day\u0000${ownerId}\u0000${sourceRef}`).digest("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${(8 + (parseInt(hex[16], 16) & 3)).toString(16)}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+function cleanImport(body) {
+  if (!body || typeof body !== "object" || !Array.isArray(body.items)) return null;
+  if (!body.items.length || body.items.length > IMPORT_BATCH_MAX) return null;
+  const status = String(body.status || "draft");
+  if (!["draft", "published"].includes(status)) return null;
+  const items = body.items.map((raw, index) => {
+    const sourceRef = boundedText(raw?.sourceRef, SOURCE_REF_MAX, { required: true });
+    const product = cleanProduct({ ...raw, status, productType: "physical" });
+    if (!sourceRef || !/^[\w:.#/-]+$/.test(sourceRef)) return { index, error: "Missing or invalid row reference." };
+    if (hasInflatedShipping(raw)) return { index, sourceRef, error: "Shipping costs more than the item." };
+    if (!product) return { index, sourceRef, error: "Needs a title, a price of at least 0.50 and stock of 0 or more." };
+    return { index, sourceRef, product };
+  });
+  return { status, items };
+}
+
 export function marketplaceFeeCents(subtotalCents) {
   const subtotal = positiveInteger(subtotalCents, 0, Number.MAX_SAFE_INTEGER);
   if (subtotal === null) throw new TypeError("Subtotal must be integer cents");
@@ -176,12 +203,24 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     return { headers, id };
   }
 
+  // Shops can hold thousands of records after Moving Day, so read every page.
+  async function queryProducts(pk, maximum = MAX_SHOP_PRODUCTS + 500) {
+    const items = [];
+    let ExclusiveStartKey;
+    do {
+      const result = await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "pk = :pk AND begins_with(sk, :product)", ExpressionAttributeValues: { ":pk": { S: pk }, ":product": { S: "PRODUCT#" } }, ConsistentRead: true, Limit: 500, ...(ExclusiveStartKey ? { ExclusiveStartKey } : {}) }));
+      items.push(...(result.Items || []));
+      ExclusiveStartKey = result.LastEvaluatedKey;
+    } while (ExclusiveStartKey && items.length < maximum);
+    return items;
+  }
+
   async function records(ownerId) {
-    const [shopResult, productResult] = await Promise.all([
+    const [shopResult, products] = await Promise.all([
       db.send(new GetItemCommand({ TableName: tableName, Key: shopKey(ownerId), ConsistentRead: true })),
-      db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "pk = :pk AND begins_with(sk, :product)", ExpressionAttributeValues: { ":pk": { S: ownerKey(ownerId) }, ":product": { S: "PRODUCT#" } }, ConsistentRead: true, Limit: 250 }))
+      queryProducts(ownerKey(ownerId))
     ]);
-    return { shop: shopResult.Item, products: productResult.Items || [] };
+    return { shop: shopResult.Item, products: products.filter(item => item.status?.S !== "archived") };
   }
 
   function bazaarProjection(shop, product) {
@@ -222,15 +261,15 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
 
   async function readBazaar(event) {
     const headers = browserHeaders(event);
-    const result = await db.send(new QueryCommand({
-      TableName: tableName,
-      KeyConditionExpression: "pk = :pk AND begins_with(sk, :product)",
-      ExpressionAttributeValues: { ":pk": { S: "BAZAAR" }, ":product": { S: "PRODUCT#" } },
-      ConsistentRead: true,
-      Limit: 250
-    }));
-    const products = (result.Items || []).map(bazaarProductView).sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
-    return response(200, { products }, headers);
+    const query = event?.queryStringParameters || {};
+    const term = String(query.q || "").trim().toLocaleLowerCase().slice(0, 80);
+    const offset = Math.max(0, Math.min(Number.parseInt(query.offset, 10) || 0, 100_000));
+    const limit = Math.max(1, Math.min(Number.parseInt(query.limit, 10) || BAZAAR_PAGE_MAX, BAZAAR_PAGE_MAX));
+    const all = (await queryProducts("BAZAAR", 20_000)).map(bazaarProductView)
+      .filter(item => !term || `${item.title} ${item.description} ${item.shopName}`.toLocaleLowerCase().includes(term))
+      .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
+    const products = all.slice(offset, offset + limit);
+    return response(200, { products, total: all.length, nextOffset: offset + products.length < all.length ? offset + products.length : null }, headers);
   }
 
   async function readBazaarProduct(event, productId) {
@@ -263,8 +302,8 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     const at = nowIso(), revision = number(existing.Item, "revision") + 1;
     const item = { ...key, entityType: { S: "shop" }, ownerId: { S: access.id }, name: { S: body.name }, description: { S: body.description }, status: { S: body.status }, revision: { N: String(revision) }, createdAt: existing.Item?.createdAt || { S: at }, updatedAt: { S: at } };
     await db.send(new PutItemCommand({ TableName: tableName, Item: item }));
-    const productResult = await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "pk = :pk AND begins_with(sk, :product)", ExpressionAttributeValues: { ":pk": { S: ownerKey(access.id) }, ":product": { S: "PRODUCT#" } }, ConsistentRead: true, Limit: 250 }));
-    await syncBazaar(item, productResult.Items || []);
+    const products = (await queryProducts(ownerKey(access.id))).filter(product => product.status?.S !== "archived");
+    await syncBazaar(item, products);
     return response(existing.Item ? 200 : 201, { shop: shopView(item, [], true) }, access.headers);
   }
 
@@ -317,6 +356,37 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
       throw error;
     }
     return response(201, { product: productView(item, true) }, access.headers);
+  }
+
+  async function importProducts(event) {
+    const access = await requireMutation(event);
+    if (access.error) return access.error;
+    const shop = await db.send(new GetItemCommand({ TableName: tableName, Key: shopKey(access.id), ConsistentRead: true }));
+    if (!shop.Item) return response(409, { error: "Name your shop before Moving Day." }, access.headers);
+    const request = cleanImport(parseBody(event));
+    if (!request) return response(400, { error: `Send 1 to ${IMPORT_BATCH_MAX} items at a time, as drafts or published.` }, access.headers);
+    const existing = await queryProducts(ownerKey(access.id));
+    const known = new Set(existing.map(item => item.productId?.S));
+    let room = MAX_SHOP_PRODUCTS - existing.filter(item => item.status?.S !== "archived").length;
+    const results = [];
+    for (const entry of request.items) {
+      if (entry.error) { results.push({ index: entry.index, sourceRef: entry.sourceRef || "", result: "error", error: entry.error }); continue; }
+      const id = importProductId(access.id, entry.sourceRef);
+      if (known.has(id)) { results.push({ index: entry.index, sourceRef: entry.sourceRef, result: "skipped", productId: id }); continue; }
+      if (room <= 0) { results.push({ index: entry.index, sourceRef: entry.sourceRef, result: "error", error: `A shop can hold ${MAX_SHOP_PRODUCTS} items.` }); continue; }
+      const body = entry.product, at = nowIso();
+      const item = { ...productKey(access.id, id), entityType: { S: "product" }, ownerId: { S: access.id }, productId: { S: id }, title: { S: body.title }, description: { S: body.description }, imageUrl: { S: body.imageUrl }, productType: { S: body.productType }, priceCents: { N: String(body.priceCents) }, shippingCents: { N: String(body.shippingCents) }, inventory: { N: String(body.inventory) }, currency: { S: body.currency }, status: { S: body.status }, sourceRef: { S: entry.sourceRef }, importedAt: { S: at }, revision: { N: "1" }, createdAt: { S: at }, updatedAt: { S: at } };
+      try {
+        await db.send(new TransactWriteItemsCommand({ TransactItems: [{ Put: { TableName: tableName, Item: item, ConditionExpression: "attribute_not_exists(pk)" } }, bazaarMutation(shop.Item, item)] }));
+        known.add(id); room -= 1;
+        results.push({ index: entry.index, sourceRef: entry.sourceRef, result: "moved", productId: id });
+      } catch (error) {
+        if (["ConditionalCheckFailedException", "TransactionCanceledException"].includes(error?.name)) { known.add(id); results.push({ index: entry.index, sourceRef: entry.sourceRef, result: "skipped", productId: id }); continue; }
+        throw error;
+      }
+    }
+    const count = kind => results.filter(item => item.result === kind).length;
+    return response(200, { moved: count("moved"), skipped: count("skipped"), errors: count("error"), results }, access.headers);
   }
 
   async function updateProduct(event, productId, ownerId = "") {
@@ -374,6 +444,7 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     const publicShop = path.match(/^\/marketplace\/shop\/([A-Za-z0-9_-]{8,128})$/);
     if (method === "GET" && publicShop) return readShop(event, publicShop[1]);
     if (method === "POST" && path === "/marketplace/products") return createProduct(event);
+    if (method === "POST" && path === "/marketplace/products/import") return importProducts(event);
     const product = path.match(/^\/marketplace\/products\/([a-f0-9-]{36})$/i);
     if (method === "PATCH" && product) return updateProduct(event, product[1]);
     if (method === "DELETE" && product) return archiveProduct(event, product[1]);
@@ -385,4 +456,4 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
   };
 }
 
-export { cleanShop, cleanProduct, shopKey, productKey, bazaarKey, productView, shopView, bazaarProductView };
+export { cleanImport, importProductId, MAX_SHOP_PRODUCTS, IMPORT_BATCH_MAX, cleanShop, cleanProduct, shopKey, productKey, bazaarKey, productView, shopView, bazaarProductView };

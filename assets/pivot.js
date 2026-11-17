@@ -32,6 +32,20 @@
       ready: false,
       checked: "Guide checked November 7, 2026"
     },
+    discogs: {
+      label: "Discogs",
+      title: "Move your record shop from Discogs",
+      steps: [
+        "Sign in to Discogs in a browser and open your Dashboard, then your Inventory.",
+        "Choose Export and request an inventory export. Use the inventory export, not the collection export.",
+        "When Discogs says it is ready, download the CSV and keep it private.",
+        "Open Moving Day for shops, choose the file, pick what moves and set your prices."
+      ],
+      href: "moving-day.html?source=discogs",
+      action: "Open Moving Day for shops",
+      ready: true,
+      checked: "Guide checked November 17, 2026"
+    },
     reddit: {
       label: "Reddit",
       title: "Request your Reddit data",
@@ -51,7 +65,7 @@
   const dialog = document.createElement("dialog");
   dialog.className = "pivot-dialog";
   dialog.setAttribute("aria-labelledby", "movingDayTitle");
-  dialog.innerHTML = `<header><div><p class="pivot-kicker">Pivot</p><h2 id="movingDayTitle">Moving Day</h2><p>Clean house before you move your data.</p></div><button type="button" class="pivot-close" data-icon="close" aria-label="Close Moving Day" title="Close Moving Day"></button></header><div class="pivot-body"><p class="pivot-intro"><strong>Pivot away from billionaire platforms.</strong> Choose what to move to DanzStak. <strong>You own the data you choose to move.</strong> Preview the export and select only what belongs here. DanzStak never asks for your password or logs in to another platform.</p><div class="pivot-platforms" role="tablist" aria-label="Choose a platform"></div><section class="pivot-guide" aria-live="polite"></section><p class="pivot-tracking"><strong>Your imported content is trackable inside DanzStak.</strong> Each imported item receives a DanzStak content identity so its origin, attribution, and DanzStak reshares stay attached. DanzStak tracks content, not people. Independent screenshots or copies uploaded to another platform may not be traceable or removable by DanzStak.</p><p class="pivot-privacy"><strong>Nothing imports automatically.</strong> Your export stays on your device until you review it and choose what to bring. Imported Facebook posts start as <strong>Just me</strong> until you change their audience.</p></div>`;
+  dialog.innerHTML = `<header><div><p class="pivot-kicker">Pivot</p><h2 id="movingDayTitle">Moving Day</h2><p>Clean house before you move your data.</p></div><button type="button" class="pivot-close" data-icon="close" aria-label="Close Moving Day" title="Close Moving Day"></button></header><div class="pivot-body"><p class="pivot-intro"><strong>Pivot away from billionaire platforms.</strong> Choose what to move to DanzStak. <strong>You own the data you choose to move.</strong> Preview the export and select only what belongs here. DanzStak never asks for your password or logs in to another platform.</p><div class="pivot-platforms" role="tablist" aria-label="Choose a platform"></div><section class="pivot-guide" aria-live="polite"></section><p class="pivot-shops"><strong>Moving a shop?</strong> <a href="moving-day.html">Bring your whole inventory over from Discogs, eBay or Shopify</a>.</p><p class="pivot-tracking"><strong>Your imported content is trackable inside DanzStak.</strong> Each imported item receives a DanzStak content identity so its origin, attribution, and DanzStak reshares stay attached. DanzStak tracks content, not people. Independent screenshots or copies uploaded to another platform may not be traceable or removable by DanzStak.</p><p class="pivot-privacy"><strong>Nothing imports automatically.</strong> Your export stays on your device until you review it and choose what to bring. Imported Facebook posts start as <strong>Just me</strong> until you change their audience.</p></div>`;
   document.body.append(dialog);
   const platforms = dialog.querySelector(".pivot-platforms");
   const guide = dialog.querySelector(".pivot-guide");
@@ -69,8 +83,11 @@
     const list = document.createElement("ol");
     for (const step of data.steps) { const item = document.createElement("li"); item.textContent = step; list.append(item); }
     const actions = document.createElement("div"); actions.className = "pivot-guide-actions";
-    const official = document.createElement("a"); official.href = data.link; official.target = "_blank"; official.rel = "noopener noreferrer"; official.referrerPolicy = "no-referrer"; official.textContent = data.linkLabel; actions.append(official);
-    if (data.ready) {
+    if (data.link) { const official = document.createElement("a"); official.href = data.link; official.target = "_blank"; official.rel = "noopener noreferrer"; official.referrerPolicy = "no-referrer"; official.textContent = data.linkLabel; actions.append(official); }
+    if (data.ready && data.href) {
+      const open = document.createElement("a"); open.className = "primary"; open.href = data.href; open.textContent = data.action;
+      actions.replaceChildren(open);
+    } else if (data.ready) {
       const choose = document.createElement("button"); choose.type = "button"; choose.className = "primary"; choose.textContent = "Choose Facebook export";
       choose.addEventListener("click", () => { dialog.close(); window.openDanzStakFacebookImport?.(activeTrigger); });
       actions.prepend(choose);
