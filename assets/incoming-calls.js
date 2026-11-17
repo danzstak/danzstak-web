@@ -112,7 +112,12 @@
     } finally { clearTimeout(timeout); }
   }
 
-  function showCall(event) {
+  async function showCall(event) {
+    if (current?.callId === event.callId || handledCalls.has(event.callId)) return;
+    // The inbox only answers registered devices, so wait for the device check to finish
+    // instead of reading its "not loaded yet" state (owner 2026-11-17: a registration
+    // window kept reopening on every poll and could not be closed).
+    if (window.danzstakSyncDeviceRegistered?.() !== true) await window.danzstakSyncDeviceReady?.catch?.(() => false);
     if (current?.callId === event.callId || handledCalls.has(event.callId)) return;
     if (window.danzstakSyncDeviceRegistered?.() !== true) {
       // Prompt once per call. Re-prompting on every 2s poll reopened the window the moment the member closed it,
@@ -233,7 +238,7 @@
         return;
       }
       const offer = (inbox.events || []).find(event => event.signalType === "offer" && ["phone", "video"].includes(event.mode) && !handledCalls.has(event.callId));
-      if (offer) showCall(offer);
+      if (offer) await showCall(offer);
       callDeviceRegistrationRequired = false;
       registrationBackoffUntil = 0;
     } catch (error) {

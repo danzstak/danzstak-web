@@ -166,6 +166,8 @@ body.is-conversation-open>.install-app-button,body.is-conversation-open>.app-upd
 .dark-mode .chat-contact:hover{background:#253c60}
 .dark-mode .chat-contact-avatar{border-color:#526074;background:#263a55;color:#dceaff}
 .dark-mode .chat-contact-online{border-color:#253044}
+
+.push-test-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:8px 0}.push-test-row button{min-height:44px;padding:0 16px;border:1px solid #c5cfdd;border-radius:999px;background:#fff;font:inherit;font-weight:800;cursor:pointer}.push-test-row span{font-size:13px;color:#526173}
 /* Owner SYNC call test 2026-11-17: one-line registration panel (hidden parts stay hidden) and inline device rename. */
 .calling-devices-dialog [hidden]{display:none!important}
 .device-rename{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%;margin-top:8px}
