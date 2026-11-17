@@ -30,7 +30,9 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 
 **Parked (don't touch unless the owner moves them up):** fees PRs #363–#370 and #352/#359 (older work needing the owner's review), the legacy `codex/*` PRs, and Bedrock itself (AWS quota hold; the AI features now use the Anthropic API instead).
 
+**Ready (2026-11-17):** the Anthropic API key is stored in Secrets Manager `danzstak/ai/anthropic-key` (us-west-1, JSON `{"apiKey": ...}`), and a live test call to `claude-haiku-4-5` answered. The auth API role can read it through the attached managed policy `DanzStakAnthropicKeyRead`, because the role's inline policy is at its 10 KB size limit, so add new permissions as managed policies, not inline. Items 3b and 3c can use it.
+
 **Blocked on the owner:**
 - AWS support case: Bedrock quotas at 0, and SMS sandbox / Notify rejected.
-- Anthropic API key in Secrets Manager `danzstak/ai/anthropic-key`, for AI items 3b and 3c (they can be built and tested with a fake provider before the key exists).
+
 - Twilio upgrade from Trial before real members register.
