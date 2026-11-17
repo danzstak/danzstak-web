@@ -70,6 +70,43 @@ When a device finishes SMS registration, SYNC runs a short, skippable setup, the
    - **Phone numbers are never shared or searchable** (CLAUDE.md SYNC rule): the invite link replaces "share my number". Finding people by phone-contacts matching is not built unless the owner approves a separate opt-in, hashed-contacts design.
 5. **Done:** lands in the chat list.
 
+## 16-H — Make it yours (owner, 2026-11-17: "different things the user can do to make their own")
+
+Everything lives in **SYNC → Settings → Make it yours**. Every choice is previewed live, saved to the member's account (so it follows them to every registered device and survives cache updates), and has "Reset" on the same line.
+1. **Look:**
+   - Light / dark / auto.
+   - Accent color: DanzStak orange, the member's genre look (techno, punk, metal, house) or their hometown accent from task 15.
+   - Bubble style: rounded or square-edged "techno" bubbles.
+   - Text size (4 steps).
+   - Wallpaper (16-B).
+2. **Sound and feel:**
+   - Ringtone and message tone, with per-contact overrides (16-B2).
+   - Vibration pattern (short / long / off).
+   - Quiet hours (no sound or vibration between set times; calls from favorites can still ring).
+3. **Contacts:**
+   - Private nicknames (only you see them).
+   - Favorites pinned at the top.
+   - A custom per-contact wallpaper and ringtone.
+   - Mute, archive, and chat folders (e.g. "Band", "Bookings", "Friends", "Crew").
+4. **Your SYNC profile:**
+   - About line.
+   - Status: "on tour", "in the studio", "load-in until 6", or custom, with an optional expiry.
+   - An optional "now playing" link: an external music link only, never an uploaded file.
+   - Who can see last seen and online (everyone / friends / nobody).
+5. **Privacy:**
+   - **SYNC lock**: a passkey/biometric via WebAuthn, or a PIN, asked when SYNC opens.
+   - Hide message previews in notifications.
+   - Read receipts on/off.
+   - Disappearing messages per chat (off / 24 h / 7 days).
+6. **Reactions:** pick your 6 quick-reaction emojis.
+
+These rules apply to everything in 16-H:
+- No paid cosmetics.
+- No streaks or engagement bait.
+- Every option works offline once set.
+- Contrast stays ≥ 4.5:1 for every combination; the contrast test covers accent × theme × wallpaper dim.
+- Translations it/fr/es.
+
 ## 16-C — Buttons that don't look like HTML (SYNC first, then site-wide)
 
 1. One button system in the design tokens, used everywhere:
