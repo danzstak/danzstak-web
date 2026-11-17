@@ -598,38 +598,17 @@ function profilePostCard(post) {
   }
   const tools = document.createElement("div");
   tools.className = "profile-post-tools";
-  if (/^[a-f0-9-]{36}$/.test(String(post.postId || ""))) {
-    const open = document.createElement("a");
-    open.className = "secondary profile-post-open";
-    open.href = "feed.html#post-" + encodeURIComponent(post.postId);
-    open.textContent = "View in Your Mix";
-    tools.appendChild(open);
-  }
   window.danzstakRenderSharedPost?.(article, post);
   window.danzstakRenderMediaTags?.(article, post);
-  if (post.isOwner === true && post.postId) {
-    const feature = document.createElement("button");
-    feature.type = "button"; feature.className = "secondary";
-    const paint = () => { feature.textContent = post.featured ? "Remove from Featured" : "Feature on profile"; feature.setAttribute("aria-pressed", String(post.featured === true)); };
-    paint();
-    feature.addEventListener("click", async () => {
-      feature.disabled = true;
-      try {
-        const response = await profileFetch(profileApi + "/secure-posts/" + encodeURIComponent(post.postId), {method:"PATCH",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({featured:!post.featured})});
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "Featured post could not be saved.");
-        post.featured = !post.featured; paint();
-        if (!post.featured && article.closest(".profile-tab-message")?.dataset.profileMoreSection === "Featured") article.remove();
-      } catch (error) { showProfileFeedback(error.message, { urgent: true }); }
-      finally { feature.disabled = false; }
-    });
-    tools.appendChild(feature);
-  }
+  // Fix-it 18 (owner 2026-11-17): no big text buttons on the profile. The post is already in context (no open-in-Mix link),
+  // Featured is gone from profiles (no feature toggle), and removing someone else's wall post is a slim icon.
   if (post.canRemoveFromProfile === true && post.postId) {
     const remove = document.createElement("button");
     remove.type = "button";
-    remove.className = "secondary profile-wall-remove";
-    remove.textContent = "Remove from my profile";
+    remove.className = "profile-wall-remove";
+    remove.dataset.icon = "trash";
+    remove.setAttribute("aria-label", profileTranslate("Remove from my profile"));
+    remove.title = remove.getAttribute("aria-label");
     remove.addEventListener("click", async () => {
       if (!(await window.danzstakConfirm("The post will no longer appear on your profile.", { title: "Remove this post from your profile?", confirmLabel: "Remove post", danger: true }))) return;
       remove.disabled = true;

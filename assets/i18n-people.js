@@ -4,6 +4,7 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Remove from my profile": "Rimuovi dal mio profilo",
 "People": "Persone",
 "Search chats and people": "Cerca chat e persone",
 "Open {name} profile": "Apri il profilo di {name}",
@@ -39,6 +40,7 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"Remove from my profile": "Retirer de mon profil",
 "People": "Personnes",
 "Search chats and people": "Rechercher chats et personnes",
 "Open {name} profile": "Ouvrir le profil de {name}",
@@ -74,6 +76,7 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"Remove from my profile": "Quitar de mi perfil",
 "People": "Personas",
 "Search chats and people": "Buscar chats y personas",
 "Open {name} profile": "Abrir el perfil de {name}",
