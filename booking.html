@@ -47,6 +47,9 @@
 <script src="assets/app-tabs.js?v=1" defer></script>
 <link rel="stylesheet" href="assets/incoming-calls.css?v=238">
 <link rel="stylesheet" href="assets/call-ringer.css?v=5">
+<link rel="stylesheet" href="assets/tour-hometown.css?v=1">
+<script src="assets/hometown-looks.js?v=2" defer></script>
+<script src="assets/tour-hometown.js?v=1" defer></script>
 </head>
   <body class="ds-tool-page booking-page">
     <a class="skip-link" href="#bookingMain">Skip to Booking Agent</a>
@@ -63,7 +66,7 @@
       <section class="booking-start" aria-labelledby="bookingBriefTitle">
         <div class="booking-lead">
         <p class="eyebrow">DanzStak Booking Agent</p>
-        <h1 id="bookingBriefTitle">Where do you want to play?</h1>
+        <h1 id="bookingBriefTitle" aria-label="Where do you want to play?">Where to play?</h1>
         <p>Tell us the run in one sentence. We’ll find real clubs and build the route.</p>
         </div>
         <section class="booking-identity" aria-labelledby="bookingIdentityTitle">
@@ -110,7 +113,7 @@
         <button type="button" id="venueQuickMore" class="secondary" hidden>Find more clubs</button>
       </section>
       <details class="booking-tools">
-        <summary>Use the map or fill in the details yourself</summary>
+        <summary aria-label="Use the map or fill in the details yourself">Map or manual</summary>
         <div class="booking-tools-body">
       <section class="booking-map-panel" aria-labelledby="venueMapTitle">
         <div class="map-heading">
@@ -165,7 +168,7 @@
         </div>
       </details>
       <details class="planner-drawer">
-        <summary>More tour options: genre, crew, van and budget</summary>
+        <summary aria-label="More tour options: genre, crew, van and budget">More options</summary>
       <section class="planner-grid">
         <form id="tourForm" class="planner" autocomplete="off">
           <fieldset>
@@ -527,7 +530,7 @@
       </section>
       </details>
       <section class="booking-board">
-        <h2>Your next playable rooms</h2>
+        <h2 aria-label="Your next playable rooms">Playable rooms</h2>
         <p>
           Choose your act, hometown, dates, and how far you can travel. DanzStak
           will map a practical run and list public contacts for clubs your act

@@ -164,7 +164,15 @@
     return { "--epk-ground": c.ground, "--epk-ink": c.ink, "--epk-accent": c.accent, "--home-motif": c.motif };
   }
 
-  const api = Object.freeze({ CITIES, GENRES, MOTIFS, MOTIF_ALPHA, hometownLook, cityById, compose, cssVars, motifImage, contrast, normalize, townKey });
+  // Accent and motif for a page that keeps its own ground (the Tour Manager wears the hometown as accents only, 15-C).
+  function accentOn(look, groundHex) {
+    if (!look) return null;
+    const t = look.tokens || look;
+    let accent = ensureContrast(t.accent, groundHex, 4.6);
+    accent = ensureContrast(accent, mix(groundHex, accent, MOTIF_ALPHA), 4.6);
+    return { accent, motif: motifImage(t.motif, accent), worstGround: mix(groundHex, accent, MOTIF_ALPHA) };
+  }
+  const api = Object.freeze({ CITIES, GENRES, MOTIFS, MOTIF_ALPHA, hometownLook, cityById, compose, cssVars, accentOn, motifImage, contrast, ensureContrast, normalize, townKey });
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.danzstakHometownLooks = api;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -53,7 +53,7 @@ console.log("Natural-language brief checks passed.");
   assert.equal(ctx.nearestMusicCity([-103.5, 38.0]), null, "the middle of nowhere falls back to reverse geocoding");
   const ui = fs.readFileSync(require("node:path").join(__dirname, "assets/booking-agent.js"), "utf8");
   assert.match(ui, /if \(data\.route\.oneWay\) return strongestRouteMarkets/);
-  assert.match(ui, /\(one way\)/);
+  assert.match(ui, /data\.route\.oneWay \? "One way · " : ""/, "one-way routes say so (15-D: in the detail line, so the title fits one line)");
   console.log("Music-city snapping and one-way calendar checks passed.");
 }
 {
