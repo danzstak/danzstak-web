@@ -4,6 +4,14 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Dailies": "Dailies",
+"Open Daily from {time}": "Apri il Daily delle {time}",
+"Daily from {time}": "Daily delle {time}",
+"Previous": "Precedente",
+"Next": "Successivo",
+"Close": "Chiudi",
+"Mute": "Disattiva audio",
+"Unmute": "Attiva audio",
 "Remove from my profile": "Rimuovi dal mio profilo",
 "People": "Persone",
 "Search chats and people": "Cerca chat e persone",
@@ -40,6 +48,14 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"Dailies": "Dailies",
+"Open Daily from {time}": "Ouvrir le Daily de {time}",
+"Daily from {time}": "Daily de {time}",
+"Previous": "Précédent",
+"Next": "Suivant",
+"Close": "Fermer",
+"Mute": "Couper le son",
+"Unmute": "Activer le son",
 "Remove from my profile": "Retirer de mon profil",
 "People": "Personnes",
 "Search chats and people": "Rechercher chats et personnes",
@@ -76,6 +92,14 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"Dailies": "Dailies",
+"Open Daily from {time}": "Abrir el Daily de las {time}",
+"Daily from {time}": "Daily de las {time}",
+"Previous": "Anterior",
+"Next": "Siguiente",
+"Close": "Cerrar",
+"Mute": "Silenciar",
+"Unmute": "Activar sonido",
 "Remove from my profile": "Quitar de mi perfil",
 "People": "Personas",
 "Search chats and people": "Buscar chats y personas",

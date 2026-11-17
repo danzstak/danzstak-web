@@ -35,6 +35,21 @@ const posts = owner => [
   { postId: "33333333-3333-4333-8333-333333333334", userId: visitorId, authorName: "Tour Friend", content: "Great show!", profileOwnerMemberId: ownerId, createdAt: "2026-11-13T12:00:00.000Z", audience: "public", isOwner: false, canRemoveFromProfile: owner, viewCount: 2 }
 ];
 
+// Dailies: three by the profile's member (oldest first in the strip) and one by someone else that must not appear.
+const dailies = () => [
+  { storyId: "d1", memberId: ownerId, displayName: "Night Shift", mediaType: "image", mediaUrl: `${baseUrl}/__mirror/tall.svg`, createdAt: "2026-11-17T09:00:00.000Z" },
+  { storyId: "d2", memberId: ownerId, displayName: "Night Shift", mediaType: "image", mediaUrl: `${baseUrl}/__mirror/portrait.svg`, createdAt: "2026-11-17T10:00:00.000Z" },
+  { storyId: "d3", memberId: ownerId, displayName: "Night Shift", mediaType: "image", mediaUrl: `${baseUrl}/__mirror/landscape.svg`, createdAt: "2026-11-17T11:00:00.000Z" },
+  { storyId: "x1", memberId: visitorId, displayName: "Someone Else", mediaType: "image", mediaUrl: `${baseUrl}/__mirror/landscape.svg`, createdAt: "2026-11-17T12:00:00.000Z" }
+];
+// One continuous wall on a phone: cover, tabs, composer, Dailies and posts all reach both screen edges, and the
+// composer, Dailies strip and first post touch with no gap.
+const wall = page => page.evaluate(() => {
+  const box = selector => { const node = document.querySelector(selector); if (!node || node.closest("[hidden]")) return null; const r = node.getBoundingClientRect(); return r.height ? { left: r.left, right: r.right, top: r.top + scrollY, bottom: r.bottom + scrollY } : null; };
+  return { width: innerWidth, cover: box(".cover"), tabs: box(".profile-tabs"), composer: box(".profile-wall-composer"), strip: box(".profile-dailies:not([hidden])"), post: box(".profile-post-card"),
+    tiles: [...document.querySelectorAll(".profile-daily")].map(node => node.getAttribute("aria-label")), tileCount: document.querySelectorAll(".profile-daily").length };
+});
+
 // Big text buttons in the profile column: visible buttons/links styled as buttons whose label is a phrase.
 const audit = page => page.evaluate(() => {
   const problems = [];
@@ -72,6 +87,7 @@ const audit = page => page.evaluate(() => {
           : p === "/profile-friends" ? { friends: [] }
           : p === "/profile-video" ? { video: null }
           : p === "/settings/presence" ? { visible: true }
+          : p === "/stories" && route.request().method() === "GET" ? { stories: width === 430 ? [] : dailies() }
           : {};
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
       });
@@ -83,8 +99,40 @@ const audit = page => page.evaluate(() => {
       if (owner && !remove) failures.push(`${label}: the owner cannot remove a friend's wall post`);
       if (!owner && remove) failures.push(`${label}: a visitor sees the wall-remove control`);
       if (remove && (!remove.svg || remove.text || !remove.label || remove.w > 48 || Math.min(remove.w, remove.h) < 43.5)) failures.push(`${label}: wall remove is not a slim 44px icon button with a name ${JSON.stringify(remove)}`);
+      await page.waitForFunction(() => document.querySelector(".profile-dailies:not([hidden])") || !document.querySelector(".profile-dailies"), null, { timeout: 5000 }).catch(() => {});
+      const w = await wall(page);
+      const edge = (name, r) => { if (!r) failures.push(`${label}: ${name} missing`); else if (Math.abs(r.left) > 0.5 || Math.abs(r.right - w.width) > 0.5) failures.push(`${label}: ${name} does not reach both edges (${Math.round(r.left)}–${Math.round(r.right)} of ${w.width})`); };
+      if (width <= 560) { edge("cover", w.cover); edge("tab row", w.tabs); edge("first post", w.post); if (owner) edge("composer", w.composer); }
+      if (width === 430) { if (w.strip) failures.push(`${label}: an empty Dailies strip is shown`); }
+      else {
+        edge("Dailies strip", w.strip);
+        if (w.tileCount !== 3) failures.push(`${label}: Dailies strip shows ${w.tileCount} tiles, expected the member's 3 (no one else's)`);
+        if (w.strip && w.post && Math.abs(w.post.top - w.strip.bottom) > 1.5) failures.push(`${label}: gap between Dailies and posts (${Math.round(w.post.top - w.strip.bottom)}px)`);
+        if (owner && w.strip && w.composer && Math.abs(w.strip.top - w.composer.bottom) > 1.5) failures.push(`${label}: gap between composer and Dailies (${Math.round(w.strip.top - w.composer.bottom)}px)`);
+      }
       if ([360, 390].includes(width)) {
         await page.screenshot({ path: path.join(output, `${prefix}-${who}-top-${width}.png`) });
+        if (w.strip) {
+          await page.evaluate(() => { const r = document.querySelector(".profile-dailies").getBoundingClientRect(); scrollBy(0, r.top - 180); });
+          await page.waitForTimeout(250);
+          await page.screenshot({ path: path.join(output, `${prefix}-${who}-dailies-${width}.png`) });
+          const before = await page.evaluate(() => scrollY);
+          // Tap a Daily: full screen; next; Back returns to the same place on the profile.
+          await page.locator(".profile-daily").nth(1).click();
+          await page.waitForTimeout(300);
+          const open = await page.evaluate(() => { const v = document.querySelector(".profile-daily-viewer"); const m = v?.querySelector(".profile-daily-full"); const r = v?.getBoundingClientRect(); return { open: v?.open === true, w: r?.width, h: r?.height, src: m?.getAttribute("src") || "", next: !v?.querySelector(".profile-daily-next").hidden, prev: !v?.querySelector(".profile-daily-prev").hidden, labels: [...v.querySelectorAll("button:not([hidden])")].every(b => b.getAttribute("aria-label")) }; });
+          if (!open.open || Math.abs(open.w - width) > 1 || Math.abs(open.h - 844) > 1) failures.push(`${label}: Daily viewer is not full screen ${JSON.stringify(open)}`);
+          if (!/portrait\.svg/.test(open.src) || !open.next || !open.prev || !open.labels) failures.push(`${label}: viewer opened the wrong Daily or lacks named prev/next ${JSON.stringify(open)}`);
+          await page.screenshot({ path: path.join(output, `${prefix}-${who}-viewer-${width}.png`) });
+          await page.locator(".profile-daily-next").click();
+          await page.waitForTimeout(200);
+          if (!/landscape\.svg/.test(await page.locator(".profile-daily-full").getAttribute("src"))) failures.push(`${label}: next did not advance`);
+          await page.goBack();
+          await page.waitForTimeout(400);
+          const after = await page.evaluate(() => ({ open: document.querySelector(".profile-daily-viewer")?.open === true, y: scrollY, url: location.href }));
+          if (after.open) failures.push(`${label}: Back did not close the Daily viewer`);
+          if (!/profile\.html/.test(after.url) || Math.abs(after.y - before) > 2) failures.push(`${label}: Back did not return to the same place (${before} → ${after.y}, ${after.url})`);
+        }
         await page.locator(".profile-post-card").first().scrollIntoViewIfNeeded().catch(() => {});
         await page.evaluate(() => scrollBy(0, -60));
         await page.waitForTimeout(250);
@@ -104,5 +152,5 @@ const audit = page => page.evaluate(() => {
     if (!process.env.AUDIT_ONLY) process.exitCode = 1;
     return;
   }
-  console.log(`Profile mirror checks passed at ${widths.join(", ")}px (owner and visitor): no big text buttons in the profile column, no sideways overflow.`);
+  console.log(`Profile mirror checks passed at ${widths.join(", ")}px (owner and visitor): no big text buttons, one edge-to-edge wall, Dailies strip directly above the posts with a full-screen viewer and Back.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

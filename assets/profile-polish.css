@@ -50,7 +50,7 @@ body.profile-page{background:#fff!important}
 /* Fix-it 18 (owner 2026-11-17): the profile is a mirror. On a phone the profile reaches both screen edges: cover, tabs,
    composer, Dailies and posts are one continuous wall with no side gutters, no boxes and no grey bands. */
 @media(max-width:560px){
-  .profile-page main{margin:0!important}
+  .profile-page main{margin:0!important;width:100%!important;max-width:none!important}
   .profile-page .card,.profile-page .cover{border-radius:0!important}
   .profile-page .profile-post-card{margin-left:-16px!important;margin-right:-16px!important}
   .profile-page .profile-wall-composer{margin:0 -16px!important;border-bottom:1px solid #e7e9ee}
