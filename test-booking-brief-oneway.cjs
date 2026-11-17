@@ -113,3 +113,11 @@ console.log("Natural-language brief checks passed.");
   assert.equal(parse("book us 2 shows in Detroit").days, 2);
   console.log("Single-city day count checks passed.");
 }
+{
+  // Owner 2026-11-16: "a few clubs in each town" and record stores along the way on the day sheet.
+  const agent = fs.readFileSync(require("node:path").join(__dirname, "assets/booking-agent.js"), "utf8");
+  assert.match(agent, /backupLine\.textContent = `Backups: \$\{backups\.map\(candidate => candidate\.name\)\.join\(", "\)\}`/);
+  assert.match(agent, /\.slice\(0, 2\);/);
+  assert.match(agent, /Record shop: \$\{recordShop\.name\}/);
+  console.log("Backup clubs and record shop on the day sheet checks passed.");
+}

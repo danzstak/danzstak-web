@@ -17,7 +17,7 @@ assert.match(html, /Exact dates are optional while researching/);
 assert.match(html, /id="bookingBriefExample">Example<\/button>/);
 assert.match(html, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/);
 assert.match(html, /<details class="planner-drawer">[\s\S]*?<summary>More tour options: genre, crew, van and budget<\/summary>/);
-assert.match(html, /assets\/booking-workspace\.css\?v=11/);
+assert.match(html, /assets\/booking-workspace\.css\?v=12/);
 assert.match(html, /assets\/booking-map\.js\?v=451/);
 assert.match(html, /assets\/booking-discovery\.css\?v=5/);
 assert.match(html, /assets\/booking-discovery\.js\?v=5/);

@@ -1546,7 +1546,17 @@
         venueStatus.textContent = venue.bookingSuitability === "contact-found" ? "Contact found" : "Sourced lead";
         venueStatus.title = "Public source found; booking and availability are not confirmed.";
         venueCell.append(venueName, venueStatus);
+        // Owner 2026-11-16: a few clubs in each town. Up to two backups to pitch if the first says no.
+        const backups = market.venues.filter(candidate => candidate !== venue && !usedVenues.has(venueKey(candidate)) && !window.danzstakVenueFreshness?.hidden(candidate)).slice(0, 2);
+        if (backups.length) {
+          const backupLine = document.createElement("small");
+          backupLine.className = "tour-lead-backups";
+          backupLine.textContent = `Backups: ${backups.map(candidate => candidate.name).join(", ")}`;
+          venueCell.append(backupLine);
+        }
         planCell.textContent = "Show target · arrive 4:00 PM · soundcheck 5:00 PM";
+        const recordShop = (market.recordStores || [])[0];
+        if (recordShop?.name) planCell.textContent += ` · Record shop: ${recordShop.name}`;
         showIndex += 1;
       } else {
         const returningHome = finalHomeDay || showIndex >= shows,
