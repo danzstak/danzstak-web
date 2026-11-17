@@ -49,6 +49,7 @@ import { createTicketing } from "./ticketing.mjs";
 import { createPayouts } from "./payouts.mjs";
 import { createTicketOrders } from "./ticket-orders.mjs";
 import { createPersonalPhoneService } from "./personal-phone-service.mjs";
+import { createTwilioVerifyClient, twilioCredentialsFromEnv, verifyLocale } from "./personal-phone-twilio.mjs";
 import { createPersonalPhoneDynamoAdapter } from "./personal-phone-dynamodb.mjs";
 import { publicPhoneStatus } from "./personal-phone-verification.mjs";
 import QRCode from "qrcode";
@@ -91,7 +92,14 @@ const phoneVerificationTable = process.env.PHONE_VERIFICATION_TABLE || "DANZSTAK
 const phoneVerificationSecretName = process.env.PHONE_VERIFICATION_SECRET_NAME || "danzstak/phone-verification-secret";
 const phoneNotifyConfigurationId = String(process.env.PHONE_NOTIFY_CONFIGURATION_ID || "");
 const phoneNotifyTemplateId = String(process.env.PHONE_NOTIFY_TEMPLATE_ID || "");
-const phoneVerificationEnabled = process.env.PHONE_VERIFICATION_ENABLED === "true" && /^notify-[a-z0-9]+$/i.test(phoneNotifyConfigurationId);
+// SYNC verification texts (owner 2026-11-17): OTP_PROVIDER=twilio (default) or aws. Twilio credentials come only from
+// environment variables; with any missing, texts stay off (fail-closed). AWS Notify stays available behind the switch.
+const otpProvider = String(process.env.OTP_PROVIDER || "twilio").toLowerCase() === "aws" ? "aws" : "twilio";
+const twilioCredentials = twilioCredentialsFromEnv(process.env);
+if (otpProvider === "twilio" && !twilioCredentials.ok) console.warn("SYNC texts are off: missing Twilio settings", twilioCredentials.missing.join(", "));
+const phoneVerificationEnabled = otpProvider === "twilio"
+  ? twilioCredentials.ok
+  : process.env.PHONE_VERIFICATION_ENABLED === "true" && /^notify-[a-z0-9]+$/i.test(phoneNotifyConfigurationId);
 // Registration policy must never depend on provider health. If AWS cannot send
 // an OTP, the device stays unregistered instead of silently falling back to an
 // unverified credential.
@@ -197,8 +205,16 @@ async function phoneVerificationSecret() {
   return phoneVerificationSecretPromise;
 }
 
+const phoneLog = (event, fields) => console.warn(event, JSON.stringify(fields)); // fields are already masked
+let twilioVerifyClient = null;
 async function personalPhoneService() {
   const secret = await phoneVerificationSecret();
+  if (otpProvider === "twilio") {
+    if (twilioCredentials.ok && !twilioVerifyClient) twilioVerifyClient = createTwilioVerifyClient({ credentials: twilioCredentials, log: phoneLog });
+    // Without credentials the service still loads (status, remove) but every send is refused.
+    const verifier = twilioVerifyClient || { async start() { throw Object.assign(new Error("off"), { name: "TwilioVerifyError", statusCode: 503, code: "provider_unavailable", message: "SYNC verification texts aren't available yet. No text was sent." }); }, async check() { return { approved: false }; } };
+    return createPersonalPhoneService({ adapter: personalPhoneAdapter, secret, enabled: phoneVerificationEnabled, verifier, log: phoneLog });
+  }
   return createPersonalPhoneService({
     adapter: personalPhoneAdapter,
     secret,
@@ -5445,7 +5461,8 @@ async function sendPersonalPhoneCode(event) {
     const requestKey = createHmac("sha256", secret).update(`request:${String(event.requestContext?.http?.sourceIp || "unknown")}`).digest("hex");
     const service = await personalPhoneService();
     const purpose = body.purpose === "sync_device" ? "sync_device" : "account_trust";
-    const result = await service.send({ userId, countryCode: String(body.countryCode || "").slice(0, 8), localNumber: String(body.localNumber || "").slice(0, 40), requestKey, purpose, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
+    const locale = verifyLocale(Array.isArray(body.languages) ? body.languages.slice(0, 8).map(value => String(value).slice(0, 35)) : String(body.locale || "").slice(0, 35));
+    const result = await service.send({ userId, countryCode: String(body.countryCode || "").slice(0, 8), localNumber: String(body.localNumber || "").slice(0, 40), requestKey, purpose, locale, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 202, headers, body: JSON.stringify(result) };
   } catch (error) {
     return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
@@ -5461,7 +5478,8 @@ async function confirmPersonalPhoneCode(event) {
   try {
     const service = await personalPhoneService();
     const purpose = body.purpose === "sync_device" ? "sync_device" : "account_trust";
-    const result = await service.confirm({ userId, code: String(body.code || "").slice(0, 12), purpose, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
+    const requestKey = createHmac("sha256", await phoneVerificationSecret()).update(`request:${String(event.requestContext?.http?.sourceIp || "unknown")}`).digest("hex");
+    const result = await service.confirm({ userId, code: String(body.code || "").slice(0, 12), purpose, requestKey, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (error) {
     return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
