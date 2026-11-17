@@ -8,11 +8,12 @@ A built-in **example shop** that looks exactly like a real member shop done well
 - `shop-example.html`, opened from **My Shop** ("See an example shop"), from **Moving Day for shops**, and from the empty Bazaar state ("+ Sell something" → example first).
 - Same layout, components and buttons as the real shop page (profile Shop tab + Bazaar card), so what members see is what they will get.
 
-## The model shop (fictional, no real brands or people)
-- Name and about: a made-up punk/metal/electronic record shop, e.g. "Static Crate Records — vinyl, tapes and tour merch from the underground." One line, clear.
-- 6–8 items covering the common cases: 12" LP (condition Media/Sleeve), 7" single, cassette, CD, band T-shirt with sizes, gig poster, a box set over $30, one sold-out item.
-- Original artwork only (simple generated sleeves/shirts in the DanzStak genre looks); no copied covers, logos or photos.
-- Each item shows price, shipping, stock and the all-in price note ("buyer pays 6% DanzStak fee; +$1 under $30").
+## Three example shops (owner, 2026-11-18: "a fan shop, a band shop and a record shop")
+A switcher at the top: **Fan shop · Band shop · Record shop**. All fictional, original artwork, no real brands or people.
+
+1. **Fan shop** — what a fan/maker sells: hand-made patches, zines, buttons, a custom battle vest, prints, a few records from their own crate. Shows: crafts with good photos, one-of-a-kind stock (1), simple shipping.
+2. **Band shop** — light guidance only (owner: "bands know how to sell stuff"): T-shirts with sizes, LP + bundle (LP + shirt), cassette, poster, tour-only item marked sold out, pre-order with a ship date. Shows how merch, releases and tour stock sit together and how it links to their EPK and gigs.
+3. **Record shop** — a full crate: LPs, 7"s, tapes, CDs with Discogs-style grading (Media/Sleeve), new arrivals, a box set over $30, staff picks. **Leads with the Discogs import:** a step-by-step "Bring your Discogs inventory over" walkthrough with screenshots-style illustrations (Dashboard → Inventory → Export → download CSV → Moving Day → pick → price → publish) and a "Start Moving Day" button.
 
 ## Guide notes (tap to open, never in the way)
 - Photos: square, natural light, front + back + label for records; show the real item, not stock images.
@@ -27,3 +28,6 @@ A built-in **example shop** that looks exactly like a real member shop done well
 - Looks finished at 360/390px and desktop; one fluid page, no stacked boxes.
 - Not indexed in Bazaar search/Mix; checkout buttons show "Example — not for sale".
 - Test: the example items never reach `/marketplace/bazaar`, and the page links back to "Start my shop".
+
+## Discogs collection export too (owner, 2026-11-18)
+Some sellers start from their **collection** export, not an inventory export. Moving Day must accept it: map Artist, Title, Label, Catalog#, Format, Released, release_id, "Collection Media Condition", "Collection Sleeve Condition", "Collection Notes". A collection export has **no prices**, so Moving Day shows a "Set a price for all picked items" field and per-item price editing before Move; nothing without a price can be moved. The record-shop example explains both: inventory export (already priced, for sellers) and collection export (for collectors pricing their crate).
