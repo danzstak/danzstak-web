@@ -4697,6 +4697,13 @@ async function outreachEpkShare(event, method, shareId = "") {
     } catch (error) {
       if (error.name !== "TransactionCanceledException" && error.name !== "ConditionalCheckFailedException") throw error;
     }
+    // Bell notice (owner 2026-11-17): "Club X opened your EPK", at most once per venue link per day, never for the artist's own opens.
+    try {
+      if (await getAuthenticatedUser(event).catch(() => "") !== ownerId) {
+        const notice = bookingReplyNotice({ tableName: engagementNotificationsTable, artistEmail: await accountForSub(ownerId), outreachId, dedupe: `open-${openedAt.slice(0, 10).replace(/-/g, "")}`, venueName: item.venueName?.S, action: "opened", at: openedAt });
+        if (notice) await db.send(new PutItemCommand(notice)).catch(error => { if (error.name !== "ConditionalCheckFailedException") throw error; });
+      }
+    } catch (error) { console.error("EPK open notice not saved:", error.name); }
     result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: shareId } }, ConsistentRead: true }));
     item = result.Item;
     if (!item || Number(item.expiresAt?.N || 0) <= now() || !epkOutreachTokenMatches(token, item.shareHash?.S || "")) return reply(404, { error: "This booking EPK link is invalid or has expired." });
