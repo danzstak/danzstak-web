@@ -4,6 +4,31 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"one way": "solo andata",
+"Club research": "Ricerca locali",
+"My gigs": "I miei concerti",
+"Playable rooms": "Locali possibili",
+"More options": "Altre opzioni",
+"Map or manual": "Mappa o a mano",
+"Where to play?": "Dove suonare?",
+"Print sheet": "Stampa scheda",
+"Pipeline": "Pipeline",
+"Day sheet totals": "Totali del foglio del giorno",
+"legs on this tour so far. Show the list.": "tappe finora in questo tour. Mostra l'elenco.",
+"Legs": "Tappe",
+"Shows": "Concerti",
+"Days": "Giorni",
+"Day sheet": "Foglio del giorno",
+"Show all": "Mostra tutto",
+"Lock dates": "Fissa le date",
+"Credit activity": "Movimenti crediti",
+"Refund unused": "Rimborsa i non usati",
+"Dates, crew & costs": "Date, crew e costi",
+"Email credits": "Crediti email",
+"Pitch numbers": "Numeri delle proposte",
+"Opened": "Aperti",
+"Sent": "Inviati",
+"Clubs": "Locali",
 "Booth & inputs": "Postazione e ingressi",
 "Plot & inputs": "Pianta e ingressi",
 "Hospitality": "Ospitalità",
@@ -125,7 +150,7 @@
 "Band, DJ, or artist name": "Nome della band, DJ o artista",
 "Bazaar products": "Prodotti del Bazaar",
 "Bellingham to San Diego": "Da Bellingham a San Diego",
-"Booked": "Confermato",
+"Booked": "Confermati",
 "Booked or planned shows": "Concerti confermati o in programma",
 "Booking as": "Booking come",
 "Booking contact": "Contatto booking",
@@ -241,7 +266,7 @@
 "Delete this review everywhere on DanzStak? The review disappears from every DanzStak placement. Screenshots or copies someone already made outside DanzStak cannot be recalled.": "Eliminare questa recensione ovunque su DanzStak? Sparisce da ogni posizione su DanzStak. Screenshot o copie già fatti fuori da DanzStak non si possono recuperare.",
 "Deleting EPK and private files...": "Eliminazione dell'EPK e dei file privati...",
 "Deleting review everywhere…": "Eliminazione della recensione ovunque…",
-"Delivered": "Consegnato",
+"Delivered": "Consegnati",
 "Departure": "Partenza",
 "Describe the tour": "Descrivi il tour",
 "Describe where you are starting, how long you have, and where you want to go.": "Scrivi da dove parti, quanto tempo hai e dove vuoi andare.",
@@ -523,7 +548,7 @@
 "Parking": "Parcheggio",
 "Parking / pickup": "Parcheggio / ritrovo",
 "Pass": "Passa",
-"Passed": "Scartato",
+"Passed": "Rifiutati",
 "Past gigs": "Concerti passati",
 "Payment method": "Metodo di pagamento",
 "People": "Persone",
@@ -632,7 +657,7 @@
 "Rent one": "Noleggiane uno",
 "Rental $/day": "Noleggio $/giorno",
 "Repair, rental, or replacement Plan B": "Piano B: riparazione, noleggio o sostituzione",
-"Replied": "Ha risposto",
+"Replied": "Risposto",
 "Replies": "Risposte",
 "Replies are in": "Sono arrivate risposte",
 "Reply": "Rispondi",
@@ -903,7 +928,7 @@
 "build and publish one": "creane e pubblicane uno",
 "date open": "data libera",
 "days minimum": "giorni minimo",
-"ready to send": "pronto da inviare",
+"ready to send": "pronti da inviare",
 "Showing bookable live-music leads. Press Search again for different clubs; verify the booking contact before treating a date as booked.": "Ecco locali live dove proporsi. Premi di nuovo Cerca per altri locali; verifica il contatto per il booking prima di considerare una data confermata.",
 "Ask for a city and music style. Every result shows where it came from; a listing is not a confirmed booking.": "Scrivi una città e uno stile musicale. Ogni risultato mostra da dove viene; un annuncio non è un concerto confermato.",
 "Add a public live-music room to your private booking list. DanzStak will place its address on the map; this does not publish it to the shared directory.": "Aggiungi un locale pubblico di musica dal vivo alla tua lista privata. DanzStak mette l'indirizzo sulla mappa; non lo pubblica nell'elenco condiviso.",
@@ -1012,6 +1037,31 @@
 "Next leg": "Prossima tappa"
 },
 "fr": {
+"one way": "aller simple",
+"Club research": "Recherche de salles",
+"My gigs": "Mes concerts",
+"Playable rooms": "Salles possibles",
+"More options": "Plus d'options",
+"Map or manual": "Carte ou manuel",
+"Where to play?": "Où jouer ?",
+"Print sheet": "Imprimer la fiche",
+"Pipeline": "Pipeline",
+"Day sheet totals": "Totaux de la feuille de route",
+"legs on this tour so far. Show the list.": "étapes de cette tournée jusqu'ici. Afficher la liste.",
+"Legs": "Étapes",
+"Shows": "Concerts",
+"Days": "Jours",
+"Day sheet": "Feuille de route",
+"Show all": "Tout afficher",
+"Lock dates": "Fixer les dates",
+"Credit activity": "Mouvements de crédits",
+"Refund unused": "Rembourser l'inutilisé",
+"Dates, crew & costs": "Dates, équipe et coûts",
+"Email credits": "Crédits e-mail",
+"Pitch numbers": "Chiffres des démarches",
+"Opened": "Ouverts",
+"Sent": "Envoyés",
+"Clubs": "Salles",
 "Booth & inputs": "Cabine et entrées",
 "Plot & inputs": "Plan et entrées",
 "Hospitality": "Accueil",
@@ -1134,7 +1184,7 @@
 "Band, DJ, or artist name": "Nom du groupe, DJ ou artiste",
 "Bazaar products": "Produits du Bazaar",
 "Bellingham to San Diego": "De Bellingham à San Diego",
-"Booked": "Booké",
+"Booked": "Confirmés",
 "Booked or planned shows": "Concerts bookés ou prévus",
 "Booking Agent": "Agent de booking",
 "Booking Agent | DanzStak": "Agent de booking | DanzStak",
@@ -1254,7 +1304,7 @@
 "Delete this review everywhere on DanzStak? The review disappears from every DanzStak placement. Screenshots or copies someone already made outside DanzStak cannot be recalled.": "Supprimer cet avis partout sur DanzStak ? Il disparaît de chaque emplacement DanzStak. Les captures ou copies déjà faites hors de DanzStak ne peuvent pas être récupérées.",
 "Deleting EPK and private files...": "Suppression de l'EPK et des fichiers privés...",
 "Deleting review everywhere…": "Suppression de l'avis partout…",
-"Delivered": "Livré",
+"Delivered": "Livrés",
 "Departure": "Départ",
 "Describe the tour": "Décris la tournée",
 "Describe where you are starting, how long you have, and where you want to go.": "Dis d'où tu pars, combien de temps tu as et où tu veux aller.",
@@ -1530,7 +1580,7 @@
 "Panhandle Run: Amarillo to Dallas via U.S. 287": "Panhandle Run : d'Amarillo à Dallas par la U.S. 287",
 "Parking / pickup": "Parking / prise en charge",
 "Pass": "Passer",
-"Passed": "Écarté",
+"Passed": "Refusés",
 "Past gigs": "Concerts passés",
 "Payment method": "Moyen de paiement",
 "People": "Personnes",
@@ -1638,7 +1688,7 @@
 "Rent one": "En louer un",
 "Rental $/day": "Location $/jour",
 "Repair, rental, or replacement Plan B": "Plan B : réparation, location ou remplacement",
-"Replied": "A répondu",
+"Replied": "Répondu",
 "Replies": "Réponses",
 "Replies are in": "Des réponses sont arrivées",
 "Reply": "Répondre",
@@ -1907,7 +1957,7 @@
 "build and publish one": "crée et publie-en un",
 "date open": "date libre",
 "days minimum": "jours minimum",
-"ready to send": "prêt à envoyer",
+"ready to send": "prêts à envoyer",
 "Showing bookable live-music leads. Press Search again for different clubs; verify the booking contact before treating a date as booked.": "Voici des salles live à démarcher. Relance la recherche pour d'autres clubs ; vérifie le contact booking avant de considérer une date comme bookée.",
 "Ask for a city and music style. Every result shows where it came from; a listing is not a confirmed booking.": "Indique une ville et un style musical. Chaque résultat montre sa source ; une fiche n'est pas un concert confirmé.",
 "Add a public live-music room to your private booking list. DanzStak will place its address on the map; this does not publish it to the shared directory.": "Ajoute une salle de musique live publique à ta liste privée. DanzStak place son adresse sur la carte ; elle n'est pas publiée dans l'annuaire partagé.",
@@ -2016,6 +2066,31 @@
 "Next leg": "Étape suivante"
 },
 "es": {
+"one way": "solo ida",
+"Club research": "Búsqueda de salas",
+"My gigs": "Mis conciertos",
+"Playable rooms": "Salas posibles",
+"More options": "Más opciones",
+"Map or manual": "Mapa o a mano",
+"Where to play?": "¿Dónde tocar?",
+"Print sheet": "Imprimir hoja",
+"Pipeline": "Pipeline",
+"Day sheet totals": "Totales de la hoja del día",
+"legs on this tour so far. Show the list.": "etapas de esta gira hasta ahora. Mostrar la lista.",
+"Legs": "Etapas",
+"Shows": "Conciertos",
+"Days": "Días",
+"Day sheet": "Hoja del día",
+"Show all": "Mostrar todo",
+"Lock dates": "Fijar fechas",
+"Credit activity": "Movimientos de créditos",
+"Refund unused": "Reembolsar lo no usado",
+"Dates, crew & costs": "Fechas, equipo y costes",
+"Email credits": "Créditos de email",
+"Pitch numbers": "Cifras de propuestas",
+"Opened": "Abiertos",
+"Sent": "Enviados",
+"Clubs": "Salas",
 "Booth & inputs": "Cabina y entradas",
 "Plot & inputs": "Plano y entradas",
 "Hospitality": "Hospitalidad",
@@ -2138,7 +2213,7 @@
 "Band, DJ, or artist name": "Nombre de la banda, DJ o artista",
 "Bazaar products": "Productos del Bazaar",
 "Bellingham to San Diego": "De Bellingham a San Diego",
-"Booked": "Contratado",
+"Booked": "Confirmados",
 "Booked or planned shows": "Conciertos contratados o previstos",
 "Booking Agent": "Agente de contratación",
 "Booking Agent | DanzStak": "Agente de contratación | DanzStak",
@@ -2259,7 +2334,7 @@
 "Delete this review everywhere on DanzStak? The review disappears from every DanzStak placement. Screenshots or copies someone already made outside DanzStak cannot be recalled.": "¿Eliminar esta reseña en todo DanzStak? Desaparece de cada lugar de DanzStak. Las capturas o copias ya hechas fuera de DanzStak no se pueden recuperar.",
 "Deleting EPK and private files...": "Eliminando el EPK y los archivos privados...",
 "Deleting review everywhere…": "Eliminando la reseña en todas partes…",
-"Delivered": "Entregado",
+"Delivered": "Entregados",
 "Departure": "Salida",
 "Describe the tour": "Describe la gira",
 "Describe where you are starting, how long you have, and where you want to go.": "Cuenta desde dónde sales, cuánto tiempo tienes y adónde quieres ir.",
@@ -2543,7 +2618,7 @@
 "Parking": "Aparcamiento",
 "Parking / pickup": "Aparcamiento / recogida",
 "Pass": "Pasar",
-"Passed": "Descartado",
+"Passed": "Rechazados",
 "Past gigs": "Conciertos pasados",
 "Payment method": "Método de pago",
 "People": "Personas",
@@ -2653,7 +2728,7 @@
 "Rent one": "Alquilar uno",
 "Rental $/day": "Alquiler $/día",
 "Repair, rental, or replacement Plan B": "Plan B: reparación, alquiler o sustitución",
-"Replied": "Respondió",
+"Replied": "Respondido",
 "Replies": "Respuestas",
 "Replies are in": "Han llegado respuestas",
 "Reply": "Responder",
@@ -2924,7 +2999,7 @@
 "build and publish one": "crea y publica uno",
 "date open": "fecha libre",
 "days minimum": "días mínimo",
-"ready to send": "listo para enviar",
+"ready to send": "listos para enviar",
 "Showing bookable live-music leads. Press Search again for different clubs; verify the booking contact before treating a date as booked.": "Estas son salas en directo donde proponerte. Pulsa Buscar otra vez para otras salas; verifica el contacto antes de dar una fecha por cerrada.",
 "Ask for a city and music style. Every result shows where it came from; a listing is not a confirmed booking.": "Escribe una ciudad y un estilo musical. Cada resultado muestra de dónde sale; un anuncio no es un concierto confirmado.",
 "Add a public live-music room to your private booking list. DanzStak will place its address on the map; this does not publish it to the shared directory.": "Añade una sala pública de música en directo a tu lista privada. DanzStak pone su dirección en el mapa; no la publica en el directorio compartido.",
@@ -3037,6 +3112,194 @@
  const p=window.danzstakPatterns||(window.danzstakPatterns={});
  const pats={
 "it": [
+[
+"{} clubs on your booking list. Show them.",
+"{0} locali nella tua lista booking. Mostrali."
+],
+[
+"{} club on your booking list. Show them.",
+"{0} locale nella tua lista booking. Mostrali."
+],
+[
+"{} clubs you sent a pitch to. Show them.",
+"{0} locali a cui hai inviato una proposta. Mostrali."
+],
+[
+"{} club you sent a pitch to. Show them.",
+"{0} locale a cui hai inviato una proposta. Mostrali."
+],
+[
+"{} clubs replied. Show them.",
+"{0} locali hanno risposto. Mostrali."
+],
+[
+"{} club replied. Show them.",
+"{0} locale ha risposto. Mostrali."
+],
+[
+"{} confirmed shows. Show them.",
+"{0} concerti confermati. Mostrali."
+],
+[
+"{} confirmed show. Show them.",
+"{0} concerto confermato. Mostrali."
+],
+[
+"{} clubs passed. Show them.",
+"{0} locali hanno rifiutato. Mostrali."
+],
+[
+"{} club passed. Show them.",
+"{0} locale ha rifiutato. Mostrali."
+],
+[
+"{} first pitches sent. Show them.",
+"{0} prime proposte inviate. Mostrali."
+],
+[
+"{} first pitch sent. Show them.",
+"{0} prima proposta inviata. Mostrali."
+],
+[
+"{} pitches delivered. Show them.",
+"{0} proposte consegnate. Mostrali."
+],
+[
+"{} pitch delivered. Show them.",
+"{0} proposta consegnata. Mostrali."
+],
+[
+"{} venues opened your private EPK. Show them.",
+"{0} locali hanno aperto il tuo EPK privato. Mostrali."
+],
+[
+"{} venue opened your private EPK. Show them.",
+"{0} locale ha aperto il tuo EPK privato. Mostrali."
+],
+[
+"{} pitches booked. Show them.",
+"{0} proposte andate a buon fine. Mostrali."
+],
+[
+"{} pitch booked. Show them.",
+"{0} proposta andata a buon fine. Mostrali."
+],
+[
+"{} clubs on your booking list on this list",
+"{0} locali nella tua lista booking in questo elenco"
+],
+[
+"{} club on your booking list on this list",
+"{0} locale nella tua lista booking in questo elenco"
+],
+[
+"{} clubs you sent a pitch to on this list",
+"{0} locali a cui hai inviato una proposta in questo elenco"
+],
+[
+"{} club you sent a pitch to on this list",
+"{0} locale a cui hai inviato una proposta in questo elenco"
+],
+[
+"{} clubs replied on this list",
+"{0} locali hanno risposto in questo elenco"
+],
+[
+"{} club replied on this list",
+"{0} locale ha risposto in questo elenco"
+],
+[
+"{} confirmed shows on this list",
+"{0} concerti confermati in questo elenco"
+],
+[
+"{} confirmed show on this list",
+"{0} concerto confermato in questo elenco"
+],
+[
+"{} clubs passed on this list",
+"{0} locali hanno rifiutato in questo elenco"
+],
+[
+"{} club passed on this list",
+"{0} locale ha rifiutato in questo elenco"
+],
+[
+"{} first pitches sent on this list",
+"{0} prime proposte inviate in questo elenco"
+],
+[
+"{} first pitch sent on this list",
+"{0} prima proposta inviata in questo elenco"
+],
+[
+"{} pitches delivered on this list",
+"{0} proposte consegnate in questo elenco"
+],
+[
+"{} pitch delivered on this list",
+"{0} proposta consegnata in questo elenco"
+],
+[
+"{} venues opened your private EPK on this list",
+"{0} locali hanno aperto il tuo EPK privato in questo elenco"
+],
+[
+"{} venue opened your private EPK on this list",
+"{0} locale ha aperto il tuo EPK privato in questo elenco"
+],
+[
+"{} pitches booked on this list",
+"{0} proposte andate a buon fine in questo elenco"
+],
+[
+"{} pitch booked on this list",
+"{0} proposta andata a buon fine in questo elenco"
+],
+[
+"{} booking-email credits ready to send. Show credit activity.",
+"{0} crediti email pronti da inviare. Mostra i movimenti."
+],
+[
+"{} booking-email credit ready to send. Show credit activity.",
+"{0} credito email pronto da inviare. Mostra i movimenti."
+],
+[
+"{} days on the day sheet. Show every day.",
+"{0} giorni nel foglio del giorno. Mostra tutti i giorni."
+],
+[
+"{} proposed shows with a club to pitch. Show only those days.",
+"{0} concerti proposti con un locale da contattare. Mostra solo quei giorni."
+],
+[
+"{} proposed show with a club to pitch. Show only those days.",
+"{0} concerto proposto con un locale da contattare. Mostra solo quei giorni."
+],
+[
+"{} booking threads waiting for your answer",
+"{0} conversazioni di booking aspettano la tua risposta"
+],
+[
+"{} booking thread waiting for your answer",
+"{0} conversazione di booking aspetta la tua risposta"
+],
+[
+"{} follow-ups due for your review",
+"{0} promemoria da rivedere"
+],
+[
+"{} follow-up due for your review",
+"{0} promemoria da rivedere"
+],
+[
+"{} booking-email credits ready to send",
+"{0} crediti email pronti da inviare"
+],
+[
+"{} booking-email credit ready to send",
+"{0} credito email pronto da inviare"
+],
 [
 "- {} mi from stop center",
 "- {0} mi dal centro della tappa"
@@ -3388,6 +3651,194 @@
 ],
 "fr": [
 [
+"{} clubs on your booking list. Show them.",
+"{0} salles dans ta liste de booking. Les afficher."
+],
+[
+"{} club on your booking list. Show them.",
+"{0} salle dans ta liste de booking. Les afficher."
+],
+[
+"{} clubs you sent a pitch to. Show them.",
+"{0} salles à qui tu as envoyé une démarche. Les afficher."
+],
+[
+"{} club you sent a pitch to. Show them.",
+"{0} salle à qui tu as envoyé une démarche. Les afficher."
+],
+[
+"{} clubs replied. Show them.",
+"{0} salles ont répondu. Les afficher."
+],
+[
+"{} club replied. Show them.",
+"{0} salle a répondu. Les afficher."
+],
+[
+"{} confirmed shows. Show them.",
+"{0} concerts confirmés. Les afficher."
+],
+[
+"{} confirmed show. Show them.",
+"{0} concert confirmé. Les afficher."
+],
+[
+"{} clubs passed. Show them.",
+"{0} salles ont refusé. Les afficher."
+],
+[
+"{} club passed. Show them.",
+"{0} salle a refusé. Les afficher."
+],
+[
+"{} first pitches sent. Show them.",
+"{0} premières démarches envoyées. Les afficher."
+],
+[
+"{} first pitch sent. Show them.",
+"{0} première démarche envoyée. Les afficher."
+],
+[
+"{} pitches delivered. Show them.",
+"{0} démarches livrées. Les afficher."
+],
+[
+"{} pitch delivered. Show them.",
+"{0} démarche livrée. Les afficher."
+],
+[
+"{} venues opened your private EPK. Show them.",
+"{0} salles ont ouvert ton EPK privé. Les afficher."
+],
+[
+"{} venue opened your private EPK. Show them.",
+"{0} salle a ouvert ton EPK privé. Les afficher."
+],
+[
+"{} pitches booked. Show them.",
+"{0} démarches concrétisées. Les afficher."
+],
+[
+"{} pitch booked. Show them.",
+"{0} démarche concrétisée. Les afficher."
+],
+[
+"{} clubs on your booking list on this list",
+"{0} salles dans ta liste de booking dans cette liste"
+],
+[
+"{} club on your booking list on this list",
+"{0} salle dans ta liste de booking dans cette liste"
+],
+[
+"{} clubs you sent a pitch to on this list",
+"{0} salles à qui tu as envoyé une démarche dans cette liste"
+],
+[
+"{} club you sent a pitch to on this list",
+"{0} salle à qui tu as envoyé une démarche dans cette liste"
+],
+[
+"{} clubs replied on this list",
+"{0} salles ont répondu dans cette liste"
+],
+[
+"{} club replied on this list",
+"{0} salle a répondu dans cette liste"
+],
+[
+"{} confirmed shows on this list",
+"{0} concerts confirmés dans cette liste"
+],
+[
+"{} confirmed show on this list",
+"{0} concert confirmé dans cette liste"
+],
+[
+"{} clubs passed on this list",
+"{0} salles ont refusé dans cette liste"
+],
+[
+"{} club passed on this list",
+"{0} salle a refusé dans cette liste"
+],
+[
+"{} first pitches sent on this list",
+"{0} premières démarches envoyées dans cette liste"
+],
+[
+"{} first pitch sent on this list",
+"{0} première démarche envoyée dans cette liste"
+],
+[
+"{} pitches delivered on this list",
+"{0} démarches livrées dans cette liste"
+],
+[
+"{} pitch delivered on this list",
+"{0} démarche livrée dans cette liste"
+],
+[
+"{} venues opened your private EPK on this list",
+"{0} salles ont ouvert ton EPK privé dans cette liste"
+],
+[
+"{} venue opened your private EPK on this list",
+"{0} salle a ouvert ton EPK privé dans cette liste"
+],
+[
+"{} pitches booked on this list",
+"{0} démarches concrétisées dans cette liste"
+],
+[
+"{} pitch booked on this list",
+"{0} démarche concrétisée dans cette liste"
+],
+[
+"{} booking-email credits ready to send. Show credit activity.",
+"{0} crédits e-mail prêts à envoyer. Afficher les mouvements."
+],
+[
+"{} booking-email credit ready to send. Show credit activity.",
+"{0} crédit e-mail prêt à envoyer. Afficher les mouvements."
+],
+[
+"{} days on the day sheet. Show every day.",
+"{0} jours sur la feuille de route. Afficher tous les jours."
+],
+[
+"{} proposed shows with a club to pitch. Show only those days.",
+"{0} concerts proposés avec une salle à démarcher. N'afficher que ces jours."
+],
+[
+"{} proposed show with a club to pitch. Show only those days.",
+"{0} concert proposé avec une salle à démarcher. N'afficher que ces jours."
+],
+[
+"{} booking threads waiting for your answer",
+"{0} échanges de booking attendent ta réponse"
+],
+[
+"{} booking thread waiting for your answer",
+"{0} échange de booking attend ta réponse"
+],
+[
+"{} follow-ups due for your review",
+"{0} relances à vérifier"
+],
+[
+"{} follow-up due for your review",
+"{0} relance à vérifier"
+],
+[
+"{} booking-email credits ready to send",
+"{0} crédits e-mail prêts à envoyer"
+],
+[
+"{} booking-email credit ready to send",
+"{0} crédit e-mail prêt à envoyer"
+],
+[
 "- {} mi from stop center",
 "- {0} mi du centre de l'étape"
 ],
@@ -3737,6 +4188,194 @@
 ]
 ],
 "es": [
+[
+"{} clubs on your booking list. Show them.",
+"{0} salas en tu lista de contratación. Mostrarlos."
+],
+[
+"{} club on your booking list. Show them.",
+"{0} sala en tu lista de contratación. Mostrarlos."
+],
+[
+"{} clubs you sent a pitch to. Show them.",
+"{0} salas a las que enviaste una propuesta. Mostrarlos."
+],
+[
+"{} club you sent a pitch to. Show them.",
+"{0} sala a la que enviaste una propuesta. Mostrarlos."
+],
+[
+"{} clubs replied. Show them.",
+"{0} salas respondieron. Mostrarlos."
+],
+[
+"{} club replied. Show them.",
+"{0} sala respondió. Mostrarlos."
+],
+[
+"{} confirmed shows. Show them.",
+"{0} conciertos confirmados. Mostrarlos."
+],
+[
+"{} confirmed show. Show them.",
+"{0} concierto confirmado. Mostrarlos."
+],
+[
+"{} clubs passed. Show them.",
+"{0} salas rechazaron. Mostrarlos."
+],
+[
+"{} club passed. Show them.",
+"{0} sala rechazó. Mostrarlos."
+],
+[
+"{} first pitches sent. Show them.",
+"{0} primeras propuestas enviadas. Mostrarlos."
+],
+[
+"{} first pitch sent. Show them.",
+"{0} primera propuesta enviada. Mostrarlos."
+],
+[
+"{} pitches delivered. Show them.",
+"{0} propuestas entregadas. Mostrarlos."
+],
+[
+"{} pitch delivered. Show them.",
+"{0} propuesta entregada. Mostrarlos."
+],
+[
+"{} venues opened your private EPK. Show them.",
+"{0} salas abrieron tu EPK privado. Mostrarlos."
+],
+[
+"{} venue opened your private EPK. Show them.",
+"{0} sala abrió tu EPK privado. Mostrarlos."
+],
+[
+"{} pitches booked. Show them.",
+"{0} propuestas cerradas. Mostrarlos."
+],
+[
+"{} pitch booked. Show them.",
+"{0} propuesta cerrada. Mostrarlos."
+],
+[
+"{} clubs on your booking list on this list",
+"{0} salas en tu lista de contratación en esta lista"
+],
+[
+"{} club on your booking list on this list",
+"{0} sala en tu lista de contratación en esta lista"
+],
+[
+"{} clubs you sent a pitch to on this list",
+"{0} salas a las que enviaste una propuesta en esta lista"
+],
+[
+"{} club you sent a pitch to on this list",
+"{0} sala a la que enviaste una propuesta en esta lista"
+],
+[
+"{} clubs replied on this list",
+"{0} salas respondieron en esta lista"
+],
+[
+"{} club replied on this list",
+"{0} sala respondió en esta lista"
+],
+[
+"{} confirmed shows on this list",
+"{0} conciertos confirmados en esta lista"
+],
+[
+"{} confirmed show on this list",
+"{0} concierto confirmado en esta lista"
+],
+[
+"{} clubs passed on this list",
+"{0} salas rechazaron en esta lista"
+],
+[
+"{} club passed on this list",
+"{0} sala rechazó en esta lista"
+],
+[
+"{} first pitches sent on this list",
+"{0} primeras propuestas enviadas en esta lista"
+],
+[
+"{} first pitch sent on this list",
+"{0} primera propuesta enviada en esta lista"
+],
+[
+"{} pitches delivered on this list",
+"{0} propuestas entregadas en esta lista"
+],
+[
+"{} pitch delivered on this list",
+"{0} propuesta entregada en esta lista"
+],
+[
+"{} venues opened your private EPK on this list",
+"{0} salas abrieron tu EPK privado en esta lista"
+],
+[
+"{} venue opened your private EPK on this list",
+"{0} sala abrió tu EPK privado en esta lista"
+],
+[
+"{} pitches booked on this list",
+"{0} propuestas cerradas en esta lista"
+],
+[
+"{} pitch booked on this list",
+"{0} propuesta cerrada en esta lista"
+],
+[
+"{} booking-email credits ready to send. Show credit activity.",
+"{0} créditos de email listos para enviar. Mostrar movimientos."
+],
+[
+"{} booking-email credit ready to send. Show credit activity.",
+"{0} crédito de email listo para enviar. Mostrar movimientos."
+],
+[
+"{} days on the day sheet. Show every day.",
+"{0} días en la hoja del día. Mostrar todos los días."
+],
+[
+"{} proposed shows with a club to pitch. Show only those days.",
+"{0} conciertos propuestos con una sala a la que proponerse. Mostrar solo esos días."
+],
+[
+"{} proposed show with a club to pitch. Show only those days.",
+"{0} concierto propuesto con una sala a la que proponerse. Mostrar solo esos días."
+],
+[
+"{} booking threads waiting for your answer",
+"{0} conversaciones de contratación esperan tu respuesta"
+],
+[
+"{} booking thread waiting for your answer",
+"{0} conversación de contratación espera tu respuesta"
+],
+[
+"{} follow-ups due for your review",
+"{0} recordatorios por revisar"
+],
+[
+"{} follow-up due for your review",
+"{0} recordatorio por revisar"
+],
+[
+"{} booking-email credits ready to send",
+"{0} créditos de email listos para enviar"
+],
+[
+"{} booking-email credit ready to send",
+"{0} crédito de email listo para enviar"
+],
 [
 "- {} mi from stop center",
 "- {0} mi del centro de la parada"

@@ -22,8 +22,12 @@
     link.href = href;
     return link;
   }
-  function card(title, value, detail, actions = []) {
-    const item = node("section", "", "artist-hq-card"), heading = node("h3", title), metric = node("strong", String(value), "artist-hq-metric"), copy = node("p", detail);
+  // 15-D (owner 2026-11-17): a count opens what it counts (the card's first action) and says what it counts.
+  function card(title, value, detail, actions = [], countSays = "") {
+    const item = node("section", "", "artist-hq-card"), heading = node("h3", title), copy = node("p", detail);
+    const counted = Number.isFinite(Number(value)) && String(value).trim() !== "" && actions[0]?.href;
+    const metric = counted ? node("a", String(value), "artist-hq-metric") : node("strong", String(value), "artist-hq-metric");
+    if (counted) { metric.href = actions[0].href; metric.setAttribute("aria-label", countSays || `${value} ${title}`); }
     const controls = node("div", "", "artist-hq-actions");
     actions.forEach(control => controls.append(control));
     item.append(heading, metric, copy, controls);
@@ -74,16 +78,16 @@
     if (outreachResult.status === "fulfilled") {
       const data = outreachResult.value, messages = Array.isArray(data.messages) ? data.messages : [], replies = Array.isArray(data.replies) ? data.replies : [], needs = latestNeedsReply(messages, replies), offers = replies.filter(reply => reply.direction === "inbound" && reply.action === "offer_date").length;
       const replyHref = needs.length === 1 ? bookingInboxHref(needs[0].id) : bookingInboxHref();
-      grid.append(card("Venue replies", needs.length, needs.length ? `${needs.length} booking thread${needs.length === 1 ? " needs" : "s need"} your answer. ${offers} date offer${offers === 1 ? "" : "s"} received.` : messages.length ? "No venue reply is waiting on you." : "Send a reviewed EPK pitch to start a booking thread.", [action(needs.length === 1 ? "Answer venue" : needs.length ? "Answer venues" : "Open bookings", replyHref, needs.length > 0), action("Tour Manager", "booking-selections.html#tourManagerTitle")]));
+      grid.append(card("Venue replies", needs.length, needs.length ? `${needs.length} booking thread${needs.length === 1 ? " needs" : "s need"} your answer. ${offers} date offer${offers === 1 ? "" : "s"} received.` : messages.length ? "No venue reply is waiting on you." : "Send a reviewed EPK pitch to start a booking thread.", [action(needs.length === 1 ? "Answer venue" : needs.length ? "Answer venues" : "Open bookings", replyHref, needs.length > 0), action("Tour Manager", "booking-selections.html#tourManagerTitle")], `${needs.length} booking thread${needs.length === 1 ? "" : "s"} waiting for your answer`));
     } else grid.append(card("Venue replies", "Unavailable", "Your saved booking work is safe. Try again when the connection returns.", [action("Open SYNC", bookingInboxHref())]));
     if (outreachResult.status === "fulfilled" && bookingResult.status === "fulfilled") {
       const due = followUpsDue(bookingResult.value, outreachResult.value), exactVenue = due.length === 1 ? String(due[0].venueKey || "") : "";
       const href = exactVenue ? `booking-selections.html?focusVenue=${encodeURIComponent(exactVenue)}#selectedVenueCards` : "booking-selections.html#selectedVenueCards";
-      grid.append(card("Follow-ups", due.length, due.length ? `${due.length} artist-approved reminder${due.length === 1 ? " is" : "s are"} due. Nothing sends until you review it.` : "No venue reminder needs your approval today.", [action(due.length === 1 ? "Review follow-up" : "Open outreach", href, due.length > 0)]));
+      grid.append(card("Follow-ups", due.length, due.length ? `${due.length} artist-approved reminder${due.length === 1 ? " is" : "s are"} due. Nothing sends until you review it.` : "No venue reminder needs your approval today.", [action(due.length === 1 ? "Review follow-up" : "Open outreach", href, due.length > 0)], `${due.length} follow-up${due.length === 1 ? "" : "s"} due for your review`));
     } else grid.append(card("Follow-ups", "Unavailable", "No reminder was sent. Open Tour Manager when the connection returns.", [action("Open outreach", "booking-selections.html#selectedVenueCards")]));
     if (creditsResult.status === "fulfilled") {
       const balance = Math.max(0, Number(creditsResult.value.bookingEmailCredits ?? creditsResult.value.balance ?? 0));
-      grid.append(card("Email credits", balance, `${balance} artist-approved booking email${balance === 1 ? "" : "s"} available.`, [action("Review outreach", "booking-selections.html", true)]));
+      grid.append(card("Email credits", balance, `${balance} artist-approved booking email${balance === 1 ? "" : "s"} available.`, [action("Review outreach", "booking-selections.html", true)], `${balance} booking-email credit${balance === 1 ? "" : "s"} ready to send`));
     } else grid.append(card("Email credits", "Unavailable", "No purchase was started. Open Tour Manager to check again.", [action("Open Tour Manager", "booking-selections.html")]));
   }
   window.danzstakArtistHq = { render };

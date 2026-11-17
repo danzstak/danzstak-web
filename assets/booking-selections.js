@@ -12,6 +12,58 @@
   const stages = pipeline.BOOKING_STATUSES;
   const localToday = () => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`; };
   let stageFilter = "all";
+  // 15-D (owner 2026-11-17): every number opens the matching filtered list and says what it counts.
+  let metricFilter = null;
+  const SENT_STATUSES = ["provider_accepted", "sent", "delivered", "bounced", "complained"];
+  const outreachFor = venue => (window.danzstakTourManagerBilling?.outreach || []).filter(item => item.venueKey === identity(venue));
+  const opensFor = venue => outreachShares.filter(item => item.venueKey === identity(venue) && item.revoked !== true).reduce((sum, item) => sum + Number(item.openCount || 0), 0);
+  const REPLY_STATUSES = ["Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined"];
+  const METRICS = {
+    selected: { label: "Clubs", test: () => true, say: n => `${n} club${n === 1 ? "" : "s"} on your booking list` },
+    sent: { label: "Sent", test: venue => outreachFor(venue).some(item => SENT_STATUSES.includes(item.status)), say: n => `${n} club${n === 1 ? "" : "s"} you sent a pitch to` },
+    replied: { label: "Replies", test: venue => REPLY_STATUSES.includes(bookingStatus(venue)), say: n => `${n} club${n === 1 ? "" : "s"} replied` },
+    confirmed: { label: "Booked", test: venue => bookingStatus(venue) === "Confirmed", say: n => `${n} confirmed show${n === 1 ? "" : "s"}` },
+    declined: { label: "Passed", test: venue => bookingStatus(venue) === "Declined", say: n => `${n} club${n === 1 ? "" : "s"} passed` },
+    pitched: { label: "Sent", test: venue => outreachFor(venue).length > 0 || Boolean(venue.booking?.pipeline?.pitchedAt), say: n => `${n} first pitch${n === 1 ? "" : "es"} sent` },
+    delivered: { label: "Delivered", test: venue => outreachFor(venue).some(item => item.status === "delivered"), say: n => `${n} pitch${n === 1 ? "" : "es"} delivered` },
+    opened: { label: "Opened", test: venue => opensFor(venue) > 0, say: n => `${n} venue${n === 1 ? "" : "s"} opened your private EPK` },
+    booked: { label: "Booked", test: venue => ["Confirmed", "Played"].includes(bookingStatus(venue)), say: n => `${n} pitch${n === 1 ? "" : "es"} booked` }
+  };
+  function labelStat(id, metric, value) {
+    const number = document.getElementById(id), button = number?.closest(".tour-stat"), def = METRICS[metric];
+    if (!number || !button || !def) return;
+    number.textContent = String(value);
+    const n = Number(value);
+    button.setAttribute("aria-label", Number.isFinite(n) ? `${def.say(n)}. Show them.` : def.label);
+    button.disabled = !(n > 0);
+  }
+  function showMetric(metric) {
+    const def = METRICS[metric];
+    if (!def) return;
+    metricFilter = metric === "selected" ? null : metric;
+    stageFilter = "all";
+    render();
+    document.getElementById("selectedVenueCards")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("metricFilterBanner")?.querySelector("button")?.focus({ preventScroll: true });
+  }
+  document.addEventListener("click", event => {
+    const button = event.target.closest?.(".tour-stat[data-metric]");
+    if (!button) return;
+    if (button.dataset.metric === "credits") { const box = document.getElementById("creditActivitySummary")?.parentElement; if (box) { box.open = true; box.scrollIntoView({ behavior: "smooth", block: "center" }); box.querySelector("summary")?.focus({ preventScroll: true }); } return; }
+    showMetric(button.dataset.metric);
+  });
+  function metricBanner(shown) {
+    let banner = document.getElementById("metricFilterBanner");
+    if (!metricFilter) { banner?.remove(); return; }
+    if (!banner) { banner = document.createElement("p"); banner.id = "metricFilterBanner"; banner.className = "metric-filter-banner"; banner.setAttribute("role", "status"); }
+    const clear = document.createElement("button");
+    clear.type = "button"; clear.className = "secondary"; clear.textContent = "Show all";
+    clear.addEventListener("click", () => { metricFilter = null; render(); });
+    const label = document.createElement("strong"); label.textContent = METRICS[metricFilter].label;
+    banner.replaceChildren(label, " ", Object.assign(document.createElement("span"), { textContent: String(shown) }), " ", clear);
+    banner.setAttribute("aria-label", `${METRICS[metricFilter].say(shown)} on this list`);
+    cards.before(banner);
+  }
   // EPK gate from GET /booking-pipeline. null = unknown (older backend); the server still enforces it on send.
   let epkGate = null;
   let pitchStats = null;
@@ -191,11 +243,8 @@
 
   function renderDashboard() {
     const statuses = venues.map(bookingStatus), outreach = window.danzstakTourManagerBilling?.outreach || [];
-    document.getElementById("tmSelected").textContent = String(venues.length);
-    document.getElementById("tmSent").textContent = String(outreach.filter(item => ["provider_accepted", "sent", "delivered", "bounced", "complained"].includes(item.status)).length);
-    document.getElementById("tmReplies").textContent = String(statuses.filter(value => ["Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined"].includes(value)).length);
-    document.getElementById("tmConfirmed").textContent = String(statuses.filter(value => value === "Confirmed").length);
-    document.getElementById("tmDeclined").textContent = String(statuses.filter(value => value === "Declined").length);
+    void statuses; void outreach;
+    for (const [id, metric] of [["tmSelected", "selected"], ["tmSent", "sent"], ["tmReplies", "replied"], ["tmConfirmed", "confirmed"], ["tmDeclined", "declined"]]) labelStat(id, metric, venues.filter(METRICS[metric].test).length);
     const values = tour(), estimate = serverEstimate || localEstimate(), currency = /^[A-Z]{3}$/.test(values.currency.toUpperCase()) ? values.currency.toUpperCase() : "USD";
     let money; try { money = new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 }); } catch { money = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }); }
     document.getElementById("tourManagerDates").textContent = values.departOn && values.returnBy ? `${values.name || "Tour"} · ${values.departOn} to ${values.returnBy}` : "Add dates and costs below.";
@@ -360,7 +409,8 @@
     panel.hidden = !stats;
     if (!stats) return;
     const count = value => Number.isFinite(Number(value)) && value !== null ? String(Math.max(0, Math.round(Number(value)))) : "—";
-    for (const [id, key] of [["psSent", "sent"], ["psDelivered", "delivered"], ["psOpened", "opened"], ["psReplied", "replied"], ["psBooked", "booked"]]) document.getElementById(id).textContent = count(stats[key]);
+    // Totals across every pitch you've sent (server); each opens the clubs on this list that match.
+    for (const [id, key, metric] of [["psSent", "sent", "pitched"], ["psDelivered", "delivered", "delivered"], ["psOpened", "opened", "opened"], ["psReplied", "replied", "replied"], ["psBooked", "booked", "booked"]]) labelStat(id, metric, count(stats[key]));
     const rates = [`${count(stats.replyRate)}% reply rate`, `${count(stats.bookedRate)}% booked`];
     if (Number(stats.bounced) > 0) rates.push(`${count(stats.bounced)} bounced`);
     document.getElementById("pitchStatsRates").textContent = rates.join(" · ");
@@ -443,10 +493,12 @@
     renderRouteDatesPanel();
     if (!venues.length) { showEmpty(); return; }
     cards.replaceChildren();
+    metricBanner(metricFilter ? venues.filter(METRICS[metricFilter].test).length : 0);
     updateControls();
     venues.forEach((venue, index) => {
     const stage = pipeline.stageOf(bookingStatus(venue));
     if (stageFilter !== "all" && stage !== stageFilter) return;
+    if (metricFilter && !METRICS[metricFilter].test(venue)) return;
     const card = document.createElement("article");
     const body = document.createElement("div");
     const title = document.createElement("h2");

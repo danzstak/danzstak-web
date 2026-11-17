@@ -164,7 +164,7 @@ function fixture(pathname, populated = true) {
         assert.match(await page.locator(".tour-calendar tbody tr").last().textContent(), /Home/, "the final return day should sleep at home");
         assert.doesNotMatch(await page.locator(".tour-calendar tbody tr").last().textContent(), /≈\d+ road mi/, "missing intermediate geometry must not become one false long return leg");
         assert.ok((await page.locator(".tour-calendar tbody tr").allTextContents()).some(text => /≈\d+ road mi/.test(text)), "the day sheet should expose estimated leg mileage");
-        assert.match(await page.locator(".proposed-calendar > summary").textContent(), /8 proposed shows/);
+        assert.equal((await page.locator('.proposed-calendar .tour-stat[data-metric="shows"] strong').textContent()).trim(), "8", "8 proposed shows, as a tappable count");
         assert.ok(await page.locator(".tour-lead-status", { hasText: /Sourced lead|Contact found/ }).count() >= 1, "proposed clubs need a visible evidence status");
         assert.doesNotMatch(await page.locator('[data-route-cost="total"]').textContent(), /—/, "route cost must calculate");
         await page.locator('[data-route-budget-input="averageShowPay"]').fill("1000");
@@ -173,7 +173,7 @@ function fixture(pathname, populated = true) {
         assert.match(await page.locator('[data-route-cost-label="net"]').textContent(), /Projected profit/);
         assert.doesNotMatch(await page.locator('[data-route-cost="breakEven"]').textContent(), /—/, "break-even per show must calculate");
         assert.equal(await page.locator(".route-research-workspace").evaluate(element => element.open), false, "city-by-city research should not stretch the primary tour sheet");
-        assert.match(await page.locator(".route-research-workspace > summary").textContent(), /Club research and contacts/);
+        assert.match(await page.locator(".route-research-workspace > summary").getAttribute("aria-label"), /Club research and contacts/);
         await page.locator(".route-research-workspace > summary").click();
         const firstMarket = page.locator(".route-market").first();
         await firstMarket.evaluate(element => {

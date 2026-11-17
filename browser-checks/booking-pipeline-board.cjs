@@ -105,7 +105,8 @@ function installApi(page, state) {
       const statsPanel = page.locator(".pitch-stats");
       await statsPanel.waitFor({ state:"visible" });
       assert.deepEqual(await statsPanel.locator(".tour-manager-stats strong").allTextContents(), ["25", "23", "14", "9", "4"], `${width}px pitch numbers`);
-      assert.deepEqual(await statsPanel.locator(".tour-manager-stats span").allTextContents(), ["Pitched", "Delivered", "EPK opened", "Replied", "Booked"]);
+      // 15-D: one-word labels; each count is a button whose accessible name says what it counts.
+      assert.deepEqual(await statsPanel.locator(".tour-manager-stats span").allTextContents(), ["Sent", "Delivered", "Opened", "Replied", "Booked"]);
       assert.equal((await page.locator("#pitchStatsRates").textContent()).trim(), "36% reply rate · 16% booked · 2 bounced");
       const statsBox = await statsPanel.evaluate(node => { const box = node.getBoundingClientRect(); return { left:box.left, right:box.right, tiles:[...node.querySelectorAll(".tour-manager-stats div")].map(tile => tile.getBoundingClientRect().right) }; });
       assert.ok(statsBox.left >= 0 && statsBox.right <= width + 1 && Math.max(...statsBox.tiles) <= width + 1, `${width}px stats panel stays on screen`);
