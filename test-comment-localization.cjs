@@ -33,7 +33,7 @@ assert.match(feed, /new Intl\.RelativeTimeFormat\(locale/, "comment timestamps m
 assert.match(feed, /time\.title = parsed\.toLocaleString\(locale/, "comment timestamps must expose the full localized date and time");
 assert.match(feed, /attributeFilter: \["lang"\]/, "comment translations must observe live language changes");
 assert.match(feed, /dataset\.replyName/, "member names must be preserved separately from translated interface copy");
-assert.match(html, /assets\/i18n\.js\?v=408/);
+assert.match(html, /assets\/i18n\.js\?v=409/);
 assert.match(html, /assets\/feed-enhancements\.js\?v=560/);
 assert.match(serviceWorker, /danzstak-shell-v875/);
 
