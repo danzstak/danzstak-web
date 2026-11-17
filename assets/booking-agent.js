@@ -1259,6 +1259,9 @@
     workspace.className = "tour-sheet-workspace";
     daySheet.className = "tour-sheet-main";
     daySheet.append(summary, renderProposedCalendar(data), renderRouteMap(data));
+    // Owner 2026-11-17: one-way legs chain into the next freeway ("Keep going").
+    const keepGoing = window.danzstakTourLegs?.render(data);
+    if (keepGoing) daySheet.append(keepGoing);
     workspace.append(daySheet, budget);
     routeResults.append(workspace);
     const routeMarkets = orderedCandidateMarkets(data),

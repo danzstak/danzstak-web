@@ -930,7 +930,15 @@
 "Not verified yet": "Non ancora verificato",
 "Booking contact bounced or asked to stop — find a newer contact": "Il contatto per il booking è rimbalzato o ha chiesto di smettere: trova un contatto più recente",
 "Promoter / party crew": "Promoter / crew di feste",
-"Web search (promoters)": "Ricerca web (promoter)"
+"Web search (promoters)": "Ricerca web (promoter)",
+"Keep going": "Continua il tour",
+"Start the next leg from here. Pick a freeway; DanzStak finds clubs in the music towns along it.": "Parti da qui per la prossima tappa. Scegli un'autostrada: DanzStak trova i locali nelle città musicali lungo il percorso.",
+"Tour so far": "Il tour finora",
+"east": "verso est",
+"west": "verso ovest",
+"north": "verso nord",
+"south": "verso sud",
+"Next leg": "Prossima tappa"
 },
 "fr": {
 "A private review link is active. Replace it to get a new secret or revoke access.": "Un lien privé d'avis est actif. Remplace-le pour obtenir un nouveau secret ou révoque l'accès.",
@@ -1855,7 +1863,15 @@
 "Not verified yet": "Pas encore vérifié",
 "Booking contact bounced or asked to stop — find a newer contact": "Le contact booking a rebondi ou a demandé d'arrêter : trouve un contact plus récent",
 "Promoter / party crew": "Promoteur / collectif de soirées",
-"Web search (promoters)": "Recherche web (promoteurs)"
+"Web search (promoters)": "Recherche web (promoteurs)",
+"Keep going": "Continuer la tournée",
+"Start the next leg from here. Pick a freeway; DanzStak finds clubs in the music towns along it.": "Démarre l'étape suivante d'ici. Choisis une autoroute : DanzStak trouve les clubs dans les villes musicales le long du trajet.",
+"Tour so far": "La tournée jusqu'ici",
+"east": "vers l'est",
+"west": "vers l'ouest",
+"north": "vers le nord",
+"south": "vers le sud",
+"Next leg": "Étape suivante"
 },
 "es": {
 "A private review link is active. Replace it to get a new secret or revoke access.": "Hay un enlace privado de reseñas activo. Sustitúyelo para obtener un nuevo secreto o revoca el acceso.",
@@ -2793,7 +2809,15 @@
 "Not verified yet": "Aún sin verificar",
 "Booking contact bounced or asked to stop — find a newer contact": "El contacto rebotó o pidió no recibir más: busca un contacto más reciente",
 "Promoter / party crew": "Promotor / colectivo de fiestas",
-"Web search (promoters)": "Búsqueda web (promotores)"
+"Web search (promoters)": "Búsqueda web (promotores)",
+"Keep going": "Sigue de gira",
+"Start the next leg from here. Pick a freeway; DanzStak finds clubs in the music towns along it.": "Empieza el siguiente tramo desde aquí. Elige una autopista: DanzStak encuentra salas en las ciudades musicales del camino.",
+"Tour so far": "La gira hasta ahora",
+"east": "hacia el este",
+"west": "hacia el oeste",
+"north": "hacia el norte",
+"south": "hacia el sur",
+"Next leg": "Siguiente tramo"
 }
 };
  for(const [lang,words] of Object.entries(add))Object.assign(t[lang]||(t[lang]={}),words);
@@ -3127,6 +3151,26 @@
 [
 "Record shop: {}",
 "Negozio di dischi: {0}"
+],
+[
+"Tour so far: {}",
+"Il tour finora: {0}"
+],
+[
+"I-{} east",
+"I-{0} verso est"
+],
+[
+"I-{} west",
+"I-{0} verso ovest"
+],
+[
+"I-{} north",
+"I-{0} verso nord"
+],
+[
+"I-{} south",
+"I-{0} verso sud"
 ]
 ],
 "fr": [
@@ -3457,6 +3501,26 @@
 [
 "Record shop: {}",
 "Disquaire : {0}"
+],
+[
+"Tour so far: {}",
+"La tournée jusqu'ici : {0}"
+],
+[
+"I-{} east",
+"I-{0} vers l'est"
+],
+[
+"I-{} west",
+"I-{0} vers l'ouest"
+],
+[
+"I-{} north",
+"I-{0} vers le nord"
+],
+[
+"I-{} south",
+"I-{0} vers le sud"
 ]
 ],
 "es": [
@@ -3787,6 +3851,26 @@
 [
 "Record shop: {}",
 "Tienda de discos: {0}"
+],
+[
+"Tour so far: {}",
+"La gira hasta ahora: {0}"
+],
+[
+"I-{} east",
+"I-{0} hacia el este"
+],
+[
+"I-{} west",
+"I-{0} hacia el oeste"
+],
+[
+"I-{} north",
+"I-{0} hacia el norte"
+],
+[
+"I-{} south",
+"I-{0} hacia el sur"
 ]
 ]
 };
