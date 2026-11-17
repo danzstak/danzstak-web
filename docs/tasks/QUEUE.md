@@ -31,7 +31,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 13 | SYNC 16-H: Make it yours | 16 | Part 1 (look, sound and feel, previews, reactions) PR #474; part 2 (contacts, SYNC profile/status, SYNC lock, disappearing messages) TODO |
 | 14 | Share everywhere with tracked links (replaces the current share UI) | 17 | TODO |
 | 15 | Follow alongside Friends | owner 2026-11-17 (Friend = two-way, Follow = one-way; artist pages lead with Follow) | TODO |
-| 16 | SYNC 16-G: standalone launch | 16 | PR (this branch) |
+| 16 | SYNC 16-G: standalone launch | 16 | PR #477 |
 
 **Order (owner 2026-11-17):** make what exists work and look finished before adding features: SYNC layout, buttons and the fix-it list come before the AI builder and new features.
 
