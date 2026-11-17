@@ -78,7 +78,8 @@
     set("departOn", nextDay(data.route.returnBy));
     const oneWay = document.getElementById("oneWayTour");
     if (oneWay) { oneWay.checked = true; oneWay.dispatchEvent(new Event("change", { bubbles: true })); }
-    document.getElementById("tourForm")?.requestSubmit();
+    // Same trigger the tour brief uses; a plain form submit would reload the page (live test 2026-11-17).
+    document.getElementById("routeSearchAction")?.click();
     document.getElementById("routeResults")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 

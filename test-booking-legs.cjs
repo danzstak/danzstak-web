@@ -22,4 +22,7 @@ assert.match(agent, /window\.danzstakTourLegs\?\.render\(data\)/);
 assert.ok(page.indexOf("assets/booking-legs.js") < page.indexOf("assets/booking-agent.js"));
 assert.match(worker, /"\/assets\/booking-legs\.js"/);
 assert.match(fs.readFileSync("assets/booking-legs.js", "utf8"), /set\("departOn", nextDay\(data\.route\.returnBy\)\)/, "the next leg starts the day after this one ends");
+const legsSource = fs.readFileSync("assets/booking-legs.js", "utf8");
+assert.match(legsSource, /getElementById\("routeSearchAction"\)\?\.click\(\)/);
+assert.doesNotMatch(legsSource, /requestSubmit\(\)/, "a native form submit reloads the page and loses the tour");
 console.log("Tour legs checks passed.");
