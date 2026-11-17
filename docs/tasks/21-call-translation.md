@@ -20,7 +20,11 @@ Owner, 2026-11-17: "add a real-time voice translator in video calls." Bands on t
 - Honest copy: "Machine translation can be wrong. Double-check prices, dates and deals in writing."
 
 ## Price
-- **Paid feature, priced (owner, 2026-11-17, final): $10 for one hour of real-time subtitles in one call ($11.60 with the buyer-paid fee: 6% + $1 on orders under $30).** One-off charge, no subscription, no prepaid credits. The all-in price shows before the member turns subtitles on; a countdown shows minutes left; at the end they can buy another hour or carry on without subtitles. Unused minutes don't carry over to another call. The person who pays turns it on; the other person still must consent to their voice being translated. Stripe Test Mode until the owner approves live charges.
+- **Calls are free; only the translation is paid (owner, 2026-11-17, final).** A **Translation pack: $30 for 180 minutes of real-time subtitles** ($31.80 with the 6% buyer fee; $10 an hour). Minutes are used up across any SYNC calls while subtitles are on, counted per minute of translated speech the member turned on, and shown as "minutes left" on the call screen. This is the **one owner-approved exception** to the no-prepaid-credits rule; every other product stays one-off.
+  - Assumption (owner didn't say): **minutes never expire.** Unused minutes refund under Terms 8A (price minus Stripe's fee, pro rata for unused minutes, after the member accepts the exact amount). Minutes can't be transferred, sold or cashed out.
+  - When minutes run out mid-call, subtitles stop with a notice and a "Buy another 180 minutes" button; the call continues.
+  - The person who turns subtitles on uses their minutes; the other person must still consent to their voice being translated.
+  - Stripe Test Mode until the owner approves live charges. Server-side minute ledger (reserve per minute, idempotent, never negative); entitlements only from verified webhooks.
 
 ## Tests
 - No audio leaves the device before both consent; stopping translation stops the stream within a second.
