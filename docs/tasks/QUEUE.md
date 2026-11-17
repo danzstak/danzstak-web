@@ -1,0 +1,33 @@
+# DanzStak build queue
+
+**Claude Code:** read this file at the start of every session and after every PR you open.
+1. Take the **first** item whose status is `TODO`, set it to `IN PROGRESS (Claude Code)`, and commit that change on your branch.
+2. Build it as described in its spec, open the PR against main, and set the status to `PR #<n>`. **Don't merge or deploy.**
+3. Go on to the next `TODO`.
+4. If a PR of yours shows conflicts with main, rebase it first. Use `node scripts/bump-versions.cjs` for version clashes and take the higher number.
+
+**Owner's Claude (review/deploy):** reviews each PR, merges it, deploys it (Auth API Lambdas; CloudFormation change sets for call-signaling), tests it live, then sets the status to `DONE (date)`. It adds new owner requests to this queue, in priority order.
+
+The owner should never have to paste prompts: everything Claude Code needs is in this file and the specs it links.
+
+| # | Item | Spec | Status |
+|---|------|------|--------|
+| 1 | SYNC texts via Twilio Verify | CLAUDE.md "SYNC SMS provider decision" | DONE (2026-11-17, #402 + ttl fix) |
+| 2 | People search: name + @username, placeholder accounts named first, search on every page | CLAUDE.md signup rule | DONE (2026-11-17, #409, call-signaling deployed) |
+| 3 | One phone verification across the same person's accounts (up to 10) | owner 2026-11-17 | PR #405, **needs rebase** |
+| 4 | Rebase hometown skins #394 → #398 → #399 and Events #389 onto main | 15, 14-D | TODO |
+| 5 | SYNC 16-A: native shell + layout (messages scroll under the header, nothing cut off, keyboard) | 16 | TODO |
+| 6 | SYNC 16-C: button system, SYNC first, then site-wide (no "HTML-looking" buttons) | 16 | TODO |
+| 7 | SYNC 16-B / 16-B2 / 16-B3: wallpaper, ringtones, "set up this phone" after registration with an invite link | 16 | TODO |
+| 8 | SYNC 16-F: lock-screen push for messages, calls, booking replies and "venue opened your EPK" | 16 | TODO |
+| 9 | SYNC 16-D ticks/typing/presence, then 16-E reply/forward/edit/delete | 16 | TODO |
+| 10 | SYNC 16-H: Make it yours | 16 | TODO |
+| 11 | Share everywhere with tracked links (replaces the current share UI) | 17 | TODO |
+| 12 | Follow alongside Friends | owner 2026-11-17 (Friend = two-way, Follow = one-way; artist pages lead with Follow) | TODO |
+| 13 | SYNC 16-G: standalone launch | 16 | TODO |
+
+**Parked (don't touch unless the owner moves them up):** fees PRs #363–#370 and #352/#359 (older work needing the owner's review), the legacy `codex/*` PRs, and Bedrock AI features (AWS quota hold; see SESSION notes).
+
+**Blocked on the owner:**
+- AWS support case: Bedrock quotas at 0, and SMS sandbox / Notify rejected.
+- Twilio upgrade from Trial before real members register.
