@@ -662,6 +662,7 @@ function openConversation(conversation, { updateHistory = true } = {}) {
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: true }, location.origin);
   contactInput.value = conversation.contactEmail;
   window.danzstakActiveContactName = conversation.name || "DanzStak member";
+  if (typeof CustomEvent === "function") window.dispatchEvent?.(new CustomEvent("danzstak:sync-conversation-opened")); // 16-B: the per-chat wallpaper follows the open chat
   activeCanContact = conversation.canContact !== false;
   setConversationActionsEnabled(activeCanContact);
   directContact = "";

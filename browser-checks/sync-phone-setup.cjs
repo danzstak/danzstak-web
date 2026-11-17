@@ -55,9 +55,13 @@ async function shot(page, name) { try { await page.screenshot({ path: path.join(
       if (!opened) { failures.push(`${label}: "Set up this phone" did not open after registration`); await context.close(); continue; }
       const read = () => page.evaluate(() => { const d = document.querySelector(".phone-setup-dialog"); const r = d.getBoundingClientRect(); return { sheetTop: r.top, sheetBottom: r.bottom, vh: innerHeight, title: d.querySelector("h2").textContent, count: d.querySelector(".phone-setup-count").textContent, back: d.querySelector(".phone-setup-back").getBoundingClientRect().width > 0, skip: d.querySelector(".phone-setup-skip").getBoundingClientRect().width > 0, left: r.left, right: r.right, small: [...d.querySelectorAll("button")].filter(b => b.getBoundingClientRect().height > 0 && b.getBoundingClientRect().height < 43.5).map(b => b.textContent.trim() || b.getAttribute("aria-label")) }; });
       let s = await read();
-      const total = phone ? 3 : 4;
-      if (!/alerts/i.test(s.title) || !new RegExp(`of ${total}$`).test(s.count)) failures.push(`${label}: first step is not alerts of ${total} (${s.title} / ${s.count})`);
-      if (s.back || !s.skip) failures.push(`${label}: first step should have Skip and no Back`);
+      const total = phone ? 4 : 5;
+      // 16-B: the wallpaper step comes first; Skip it here (browser-checks/sync-wallpaper.cjs covers it).
+      if (!/wallpaper/i.test(s.title) || s.back || !s.skip) failures.push(`${label}: first step should be the wallpaper with Skip and no Back (${s.title})`);
+      await shot(page, `${phone ? "phone" : "computer"}-0-wallpaper-${width}`);
+      await page.locator(".phone-setup-skip").click(); await page.waitForTimeout(200); s = await read();
+      if (!/alerts/i.test(s.title) || !new RegExp(`of ${total}$`).test(s.count)) failures.push(`${label}: second step is not alerts of ${total} (${s.title} / ${s.count})`);
+      if (!s.back || !s.skip) failures.push(`${label}: alerts step should have Skip and Back`);
       if (s.left < 0 || s.right > width) failures.push(`${label}: setup sheet overflows`);
       if (phone && (Math.abs(s.sheetBottom - s.vh) > 1 || s.sheetTop < s.vh * 0.3)) failures.push(`${label}: setup is not a bottom sheet (top ${Math.round(s.sheetTop)}, bottom ${Math.round(s.sheetBottom)} of ${s.vh})`);
       if (s.small.length) failures.push(`${label}: buttons under 44px: ${s.small.join(", ")}`);
