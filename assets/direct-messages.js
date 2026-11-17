@@ -829,6 +829,7 @@ function directMessageItem(message) {
   item.className = "message" + (mine ? " mine" : "");
   item.tabIndex = 0;
   item.dataset.messageId = message.messageId;
+  if (message.createdAt) item.dataset.createdAt = message.createdAt; // date chips (task 16-A)
   if (message.content) {
     const text = document.createElement("span");
     text.className = "message-text";
@@ -842,7 +843,9 @@ function directMessageItem(message) {
   item.dataset.baseAriaLabel = item.getAttribute("aria-label");
   const meta = document.createElement("span");
   meta.className = "message-meta";
-  meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · " + messageTranslate("edited") : "");
+  // Like familiar messengers: time (and "edited") inside the bubble; the sender is clear from the side and stays in
+  // the message's accessible label.
+  meta.textContent = (message.editedAt ? messageTranslate("edited") + " · " : "") + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   if (mine) {
     const receipt = document.createElement("span");
     receipt.className = "message-receipt";
@@ -852,9 +855,10 @@ function directMessageItem(message) {
   item.appendChild(meta);
   globalThis.danzstakSyncReply?.decorate?.(item, message, { me: currentEmail, contactName: activeContactName }); // 16-E
   updateMessageReactionBadge(item, message);
-  item.addEventListener("pointerdown", event => { if (event.target.closest?.(".message-text")) return; reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
+  // Long-press anywhere on the bubble opens its actions (Copy included), like the phone's messenger (task 16-A).
+  item.addEventListener("pointerdown", event => { if (event.target.closest?.("a,button,video,input,textarea")) return; reactionTimer = setTimeout(() => { window.danzstakSyncBuzz?.(15); openMessageReactions(item, message, event.clientX, event.clientY); }, 500); });
   for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
-  item.addEventListener("contextmenu", event => { if (event.target.closest?.(".message-text")) return; event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
+  item.addEventListener("contextmenu", event => { if (event.target.closest?.("a,video")) return; event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
   item.addEventListener("click", event => {
     if (!selectedMessages.size || event.target.closest?.("a,button,input,textarea,video")) return;
     event.preventDefault();
