@@ -315,7 +315,7 @@ foreach ($offlineInstallAsset in @('/assets/app-downloads.js', '/assets/danzstak
 }
 if ($serviceWorker.Contains('/assets/danzstak-share-fb-v2.jpg')) { Add-Failure 'Offline app shell still pins the retired social-share artwork' }
 $serviceWorkerJs = Get-Content -LiteralPath (Join-Path $root 'service-worker.js') -Raw -Encoding utf8
-foreach ($callNotificationBehavior in @('payload.type === "call"', 'action: "answer"', 'action: "dismiss"', 'event.action === "dismiss"', 'event.action === "answer" && event.notification.data?.type === "call"', 'destinationUrl.searchParams.set("answer", "1")')) {
+foreach ($callNotificationBehavior in @('payload.type === "call"', 'action: "answer"', 'action: "decline"', 'event.action === "decline"', 'event.action === "dismiss"', 'event.action === "answer" && event.notification.data?.type === "call"', 'destinationUrl.searchParams.set("answer", "1")')) {
   if (-not $serviceWorkerJs.Contains($callNotificationBehavior)) { Add-Failure "PWA: call notification behavior is missing: $callNotificationBehavior" }
 }
 if (-not $serviceWorkerJs.Contains('candidate.pathname + candidate.search + candidate.hash')) { Add-Failure 'PWA: same-origin notification destinations lose their workspace route' }
