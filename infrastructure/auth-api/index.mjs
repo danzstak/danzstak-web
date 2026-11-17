@@ -321,8 +321,11 @@ const now = () => Math.floor(Date.now() / 1000);
 
 // Marketplace payouts read the same Stripe secret but never depend on the tour-manager webhook setup.
 let payoutKeyPromise = null;
+// Marketplace (Stripe Connect payouts and ticket sales) tests in the Stripe sandbox "DanzStak Test",
+// separate from the main account's test mode used by DanzStak's own products (owner 2026-11-17).
+const marketplaceStripeSecretName = process.env.MARKETPLACE_STRIPE_SECRET_NAME || "danzstak/stripe/sandbox-secret-key";
 async function payoutStripeKey() {
-  if (!payoutKeyPromise) payoutKeyPromise = secretsManager.send(new GetSecretValueCommand({ SecretId: stripeSecretName })).then(result => secretText(result, ["STRIPE_SECRET_KEY", "secretKey", "key", "value"])).catch(error => { payoutKeyPromise = null; throw error; });
+  if (!payoutKeyPromise) payoutKeyPromise = secretsManager.send(new GetSecretValueCommand({ SecretId: marketplaceStripeSecretName })).then(result => secretText(result, ["STRIPE_SECRET_KEY", "secretKey", "key", "value"])).catch(error => { payoutKeyPromise = null; throw error; });
   return payoutKeyPromise;
 }
 const marketplaceWebhookSecretName = process.env.MARKETPLACE_WEBHOOK_SECRET_NAME || "danzstak/stripe/marketplace-webhook-secret";
