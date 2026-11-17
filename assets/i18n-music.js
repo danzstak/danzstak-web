@@ -3119,6 +3119,14 @@
 [
 "pay to play reported by {} band",
 "pay to play segnalato da {0} band"
+],
+[
+"Backups: {}",
+"Alternative: {0}"
+],
+[
+"Record shop: {}",
+"Negozio di dischi: {0}"
 ]
 ],
 "fr": [
@@ -3441,6 +3449,14 @@
 [
 "pay to play reported by {} band",
 "payer pour jouer signalé par {0} groupe"
+],
+[
+"Backups: {}",
+"Plans B : {0}"
+],
+[
+"Record shop: {}",
+"Disquaire : {0}"
 ]
 ],
 "es": [
@@ -3763,6 +3779,14 @@
 [
 "pay to play reported by {} band",
 "pagar por tocar señalado por {0} banda"
+],
+[
+"Backups: {}",
+"Alternativas: {0}"
+],
+[
+"Record shop: {}",
+"Tienda de discos: {0}"
 ]
 ]
 };
