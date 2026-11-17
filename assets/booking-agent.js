@@ -1354,6 +1354,7 @@
       recordSummary.textContent = `💿 Record stores along the route (${recordStores.length})`;
       const promoters = (market.promoters || []).slice(0, 8), promoterDetails = document.createElement("details"), promoterSummary = document.createElement("summary"), promoterGrid = document.createElement("div"), promoterHint = document.createElement("p");
       promoterSummary.textContent = `🎟 Promoters & party crews (${promoters.length})`;
+      if (promoters.some(place => place.crew)) promoterHint.dataset.crews = "true";
       promoterHint.className = "hint";
       promoterHint.textContent = "Found on the web. Check that they book your kind of show before you pitch.";
       promoterGrid.className = "place-grid";

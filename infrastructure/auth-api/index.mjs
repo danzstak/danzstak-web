@@ -3062,7 +3062,7 @@ async function webPromoterResearch(point, genre = "") {
   const cached = promoterCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return { skipped: false, promoters: cached.promoters };
   const results = [];
-  await mapLimit(queries, 2, async ({ query, language }) => {
+  await mapLimit(queries, 2, async ({ query, language, kind }) => {
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 6000);
     try {
       const search = new URLSearchParams({ q: query, count: "10", search_lang: language, safesearch: "moderate" });
@@ -3070,7 +3070,7 @@ async function webPromoterResearch(point, genre = "") {
       const response = await fetch(`https://api.search.brave.com/res/v1/web/search?${search}`, { signal: controller.signal, headers: { accept: "application/json", "X-Subscription-Token": apiKey } });
       if (!response.ok) throw new Error(`Brave Search returned ${response.status}`);
       const data = await response.json();
-      for (const result of data.web?.results || []) results.push({ result, query });
+      for (const result of data.web?.results || []) results.push({ result, query, kind });
     } catch (error) { console.error("Promoter search failed:", error.name); }
     finally { clearTimeout(timeout); }
   });

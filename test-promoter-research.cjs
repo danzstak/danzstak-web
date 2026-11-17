@@ -14,6 +14,15 @@ const fs = require("node:fs");
   assert.ok(p.promoterQueries({ label: "Madrid, Spain", countryCode: "ES" }, "house").some(q => q.query === "promotores house Madrid"));
   const portland = p.promoterQueries({ label: "Portland, OR, United States" }, "punk").map(q => q.query);
   assert.deepEqual(portland, ["punk promoters Portland United States", "punk party organizers Portland", "punk show bookers Portland", "DIY punk collective Portland"]);
+  // Free tekno crews and sound systems (owner 2026-11-17), Europe and the US, for electronic acts only.
+  const tekno = p.promoterQueries({ label: "Bologna, Italy", countryCode: "IT" }, "free tekno");
+  assert.ok(tekno.some(q => q.query === "free tekno sound system Bologna" && q.kind === "crew"));
+  assert.ok(tekno.some(q => q.query === "teknival collettivo Bologna"));
+  assert.ok(p.promoterQueries({ label: "Berlin, Germany", countryCode: "DE" }, "techno").some(q => q.query === "Free Tekno Soundsystem Berlin"));
+  assert.ok(p.promoterQueries({ label: "Oakland, CA, United States" }, "electronic").some(q => q.query === "underground rave crew Oakland"));
+  assert.ok(!p.promoterQueries({ label: "Bologna, Italy", countryCode: "IT" }, "punk").some(q => q.kind === "crew"), "punk bands are not sent to free parties");
+  const crew = p.promoterLead({ url: "https://www.instagram.com/spiralsoundsystem/", title: "Spiral Sound System (@spiralsoundsystem)", description: "free tekno crew" }, { label: "Bologna", position: [11.34, 44.49] }, "q", undefined, "crew");
+  assert.equal(crew.crew, true); assert.deepEqual(crew.categories, ["Free tekno crew / sound system"]);
   const point = { label: "Bologna, Italy", position: [11.34, 44.49] };
   const leads = p.promoterLeads([
     { query: "q", result: { url: "https://www.crewbologna.it/booking", title: "Crew Bologna | Techno nights", description: "Booking: info@crewbologna.it +39 051 123 4567" } },
