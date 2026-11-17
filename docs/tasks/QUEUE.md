@@ -25,7 +25,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 8 | **AI promoter reader** (14-A) on the same Anthropic provider and secret: reads the public promoter pages Brave finds and keeps real promoters, crews and booking contacts with sources. Fail-closed without a key (today's keyword filter stays). | 14 | TODO |
 | 9 | Rebase hometown skins #394 → #398 → #399 and Events #389 onto main | 15, 14-D | TODO |
 | 9b | **Live translation in calls** (captions first, spoken later; consent from both; Translation packs 30 min $5 (+fees $6.30) or 180 min $30 (+fees $31.80), calls free, Stripe Test Mode) — only after the SYNC fixes and a passing two-device call test | 21 | TODO |
-| 10 | SYNC 16-B / 16-B2 / 16-B3: wallpaper, ringtones, "set up this phone" after registration with an invite link | 16 | 16-B3 starter PR #448, 16-B PR #458, 16-B2 PR (this branch) |
+| 10 | SYNC 16-B / 16-B2 / 16-B3: wallpaper, ringtones, "set up this phone" after registration with an invite link | 16 | 16-B3 starter PR #448, 16-B PR #458, 16-B2 PR #462 |
 | 11 | SYNC 16-F: lock-screen push for messages, calls, booking replies and "venue opened your EPK" | 16 | TODO |
 | 12 | SYNC 16-D ticks/typing/presence, then 16-E reply/forward/edit/delete | 16 | TODO |
 | 13 | SYNC 16-H: Make it yours | 16 | TODO |
