@@ -203,3 +203,14 @@ body.epk-skin:not(.public-mode) main button:not(.ds-icon-button):focus-visible{o
 body.epk-skin:not(.public-mode) main button.ds-icon-button{width:var(--ds-btn-size)!important;min-width:var(--ds-btn-size)!important;height:var(--ds-btn-size)!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;color:#f2efe6!important;-webkit-tap-highlight-color:transparent}
 body.epk-skin:not(.public-mode) main button.ds-icon-button:active{background:rgba(255,255,255,.1)!important;transform:scale(.94)}
 body.epk-skin:not(.public-mode) main button.ds-icon-button:disabled{color:#5f5f66!important;background:transparent!important}
+
+/* ---- Booking agent — 16-C sweep ---- */
+body.booking-page #bookingBriefExample{min-height:var(--ds-btn-size)!important;padding:0 16px!important;border:0!important;border-radius:var(--ds-btn-radius)!important;background:var(--ds-btn-tonal)!important;color:var(--ds-btn-tonal-ink)!important;font-weight:600!important;box-shadow:none!important;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+body.booking-page #bookingBriefExample:active{background:var(--ds-btn-tonal-press)!important;transform:scale(.97)}
+/* Map controls: 44px targets (Leaflet's default is 30px). */
+body.booking-page .leaflet-bar a,body.booking-page .leaflet-control-zoom a{width:var(--ds-btn-size)!important;height:var(--ds-btn-size)!important;line-height:var(--ds-btn-size)!important;font-size:22px!important}
+body.booking-page .map-draw-control{width:var(--ds-btn-size)!important;height:var(--ds-btn-size)!important;line-height:var(--ds-btn-size)!important}
+body.booking-page .map-actions{display:flex;flex-wrap:wrap;gap:8px}
+body.booking-page .map-actions>button{white-space:nowrap;min-height:var(--ds-btn-size)!important;border-radius:var(--ds-btn-radius)!important;padding:0 16px!important;border:0!important;font-weight:600!important;box-shadow:none!important}
+body.booking-page .map-actions>.primary-map-action{background:var(--ds-btn-primary)!important;color:var(--ds-btn-on-primary)!important}
+body.booking-page .map-actions>.secondary{background:var(--ds-btn-tonal)!important;color:var(--ds-btn-tonal-ink)!important}
