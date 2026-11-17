@@ -158,3 +158,28 @@ body.messages-page .contact-details-block:active{transform:scale(.97)}
   .ds-btn-icon:active,.ds-btn-primary:active,.ds-btn-tonal:active,.ds-btn-text:active,
   body.messages-page button:active,body.messages-page label[data-icon]:active,body.messages-page .contact-details-actions>a:active{transform:none!important}
 }
+
+/* ---- Mix and Music HQ (feed.html) — 16-C sweep, owner 2026-11-17: no outlined "HTML" text buttons ---- */
+/* Music HQ actions: one primary pill, the rest tonal pills (were blue-outlined boxes). */
+.artist-hq-action{
+  min-height:var(--ds-btn-size)!important;padding:0 18px!important;border:0!important;border-radius:var(--ds-btn-radius)!important;
+  background:var(--ds-btn-tonal)!important;color:var(--ds-btn-tonal-ink)!important;font-weight:600!important;box-shadow:none!important;
+  white-space:nowrap;text-transform:none!important;-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,transform .08s ease;
+}
+.artist-hq-action:active{background:var(--ds-btn-tonal-press)!important;transform:scale(.97)}
+.artist-hq-action.primary{background:var(--ds-btn-primary)!important;color:var(--ds-btn-on-primary)!important}
+.artist-hq-action.primary:active{background:var(--ds-btn-primary-press)!important}
+.artist-hq-action:focus-visible{outline:2px solid var(--ds-btn-focus)!important;outline-offset:2px}
+/* Alerts banner: primary pill + text button. */
+.push-alert-prompt button.primary{min-height:var(--ds-btn-size)!important;padding:0 18px!important;border:0!important;border-radius:var(--ds-btn-radius)!important;background:var(--ds-btn-primary)!important;color:var(--ds-btn-on-primary)!important;font-weight:600!important;white-space:nowrap}
+.push-alert-prompt .push-alert-dismiss{min-height:var(--ds-btn-size)!important;padding:0 12px!important;border:0!important;border-radius:var(--ds-btn-radius)!important;background:transparent!important;color:var(--ds-btn-muted)!important;font-weight:600!important;white-space:nowrap}
+.push-alert-prompt .push-alert-dismiss:active{background:var(--ds-btn-press)!important}
+/* Post "⋯": a 44px icon button with a round press state. */
+#feed .post .post-menu-toggle{width:var(--ds-btn-size)!important;min-width:var(--ds-btn-size)!important;height:var(--ds-btn-size)!important;min-height:var(--ds-btn-size)!important;top:2px!important;right:2px!important;padding:0!important;border-radius:50%!important;-webkit-tap-highlight-color:transparent}
+#feed .post .post-menu-toggle:active{background:var(--ds-btn-press)!important}
+/* Header Pivot pill keeps its look but gets a full 44px target. */
+#pivotButton,.pivot-header-button{min-height:var(--ds-btn-size)!important}
+/* Mix action rows: instant press feedback, no grey tap flash. */
+#feed .post :is(.post-actions,.post-reactions) button{-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,transform .08s ease}
+#feed .post :is(.post-actions,.post-reactions) button:active{background:var(--ds-btn-press);transform:scale(.96)}
+@media(prefers-reduced-motion:reduce){.artist-hq-action,#feed .post :is(.post-actions,.post-reactions) button{transition:none!important}.artist-hq-action:active,#feed .post :is(.post-actions,.post-reactions) button:active{transform:none!important}}
