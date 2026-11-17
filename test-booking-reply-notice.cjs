@@ -25,5 +25,13 @@ const fs = require("node:fs");
   assert.match(feed, /messages\.html\?section=bookings&outreach=\$\{encodeURIComponent\(notice\.outreachId\)\}/);
   const deploy = fs.readFileSync("aws-configure-booking-replies.ps1", "utf8");
   assert.match(deploy, /\(Join-Path \$Source "notice\.mjs"\)/); assert.match(deploy, /table\/DANZSTAK-EngagementNotifications/);
+  // EPK opened (owner 2026-11-17): once per venue link per day, never for the artist's own opens.
+  const opened = bookingReplyNotice({ tableName: "N", artistEmail: "a@b.co", outreachId: "o".repeat(20), dedupe: "open-20261117", venueName: "Club X", action: "opened" });
+  assert.equal(opened.Item.verb.S, "opened your EPK");
+  assert.equal(opened.Item.eventId.S, `booking_reply#${"o".repeat(20)}#open-20261117`);
+  const indexSource = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
+  assert.match(indexSource, /dedupe: `open-\$\{openedAt\.slice\(0, 10\)\.replace\(\/-\/g, ""\)\}`/, "one EPK-open notice per link per day");
+  assert.match(indexSource, /await getAuthenticatedUser\(event\)\.catch\(\(\) => ""\) !== ownerId/, "the artist's own opens don't notify");
+  assert.match(fs.readFileSync("assets/i18n.js", "utf8"), /"opened your EPK"\];/);
   console.log("Booking reply notice checks passed.");
 })().catch(error => { console.error(error); process.exit(1); });
