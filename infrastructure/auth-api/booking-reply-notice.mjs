@@ -1,6 +1,6 @@
 // Owner 2026-11-16: "can you see the replies and notify users that so and so contacted them about a gig".
 // One bell notification per reply. Kept identical to booking-inbound/notice.mjs (checked by test).
-const ACTIONS = { reply: "answered your pitch", interested: "is interested in your gig", offer_date: "offered you a date", confirm_date: "confirmed a date", pass: "passed on your pitch" };
+const ACTIONS = { reply: "answered your pitch", interested: "is interested in your gig", offer_date: "offered you a date", confirm_date: "confirmed a date", pass: "passed on your pitch", opened: "opened your EPK" };
 export const BOOKING_NOTICE_TYPE = "booking_reply";
 
 export function bookingReplyNotice({ tableName, artistEmail, outreachId, dedupe, venueName, action = "reply", preview = "", proposedDate = "", at }) {
