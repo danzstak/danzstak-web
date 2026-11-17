@@ -609,7 +609,8 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
     select.addEventListener("click", () => toggleMessageSelection(item, message));
     palette.appendChild(select);
   }
-  if (message.senderEmail === currentEmail && message.content) {
+  globalThis.danzstakSyncReply?.paletteActions?.(palette, item, message, () => palette.remove(), { me: currentEmail, contactName: activeContactName, chats: () => cachedConversations }); // 16-E
+  if (message.senderEmail === currentEmail && message.content && !message.forwarded && Date.now() - Date.parse(message.createdAt) < 15 * 60 * 1000) { // 16-E: edit for 15 minutes
     const edit = document.createElement("button");
     edit.type = "button";
     edit.className = "message-edit-choice";
@@ -849,6 +850,7 @@ function directMessageItem(message) {
     updateDirectMessageReceipt(item, message, receipt);
   }
   item.appendChild(meta);
+  globalThis.danzstakSyncReply?.decorate?.(item, message, { me: currentEmail, contactName: activeContactName }); // 16-E
   updateMessageReactionBadge(item, message);
   item.addEventListener("pointerdown", event => { if (event.target.closest?.(".message-text")) return; reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
   for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
@@ -1510,6 +1512,7 @@ messageForm?.addEventListener("submit", async event => {
     retryMessageSend = null;
   }
   const clientMessageId = retry?.clientMessageId || `${String(Date.now()).padStart(13, "0")}#${crypto.randomUUID()}`;
+  const replyToId = globalThis.danzstakSyncReply?.idFor?.(recipientEmail) || ""; // 16-E
   if (window.navigator?.onLine === false && window.danzstakQueueOffline) {
     try {
       if (selectedMessageMedia) throw new Error(messageTranslate("Attachments need a connection. Your draft is still here."));
@@ -1532,12 +1535,13 @@ messageForm?.addEventListener("submit", async event => {
   try {
     if (mediaFile && !attachment.mediaKey) callStatus.textContent = messageTranslate("Uploading attachment…");
     if (mediaFile && !attachment.mediaKey) attachment = await uploadSelectedMessageMedia(mediaFile);
-    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, clientMessageId, ...attachment }) });
+    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, clientMessageId, ...attachment, ...(replyToId ? { replyToId } : {}) }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(data.error || messageTranslate("Message could not be sent"));
     }
     retryMessageSend = null;
+    if (replyToId) globalThis.danzstakSyncReply?.clear?.();
     if (version !== conversationVersion) { await loadConversations(); return; }
     if (data.message?.messageId) {
       shownMessages.add(data.message.messageId);
