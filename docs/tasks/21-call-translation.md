@@ -20,7 +20,7 @@ Owner, 2026-11-17: "add a real-time voice translator in video calls." Bands on t
 - Honest copy: "Machine translation can be wrong. Double-check prices, dates and deals in writing."
 
 ## Price
-- **Paid feature, priced (owner, 2026-11-17): $5 for 30 minutes of real-time subtitles in one call ($6.30 with the buyer-paid fee).** One-off charge, no subscription, no prepaid credits. The all-in price shows before the member turns subtitles on; a countdown shows minutes left; at the end they can buy another 30 minutes or carry on without subtitles. Unused minutes don't carry over to another call. The person who pays turns it on; the other person still must consent to their voice being translated. Stripe Test Mode until the owner approves live charges.
+- **Paid feature, priced (owner, 2026-11-17, final): $10 for one hour of real-time subtitles in one call ($11.60 with the buyer-paid fee: 6% + $1 on orders under $30).** One-off charge, no subscription, no prepaid credits. The all-in price shows before the member turns subtitles on; a countdown shows minutes left; at the end they can buy another hour or carry on without subtitles. Unused minutes don't carry over to another call. The person who pays turns it on; the other person still must consent to their voice being translated. Stripe Test Mode until the owner approves live charges.
 
 ## Tests
 - No audio leaves the device before both consent; stopping translation stops the stream within a second.

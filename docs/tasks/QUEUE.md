@@ -24,7 +24,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 7c | **Moving Day for shops**: free CSV import of a shop's own Discogs/eBay/web-store inventory export, preview, select, batch price/shipping, publish (task 19, last section) | 19 | TODO |
 | 8 | **AI promoter reader** (14-A) on the same Anthropic provider and secret: reads the public promoter pages Brave finds and keeps real promoters, crews and booking contacts with sources. Fail-closed without a key (today's keyword filter stays). | 14 | TODO |
 | 9 | Rebase hometown skins #394 → #398 → #399 and Events #389 onto main | 15, 14-D | TODO |
-| 9b | **Live translation in calls** (captions first, spoken later; consent from both; $5 per 30 minutes + fees = $6.30, Stripe Test Mode) — only after the SYNC fixes and a passing two-device call test | 21 | TODO |
+| 9b | **Live translation in calls** (captions first, spoken later; consent from both; $10 per hour + fees = $11.60, one-off, Stripe Test Mode) — only after the SYNC fixes and a passing two-device call test | 21 | TODO |
 | 10 | SYNC 16-B / 16-B2 / 16-B3: wallpaper, ringtones, "set up this phone" after registration with an invite link | 16 | TODO |
 | 11 | SYNC 16-F: lock-screen push for messages, calls, booking replies and "venue opened your EPK" | 16 | TODO |
 | 12 | SYNC 16-D ticks/typing/presence, then 16-E reply/forward/edit/delete | 16 | TODO |
