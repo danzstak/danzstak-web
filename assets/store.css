@@ -25,3 +25,5 @@ a{color:var(--ds-brand,#121418)}
 .payouts-row label{display:grid;gap:4px;font-size:13px;font-weight:600}
 .payouts-row select{min-height:44px}
 .payouts-start{min-height:44px;padding:0 16px;border-radius:999px;background:#121418;color:#fff;font-weight:800;border:0}
+
+.moving-day-link a{display:inline-flex;align-items:center;min-height:44px;padding:4px 0;font-weight:900}
