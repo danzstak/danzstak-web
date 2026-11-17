@@ -475,6 +475,17 @@
   id:["Notifikasi","Tutup notifikasi","Memuat notifikasi…","Tidak ada notifikasi baru.","{count} notifikasi baru.","{count} notifikasi baru.","{label}, {count} notifikasi baru","{label}, {count} notifikasi baru","Notifikasi tidak dapat dimuat.","Coba lagi","Buka Suku"]
  };
  for(const [language,values] of Object.entries(notificationGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(notificationKeys.map((key,index)=>[key,values[index]])));
+
+ // Booking reply notifications (owner 2026-11-16).
+ const bookingNoticeKeys=["Open booking thread","A venue","answered your pitch","is interested in your gig","offered you a date","confirmed a date","passed on your pitch"];
+ const bookingNoticeGuidance={
+  it:["Apri la conversazione di booking","Un locale","ha risposto alla tua proposta","è interessato al tuo concerto","ti ha proposto una data","ha confermato una data","ha rifiutato la tua proposta"],
+  fr:["Ouvrir la conversation booking","Une salle","a répondu à ton pitch","est intéressée par ton concert","t'a proposé une date","a confirmé une date","a décliné ton pitch"],
+  es:["Abrir conversación de contratación","Una sala","respondió a tu propuesta","está interesada en tu concierto","te ofreció una fecha","confirmó una fecha","rechazó tu propuesta"],
+  de:["Booking-Unterhaltung öffnen","Eine Location","hat auf deinen Pitch geantwortet","interessiert sich für deinen Gig","hat dir ein Datum angeboten","hat ein Datum bestätigt","hat deinen Pitch abgelehnt"],
+  pt:["Abrir conversa de booking","Uma casa","respondeu ao seu pitch","tem interesse no seu show","ofereceu uma data","confirmou uma data","recusou o seu pitch"]
+ };
+ for(const [language,values] of Object.entries(bookingNoticeGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(bookingNoticeKeys.map((key,index)=>[key,values[index]])));
  const activityNotificationKeys=["New message","your Tribe","New announcement","{name} notified @everyone in {group}: {preview}","{name} liked your post.","{name} disliked your post.","{name} loved your post.","{name} laughed at your post.","{name} reacted Wow to your post.","{name} reacted Sad to your post.","{name} reacted Fire to your post.","{name} reacted to your post.","{name} tagged you in a post.","New reply","{name} replied to you: {preview}","New comment","{name} commented: {preview}","{name} sent you a friend request.","Open {name} profile"];
  const activityNotifications={
   es:["Nuevo mensaje","tu Tribu","Nuevo anuncio","{name} avisó a @everyone en {group}: {preview}","A {name} le gustó tu publicación.","A {name} no le gustó tu publicación.","A {name} le encantó tu publicación.","{name} se rio de tu publicación.","{name} reaccionó con Guau a tu publicación.","{name} reaccionó con Triste a tu publicación.","{name} reaccionó con Fuego a tu publicación.","{name} reaccionó a tu publicación.","{name} te etiquetó en una publicación.","Nueva respuesta","{name} te respondió: {preview}","Nuevo comentario","{name} comentó: {preview}","{name} te envió una solicitud de amistad.","Abrir el perfil de {name}"],

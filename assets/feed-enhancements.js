@@ -1474,7 +1474,9 @@ function renderWorkspace(name) {
             if (!memberId) avatar.setAttribute("aria-hidden", "true");
           }
           const message = document.createElement("p");
-          message.textContent = notice.type === "plan"
+          message.textContent = notice.type === "booking_reply"
+            ? `${notice.venueName || feedTranslate("A venue")} ${feedTranslate(notice.verb || "answered your pitch")}${notice.proposedDate ? ` (${notice.proposedDate})` : ""}${notice.preview ? `: ${notice.preview}` : ""}`
+            : notice.type === "plan"
             ? notice.preview
             : notice.type === "message"
             ? `${displayName}: ${notice.preview || feedTranslate("New message")}`
@@ -1501,7 +1503,15 @@ function renderWorkspace(name) {
           }
           const actions = document.createElement("div");
           actions.className = "notification-actions";
-          if (notice.type === "group_everyone") {
+          if (notice.type === "booking_reply") {
+            // Owner 2026-11-16: open the booking thread in SYNC straight from the bell.
+            const open = document.createElement("a");
+            open.className = "primary";
+            open.textContent = feedTranslate("Open booking thread");
+            open.href = /^[a-zA-Z0-9_-]{16,100}$/.test(String(notice.outreachId || "")) ? `messages.html?section=bookings&outreach=${encodeURIComponent(notice.outreachId)}` : "messages.html?section=bookings";
+            open.setAttribute("aria-label", `${feedTranslate("Open booking thread")}: ${notice.venueName || ""}`);
+            actions.appendChild(open);
+          } else if (notice.type === "group_everyone") {
             const open = document.createElement("a");
             open.className = "primary";
             open.textContent = feedTranslate("Open Tribe");
