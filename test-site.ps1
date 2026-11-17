@@ -193,10 +193,14 @@ foreach ($styleSet in @($feedEnhancementCss, $profileStyles, $chatStylesForPrefe
   if (-not $styleSet.Contains('.reduce-motion')) { Add-Failure 'Display preferences: a core page lacks reduced-motion coverage' }
 }
 if ($feedEnhancementCss -match '\.story-share-control input\{position:absolute') { Add-Failure 'Composer: checkbox placement still relies on an absolute offset' }
-foreach ($eventBehavior in @('Event audience', 'Publishing event', '/secure-posts', 'Event published to DanzStak', 'window.loadPosts')) {
-  if (-not $feedEnhancements.Contains($eventBehavior)) { Add-Failure "Events: durable feed publishing is missing: $eventBehavior" }
+# Task 14-D: Events publishing moved to assets/events-page.js (flyer-first creator); the Mix post is still durable.
+$eventsPage = Get-Content -LiteralPath (Join-Path $root 'assets\events-page.js') -Raw -Encoding utf8
+if (-not $feedEnhancements.Contains('window.danzstakEvents.render(workspace')) { Add-Failure 'Events: the Events workspace no longer renders the events page' }
+foreach ($eventBehavior in @('Who can see it', 'Publishing your night', '/secure-posts', 'Your night is live.', 'window.loadPosts')) {
+  if (-not $eventsPage.Contains($eventBehavior)) { Add-Failure "Events: durable feed publishing is missing: $eventBehavior" }
 }
-foreach ($eventListingBehavior in @('Published events', 'published-event-card', 'View in Your Mix', 'scrollIntoView')) {
+if (-not $eventsPage.Contains('Your nights')) { Add-Failure 'Events: the promoter no longer sees their own nights' }
+foreach ($eventListingBehavior in @('published-event-card', 'View in Your Mix', 'scrollIntoView')) {
   if (-not $feedEnhancements.Contains($eventListingBehavior)) { Add-Failure "Events: published-event listing is missing: $eventListingBehavior" }
 }
 foreach ($groupRolloutBehavior in @('Checking Tribe service', 'Create Tribe (updating)', 'createButton.disabled = false')) {

@@ -4,16 +4,21 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#121418"><meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; style-src 'self'; script-src 'self'; img-src 'self' data: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
   <title>Event | DanzStak</title><meta name="description" content="Event details and tickets on DanzStak.">
-  <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png"><link rel="stylesheet" href="assets/mobile-design-system.css?v=21"><link rel="stylesheet" href="assets/icon-buttons.css?v=5"><link rel="stylesheet" href="assets/event.css?v=6">
+  <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png"><link rel="stylesheet" href="assets/mobile-design-system.css?v=21"><link rel="stylesheet" href="assets/icon-buttons.css?v=5"><link rel="stylesheet" href="assets/event.css?v=7">
 </head>
 <body>
   <a class="skip-link" href="#eventMain">Skip to event</a>
   <header class="event-header"><a href="feed.html?view=feed" aria-label="DanzStak home"><img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span></a><nav><a href="feed.html?view=events">Events</a><a href="messages.html">SYNC</a></nav></header>
   <main id="eventMain" class="event-main" tabindex="-1">
-    <p class="event-kicker">DanzStak event</p><h1 id="eventTitle">Loading event…</h1><p id="eventStatus" role="status" aria-live="polite">Checking event details.</p>
-    <section id="eventDetails" hidden><div id="eventMedia" class="event-media"></div><p id="eventWhen" class="event-when"></p><p id="eventVenue"></p><p id="eventDescription"></p><section aria-labelledby="ticketTitle"><h2 id="ticketTitle">Tickets</h2><div id="ticketTiers" class="ticket-tiers"></div></section></section>
+    <p id="eventStatus" class="event-status" role="status" aria-live="polite">Checking event details.</p>
+    <article id="eventDetails" class="event-poster" hidden>
+      <div id="eventMedia" class="event-media"></div>
+      <div class="event-poster-copy"><p class="event-kicker">DanzStak event</p><h1 id="eventTitle">Loading event…</h1><p class="event-when"><span class="event-doors">Doors</span> <span id="eventWhen"></span></p><p class="event-venue-line"><span id="eventVenue"></span> <a id="eventMap" class="event-map" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" hidden>Map</a></p></div>
+      <section class="event-tickets" aria-labelledby="ticketTitle"><h2 id="ticketTitle">Tickets</h2><div id="ticketTiers" class="ticket-tiers"></div></section>
+      <section id="eventLineupSection" class="event-lineup" aria-labelledby="lineupTitle" hidden><h2 id="lineupTitle">Lineup</h2><ul id="eventLineup"></ul></section>
+    </article>
   </main>
   <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"><a role="button" data-icon="home" aria-label="Mix" title="Mix" href="feed.html?view=feed"></a><a role="button" data-icon="disc" aria-label="Music HQ" title="Music HQ" href="feed.html?view=hq"></a><a role="button" data-icon="calendar" aria-label="Events" title="Events" href="feed.html?view=events" aria-current="page"></a><a role="button" data-icon="store" aria-label="Bazaar" title="Bazaar" href="bazaar.html"></a><a role="button" data-icon="chat" aria-label="SYNC" title="SYNC" href="messages.html"></a><a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1"></a></nav>
-  <script src="assets/icon-buttons.js?v=13" defer></script><script src="assets/payouts.js?v=1" defer></script><script src="assets/event-tickets.js?v=1" defer></script><script src="assets/event.js?v=6" defer></script>
+  <script src="assets/icon-buttons.js?v=13" defer></script><script src="assets/payouts.js?v=1" defer></script><script src="assets/languages.js?v=231" defer></script><script src="assets/brand-language-aliases.js?v=7" defer></script><script src="assets/i18n-events.js?v=1" defer></script><script src="assets/i18n.js?v=408" defer></script><script src="assets/events-page.js?v=1" defer></script><script src="assets/event-tickets.js?v=2" defer></script><script src="assets/event.js?v=7" defer></script>
 </body>
 </html>
