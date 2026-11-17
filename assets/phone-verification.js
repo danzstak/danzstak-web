@@ -8,13 +8,30 @@
   let current = null, timer = 0, deviceChallenge = null, resolveReady;
   const phoneReady = new Promise(resolve => { resolveReady = resolve; });
   const t = value => window.danzstakTranslate?.(value) || value;
+  const ERROR_TEXT = {
+    invalid_number: "That mobile number isn't valid. Check the country code and number.",
+    max_send_attempts: "Too many codes were sent to this number. Try again later.",
+    attempts: "Too many incorrect codes. Request a new text later.",
+    fraud_blocked: "Texts to this number are blocked to prevent fraud. Use another mobile number.",
+    geo_blocked: "SYNC can't send verification texts to this country yet.",
+    expired: "That code expired. Request a new text.",
+    rate_limited: "Too many verification attempts. Try again later.",
+    resend_cooldown: "Wait before requesting another verification text.",
+    invalid: "That code is incorrect. Request a new code.",
+    used: "This verification request is no longer active.",
+    resend_window: "You can resend once. Try again in 10 minutes.",
+    provider_unavailable: "SYNC verification texts aren't available yet. No text was sent.",
+    send_failed: "The verification text could not be sent. No number was verified."
+  };
+  // The phone's languages, so Twilio texts the code in the member's language (the server allowlists them).
+  const phoneLanguages = () => (Array.isArray(navigator.languages) && navigator.languages.length ? navigator.languages : [navigator.language || "en"]).slice(0, 8);
 
   async function request(path, options = {}) {
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 12000);
     try {
       const response = await fetch(API + path, { credentials:"include", cache:"no-store", signal:controller.signal, ...options });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) { const error = new Error(data.error || t("Phone settings could not be updated.")); error.code = data.code || ""; throw error; }
+      if (!response.ok) { const error = new Error(ERROR_TEXT[data.code] ? t(ERROR_TEXT[data.code]) : data.error || t("Phone settings could not be updated.")); error.code = data.code || ""; throw error; }
       return data;
     } catch (error) {
       if (error.name === "AbortError") throw new Error(t("Phone settings took too long to respond."));
@@ -41,7 +58,7 @@
     if (done) message(`${t("Private phone registered to SYNC")} · ${current.maskedNumber}`, "verified");
     else if (pending) message(`${t("Enter the six-digit code sent to")} ${current.maskedNumber}.`);
     else if (current.providerAvailable) message(deviceChallenge ? t("Enter a mobile number that can receive this device's one-time code.") : t("Enter a private mobile number. SYNC will text a six-digit code."));
-    else message(t("AWS has not approved SYNC verification texts yet. No text will be sent and no device will be marked verified."), "blocked");
+    else message(t("SYNC verification texts aren't available yet. No text will be sent and no device will be marked verified."), "blocked");
     cooldown();
   }
   async function load() {
@@ -66,9 +83,9 @@
   numberForm.addEventListener("submit", async event => {
     event.preventDefault(); send.disabled = true; message(t("Sending verification text…"));
     try {
-      if (current?.providerAvailable !== true) throw new Error(t("AWS has not approved SYNC verification texts yet. No text will be sent and no device will be marked verified."));
+      if (current?.providerAvailable !== true) throw new Error(t("SYNC verification texts aren't available yet. No text will be sent and no device will be marked verified."));
       if (!deviceChallenge) await startDeviceOtp(await window.danzstakBeginCallingDeviceEnrollment());
-      render(await request("/phone-verification/send", { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(enrollmentBody({countryCode:country.value,localNumber:number.value})) }));
+      render(await request("/phone-verification/send", { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(enrollmentBody({countryCode:country.value,localNumber:number.value,languages:phoneLanguages()})) }));
       code.focus();
     }
     catch(error) { message(error.message, "error"); send.disabled = false; }
@@ -82,7 +99,11 @@
         message(t("SMS code confirmed. Finishing device registration…"), "verified");
         window.dispatchEvent(new CustomEvent("danzstak:device-otp-confirmed", { detail:{ deviceGrantId:result.deviceGrantId, deviceGrantToken:result.deviceGrantToken } }));
       } else render(result);
-    } catch(error) { message(error.message, "error"); code.select(); }
+    } catch(error) {
+      // A wrong, expired or used code ends the challenge on the server: go back to "Text me a code" and keep the message.
+      if (["invalid", "expired", "used", "attempts"].includes(error.code)) { render({ state:"none", verified:false }); code.value = ""; number.focus(); }
+      message(error.message, "error"); if (!numberForm.hidden) return; code.select();
+    }
     finally { confirmButton.disabled = false; }
   });
   resend.addEventListener("click", () => { codeForm.hidden = true; numberForm.hidden = false; number.focus(); });

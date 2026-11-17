@@ -43,7 +43,7 @@ const { pathToFileURL } = require("node:url");
 
   const html=fs.readFileSync(path.join(root,"messages.html"),"utf8"), client=fs.readFileSync(path.join(root,"assets/phone-verification.js"),"utf8"), devices=fs.readFileSync(path.join(root,"assets/call-devices.js"),"utf8"), messages=fs.readFileSync(path.join(root,"assets/direct-messages.js"),"utf8"), api=fs.readFileSync(path.join(root,"infrastructure/auth-api/index.mjs"),"utf8"), callTemplate=fs.readFileSync(path.join(root,"infrastructure/call-signaling/template.yaml"),"utf8"), template=fs.readFileSync(path.join(root,"infrastructure/engagement/template.yaml"),"utf8");
   for (const marker of ["syncPhoneCountryCode","syncPhoneNumber","syncPhoneCode","Verify this device by SMS","stays private, unsearchable","cannot receive this carrier SMS code"]) assert.ok(html.includes(marker),`missing phone UI: ${marker}`);
-  assert.ok(client.includes("AWS has not approved SYNC verification texts yet"));
+  assert.ok(client.includes("SYNC verification texts aren't available yet"), "provider-neutral fail-closed message (Twilio or AWS)");
   assert.ok(client.includes('purpose:"sync_device"') && client.includes("deviceChallengeId") && client.includes("danzstak:device-otp-confirmed"),"device OTP must be bound in memory to the exact registration challenge");
   assert.ok(devices.includes("state.pendingName=state.accountName||defaultName()"),"device label must default to the account name");
   assert.ok(devices.includes("danzstakBeginCallingDeviceEnrollment") && client.includes("danzstakBeginCallingDeviceEnrollment"),"Text me a code must start the bound device enrollment challenge");

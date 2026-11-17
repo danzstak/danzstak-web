@@ -30,7 +30,7 @@ const baseUrl = String(process.env.DANZSTAK_BASE_URL || process.env.DANZSTAK_LOC
       await page.evaluate(() => window.danzstakOpenCallingDevices());
       await dialog.waitFor({ state: "visible" });
       await page.locator(".registered-devices li").waitFor();
-      if(language === "it")await page.getByText("AWS non ha ancora approvato gli SMS di verifica SYNC",{exact:false}).waitFor();
+      if(language === "it")await page.getByText("Gli SMS di verifica SYNC non sono ancora disponibili",{exact:false}).waitFor();
       const result = await page.evaluate(() => {
         const dialog = document.querySelector("#callingDevicesDialog").getBoundingClientRect();
         const labels = [...document.querySelectorAll("#callingDevicesDialog button")].map(button => button.textContent.trim()).filter(Boolean);
@@ -46,7 +46,7 @@ const baseUrl = String(process.env.DANZSTAK_BASE_URL || process.env.DANZSTAK_LOC
       if(language === "it"){
         assert.equal(result.intro,"Ogni dispositivo deve ricevere e confermare il proprio codice SMS privato prima di essere registrato per SYNC. Se il codice non viene inviato o confermato, il dispositivo resta non registrato.");
         assert.equal(result.phoneTitle,"Verifica privata del telefono");
-        assert.match(result.phoneStatus,/AWS non ha ancora approvato gli SMS di verifica SYNC/);
+        assert.match(result.phoneStatus,/Gli SMS di verifica SYNC non sono ancora disponibili/);
         assert.equal(result.countryLabel,"Prefisso internazionale");
         assert.equal(result.numberLabel,"Numero di cellulare");
       }
