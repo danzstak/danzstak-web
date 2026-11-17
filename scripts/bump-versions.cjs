@@ -32,7 +32,8 @@ function plan(root, { shell, assets }) {
   const read = file => changes.get(file) ?? fs.readFileSync(path.join(root, file), "utf8");
   const write = (file, text) => { if (text !== read(file)) changes.set(file, text); };
   const html = listFiles(root, ".", n => n.endsWith(".html"));
-  const pins = [...listFiles(root, ".", n => /^test-.*\.cjs$/.test(n)), ...listFiles(root, "browser-checks", n => n.endsWith(".cjs"))];
+  // test-dev-scripts.cjs holds sample version numbers for this script's own test; never rewrite them.
+  const pins = [...listFiles(root, ".", n => /^test-.*\.cjs$/.test(n) && n !== "test-dev-scripts.cjs"), ...listFiles(root, "browser-checks", n => n.endsWith(".cjs"))];
 
   if (shell !== null) {
     const worker = read("service-worker.js"), old = worker.match(/danzstak-shell-v(\d+)/)?.[1];
