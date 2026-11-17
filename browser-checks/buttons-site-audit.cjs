@@ -65,7 +65,8 @@ const audit = (page, scope) => page.evaluate(scope => {
     const borders = ["Top", "Right", "Bottom", "Left"].map(side => parseFloat(cs[`border${side}Width`]) * (cs[`border${side}Style`] === "none" ? 0 : 1));
     if (borders.some(width => width > 1.01)) problems.push(`${tag}: border ${borders.map(Math.round).join("/")}px`);
     if (["outset", "inset", "groove", "ridge"].includes(cs.borderTopStyle)) problems.push(`${tag}: bevel border`);
-    if (/inset/.test(cs.boxShadow)) problems.push(`${tag}: inset bevel shadow`);
+    // A single-edge inset (an active-tab underline such as "inset 0 -3px") is a tab indicator, not a bevel.
+    if (/inset/.test(cs.boxShadow) && !(node.matches("[aria-current], [aria-selected='true'], [role='tab']") && /(^|\) )0px -?\d+px 0px( 0px)? inset$/.test(cs.boxShadow.trim()))) problems.push(`${tag}: inset bevel shadow`);
     if (/^rgb\((239|240|221), (239|240|221), (239|240|221)\)$/.test(cs.backgroundColor)) problems.push(`${tag}: browser-grey background`);
     if (cs.textTransform === "uppercase" && node.textContent.trim().length > 3) problems.push(`${tag}: uppercase block`);
     // Blue outline text buttons ("Open bookings" style): a coloured border on a white/transparent text button.
