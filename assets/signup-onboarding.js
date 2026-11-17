@@ -6,7 +6,9 @@
   const API = "https://api.danzstak.com";
   const PLACEHOLDER_NAMES = new Set(["danzstak member", ""]);
   const DEVICE_PROMPT_KEY = "danzstak_device_prompt_seen";
-  const needsName = profile => profile?.isOwner === true && (PLACEHOLDER_NAMES.has(String(profile.name || "").trim().toLowerCase()) || /^danzstak-member/i.test(String(profile.handle || "")));
+  // Owner 2026-11-17: also any account with no @username, or whose "name" is really an email address, names itself on its next visit.
+  const needsName = profile => profile?.isOwner === true && (PLACEHOLDER_NAMES.has(String(profile.name || "").trim().toLowerCase()) || String(profile.name || "").includes("@") || !String(profile.handle || "").trim() || /^danzstak-member/i.test(String(profile.handle || "")));
+  const t = value => window.danzstakTranslate?.(value) || value;
   const suggestHandle = name => String(name || "").normalize("NFKD").replace(/[^\w.]+/g, "").replace(/_/g, "").toLowerCase().slice(0, 24);
 
   function style() {
@@ -33,11 +35,11 @@
     return new Promise(resolve => {
       style();
       const d = document.createElement("dialog"); d.className = "ds-onboard"; d.setAttribute("aria-labelledby", "dsOnboardTitle");
-      d.innerHTML = `<p class="ds-kicker">Welcome to DanzStak</p><h2 id="dsOnboardTitle">What should people call you?</h2>
-<p>Your name and username show on your posts, your EPK and in SYNC.</p>
-<form method="dialog" novalidate><label>Name<input name="name" autocomplete="name" maxlength="80" required></label>
-<label>Username<span class="ds-at"><span>@</span><input name="handle" autocomplete="username" maxlength="24" pattern="[A-Za-z0-9._]{3,24}" required></span></label>
-<p class="ds-err" role="alert"></p><div class="ds-row"><button class="ds-go" type="submit">Continue</button></div></form>`;
+      d.innerHTML = `<p class="ds-kicker">${t("Welcome to DanzStak")}</p><h2 id="dsOnboardTitle">${t("What should people call you?")}</h2>
+<p>${t("Your name and username show on your posts, your EPK and in SYNC. People find you by them.")}</p>
+<form method="dialog" novalidate><label>${t("Name")}<input name="name" autocomplete="name" maxlength="80" required></label>
+<label>${t("Username")}<span class="ds-at"><span>@</span><input name="handle" autocomplete="username" maxlength="24" pattern="[A-Za-z0-9._]{3,24}" required></span></label>
+<p class="ds-err" role="alert"></p><div class="ds-row"><button class="ds-go" type="submit">${t("Continue")}</button></div></form>`;
       document.body.append(d);
       const form = d.querySelector("form"), name = form.elements.name, handle = form.elements.handle, err = d.querySelector(".ds-err"), go = d.querySelector(".ds-go");
       let handleTouched = false;
@@ -47,13 +49,13 @@
       form.addEventListener("submit", async event => {
         event.preventDefault(); err.textContent = "";
         const chosen = name.value.trim(), user = handle.value.trim();
-        if (chosen.length < 2 || chosen.toLowerCase() === "danzstak member") { err.textContent = "Enter the name you want people to see."; name.focus(); return; }
-        if (!/^[A-Za-z0-9._]{3,24}$/.test(user)) { err.textContent = "Username: 3–24 letters, numbers, dots or underscores."; handle.focus(); return; }
+        if (chosen.length < 2 || chosen.toLowerCase() === "danzstak member" || chosen.includes("@")) { err.textContent = t("Enter the name you want people to see."); name.focus(); return; }
+        if (!/^[A-Za-z0-9._]{3,24}$/.test(user) || /^danzstak[-_.]?member/i.test(user)) { err.textContent = t("Username: 3–24 letters, numbers, dots or underscores."); handle.focus(); return; }
         go.disabled = true;
         try {
           const response = await fetch(API + "/profiles", { method: "POST", credentials: "include", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: chosen, handle: user }) });
           const data = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(data.error || "That didn't save. Try again.");
+          if (!response.ok) throw new Error(t(data.error || "That didn't save. Try again."));
           window.danzstakCurrentProfile = data.profile || { ...profile, name: chosen, handle: user };
           window.dispatchEvent(new CustomEvent("danzstak:profile-name-chosen", { detail: window.danzstakCurrentProfile }));
           d.close(); d.remove(); resolve(true);

@@ -24,7 +24,7 @@ assert.match(feed, /story-create-avatar-pending/, "Dailies must preload a signed
 assert.match(feed, /currentAvatar\.replaceWith\(dailyImage\)/, "Dailies must swap the portrait only after it loads");
 assert.match(feedPage, /danzstakIdentityMedia\?\.install\(image, \{ memberId: authorMemberId, name: author, picture: authorPicture \}\)/, "post author photos must use identity recovery");
 assert.ok(feedPage.indexOf("assets/identity-media.js?v=2") < feedPage.indexOf("function createPostElement"), "post author recovery must load before the inline post renderer can run");
-assert.match(search, /danzstakIdentityMedia\?\.install\(avatar, person\)/, "member search avatars must recover");
+assert.match(search, /danzstakIdentityMedia\?\.install\(image, person\)/, "member search avatars must recover");
 assert.match(messages, /danzstakIdentityMedia\?\.install\(avatar, conversation\)/, "saved-chat avatars must recover");
 assert.match(profile, /danzstakIdentityMedia\?\.install\(avatar, friend\)/, "profile friend avatars must recover");
 assert.match(worker, /"\/assets\/identity-media\.js"/, "the installable app must cache identity recovery");
