@@ -15,6 +15,8 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 1 | SYNC texts via Twilio Verify | CLAUDE.md "SYNC SMS provider decision" | DONE (2026-11-17, #402 + ttl fix) |
 | 2 | People search: name + @username, placeholder accounts named first, search on every page | CLAUDE.md signup rule | DONE (2026-11-17, #409, call-signaling deployed) |
 | 3 | One phone verification across the same person's accounts (up to 10) | owner 2026-11-17 | PR #405, **needs rebase** |
+| 3b | **AI EPK builder** via the Anthropic API (AWS Bedrock is on hold for this account, with every model throttled). Build `ai-epk.mjs` with the `llm` provider = Anthropic Messages API (plain fetch, model `claude-haiku-4-5` for extraction and Sonnet for writing), key read from Secrets Manager `danzstak/ai/anthropic-key` (JSON `{"apiKey": "..."}`, us-west-1; the auth API role may read only that secret). Fail-closed: with no key, the "Let AI build it" choice says "AI builder coming soon" and nothing is charged. Keep the provider swappable (Bedrock later). Everything else as in the spec: Stripe Test Mode only. | 08 | TODO |
+| 3c | **AI promoter reader** (14-A) on the same Anthropic provider and secret: reads the public promoter pages Brave finds and keeps real promoters, crews and booking contacts with sources. Fail-closed without a key (today's keyword filter stays). | 14 | TODO |
 | 4 | Rebase hometown skins #394 → #398 → #399 and Events #389 onto main | 15, 14-D | TODO |
 | 5 | SYNC 16-A: native shell + layout (messages scroll under the header, nothing cut off, keyboard) | 16 | TODO |
 | 6 | SYNC 16-C: button system, SYNC first, then site-wide (no "HTML-looking" buttons) | 16 | TODO |
@@ -26,8 +28,9 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 12 | Follow alongside Friends | owner 2026-11-17 (Friend = two-way, Follow = one-way; artist pages lead with Follow) | TODO |
 | 13 | SYNC 16-G: standalone launch | 16 | TODO |
 
-**Parked (don't touch unless the owner moves them up):** fees PRs #363–#370 and #352/#359 (older work needing the owner's review), the legacy `codex/*` PRs, and Bedrock AI features (AWS quota hold; see SESSION notes).
+**Parked (don't touch unless the owner moves them up):** fees PRs #363–#370 and #352/#359 (older work needing the owner's review), the legacy `codex/*` PRs, and Bedrock itself (AWS quota hold; the AI features now use the Anthropic API instead).
 
 **Blocked on the owner:**
 - AWS support case: Bedrock quotas at 0, and SMS sandbox / Notify rejected.
+- Anthropic API key in Secrets Manager `danzstak/ai/anthropic-key`, for AI items 3b and 3c (they can be built and tested with a fake provider before the key exists).
 - Twilio upgrade from Trial before real members register.
