@@ -4,6 +4,8 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Profile post photo": "Foto del post",
+"Profile post video": "Video del post",
 "Back": "Indietro",
 "Search": "Cerca",
 "More": "Altro",
@@ -54,6 +56,8 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"Profile post photo": "Photo de la publication",
+"Profile post video": "Vidéo de la publication",
 "Back": "Retour",
 "Search": "Rechercher",
 "More": "Plus",
@@ -104,6 +108,8 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"Profile post photo": "Foto de la publicación",
+"Profile post video": "Video de la publicación",
 "Back": "Atrás",
 "Search": "Buscar",
 "More": "Más",

@@ -520,8 +520,20 @@ function installProfilePostMedia(article, post) {
     media.className = "profile-post-media";
     media.addEventListener("error", () => { post.mediaUrl = ""; showRecovery(); }, { once: true });
     if (post.mediaType === "image") media.alt = post.content || "Profile post photo";
-    else { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
+    else { media.preload = "metadata"; media.muted = true; media.playsInline = true; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
     media.src = mediaUrl;
+    // Fix-it 18 (owner 2026-11-17): like a familiar feed. No browser controls (media-visibility.js autoplays muted at 50%
+    // and adds the mute toggle); tap opens the photo or video whole, full screen.
+    media.tabIndex = 0;
+    media.setAttribute("role", "button");
+    const openWhole = event => {
+      if (event.type === "keydown" && event.key !== "Enter" && event.key !== " ") return;
+      if (event.target.closest?.(".danzstak-audio-toggle")) return;
+      event.preventDefault();
+      window.danzstakProfileDailies?.openMedia?.([{ mediaType: post.mediaType, mediaUrl, label: post.content || (post.mediaType === "video" ? profileTranslate("Profile post video") : profileTranslate("Profile post photo")) }], 0, media);
+    };
+    media.addEventListener("click", openWhole);
+    media.addEventListener("keydown", openWhole);
     insert(media);
   };
   retry.addEventListener("click", () => { post.mediaUrl = ""; void install(); });
@@ -593,7 +605,7 @@ function profilePostCard(post) {
     const media = document.createElement(post.mediaType === "image" ? "img" : "video");
     media.className = "profile-post-media"; media.src = post.mediaUrl;
     if (post.mediaType === "image") media.alt = post.content || "Profile post photo";
-    else { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
+    else { media.preload = "metadata"; media.muted = true; media.playsInline = true; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
     article.appendChild(media);
   }
   const tools = document.createElement("div");

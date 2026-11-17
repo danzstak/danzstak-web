@@ -31,6 +31,8 @@ const posts = owner => [
   { postId: "33333333-3333-4333-8333-333333333331", userId: ownerId, authorName: "Night Shift", authorPicture: `${baseUrl}/__mirror/portrait.svg`, content: "Warehouse set last night. Thank you Oakland.", createdAt: "2026-11-16T21:30:00.000Z", audience: "public", isOwner: owner, mediaType: "image", mediaUrl: `${baseUrl}/__mirror/landscape.svg`, viewCount: 42 },
   { postId: "33333333-3333-4333-8333-333333333332", userId: ownerId, authorName: "Night Shift", authorPicture: `${baseUrl}/__mirror/portrait.svg`, content: "Flyer for Friday.", createdAt: "2026-11-15T17:30:00.000Z", audience: "public", isOwner: owner, mediaType: "image", mediaUrl: `${baseUrl}/__mirror/tall.svg`, viewCount: 18 },
   { postId: "33333333-3333-4333-8333-333333333333", userId: ownerId, authorName: "Night Shift", authorPicture: `${baseUrl}/__mirror/portrait.svg`, content: "New track is up, link in bio.", createdAt: "2026-11-14T12:00:00.000Z", audience: "public", isOwner: owner, viewCount: 7 },
+  { postId: "33333333-3333-4333-8333-333333333335", userId: ownerId, authorName: "Night Shift", content: "Soundcheck clip.", createdAt: "2026-11-12T12:00:00.000Z", audience: "public", isOwner: owner, mediaType: "video", mediaUrl: `${baseUrl}/__mirror/portrait.webm`, viewCount: 3 },
+  { postId: "33333333-3333-4333-8333-333333333336", userId: ownerId, authorName: "Night Shift", content: "Crowd from the booth.", createdAt: "2026-11-11T12:00:00.000Z", audience: "public", isOwner: owner, mediaType: "video", mediaUrl: `${baseUrl}/__mirror/landscape.webm`, viewCount: 3 },
   // A friend's post on the owner's wall: the owner may remove it from their profile (slim icon, not a text button).
   { postId: "33333333-3333-4333-8333-333333333334", userId: visitorId, authorName: "Tour Friend", content: "Great show!", profileOwnerMemberId: ownerId, createdAt: "2026-11-13T12:00:00.000Z", audience: "public", isOwner: false, canRemoveFromProfile: owner, viewCount: 2 }
 ];
@@ -65,9 +67,27 @@ const audit = page => page.evaluate(() => {
   return problems;
 });
 
+// Small portrait and landscape test videos, recorded in the browser at run time (no binaries in the repo).
+async function makeVideos(browser) {
+  const page = await browser.newPage(), out = {};
+  for (const [name, w, h] of [["portrait", 360, 640], ["landscape", 640, 360]]) {
+    out[name] = Buffer.from(await page.evaluate(async ([w, h]) => {
+      const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d");
+      const rec = new MediaRecorder(c.captureStream(15), { mimeType: "video/webm" }), chunks = [];
+      rec.ondataavailable = e => chunks.push(e.data); rec.start();
+      for (let i = 0; i < 20; i++) { g.fillStyle = `hsl(${i * 18},80%,50%)`; g.fillRect(0, 0, w, h); await new Promise(r => setTimeout(r, 70)); }
+      rec.stop(); await new Promise(r => { rec.onstop = r; });
+      const bytes = new Uint8Array(await new Blob(chunks).arrayBuffer()); let s = ""; bytes.forEach(x => { s += String.fromCharCode(x); }); return btoa(s);
+    }, [w, h]), "base64");
+  }
+  await page.close();
+  return out;
+}
+
 (async () => {
   fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({ channel: "msedge", headless: true });
+  const videos = await makeVideos(browser);
   const failures = [];
   try {
     for (const owner of [true, false]) for (const width of widths) {
@@ -77,6 +97,7 @@ const audit = page => page.evaluate(() => {
       page.on("pageerror", error => errors.push(error.message));
       await page.route(`${baseUrl}/__mirror/*`, route => {
         const name = new URL(route.request().url()).pathname.split("/").pop();
+        if (name.endsWith(".webm")) return route.fulfill({ status: 200, contentType: "video/webm", body: videos[name.replace(".webm", "")] });
         route.fulfill({ status: 200, contentType: "image/svg+xml", body: name === "portrait.svg" ? portrait : name === "tall.svg" ? tall : landscape });
       });
       await page.route("https://api.danzstak.com/**", route => {
@@ -152,6 +173,52 @@ const audit = page => page.evaluate(() => {
         if (nav.headerContrast.some(ratio => ratio < 4.5)) failures.push(`${label}: top bar name/icons are hard to see (contrast ${nav.headerContrast.map(r => r.toFixed(1)).join(", ")})`);
       }
       if (nav.tabTops !== 1 || nav.tabs.some(tab => tab.lines !== 1 || tab.h < 43.5) || nav.tabs.filter(tab => tab.active).length !== 1) failures.push(`${label}: tab row is not one tidy single-line row ${JSON.stringify(nav.tabs)}`);
+      // Photos and videos like a familiar feed: full width, source aspect (portrait capped at 4:5), never stretched.
+      // Videos load their size only when near the screen (data-friendly); bring each one near first.
+      for (const handle of await page.locator(".profile-post-card video.profile-post-media").elementHandles()) { await handle.scrollIntoViewIfNeeded(); await page.waitForTimeout(150); }
+      await page.waitForFunction(() => [...document.querySelectorAll(".profile-post-card video.profile-post-media")].every(v => v.readyState >= 1), null, { timeout: 8000 }).catch(() => {});
+      const media = await page.evaluate(() => [...document.querySelectorAll(".profile-post-card .profile-post-media")].map(node => {
+        const r = node.getBoundingClientRect(), cs = getComputedStyle(node), natural = node.tagName === "IMG" ? node.naturalWidth / node.naturalHeight : node.videoWidth / node.videoHeight;
+        return { tag: node.tagName, src: (node.currentSrc || node.src).split("/").pop(), left: r.left, right: r.right, ratio: r.width / r.height, natural, fit: cs.objectFit, controls: node.controls === true };
+      }));
+      for (const item of media) {
+        if (!item.natural || !Number.isFinite(item.natural)) { failures.push(`${label}: ${item.src} has no size yet`); continue; }
+        if (Math.abs(item.left) > 0.5 || Math.abs(item.right - width) > 0.5) failures.push(`${label}: ${item.src} is not edge to edge (${Math.round(item.left)}-${Math.round(item.right)})`);
+        const want = Math.max(0.8, item.natural);
+        if (Math.abs(item.ratio - want) > 0.03) failures.push(`${label}: ${item.src} shown at ${item.ratio.toFixed(2)}, expected ${want.toFixed(2)} (source ${item.natural.toFixed(2)}: whole if 4:5 or wider, else cropped to 4:5)`);
+        if (item.fit !== "cover" && Math.abs(item.ratio - item.natural) > 0.03) failures.push(`${label}: ${item.src} would stretch (object-fit ${item.fit})`);
+        if (item.tag === "VIDEO" && item.controls) failures.push(`${label}: ${item.src} shows browser controls instead of the feed player`);
+      }
+      if (media.filter(item => item.tag === "VIDEO").length !== 2) failures.push(`${label}: expected 2 profile videos, saw ${media.filter(item => item.tag === "VIDEO").length}`);
+      // Autoplay muted at 50% visible; one at a time; 44px mute toggle bottom-right.
+      // Scroll twice: late-loading images above can shift the video after the first scroll.
+      for (let i = 0; i < 2; i++) { await page.evaluate(() => { const v = document.querySelector(".profile-post-card video.profile-post-media"); if (v) { const r = v.getBoundingClientRect(); scrollBy(0, r.top - 80); } }); await page.waitForTimeout(300); }
+      await page.waitForFunction(() => { const v = document.querySelector(".profile-post-card video.profile-post-media"); return [...document.querySelectorAll(".profile-post-card video.profile-post-media")].some(x => !x.paused); }, null, { timeout: 4000 }).catch(() => {});
+      const play = await page.evaluate(() => {
+        const vids = [...document.querySelectorAll(".profile-post-card video.profile-post-media")];
+        const v = vids[0]; if (!v) return { playing: [], muted: true, toggle: null };
+        const r = v.getBoundingClientRect(), shell = v.closest(".danzstak-media-shell"), toggle = shell?.querySelector(".danzstak-audio-toggle"), t = toggle?.getBoundingClientRect();
+        const diag = vids.map(x => { const b = x.getBoundingClientRect(); const vis = Math.max(0, Math.min(b.bottom, innerHeight) - Math.max(b.top, 0)) / b.height; return { paused: x.paused, ended: x.ended, dur: String(x.duration), t: +x.currentTime.toFixed(2), loop: x.loop, ready: x.readyState, net: x.networkState, preload: x.preload, vis: +vis.toFixed(2), err: x.error?.code || 0, hidden: document.hidden, focus: document.hasFocus() }; });
+        return { diag, playing: vids.map(x => !x.paused), muted: v.muted, toggle: t ? { dr: r.right - t.right, db: r.bottom - t.bottom, w: t.width, label: toggle.getAttribute("aria-label") } : null };
+      });
+      if (!play.playing.some(Boolean)) failures.push(`${label}: no visible profile video autoplays ${JSON.stringify(play.diag)}`); // when two fit on screen, either may be the one
+      if (!play.muted) failures.push(`${label}: profile video autoplays with sound`);
+      if (play.playing.filter(Boolean).length > 1) failures.push(`${label}: more than one profile video plays at once`);
+      if (!play.toggle || play.toggle.dr < 0 || play.toggle.dr > 24 || play.toggle.db < 0 || play.toggle.db > 24 || play.toggle.w < 43.5 || !play.toggle.label) failures.push(`${label}: no 44px mute toggle bottom-right ${JSON.stringify(play.toggle)}`);
+      if ([360, 390].includes(width)) await page.screenshot({ path: path.join(output, `${prefix}-${who}-video-${width}.png`) });
+      // Tap a tall photo: the whole picture, full screen; Back closes it.
+      const tallImage = page.locator(".profile-post-card img.profile-post-media[src*='tall.svg']").first();
+      if (await tallImage.count()) {
+        await tallImage.scrollIntoViewIfNeeded();
+        await tallImage.click();
+        await page.waitForTimeout(300);
+        const whole = await page.evaluate(() => { const v = document.querySelector("dialog[open] img"); if (!v) return null; const cs = getComputedStyle(v); return { fit: cs.objectFit, src: v.getAttribute("src") }; });
+        if (!whole || whole.fit !== "contain" || !/tall\.svg/.test(whole.src || "")) failures.push(`${label}: tapping a photo does not open it whole and full screen ${JSON.stringify(whole)}`);
+        else if ([360, 390].includes(width)) await page.screenshot({ path: path.join(output, `${prefix}-${who}-photo-${width}.png`) });
+        if (whole) { await page.goBack(); await page.waitForTimeout(300); }
+        if (await page.evaluate(() => Boolean(document.querySelector("dialog[open]")))) failures.push(`${label}: Back does not close the photo`);
+      }
+      await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(200);
       if ([360, 390].includes(width)) {
         await page.screenshot({ path: path.join(output, `${prefix}-${who}-top-${width}.png`) });
         if (!owner) {

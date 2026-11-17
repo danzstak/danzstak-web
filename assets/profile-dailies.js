@@ -79,8 +79,9 @@
     const story = viewerStories[index], stage = viewer.querySelector(".profile-daily-stage");
     const media = document.createElement(story.mediaType === "video" ? "video" : "img");
     media.className = "profile-daily-full";
-    if (story.mediaType === "video") { media.muted = viewerMuted; media.playsInline = true; media.autoplay = true; media.loop = true; media.src = story.mediaUrl; media.setAttribute("aria-label", fmt("Daily from {time}", { time: when(story.createdAt) })); media.addEventListener("ended", () => show(viewerIndex + 1)); }
-    else { media.src = story.mediaUrl; media.alt = fmt("Daily from {time}", { time: when(story.createdAt) }); }
+    const name = story.label || fmt("Daily from {time}", { time: when(story.createdAt) });
+    if (story.mediaType === "video") { media.muted = viewerMuted; media.playsInline = true; media.autoplay = true; media.loop = true; media.src = story.mediaUrl; media.setAttribute("aria-label", name); }
+    else { media.src = story.mediaUrl; media.alt = name; }
     stage.replaceChildren(media);
     viewer.querySelector(".profile-daily-prev").hidden = index === 0;
     viewer.querySelector(".profile-daily-next").hidden = index === viewerStories.length - 1;
@@ -122,5 +123,7 @@
     return strip;
   }
 
-  window.danzstakProfileDailies = { mount };
+  // Also used by profile posts: tap a photo or video to see it whole, full screen (fix-it 18, owner 2026-11-17).
+  const openMedia = (items, index, from) => { window.danzstakMediaCoordinator?.pauseAll?.(); openViewer(items, index, from); };
+  window.danzstakProfileDailies = { mount, openMedia };
 })();

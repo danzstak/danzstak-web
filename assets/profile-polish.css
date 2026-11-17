@@ -109,3 +109,11 @@ body.profile-page{background:#fff!important}
   body.profile-page>header.profile-app-header.is-searching>.profile-header-name{display:none!important}
   body.profile-page>header.profile-app-header.is-searching>.profile-header-search{display:block!important;min-width:0}
 }
+
+/* Fix-it 18 (owner 2026-11-17): profile videos play like Mix. No browser controls, so the mute toggle sits in the
+   bottom-right corner (the 54px lift is only for players that still show native controls). Tap opens full screen. */
+.profile-post-card .danzstak-media-shell{width:calc(100% + 32px)!important;max-width:none!important;margin:0 -16px!important}
+.profile-post-card .danzstak-media-shell>video.profile-post-media{width:100%!important;margin:0!important}
+.profile-post-card .danzstak-native-video-shell>.danzstak-audio-toggle{right:12px!important;bottom:12px!important}
+.profile-post-card .profile-post-media{cursor:zoom-in}
+.profile-post-card .profile-post-media:focus-visible{outline:3px solid #ff5a1f;outline-offset:-3px}
