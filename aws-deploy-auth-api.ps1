@@ -394,6 +394,10 @@ try {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowManualVenueFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/tour/manual-venue" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Manual venue API invoke permission failed." }
   }
+  if ($permission -notmatch "api-club-directory-contacts") {
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id api-club-directory-contacts --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/club-directory/contacts" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Trusted contacts API invoke permission failed." }
+  }
   if ($permission -notmatch "AllowRecordStoresFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowRecordStoresFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/record-stores/search" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Record store API invoke permission failed." }
