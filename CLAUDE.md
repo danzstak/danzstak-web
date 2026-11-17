@@ -1,6 +1,6 @@
 # CLAUDE.md — DanzStak brief
 
-Read this first, every session. Then read `docs/SESSION-HANDOFF.md` (latest progress and open items), then `docs/OWNER-DIRECTIVES.md` (priorities and task specs) and `instructions/` (the full product spec the owner wants built). Then read `README.md` (mission, independence rules, product boundary), `docs/DANZSTAK-DESIGN-SYSTEM.md`, and `docs/QUALITY-ASSURANCE-POLICY.md`. Those rules still apply.
+Read this first, every session. **Claude Code: your work list is `docs/tasks/QUEUE.md`. Take the first `TODO` item, open a PR, mark it, and move on (see the instructions at the top of that file).** Then read `docs/SESSION-HANDOFF.md` (latest progress and open items), then `docs/OWNER-DIRECTIVES.md` (priorities and task specs) and `instructions/` (the full product spec the owner wants built). Then read `README.md` (mission, independence rules, product boundary), `docs/DANZSTAK-DESIGN-SYSTEM.md`, and `docs/QUALITY-ASSURANCE-POLICY.md`. Those rules still apply.
 
 ## What DanzStak is
 
