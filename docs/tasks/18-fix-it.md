@@ -82,9 +82,9 @@ Fix these before item 5 (16-C) is called done; they block a real call between tw
 - [ ] Note for testing: the Claude desktop browser pane blocks camera and microphone, so answering a call there can't prove audio/video. Answer on a second phone or in real Chrome.
 
 ### Call audio setup (owner, 2026-11-17: "it should open the box in the middle of the page that users can set the audio")
-- [ ] **Audio & video check box**, centered on screen (a proper modal, not a side panel), opened automatically before the first call on a device and from a gear icon on the call screen and in SYNC settings:
+- [ ] **Computers only (owner: "on a computer, and on a phone they should use the phone controls"):** an **Audio & video check box**, centered on screen (a proper modal, not a side panel), opened automatically before the first call on a computer and from a gear icon on the call screen and in SYNC settings. **On phones there is no box:** calls use the phone's own volume buttons and speaker/earpiece/Bluetooth controls, and SYNC just asks for microphone/camera permission once. The box has:
   - Microphone picker with a live level meter ("say something").
-  - Speaker picker with **Play test sound**, using `setSinkId`/`selectAudioOutput` where the browser supports it; on iPhone, where the web can't choose the output, one line says to use the phone's own speaker button.
+  - Speaker picker with **Play test sound**, using `setSinkId`/`selectAudioOutput`.
   - Camera picker with a small live preview.
   - Ring volume slider with a preview ring (feeds the ringtone gain, default the new louder level).
   - Choices saved on that device only (not synced, not sent to the server). One ✕ that always closes, 44px targets, works at 320px.
