@@ -32,6 +32,20 @@
       ready: false,
       checked: "Guide checked November 7, 2026"
     },
+    discogs: {
+      label: "Discogs",
+      title: "Move your record shop from Discogs",
+      steps: [
+        "Sign in to Discogs in a browser and open your Dashboard, then your Inventory.",
+        "Choose Export and request an inventory export. Use the inventory export, not the collection export.",
+        "When Discogs says it is ready, download the CSV and keep it private.",
+        "Open Moving Day for shops, choose the file, pick what moves and set your prices."
+      ],
+      href: "moving-day.html?source=discogs",
+      action: "Open Moving Day for shops",
+      ready: true,
+      checked: "Guide checked November 17, 2026"
+    },
     reddit: {
       label: "Reddit",
       title: "Request your Reddit data",
@@ -69,8 +83,11 @@
     const list = document.createElement("ol");
     for (const step of data.steps) { const item = document.createElement("li"); item.textContent = step; list.append(item); }
     const actions = document.createElement("div"); actions.className = "pivot-guide-actions";
-    const official = document.createElement("a"); official.href = data.link; official.target = "_blank"; official.rel = "noopener noreferrer"; official.referrerPolicy = "no-referrer"; official.textContent = data.linkLabel; actions.append(official);
-    if (data.ready) {
+    if (data.link) { const official = document.createElement("a"); official.href = data.link; official.target = "_blank"; official.rel = "noopener noreferrer"; official.referrerPolicy = "no-referrer"; official.textContent = data.linkLabel; actions.append(official); }
+    if (data.ready && data.href) {
+      const open = document.createElement("a"); open.className = "primary"; open.href = data.href; open.textContent = data.action;
+      actions.replaceChildren(open);
+    } else if (data.ready) {
       const choose = document.createElement("button"); choose.type = "button"; choose.className = "primary"; choose.textContent = "Choose Facebook export";
       choose.addEventListener("click", () => { dialog.close(); window.openDanzStakFacebookImport?.(activeTrigger); });
       actions.prepend(choose);

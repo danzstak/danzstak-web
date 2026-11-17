@@ -6,6 +6,7 @@
   const byId = id => document.getElementById(id);
   const status = byId("movingStatus");
   let items = [], shown = PAGE, moving = false, activeSource = "discogs";
+  const requestedSource = new URLSearchParams(location.search).get("source");
 
   // Same pattern and words as Pivot's Moving Day for timelines: platform tabs, the platform's own export steps, then choose the export here.
   const guides = {
@@ -195,6 +196,7 @@
     const buttons = [...tabs.querySelectorAll("button")], current = buttons.indexOf(document.activeElement); if (current < 0) return;
     event.preventDefault(); const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length; buttons[next].click(); buttons[next].focus();
   });
+  if (guides[requestedSource]) activeSource = requestedSource;
   renderGuide();
 
   byId("movingFile").addEventListener("change", event => readFile(event.target.files[0]).catch(() => { status.textContent = "That file couldn't be read. Save it as CSV and try again."; }));
