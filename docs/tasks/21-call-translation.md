@@ -20,7 +20,7 @@ Owner, 2026-11-17: "add a real-time voice translator in video calls." Bands on t
 - Honest copy: "Machine translation can be wrong. Double-check prices, dates and deals in writing."
 
 ## Price
-- It costs DanzStak per minute of audio. **Free or paid, and the price, are for the owner to set.** Build behind a flag, off, with Stripe Test Mode only, until priced. One-off charges only (no subscriptions), per the fee rules in CLAUDE.md.
+- **Paid feature (owner, 2026-11-17).** Real-time subtitles are a paid add-on in SYNC calls. **Exact price still to be set by the owner**; build behind a flag, off, Stripe Test Mode only, until the price is set. One-off charges only (no subscriptions, no prepaid credits), buyer-paid 6% fee + $1 under $30 as in CLAUDE.md "Fees", all-in price shown before the member turns it on. Only the person who pays needs to pay; the other person still must consent to their voice being translated.
 
 ## Tests
 - No audio leaves the device before both consent; stopping translation stops the stream within a second.
