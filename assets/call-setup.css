@@ -26,3 +26,13 @@
 @media(max-width:360px){.call-setup-dialog>label,.call-setup-dialog>p,.call-setup-dialog>div,.call-setup-dialog>video{margin-left:14px;margin-right:14px}.call-setup-preview{width:calc(100% - 28px)}}
 #mediaControls[hidden]+.call-speaker-note{display:none}
 .call-setup-dialog .danzstak-audio-toggle{display:none!important}
+/* "Set up this phone" (16-B3 starter): same centered sheet; full width on phones. */
+.phone-setup-count{margin:0 0 2px;color:#5b6472;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.phone-setup-body{line-height:1.45}
+.phone-setup-status:empty{display:none}
+.phone-setup-status{color:#166534;font-weight:600;overflow-wrap:anywhere}
+.phone-setup-actions{display:flex;align-items:center;gap:8px;padding-bottom:18px;flex-wrap:wrap}
+.phone-setup-actions>span{flex:1}
+.phone-setup-skip{min-height:44px;padding:0 12px;border:0;background:transparent;color:#5b6472;font:inherit;font-weight:600;cursor:pointer}
+@media(max-width:560px){.phone-setup-dialog{inset:auto 0 0 0;top:auto;width:100vw;max-width:none;height:auto;max-height:85dvh;margin:0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom,0px)}}
+.phone-setup-dialog button[hidden]{display:none!important}
