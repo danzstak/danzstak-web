@@ -846,7 +846,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
     let posts = window.danzstakProfileCollections.select(data.posts || [], collection, "", !viewingOtherProfile, new Date(), profileMemberId);
     if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType) && (!mediaType || post.mediaType === mediaType));
     tabMessage.replaceChildren();
-    if (collection === "posts" && !mediaOnly && window.danzstakCurrentProfile && typeof profileWallComposer === "function") tabMessage.appendChild(profileWallComposer(window.danzstakCurrentProfile));
+    if (collection === "posts" && !mediaOnly && window.danzstakCurrentProfile && typeof profileWallComposer === "function") tabMessage.appendChild(profileWallComposer(window.danzstakCurrentProfile)); if (collection === "posts" && !mediaOnly) window.danzstakProfileDailies?.mount(tabMessage, profileMemberId);
     if (collection !== "posts") {
       const note = document.createElement("p"); note.className = "muted";
       note.textContent = collection === "memories" ? "Only you can see this Memories view. These are your posts from this day in previous years; their original audiences stay unchanged." : "Featured posts keep their original audience. Highlighting a post does not make it public.";
