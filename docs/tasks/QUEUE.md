@@ -15,7 +15,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 1 | SYNC texts via Twilio Verify | CLAUDE.md "SYNC SMS provider decision" | DONE (2026-11-17, #402 + ttl fix) |
 | 2 | People search: name + @username, placeholder accounts named first, search on every page | CLAUDE.md signup rule | DONE (2026-11-17, #409, call-signaling deployed) |
 | 3 | One phone verification across the same person's accounts (up to 10) | owner 2026-11-17 | PR #405, **needs rebase** |
-| 4 | SYNC 16-A: native shell + layout (messages scroll under the header, nothing cut off, keyboard) | 16 | TODO |
+| 4 | (Owner 2026-11-17: a two-device **video call worked well** — Chrome/computer ↔ phone. Keep it working.) SYNC 16-A: native shell + layout (messages scroll under the header, nothing cut off, keyboard) | 16 | TODO |
 | 5 | SYNC 16-C: button system, SYNC first, then site-wide (no "HTML-looking" buttons) | 16 | TODO |
 | 6 | **Fix-it pass:** work through `docs/tasks/18-fix-it.md` top to bottom (broken or unfinished-looking screens found by the owner's Claude in phone-size walkthroughs). One PR per screen or small group; tick each item with its PR number. The owner's Claude keeps adding to that file. | 18 | TODO |
 | 6b | **Verify the artist before the EPK goes public or pitches** (anti-impersonation; owner 2026-11-17) | 20 | TODO |
@@ -24,7 +24,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 7c | **Moving Day for shops**: free CSV import of a shop's own Discogs/eBay/web-store inventory export, preview, select, batch price/shipping, publish (task 19, last section) | 19 | TODO |
 | 8 | **AI promoter reader** (14-A) on the same Anthropic provider and secret: reads the public promoter pages Brave finds and keeps real promoters, crews and booking contacts with sources. Fail-closed without a key (today's keyword filter stays). | 14 | TODO |
 | 9 | Rebase hometown skins #394 → #398 → #399 and Events #389 onto main | 15, 14-D | TODO |
-| 9b | **Live translation in calls** (captions first, spoken later; consent from both; $10 per hour + fees = $11.60, one-off, Stripe Test Mode) — only after the SYNC fixes and a passing two-device call test | 21 | TODO |
+| 9b | **Live translation in calls** (captions first, spoken later; consent from both; Translation pack $30 for 180 minutes + fees = $31.80, calls free, Stripe Test Mode) — only after the SYNC fixes and a passing two-device call test | 21 | TODO |
 | 10 | SYNC 16-B / 16-B2 / 16-B3: wallpaper, ringtones, "set up this phone" after registration with an invite link | 16 | TODO |
 | 11 | SYNC 16-F: lock-screen push for messages, calls, booking replies and "venue opened your EPK" | 16 | TODO |
 | 12 | SYNC 16-D ticks/typing/presence, then 16-E reply/forward/edit/delete | 16 | TODO |
