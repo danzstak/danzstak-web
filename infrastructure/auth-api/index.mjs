@@ -4083,6 +4083,8 @@ async function searchVenues(event) {
       return { ...place, distanceMiles: Math.round(approximateMilesBetween(point.position, place.position) * 10) / 10, bookingSuitability: assessment.suitability, suitabilityReasons: assessment.reasons, genreMatch: assessment.genreMatch, venueTypeMatch: assessment.typeMatch };
     }).sort((left, right) => venueSuitability(right, parsed.genre) - venueSuitability(left, parsed.genre) || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
     const offset = page * 20, venues = await withVenueFreshness(ranked.slice(offset, offset + 20));
+    // Club database (owner 2026-11-17, city sweeps): every venue a search finds is kept, not only tour-planner finds.
+    await saveFoundClubs(venues).catch(() => {});
     const providerFailures = discovery.providers.filter(provider => !provider.ok && !provider.skipped);
     return reply(200, { query: parsed.raw, location: point, genre: parsed.genre, venues, researchLeads: discovery.researchLeads || [], providers: discovery.providers, coverage: providerFailures.length ? "partial" : "provider-complete", coverageNotice: providerFailures.length ? "Some discovery providers were unavailable; these results are incomplete." : ranked.length ? "Results are current public leads, not guaranteed booking availability." : "No relevant public venue leads were found in the searched radius. This does not prove that no venues exist.", page, hasMore: ranked.length > offset + venues.length, canExpand: radiusMiles < 150, radiusMiles, expandedFromMiles });
   } catch (error) {
