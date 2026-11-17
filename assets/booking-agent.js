@@ -968,6 +968,14 @@
         contactLink("Phone", value, "tel:" + value.replace(/[^+0-9]/g, "")),
       ),
     );
+    // Owner 2026-11-17: booking contacts reach artists only. Without an EPK the card says why the contact is missing.
+    if (place.contactsHidden) {
+      const locked = document.createElement("a");
+      locked.className = "contact-locked";
+      locked.href = "epk.html";
+      locked.textContent = "Contacts show for artists with an EPK. Build yours free.";
+      contacts.append(locked);
+    }
     // Promoter social pages read from their own site (owner 2026-11-17: get all the info).
     for (const [label, key] of [["Instagram", "instagram"], ["Facebook", "facebook"], ["Resident Advisor", "residentAdvisor"], ["Bandcamp", "bandcamp"], ["SoundCloud", "soundcloud"]]) {
       const value = place.social?.[key];
@@ -1012,8 +1020,9 @@
         );
       }
     }
-    notice.textContent = (place.club?.label && place.club.tier !== "found" ? `${place.club.label}. ` : "") + (place.freshness?.label ? `${place.freshness.label}. ` : "") + (place.bookingSuitability === "contact-found"
+    notice.textContent = (place.club?.label && (place.club.tier !== "found" || place.club.trusted) ? `${place.club.label}. ` : "") + (place.freshness?.label ? `${place.freshness.label}. ` : "") + (place.bookingSuitability === "contact-found"
       ? "Public contact found. Verify that it books this kind of show; DanzStak has not contacted this location."
+      : place.trusted ? (place.activityEvidence || "Known to DanzStak and happy to hear from artists.")
       : `Needs research. ${(place.suitabilityReasons || []).join(" ") || "Confirm current programming and find the correct public booking contact."}`);
     if (placeType === "club" || placeType === "promoter") {
       const syncSelection = () => {

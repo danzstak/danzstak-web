@@ -56,6 +56,7 @@ import { promoterQueries, promoterLeads } from "./promoter-research.mjs";
 import { enrichPromoter } from "./promoter-contact.mjs";
 import { bookingReplyNotice } from "./booking-reply-notice.mjs";
 import { unopenedRefunds, unopenedRefundTransaction } from "./unopened-credit.mjs";
+import { isDirectoryEditor, parseTrustedContact, trustedContactItems, trustedPromotersNear, contactId as trustedContactId } from "./trusted-contacts.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -4031,8 +4032,11 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
       || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
   const offset = venuePool.length ? variation % venuePool.length : 0;
   const venues = withClubRecords(await withVenueFreshness([...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60)), await clubRecords());
-  const promoters = withClubRecords((await promoterSearch).promoters || [], await clubRecords());
-  await Promise.all([saveFoundClubs([...venues, ...promoters]), statsRefresh]);
+  // Trusted contacts first (people the DanzStak team knows), then promoters found on the web.
+  const trusted = trustedPromotersNear(await reviewedVenueDirectoryRecords().catch(() => []), point, genre, searchBounds ? 75 : 60);
+  const webPromoters = ((await promoterSearch).promoters || []).filter(lead => !trusted.some(known => known.name.toLowerCase() === String(lead.name || "").toLowerCase()));
+  const promoters = [...trusted.map(lead => ({ ...lead, club: { venueKey: lead.venueKey, tier: "found", trusted: true, label: "Known to DanzStak" } })), ...withClubRecords(webPromoters, await clubRecords())];
+  await Promise.all([saveFoundClubs([...venues, ...webPromoters]), statsRefresh]);
   const hotels = hotelResults.filter(place => nearby(place, 35)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
   const vanStops = vanRestResults.filter(place => nearby(place, 25)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
   return { stop: point.label, position: point.position, venues, promoters, hotels, vanStops, recordStores: recordDiscovery.stores || [], researchLeads: osmVenueDiscovery.researchLeads || [], providerStatus: [...(osmVenueDiscovery.providers || []), ...(recordDiscovery.providers || [])] };
@@ -4087,6 +4091,60 @@ async function searchVenues(event) {
     console.error("Venue discovery failed", { name: error.name, provider: error.provider });
     return reply(502, { error: "Venue discovery is temporarily unavailable.", providers: error.providerStatuses || [] });
   }
+}
+
+// Booking contacts (email, phone) reach artists only (owner 2026-11-17: "none of these should be public").
+// A member without an EPK still sees who books a town, but not how to reach them.
+async function memberHasEpk(userId) {
+  if (!userId) return false;
+  try { return Boolean((await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: epkWorkspaceId } }, ProjectionExpression: "userId" }))).Item); }
+  catch (error) { console.error("EPK check failed:", error.name); return false; }
+}
+function stripBookingContacts(value) {
+  if (Array.isArray(value)) return value.map(stripBookingContacts);
+  if (!value || typeof value !== "object") return value;
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    if ((key === "venues" || key === "promoters") && Array.isArray(item)) out[key] = item.map(place => place && typeof place === "object" ? { ...stripBookingContacts(place), emails: [], phones: [], contactsHidden: Boolean(place.emails?.length || place.phones?.length) } : place);
+    else out[key] = stripBookingContacts(item);
+  }
+  return out;
+}
+async function withArtistContacts(event, response) {
+  if (response?.statusCode !== 200 || typeof response.body !== "string") return response;
+  if (await memberHasEpk(await getAuthenticatedUser(event))) return response;
+  try { return { ...response, body: JSON.stringify(stripBookingContacts(JSON.parse(response.body))) }; } catch { return response; }
+}
+
+// Trusted contacts: only directory editors (DIRECTORY_EDITOR_EMAILS env) add them; each one agreed to hear from artists.
+async function trustedContacts(event, method) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const email = await accountForSub(userId).catch(() => "");
+  if (!isDirectoryEditor(email, globalThis.process?.env?.DIRECTORY_EDITOR_EMAILS)) return reply(403, { error: "Only the DanzStak team can add trusted contacts." });
+  if (method === "GET") {
+    const items = await scanAll({ TableName: venueDirectoryTable, FilterExpression: "trusted = :yes", ExpressionAttributeValues: { ":yes": { BOOL: true } } }, 5000);
+    const people = new Map();
+    for (const item of items) {
+      const id = item.contactId?.S || item.venueKey.S;
+      if (!people.has(id)) people.set(id, { contactId: id, kind: item.kind?.S || "promoter", name: item.name?.S || "", towns: String(item.towns?.S || "").split(" · ").filter(Boolean), venues: String(item.venuesBooked?.S || "").split(" · ").filter(Boolean), categories: item.categories?.S || "", phone: item.phone?.S || "", email: item.email?.S || "", website: item.website?.S || "", notes: item.notes?.S || "", addedAt: item.approvedAt?.S || "" });
+    }
+    return reply(200, { contacts: [...people.values()].sort((a, b) => a.name.localeCompare(b.name)) });
+  }
+  const parsed = parseTrustedContact(parseJsonBody(event) || {});
+  if (parsed.error) return reply(400, { error: parsed.error });
+  const placed = [], missing = [];
+  for (const town of parsed.contact.towns) {
+    try { const point = await geocodeTourPlace(town); if (point?.position) { placed.push({ label: point.label || town, position: point.position }); continue; } } catch {}
+    missing.push(town);
+  }
+  if (!placed.length) return reply(422, { error: "None of those towns could be placed on the map. Add the state or country, e.g. \"Tacoma, WA\"." });
+  const at = new Date().toISOString(), items = trustedContactItems(parsed.contact, placed, sha256(email).slice(0, 16), at);
+  await mapLimit(items, 4, item => db.send(new PutItemCommand({ TableName: venueDirectoryTable, Item: item })));
+  reviewedVenueCache.expiresAt = 0;
+  return reply(201, { contactId: trustedContactId(parsed.contact), towns: placed.map(item => item.label), unplaced: missing });
 }
 
 async function planTourRoute(event) {
@@ -5586,10 +5644,11 @@ export const handler = async event => {
     }
 
     if (method === "POST" && path === "/tour/route") {
-      return await planTourRoute(event);
+      return await withArtistContacts(event, await planTourRoute(event));
     }
 
-    if (method === "POST" && path === "/venues/search") return await searchVenues(event);
+    if (method === "POST" && path === "/venues/search") return await withArtistContacts(event, await searchVenues(event));
+    if ((method === "GET" || method === "POST") && path === "/club-directory/contacts") return await trustedContacts(event, method);
 
     if (method === "POST" && path === "/record-stores/search") return await searchRecordStores(event);
     if ((method === "GET" || method === "POST") && path === "/record-store-workspace") return await recordStoreWorkspace(event, method);
