@@ -16,6 +16,8 @@
     window.danzstakClearOffline?.();
     try { for (const key of accountLocalKeys) localStorage.removeItem(key); }
     catch { /* Server logout remains authoritative when browser storage is unavailable. */ }
+    // 16-B: the private chat wallpaper photo lives only on this device; logging out deletes it.
+    try { if (window.danzstakSyncWallpaper) window.danzstakSyncWallpaper.clearAll(); else indexedDB.deleteDatabase("danzstak-sync-wallpaper"); } catch { /* optional */ }
     try {
       sessionStorage.removeItem("danzstak_install_prompt_shown");
       sessionStorage.removeItem("danzstakBookingVenueSelections");

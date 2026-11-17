@@ -1,0 +1,43 @@
+/* SYNC chat wallpaper (16-B). The wallpaper is fixed to the thread box (it does not scroll with the messages); a dim
+   layer (0-60%) sits on top. Bubbles stay opaque, and date/system lines get their own chip, so text contrast never
+   depends on the picture. */
+.message-list[data-wallpaper]{background-color:var(--sync-wp-color,#111)!important;background-image:linear-gradient(rgba(0,0,0,var(--sync-wp-dim,0)),rgba(0,0,0,var(--sync-wp-dim,0))),var(--sync-wp-image,none)!important;background-size:100% 100%,cover!important;background-position:center,center!important;background-repeat:no-repeat!important;background-attachment:scroll!important}
+.message-list[data-wallpaper]::after{display:none!important}
+.message-list[data-wallpaper] .system-message,.message-list[data-wallpaper] .message-date,.message-list[data-wallpaper] .chat-note{width:fit-content;max-width:90%;margin:8px auto;padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.94);color:#273142;font-size:12px;box-shadow:0 1px 2px rgba(0,0,0,.16)}
+.dark-mode .message-list[data-wallpaper] .system-message,.dark-mode .message-list[data-wallpaper] .message-date,.dark-mode .message-list[data-wallpaper] .chat-note{background:rgba(17,24,39,.92);color:#e7ebf2}
+/* The sheet */
+.sync-wallpaper-dialog{width:min(480px,calc(100vw - 24px))}
+.sync-wp-preview{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;height:150px;min-height:0!important;max-height:none!important;margin:12px 20px 0;padding:10px 12px!important;border-radius:14px;overflow:hidden!important}
+.sync-wp-preview .message{font-size:13px;line-height:18px;max-width:80%}
+.sync-wp-preview .system-message{margin:0 auto 6px}
+.sync-wp-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sync-wp-photo{position:relative;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:64px;padding:8px 4px;border:0;border-radius:14px;background:rgba(239,108,32,.12);color:#9a3412;font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:center}
+.sync-wp-photo input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.sync-wp-photo:focus-within{outline:2px solid #c2410c;outline-offset:2px}
+.sync-wp-photo svg{width:22px;height:22px}
+.sync-wp-label{margin:14px 20px 0!important;color:#5b6472;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.sync-wp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px!important}
+.sync-wp-tile{display:grid;gap:4px;padding:0;border:0;background:none;color:inherit;font:inherit;font-size:12px;cursor:pointer;min-height:44px}
+.sync-wp-tile span{display:block;aspect-ratio:3/4;max-height:96px;border-radius:12px;border:2px solid transparent;background-size:cover!important}
+.sync-wp-tile[aria-pressed=true] span,.sync-wp-swatch[aria-pressed=true],.sync-wp-photo[aria-pressed=true]{box-shadow:0 0 0 3px #c2410c}
+.sync-wp-swatches{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px!important}
+.sync-wp-swatch{width:44px;height:44px;padding:0;border:1px solid rgba(0,0,0,.18);border-radius:50%;cursor:pointer}
+.sync-wp-dim{margin-top:14px!important}
+.sync-wp-dim>span{display:flex;justify-content:space-between}
+.sync-wp-note{color:#5b6472;font-size:13px;line-height:1.4}
+.sync-wallpaper-dialog .phone-setup-actions{margin-top:12px!important}
+.dark-mode .sync-wallpaper-dialog .sync-wp-photo{background:rgba(239,108,32,.18);color:#fdba74}
+@media(max-width:560px){.sync-wallpaper-dialog{inset:auto 0 0 0;top:auto;width:100vw;max-width:none;height:auto;max-height:92dvh;margin:0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom,0px)}}
+@media(max-width:360px){.sync-wp-preview{margin-left:14px;margin-right:14px}.sync-wp-label{margin-left:14px!important;margin-right:14px!important}}
+/* SYNC settings sheet (rows registered by each feature) */
+.sync-settings-rows{display:grid;padding:6px 0 14px}
+.sync-settings-row{display:grid!important;grid-template-columns:44px minmax(0,1fr) 24px;align-items:center;gap:10px;width:100%;min-height:60px;padding:6px 16px!important;border:0!important;border-radius:0!important;background:transparent!important;color:inherit!important;font:inherit;text-align:left;cursor:pointer}
+.sync-settings-row:active{background:rgba(22,25,31,.06)!important}
+.sync-settings-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:rgba(239,108,32,.12);color:#9a3412}
+.sync-settings-icon svg{width:22px;height:22px}
+.sync-settings-text{display:grid;gap:2px;min-width:0}
+.sync-settings-text strong{font-size:15px}
+.sync-settings-text small{color:#5b6472;font-size:13px;line-height:1.3}
+.sync-settings-text small:empty{display:none}
+.sync-settings-chevron{color:#8a93a3}
+@media(max-width:560px){.sync-settings-dialog{inset:auto 0 0 0;top:auto;width:100vw;max-width:none;height:auto;max-height:85dvh;margin:0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom,0px)}}
