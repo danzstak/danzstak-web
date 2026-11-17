@@ -149,4 +149,20 @@
   addEventListener('danzstak:notification-drawer', syncPromptDrawerVisibility);
   setTimeout(renewExistingSubscription, 2000);
   setTimeout(showPermissionPrompt, 12000);
+
+  // Owner 2026-11-17: let members check that SYNC can reach their devices when the app is closed.
+  document.addEventListener("DOMContentLoaded", () => {
+    const button = document.getElementById("pushTestButton"), status = document.getElementById("pushTestStatus");
+    if (!button || !status) return;
+    button.addEventListener("click", async () => {
+      button.disabled = true; status.textContent = "Sending…";
+      try {
+        if (typeof window.danzstakEnablePush === "function") await window.danzstakEnablePush();
+        const result = await api("/push/test", { method: "POST", body: "{}" });
+        status.textContent = !result.sent ? "No device has notifications on yet. Allow notifications and try again."
+          : `Sent to ${result.sent} device${result.sent === 1 ? "" : "s"}. ${result.thisDeviceRings ? "This device will ring for calls when SYNC is closed." : "This device gets messages; register it to ring for calls when SYNC is closed."}`;
+      } catch (error) { status.textContent = error.message; }
+      finally { button.disabled = false; }
+    });
+  });
 })();
