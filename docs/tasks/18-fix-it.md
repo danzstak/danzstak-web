@@ -32,7 +32,7 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 - [ ] Music HQ, Events and the menu open on `feed.html` with a hash, so the browser title stays "Your Mix". Each section gets its own title and Back behaves like a real screen change.
 - [ ] Remove explanatory sub-lines under page titles ("Your saved conversations.", "Shows coming up. Promoters: post…", "Your EPK and booking work in one place…"). The controls speak for themselves.
 - [ ] External links (SoundCloud, Mixcloud, YouTube) open outside DanzStak (new tab or the system app). Tapping a SoundCloud post currently replaces DanzStak in the same tab.
-- [ ] Text buttons with blue outlines ("Open bookings", "Tour Manager", "Open outreach") go to the 16-C button system.
+- [x] (PR #455) Text buttons with blue outlines ("Open bookings", "Tour Manager", "Open outreach") go to the 16-C button system.
 
 **Profile** (see the section above, plus)
 - [x] (PR #427) The cover has thin side margins; it must touch both screen edges.

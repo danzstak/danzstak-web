@@ -39,7 +39,12 @@ function fixture(p) {
 }
 const areas = {
   mix: { url: "/feed.html?view=feed", ready: ".reels-rail, #feed .post", scope: "main, #feed, body" },
-  hq: { url: "/feed.html?view=hq", ready: ".artist-hq, #artistHq, [data-feature='hq']", scope: "body" }
+  hq: { url: "/feed.html?view=hq", ready: ".artist-hq, #artistHq, [data-feature='hq']", scope: "body" },
+  events: { url: "/feed.html?view=events", ready: "main", scope: "body" },
+  bazaar: { url: "/bazaar.html", ready: "main", scope: "body" },
+  profile: { url: "/profile.html", ready: ".profile-actions", scope: "body" },
+  epk: { url: "/epk.html", ready: "main", scope: "body" },
+  booking: { url: "/booking.html", ready: "main", scope: "body" }
 };
 
 const audit = (page, scope) => page.evaluate(scope => {
