@@ -54,6 +54,7 @@ import { publicPhoneStatus } from "./personal-phone-verification.mjs";
 import QRCode from "qrcode";
 import { promoterQueries, promoterLeads } from "./promoter-research.mjs";
 import { enrichPromoter } from "./promoter-contact.mjs";
+import { bookingReplyNotice } from "./booking-reply-notice.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -218,6 +219,14 @@ const tourManagerBilling = createTourManagerBilling({
   tableName: toursTable,
   env: stripeEnvironment,
   validateOutreachEpkLink: validateBookingOutreachEpkLink,
+  accountEmail: userId => accountForSub(userId),
+  // Bell notification when a venue answers through the reply page (owner 2026-11-16).
+  notifyBookingReply: async ({ artistId, outreachId, dedupe, action, preview, proposedDate, at }) => {
+    const send = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${outreachId}` } }, ConsistentRead: true }))).Item;
+    const artistEmail = send?.artistEmail?.S || await accountForSub(artistId);
+    const notice = bookingReplyNotice({ tableName: engagementNotificationsTable, artistEmail, outreachId, dedupe, venueName: send?.venueName?.S, action, preview, proposedDate, at });
+    if (notice) await db.send(new PutItemCommand(notice));
+  },
   sendBookingEmail: async ({ userId, sendId, artistName, venueName, to, subject, message, replyToken }) => {
     if (!/^[a-f0-9]{64}$/.test(replyToken || "")) throw new Error("Booking reply route is invalid");
     const safeArtistName = String(artistName || "Artist").replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) || "Artist";
@@ -2168,7 +2177,7 @@ async function getEngagementNotifications(event) {
   const actorMembers = new Map(actorMemberEntries);
   const notifications = items.map(item => {
     const profile = actorProfiles.get(item.actorEmail?.S || "") || {};
-    return { type: item.type.S, memberId: actorMembers.get(item.actorEmail?.S || "") || "", name: profile.name || "DanzStak member", picture: profile.picture || "", ...(item.postId?.S ? { postId: item.postId.S } : {}), ...(item.groupId?.S ? { groupId: item.groupId.S, groupName: item.groupName?.S || "Tribe" } : {}), preview: item.preview?.S || "", createdAt: item.createdAt.S, unread: item.read?.BOOL !== true };
+    return { type: item.type.S, memberId: actorMembers.get(item.actorEmail?.S || "") || "", name: profile.name || "DanzStak member", picture: profile.picture || "", ...(item.postId?.S ? { postId: item.postId.S } : {}), ...(item.groupId?.S ? { groupId: item.groupId.S, groupName: item.groupName?.S || "Tribe" } : {}), ...(item.type.S === "booking_reply" ? { name: item.venueName?.S || "A venue", outreachId: item.outreachId?.S || "", venueName: item.venueName?.S || "A venue", verb: item.verb?.S || "answered your pitch", proposedDate: item.proposedDate?.S || "" } : {}), preview: item.preview?.S || "", createdAt: item.createdAt.S, unread: item.read?.BOOL !== true };
   })
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 100);
