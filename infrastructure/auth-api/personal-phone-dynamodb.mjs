@@ -10,7 +10,7 @@ function recordFromItem(item) {
     ["verifiedAt", value(item, "verifiedAt")], ["expiresAt", value(item, "expiresAt", 0)], ["resendAfter", value(item, "resendAfter", 0)],
     ["attempts", value(item, "attempts", 0)], ["maskedNumber", value(item, "maskedNumber")], ["purpose", value(item, "purpose", "account_trust")],
     ["deviceChallengeId", value(item, "deviceChallengeId")], ["deviceChallengeHash", value(item, "deviceChallengeHash")], ["previousPhoneHash", value(item, "previousPhoneHash")],
-    ["previousMaskedNumber", value(item, "previousMaskedNumber")], ["previousVerifiedAt", value(item, "previousVerifiedAt")]
+    ["previousMaskedNumber", value(item, "previousMaskedNumber")], ["previousVerifiedAt", value(item, "previousVerifiedAt")], ["verificationSid", value(item, "verificationSid")], ["sendWindowStart", value(item, "sendWindowStart", 0)], ["sendsInWindow", value(item, "sendsInWindow", 0)]
   ]);
 }
 
@@ -20,6 +20,9 @@ function accountItem(record) {
   if (record.previousMaskedNumber) item.previousMaskedNumber = { S: record.previousMaskedNumber };
   if (record.previousVerifiedAt) item.previousVerifiedAt = { S: record.previousVerifiedAt };
   if (record.purpose) item.purpose = { S: record.purpose };
+  // One resend: the first send of a 10-minute window and how many texts it has used (rule 11, owner 2026-11-17).
+  if (record.sendWindowStart) item.sendWindowStart = { N: String(record.sendWindowStart) };
+  if (record.sendsInWindow) item.sendsInWindow = { N: String(record.sendsInWindow) };
   if (record.deviceChallengeId) item.deviceChallengeId = { S: record.deviceChallengeId };
   if (record.deviceChallengeHash) item.deviceChallengeHash = { S: record.deviceChallengeHash };
   return item;
@@ -40,14 +43,24 @@ export function createPersonalPhoneDynamoAdapter({ db, tableName, commands, now 
       rateUpdate(`RATE#PHONE#${record.phoneHash}#HOUR#${hour}`,3,seconds+7200,tableName)
     ];
     if (record.requestKey) transactions.push(rateUpdate(`RATE#REQUEST#${record.requestKey}#HOUR#${hour}`,12,seconds+7200,tableName));
+    if (record.deviceChallengeHash) transactions.push(rateUpdate(`RATE#DEVICE#${record.deviceChallengeHash}#HOUR#${hour}`,3,seconds+7200,tableName));
+    // Rule 11: at most a text and one resend per 10 minutes, per number and per device.
+    const tenMinutes = Math.floor(now()/600000);
+    transactions.push(rateUpdate(`RATE#PHONE10#${record.phoneHash}#${tenMinutes}`,2,seconds+1800,tableName));
+    if (record.deviceChallengeHash) transactions.push(rateUpdate(`RATE#DEVICE10#${record.deviceChallengeHash}#${tenMinutes}`,2,seconds+1800,tableName));
     transactions.push(
       { Put:{TableName:tableName,Item:{...claimKey(record.phoneHash),recordType:{S:"phone_claim"},userId:{S:record.userId},challengeId:{S:record.challengeId},status:{S:"pending"},ttl:{N:String(record.expiresAt+86400)}},ConditionExpression:"attribute_not_exists(recordKey) OR userId = :userId",ExpressionAttributeValues:{":userId":{S:record.userId}}}},
-      { Put:{TableName:tableName,Item:accountItem(record)} }
+      // One text per tap: a second tap while the first code is still in its resend cooldown fails here, atomically.
+      { Put:{TableName:tableName,Item:accountItem(record),ConditionExpression:"attribute_not_exists(recordKey) OR #status <> :pending OR resendAfter <= :nowSeconds",ExpressionAttributeNames:{"#status":"status"},ExpressionAttributeValues:{":pending":{S:"pending"},":nowSeconds":{N:String(seconds)}}} }
     );
     try { await db.send(new TransactWriteItemsCommand({TransactItems:transactions})); return {accepted:true}; }
     catch (error) { if (["TransactionCanceledException","ConditionalCheckFailedException"].includes(error?.name)) return {accepted:false,rateLimited:true}; throw error; }
   }
-  async function markSent(record) { await db.send(new UpdateItemCommand({TableName:tableName,Key:accountKey(record.userId),UpdateExpression:"SET providerAcceptedAt = :sent",ConditionExpression:"challengeId = :challenge AND #status = :pending",ExpressionAttributeNames:{"#status":"status"},ExpressionAttributeValues:{":sent":{S:new Date(now()).toISOString()},":challenge":{S:record.challengeId},":pending":{S:"pending"}}})); }
+  async function markSent(record) {
+    // Twilio Verify: keep only the verification SID (VE...), never the code or the number.
+    const sid = /^VE[0-9a-f]{32}$/i.test(String(record.verificationSid || "")) ? record.verificationSid : "";
+    await db.send(new UpdateItemCommand({TableName:tableName,Key:accountKey(record.userId),UpdateExpression:sid ? "SET providerAcceptedAt = :sent, verificationSid = :sid" : "SET providerAcceptedAt = :sent",ConditionExpression:"challengeId = :challenge AND #status = :pending",ExpressionAttributeNames:{"#status":"status"},ExpressionAttributeValues:{":sent":{S:new Date(now()).toISOString()},":challenge":{S:record.challengeId},":pending":{S:"pending"},...(sid ? {":sid":{S:sid}} : {})}}));
+  }
   async function cancelChallenge(record) {
     const existing = await getByUser(record.userId); if (!existing || existing.challengeId !== record.challengeId) return;
     const operations = [{Delete:{TableName:tableName,Key:claimKey(record.phoneHash),ConditionExpression:"userId = :userId AND challengeId = :challenge",ExpressionAttributeValues:{":userId":{S:record.userId},":challenge":{S:record.challengeId}}}}];
@@ -69,5 +82,19 @@ export function createPersonalPhoneDynamoAdapter({ db, tableName, commands, now 
     const record=await getByUser(userId); if(!record)return;
     await db.send(new TransactWriteItemsCommand({TransactItems:[{Delete:{TableName:tableName,Key:accountKey(userId),ConditionExpression:"userId = :userId",ExpressionAttributeValues:{":userId":{S:userId}}}},{Delete:{TableName:tableName,Key:claimKey(record.phoneHash),ConditionExpression:"userId = :userId",ExpressionAttributeValues:{":userId":{S:userId}}}}]}));
   }
-  return { getByUser, reserveChallenge, markSent, cancelChallenge, recordFailedAttempt, markVerified, remove };
+  // Rule 11: one wrong code ends the challenge. The record stays (status "canceled") so the resend window still counts.
+  async function cancelAfterWrongCode(record) {
+    if (record.previousPhoneHash) return cancelChallenge(record); // restore the member's earlier verified number
+    try { await db.send(new UpdateItemCommand({TableName:tableName,Key:accountKey(record.userId),UpdateExpression:"SET #status = :canceled, canceledAt = :at",ConditionExpression:"challengeId = :challenge AND #status = :pending",ExpressionAttributeNames:{"#status":"status"},ExpressionAttributeValues:{":canceled":{S:"canceled"},":at":{S:new Date(now()).toISOString()},":challenge":{S:record.challengeId},":pending":{S:"pending"}}})); }
+    catch (error) { if (error?.name !== "ConditionalCheckFailedException") throw error; }
+  }
+  // Code checks: at most 30 an hour per IP and 10 an hour per account, on top of 5 tries per code.
+  async function limitCheck({ userId, requestKey = "" }) {
+    const seconds = Math.floor(now()/1000), hour = Math.floor(now()/3600000);
+    const transactions = [rateUpdate(`RATE#CHECK#ACCOUNT#${userId}#HOUR#${hour}`,10,seconds+7200,tableName)];
+    if (requestKey) transactions.push(rateUpdate(`RATE#CHECK#REQUEST#${requestKey}#HOUR#${hour}`,30,seconds+7200,tableName));
+    try { await db.send(new TransactWriteItemsCommand({TransactItems:transactions})); return true; }
+    catch (error) { if (["TransactionCanceledException","ConditionalCheckFailedException"].includes(error?.name)) return false; throw error; }
+  }
+  return { getByUser, reserveChallenge, markSent, cancelChallenge, recordFailedAttempt, markVerified, remove, limitCheck, cancelAfterWrongCode };
 }
