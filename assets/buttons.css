@@ -183,3 +183,23 @@ body.messages-page .contact-details-block:active{transform:scale(.97)}
 #feed .post :is(.post-actions,.post-reactions) button{-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,transform .08s ease}
 #feed .post :is(.post-actions,.post-reactions) button:active{background:var(--ds-btn-press);transform:scale(.96)}
 @media(prefers-reduced-motion:reduce){.artist-hq-action,#feed .post :is(.post-actions,.post-reactions) button{transition:none!important}.artist-hq-action:active,#feed .post :is(.post-actions,.post-reactions) button:active{transform:none!important}}
+
+/* ---- EPK builder (dark tool page; the public EPK keeps its genre look) — 16-C sweep ---- */
+body.epk-skin:not(.public-mode) main button:not(.ds-icon-button):not([data-icon]),
+body.epk-skin:not(.public-mode) .epk-booking-handoff__actions a{
+  min-height:var(--ds-btn-size)!important;padding:0 18px!important;border:0!important;border-radius:var(--ds-btn-radius)!important;
+  background:rgba(255,90,31,.16)!important;color:#ffb38a!important;box-shadow:none!important;
+  font-family:inherit!important;font-size:.95rem!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important;
+  white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,transform .08s ease;
+}
+body.epk-skin:not(.public-mode) main button:not(.ds-icon-button):not([data-icon]):active,
+body.epk-skin:not(.public-mode) .epk-booking-handoff__actions a:active{background:rgba(255,90,31,.26)!important;transform:scale(.97)}
+body.epk-skin:not(.public-mode) main :is(button.primary,a.primary):not(.ds-icon-button),
+body.epk-skin:not(.public-mode) .epk-booking-handoff__actions a.primary{background:#ff5a1f!important;color:#0b0b0c!important}
+body.epk-skin:not(.public-mode) main :is(button.primary,a.primary):not(.ds-icon-button):active{background:#e14a12!important}
+body.epk-skin:not(.public-mode) main button.danger:not(.ds-icon-button),body.epk-skin:not(.public-mode) .epk-media-delete:not(.ds-icon-button){background:rgba(255,143,128,.14)!important;color:#ff9d90!important}
+body.epk-skin:not(.public-mode) main button:not(.ds-icon-button):disabled{background:rgba(255,255,255,.08)!important;color:#8b8b91!important;opacity:1!important;transform:none}
+body.epk-skin:not(.public-mode) main button:not(.ds-icon-button):focus-visible{outline:2px solid #ff5a1f!important;outline-offset:2px}
+body.epk-skin:not(.public-mode) main button.ds-icon-button{width:var(--ds-btn-size)!important;min-width:var(--ds-btn-size)!important;height:var(--ds-btn-size)!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;color:#f2efe6!important;-webkit-tap-highlight-color:transparent}
+body.epk-skin:not(.public-mode) main button.ds-icon-button:active{background:rgba(255,255,255,.1)!important;transform:scale(.94)}
+body.epk-skin:not(.public-mode) main button.ds-icon-button:disabled{color:#5f5f66!important;background:transparent!important}
