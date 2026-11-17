@@ -986,7 +986,7 @@ async function loadDirectMessages(reset = false) {
     const distanceFromBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight;
     const followNewest = reset || distanceFromBottom < 80;
     if (reset) { shownMessages.clear(); nextMessageCursor = data.nextCursor || ""; messageList.replaceChildren(); }
-    let appended = 0;
+    let appended = 0, incomingArrived = false;
     for (const message of data.messages || []) {
       if (shownMessages.has(message.messageId)) {
         const existing = [...messageList.querySelectorAll(".message")].find(item => item.dataset.messageId === message.messageId);
@@ -999,7 +999,9 @@ async function loadDirectMessages(reset = false) {
       shownMessages.add(message.messageId);
       messageList.appendChild(directMessageItem(message));
       appended += 1;
+      if (!reset && message.senderEmail !== currentEmail) incomingArrived = true;
     }
+    if (incomingArrived) window.danzstakSyncTones?.messageArrived?.(contact); // 16-B2: the member's message tone, app open only
     if (reset) renderEarlierMessagesButton();
     const receivedMessages = data.messages || [];
     const newest = receivedMessages.length ? receivedMessages[receivedMessages.length - 1].createdAt : "";
@@ -1032,6 +1034,8 @@ async function loadDirectMessages(reset = false) {
 }
 
 let loadingConversations = false;
+const unreadSeen = new Map(); // 16-B2: unread counts from the last list refresh (message tone on increase)
+let unreadPrimed = false;
 async function readMessagingArrayResponse(response, key) {
   if (!response?.ok) return { available: false, items: [] };
   try {
@@ -1180,6 +1184,18 @@ async function loadConversations() {
     for (const conversation of conversationSource.items) {
       if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), { ...conversation, hasConversation: true });
     }
+    // 16-B2: a chat that is not open gained unread messages since the last refresh → one message tone.
+    if (conversationSource.available) try {
+      const openContact = document.body?.classList?.contains("is-conversation-open") ? String(document.getElementById?.("contactEmail")?.value || "").toLowerCase() : "";
+      let toneFor = "";
+      for (const conversation of conversationSource.items) {
+        const email = String(conversation.contactEmail || "").toLowerCase(), unread = Math.max(0, Number(conversation.unread || 0));
+        if (email && unreadSeen.has(email) && unread > unreadSeen.get(email) && email !== openContact) toneFor = toneFor || email;
+        if (email) unreadSeen.set(email, unread);
+      }
+      if (toneFor && unreadPrimed) globalThis.danzstakSyncTones?.messageArrived?.(toneFor);
+      unreadPrimed = true;
+    } catch { /* a tone is never worth breaking the chat list */ }
     for (const friend of friendsSource.items) {
       const email = String(friend.email || "").toLowerCase();
       if (!email) continue;

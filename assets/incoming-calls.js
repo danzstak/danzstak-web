@@ -55,7 +55,8 @@
   }
 
   function stopRingtone() {
-    if (ringtoneTimer) clearInterval(ringtoneTimer);
+    if (ringtoneTimer?.stop) ringtoneTimer.stop(); // 16-B2: the member's chosen ringtone
+    else if (ringtoneTimer) clearInterval(ringtoneTimer);
     ringtoneTimer = null;
     if (ringtoneStopTimer) clearTimeout(ringtoneStopTimer);
     ringtoneStopTimer = null;
@@ -67,6 +68,7 @@
     stopRingtone();
     const remaining = ringtoneDeadline - Date.now();
     if (!current || document.hidden || ringtoneContext?.state !== "running" || remaining <= 0) return;
+    if (window.danzstakSyncTones) { ringtoneTimer = window.danzstakSyncTones.startRing(ringtoneContext, { contact: current.senderEmail || "", durationMs: remaining }); return; }
     const pulse = () => {
       playRingtonePulse(720);
       playRingtonePulse(880, 320);
@@ -132,7 +134,7 @@
     popup.hidden = false;
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     answer.focus();
-    navigator.vibrate?.([400, 180, 400, 180, 400]);
+    if (!window.danzstakSyncTones) navigator.vibrate?.([400, 180, 400, 180, 400]); // 16-B2: the tone module vibrates per the member's Vibrate setting
     startRingtone();
     // The service worker owns background notifications; polling only updates this page.
   }

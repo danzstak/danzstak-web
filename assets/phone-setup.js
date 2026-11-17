@@ -2,7 +2,7 @@
 // "Set up this phone" right after SMS registration (task 16-B3, owner 2026-11-17; fix-it "close the registration window on
 // success and offer the set up this phone flow"). Short and skippable, one step per screen with Back / Skip, once per
 // device. Steps that exist today: alerts for messages and calls, the audio & video check (computers only), and sharing
-// your SYNC with an invite link (never a phone number). Wallpaper (16-B) comes first; the ringtone step joins with 16-B2.
+// your SYNC with an invite link (never a phone number). Wallpaper (16-B) and ringtone (16-B2) come first, like a new phone.
 (() => {
   const DONE_KEY = "danzstak_phone_setup_done", API = "https://api.danzstak.com";
   const t = value => window.danzstakTranslate?.(value) || value;
@@ -23,6 +23,8 @@
     const list = [];
     if (window.danzstakSyncWallpaper) list.push({ id: "wallpaper", title: "Pick a chat wallpaper", body: "Your own photo, a DanzStak wallpaper or a color. Only you see it, and your photo stays on this device.", action: "Choose wallpaper",
       run: async status => { window.danzstakSyncWallpaper.open("all"); const saved = await new Promise(resolve => { const done = ok => { window.removeEventListener("danzstak:sync-wallpaper-saved", yes); clearInterval(watch); resolve(ok); }; const yes = () => done(true); window.addEventListener("danzstak:sync-wallpaper-saved", yes); const watch = setInterval(() => { if (!document.querySelector(".sync-wallpaper-dialog")?.open) done(false); }, 300); }); if (saved) status.textContent = t("Wallpaper set."); return saved; } });
+    if (window.danzstakSyncTones) list.push({ id: "tones", title: "Pick your ringtone", body: "Original DanzStak tones for calls and messages. Preview each one; you can change it later in SYNC.", action: "Choose ringtone",
+      run: async status => { window.danzstakSyncTones.open(""); const saved = await new Promise(resolve => { const done = ok => { window.removeEventListener("danzstak:sync-tones-saved", yes); clearInterval(watch); resolve(ok); }; const yes = () => done(true); window.addEventListener("danzstak:sync-tones-saved", yes); const watch = setInterval(() => { if (!document.querySelector(".sync-tones-dialog")?.open) done(false); }, 300); }); if (saved) status.textContent = t("Ringtone set."); return saved; } });
     list.push({ id: "alerts", title: "Turn on call and message alerts", body: "Get a notification for messages and calls when DanzStak is closed. When the phone is locked, its own sound and vibration settings decide how loud it rings.", action: "Turn on alerts",
       run: async status => { try { await window.danzstakEnablePush?.(); status.textContent = t("Alerts are on for this device."); return true; } catch (error) { status.textContent = error?.message || t("Alerts could not be turned on. You can do it later in SYNC."); return false; } } });
     if (window.danzstakCallSetup?.isComputer) list.push({ id: "audio", title: "Check your microphone, speaker and camera", body: "Pick the devices for calls and set how loud SYNC rings on this computer.", action: "Open audio & video check",
