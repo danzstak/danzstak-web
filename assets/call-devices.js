@@ -30,5 +30,7 @@
   window.danzstakRequireCallingDevice=options=>openPanel({required:true,...(options||{})});
   window.danzstakBeginCallingDeviceEnrollment=beginEnrollment;
   window.danzstakSyncDeviceRegistered=()=>state.registered;
+  // A registered device that gets a call error re-checks with the server before being sent back to registration (owner 2026-11-17).
+  window.danzstakRecheckCallingDevice=async()=>{await loadDevices();return state.registered;};
   window.danzstakSyncDeviceReady=syncDeviceReady;
 })();

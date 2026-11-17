@@ -112,9 +112,15 @@
     } finally { clearTimeout(timeout); }
   }
 
-  function showCall(event) {
+  async function showCall(event) {
+    if (current?.callId === event.callId || handledCalls.has(event.callId)) return;
+    // The inbox only answers registered devices, so wait for the device check to finish
+    // instead of reading its "not loaded yet" state (owner 2026-11-17: a registration
+    // window kept reopening on every poll and could not be closed).
+    if (window.danzstakSyncDeviceRegistered?.() !== true) await window.danzstakSyncDeviceReady?.catch?.(() => false);
     if (current?.callId === event.callId || handledCalls.has(event.callId)) return;
     if (window.danzstakSyncDeviceRegistered?.() !== true) {
+      handledCalls.set(event.callId, Date.now() + 120000);
       window.danzstakRequireCallingDevice?.({ incoming: true });
       return;
     }
@@ -228,7 +234,7 @@
         return;
       }
       const offer = (inbox.events || []).find(event => event.signalType === "offer" && ["phone", "video"].includes(event.mode) && !handledCalls.has(event.callId));
-      if (offer) showCall(offer);
+      if (offer) await showCall(offer);
       callDeviceRegistrationRequired = false;
     } catch (error) {
       if (error.code === "CALL_DEVICE_REGISTRATION_REQUIRED") callDeviceRegistrationRequired = true;
