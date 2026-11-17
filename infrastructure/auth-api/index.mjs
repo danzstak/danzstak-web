@@ -56,7 +56,7 @@ import { promoterQueries, promoterLeads } from "./promoter-research.mjs";
 import { enrichPromoter } from "./promoter-contact.mjs";
 import { bookingReplyNotice } from "./booking-reply-notice.mjs";
 import { unopenedRefunds, unopenedRefundTransaction } from "./unopened-credit.mjs";
-import { isDirectoryEditor, parseTrustedContact, trustedContactItems, trustedPromotersNear, contactId as trustedContactId } from "./trusted-contacts.mjs";
+import { isDirectoryEditor, parseTrustedContact, trustedContactItems, trustedContactUpdate, trustedPromotersNear, contactId as trustedContactId } from "./trusted-contacts.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -4142,7 +4142,7 @@ async function trustedContacts(event, method) {
   }
   if (!placed.length) return reply(422, { error: "None of those towns could be placed on the map. Add the state or country, e.g. \"Tacoma, WA\"." });
   const at = new Date().toISOString(), items = trustedContactItems(parsed.contact, placed, sha256(email).slice(0, 16), at);
-  await mapLimit(items, 4, item => db.send(new PutItemCommand({ TableName: venueDirectoryTable, Item: item })));
+  await mapLimit(items, 4, item => db.send(new UpdateItemCommand(trustedContactUpdate(venueDirectoryTable, item))));
   reviewedVenueCache.expiresAt = 0;
   return reply(201, { contactId: trustedContactId(parsed.contact), towns: placed.map(item => item.label), unplaced: missing });
 }
