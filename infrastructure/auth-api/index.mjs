@@ -55,7 +55,7 @@ import { publicPhoneStatus } from "./personal-phone-verification.mjs";
 import QRCode from "qrcode";
 import { promoterQueries, promoterLeads } from "./promoter-research.mjs";
 import { enrichPromoter } from "./promoter-contact.mjs";
-import { bookingReplyNotice } from "./booking-reply-notice.mjs";
+import { bookingReplyNotice, bookingNoticeWrites } from "./booking-reply-notice.mjs";
 import { unopenedRefunds, unopenedRefundTransaction } from "./unopened-credit.mjs";
 import { isDirectoryEditor, parseTrustedContact, trustedContactItems, trustedContactUpdate, trustedPromotersNear, contactId as trustedContactId } from "./trusted-contacts.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
@@ -258,7 +258,7 @@ const tourManagerBilling = createTourManagerBilling({
     const send = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${outreachId}` } }, ConsistentRead: true }))).Item;
     const artistEmail = send?.artistEmail?.S || await accountForSub(artistId);
     const notice = bookingReplyNotice({ tableName: engagementNotificationsTable, artistEmail, outreachId, dedupe, venueName: send?.venueName?.S, action, preview, proposedDate, at });
-    if (notice) await db.send(new PutItemCommand(notice));
+    if (notice) await db.send(new TransactWriteItemsCommand({ TransactItems: bookingNoticeWrites(notice, activityPushOutboxTable) })); // 16-F: bell + lock-screen push
   },
   sendBookingEmail: async ({ userId, sendId, artistName, venueName, to, subject, message, replyToken }) => {
     if (!/^[a-f0-9]{64}$/.test(replyToken || "")) throw new Error("Booking reply route is invalid");
@@ -4701,7 +4701,7 @@ async function outreachEpkShare(event, method, shareId = "") {
     try {
       if (await getAuthenticatedUser(event).catch(() => "") !== ownerId) {
         const notice = bookingReplyNotice({ tableName: engagementNotificationsTable, artistEmail: await accountForSub(ownerId), outreachId, dedupe: `open-${openedAt.slice(0, 10).replace(/-/g, "")}`, venueName: item.venueName?.S, action: "opened", at: openedAt });
-        if (notice) await db.send(new PutItemCommand(notice)).catch(error => { if (error.name !== "ConditionalCheckFailedException") throw error; });
+        if (notice) await db.send(new TransactWriteItemsCommand({ TransactItems: bookingNoticeWrites(notice, activityPushOutboxTable) })).catch(error => { if (error.name !== "ConditionalCheckFailedException" && error.name !== "TransactionCanceledException") throw error; }); // 16-F: bell + lock-screen push
       }
     } catch (error) { console.error("EPK open notice not saved:", error.name); }
     result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: shareId } }, ConsistentRead: true }));

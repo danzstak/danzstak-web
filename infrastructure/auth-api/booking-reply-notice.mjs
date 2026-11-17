@@ -19,3 +19,19 @@ export function bookingReplyNotice({ tableName, artistEmail, outreachId, dedupe,
     ConditionExpression: "attribute_not_exists(eventId)"
   };
 }
+
+// Task 16-F (owner 2026-11-17): booking replies and "venue opened your EPK" also reach the lock screen. The bell notice and
+// a push-outbox row are written together; the call-signaling outbox worker checks the notice is in the artist's own bell
+// (their own booking thread) before it pushes, and links to /messages.html?section=bookings&outreach=<id>.
+export function bookingNoticeWrites(notice, outboxTable) {
+  if (!notice) return [];
+  if (!outboxTable) return [{ Put: notice }];
+  const item = notice.Item, createdAt = item.createdAt.S;
+  return [
+    { Put: notice },
+    { Put: { TableName: outboxTable, Item: {
+      eventId: item.eventId, recipientEmail: item.userEmail, type: { S: BOOKING_NOTICE_TYPE }, outreachId: item.outreachId,
+      status: { S: "pending" }, createdAt: { S: createdAt }, expiresAt: { N: String(Math.floor(Date.parse(createdAt) / 1000) + 7 * 86400) }
+    }, ConditionExpression: "attribute_not_exists(eventId)" } }
+  ];
+}

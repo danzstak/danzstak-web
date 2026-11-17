@@ -107,14 +107,27 @@ self.addEventListener("push", event => {
     silent: false,
     vibrate: call ? [400, 180, 400, 180, 400] : [120],
     requireInteraction: call,
-    actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Answer").slice(0, 40) }, { action: "dismiss", title: String(payload.dismissTitle || "Dismiss").slice(0, 40) }] : [],
-    data: { url, type: call ? "call" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
+    // 16-F: the lock-screen ring has Accept and Decline. Decline refuses the call without opening the app.
+    actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Accept").slice(0, 40) }, { action: "decline", title: String(payload.declineTitle || payload.dismissTitle || "Decline").slice(0, 40) }] : [],
+    data: { url, type: call ? "call" : payload.type === "booking" ? "booking" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
   }));
 });
+
+// 16-F: Decline from the lock screen. The server refuses the offer (cookie session, no camera or microphone) and tells the
+// caller; open SYNC windows stop ringing. If the network is down the caller's ring simply times out.
+async function declineCallFromNotification(callId) {
+  if (!/^[a-f0-9-]{36}$/.test(callId)) return;
+  const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  clients.forEach(client => client.postMessage({ type: "DANZSTAK_CALL_RESOLVED", callId }));
+  try {
+    await fetch("https://api.danzstak.com/calls/decline", { method: "POST", credentials: "include", cache: "no-store", headers: { "content-type": "application/json" }, body: JSON.stringify({ callId }) });
+  } catch { /* offline: the caller's ring times out */ }
+}
 
 self.addEventListener("notificationclick", event => {
   event.notification.close();
   if (event.action === "dismiss") return;
+  if (event.action === "decline") { if (event.notification.data?.type === "call") event.waitUntil(declineCallFromNotification(String(event.notification.data.callId || ""))); return; }
   const destinationUrl = new URL(event.notification.data?.url || "/feed.html", self.location.origin);
   if (event.action === "answer" && event.notification.data?.type === "call") destinationUrl.searchParams.set("answer", "1");
   if (event.action === "answer" && event.notification.data?.type === "call" && event.notification.data?.callId) destinationUrl.searchParams.set("callId", event.notification.data.callId);
