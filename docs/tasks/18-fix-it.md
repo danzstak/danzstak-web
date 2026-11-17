@@ -67,3 +67,15 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 **EPK builder**
 - [ ] Two stacked titles ("EPK Builder" then "Build your EPK in 5 minutes") and "stays private until you publish" said twice. One title, one line.
 - [ ] The All-Access laminate graphic is clipped by the right screen edge at 390px.
+
+### SYNC call test — 2026-11-17, phone (SFScoop) ↔ computer (Eroticon), both registered
+
+Fix these before item 5 (16-C) is called done; they block a real call between two members.
+- [ ] **A registered device is sent back to registration.** On the registered computer, tapping video call opened "Verify this device by SMS" (which itself said "This device is registered"). The call request came back 403/429; the client treats *any* failure as "register this device". Find the real cause (rate limits from polling? stale device headers?) and only open registration on `CALL_DEVICE_REGISTRATION_REQUIRED` when `/calls/devices` also says the device is not registered; otherwise show the real error.
+- [ ] **Incoming call didn't show until a reload.** SFScoop's call offer was in `/calls/inbox`, but the open chat showed the registration window instead of the ringing screen; after reloading the page the "Incoming call: SFScoop" screen appeared. The incoming poller must recover after a failed poll and never swap a ringing call for the registration window on a registered device.
+- [ ] **Chat banner says "Register this device…" on a registered device.** Hide it when `/calls/devices` says registered.
+- [ ] **Registration window stays open after success** and its ✕ didn't respond to a tap. Close it on success and go to the "set up this phone" flow (16-B3); make ✕ a 44px target that always closes.
+- [ ] **Friend button stuck on "Requested"** after the other account accepted. Refresh the relationship state after accept (or on focus).
+- [ ] **Rename uses `prompt()`**, which is blocked in installed/embedded contexts. Inline rename field instead.
+- [ ] **Registration panel is wordy:** SMS rules explained three times and the DS-number upsell in the middle. One line ("Calls and voice messages need this device's own SMS code."), the device row, and move DS numbers out until they launch.
+- [ ] Note for testing: the Claude desktop browser pane blocks camera and microphone, so answering a call there can't prove audio/video. Answer on a second phone or in real Chrome.
