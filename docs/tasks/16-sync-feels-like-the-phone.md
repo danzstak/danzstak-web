@@ -60,6 +60,16 @@ Someone opening SYNC from the installed PWA can't tell it apart from their phone
 4. Platform limit, to be stated honestly in settings: with the app closed or the phone locked, the phone's own notification sound plays. Web push can't set a custom sound on iOS, and Android uses its notification channel sound. The in-app tone takes over once the app is open.
 5. Tests: one tone at a time, stops on answer/decline/answered-elsewhere, the per-contact override wins, and the setting survives cache updates.
 
+## 16-B3 — "Set up this phone" right after registration (owner, 2026-11-17)
+
+When a device finishes SMS registration, SYNC runs a short, skippable setup, the way a new phone does. One screen per step, with Back/Skip, and every step can be changed later in settings:
+1. **Wallpaper:** own photo / DanzStak wallpapers / color (16-B).
+2. **Ringtone and message tone:** previewable (16-B2).
+3. **Notifications:** turn on lock-screen alerts for messages and calls (16-F), with the honest note about the phone's own sound when locked.
+4. **Share your SYNC:** the member's personal invite link and QR (`danzstak.com/@username`, opening "Message <name> on SYNC"). There's a share button (Web Share sheet: WhatsApp, SMS, email, Instagram and so on) and a ready message: "I'm on SYNC by DanzStak. Message me here: <link>". A recipient without an account lands on **Join DanzStak** → name + @username → straight into a chat with the inviter, plus a friend request already sent. Invites are tracked back to the inviter, as in task 17.
+   - **Phone numbers are never shared or searchable** (CLAUDE.md SYNC rule): the invite link replaces "share my number". Finding people by phone-contacts matching is not built unless the owner approves a separate opt-in, hashed-contacts design.
+5. **Done:** lands in the chat list.
+
 ## 16-C — Buttons that don't look like HTML (SYNC first, then site-wide)
 
 1. One button system in the design tokens, used everywhere:
