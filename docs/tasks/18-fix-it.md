@@ -82,10 +82,10 @@ Fix these before item 5 (16-C) is called done; they block a real call between tw
 - [ ] Note for testing: the Claude desktop browser pane blocks camera and microphone, so answering a call there can't prove audio/video. Answer on a second phone or in real Chrome.
 
 ### Call audio setup (owner, 2026-11-17: "it should open the box in the middle of the page that users can set the audio")
-- [ ] **Computers only (owner: "on a computer, and on a phone they should use the phone controls"):** an **Audio & video check box**, centered on screen (a proper modal, not a side panel), opened automatically before the first call on a computer and from a gear icon on the call screen and in SYNC settings. **On phones there is no box:** calls use the phone's own volume buttons and speaker/earpiece/Bluetooth controls, and SYNC just asks for microphone/camera permission once. The box has:
+- [x] (PR #445) **Computers only (owner: "on a computer, and on a phone they should use the phone controls"):** an **Audio & video check box**, centered on screen (a proper modal, not a side panel), opened automatically before the first call on a computer and from a gear icon on the call screen and in SYNC settings. **On phones there is no box:** calls use the phone's own volume buttons and speaker/earpiece/Bluetooth controls, and SYNC just asks for microphone/camera permission once. The box has:
   - Microphone picker with a live level meter ("say something").
   - Speaker picker with **Play test sound**, using `setSinkId`/`selectAudioOutput`.
   - Camera picker with a small live preview.
   - Ring volume slider with a preview ring (feeds the ringtone gain, default the new louder level).
   - Choices saved on that device only (not synced, not sent to the server). One ✕ that always closes, 44px targets, works at 320px.
-- [ ] If the browser blocks the microphone or camera, the box says exactly how to allow it in that browser instead of failing silently (today "Accept" just does nothing).
+- [x] (PR #445) If the browser blocks the microphone or camera, the box says exactly how to allow it in that browser instead of failing silently (today "Accept" just does nothing).
