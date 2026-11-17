@@ -40,8 +40,8 @@ api.reset("friend@example.test");
 assert.equal(api.toneFor("ring", "friend@example.test"), "metal-gallop");
 // One tone at a time, 30 s cap, message tone never over a ring.
 assert.match(tones, /MAX_RING_MS = 30000/);
-assert.match(tones, /function play\(id, \{[^)]*\} = \{\}\) \{\n    stop\(\);/, "starting a tone stops the previous one");
-assert.match(tones, /function messageArrived\(contact\) \{\n    if \(active \|\| document\.hidden\) return false;/);
+assert.match(tones, /function play\(id, \{[^)]*\} = \{\}\) \{\r?\n    stop\(\);/, "starting a tone stops the previous one");
+assert.match(tones, /function messageArrived\(contact\) \{\r?\n    if \(active \|\| document\.hidden\) return false;/);
 assert.match(tones, /navigator\.audioSession\.type = type/, "respects the silent switch where the browser exposes it");
 // Wired into both ringers; answering/declining stops through the handle.
 assert.match(chat, /if\(window\.danzstakSyncTones\)\{ringTimer=window\.danzstakSyncTones\.startRing\(audioContext,\{contact:pending\.senderEmail\|\|contact,durationMs:remaining\}\);return;\}/);
