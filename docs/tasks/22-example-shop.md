@@ -40,3 +40,6 @@ Today's My Shop asks for an "HTTPS image URL" and a long form; nobody will do th
 4. **Duplicate item** to list variants fast; edit inline; sold out with one tap.
 5. Three ways in, shown side by side on the empty shop: **Add an item** · **Moving Day (import Discogs/eBay/Shopify)** · **AI shop ($6.30, drafts listings from photos)**, plus "See example shops".
 6. Works at 320–430px with the keyboard open; every control 44px; no stacked boxes.
+
+## "Every order comes with…" (owner, 2026-11-18)
+Shops can set one short free-extras line in shop settings, e.g. **"Every order comes with free stickers."** It shows as a small badge on every item in that shop, in the Bazaar card, on the item page and at checkout, and is printed on the order/packing note for the seller. Optional, one line, max ~60 characters; no price attached. The band-shop example uses it.
