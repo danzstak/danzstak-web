@@ -1,5 +1,6 @@
 "use strict";
 // Queue 5a00, spec docs/tasks/31-call-ringer.md (owner phone test 2026-11-18: "SYNC works but the ringer does not work").
+// Builds on PR #578 (tap prompt, vibration, louder Web Audio rings, Test ringer) and adds the spec's <audio> ringtone first.
 // One ringer for every page that can receive a call: SYNC (chat.js) and the global incoming-call popup (incoming-calls.js).
 // Fallback order: 1) an <audio> element looping the member's ringtone, 2) Web Audio, 3) visual: the call screen pulses and
 // offers "Tap to hear the ringer". Answer and Decline always work whatever happens to the sound.
@@ -92,13 +93,13 @@
   }
   function paint(state) {
     const blocked = state.mode === "blocked", surface = state.surface;
-    if (surface?.classList) surface.classList.toggle("is-ringer-blocked", blocked);
+    if (surface?.classList) surface.classList.toggle("call-ringer-needs-tap", blocked);
     const button = blocked ? tapButton(surface) : surface?.querySelector?.(".call-ringer-tap");
     if (button) button.hidden = !blocked;
     try { window.dispatchEvent(new CustomEvent("danzstak:ringer", { detail: { mode: state.mode } })); } catch {}
   }
   function clear(surface) {
-    surface?.classList?.remove("is-ringer-blocked");
+    surface?.classList?.remove("call-ringer-needs-tap");
     const button = surface?.querySelector?.(".call-ringer-tap"); if (button) button.hidden = true;
   }
   function setMode(state, mode) { if (ring !== state) return; state.mode = mode; paint(state); }
@@ -197,5 +198,6 @@
   // SYNC ⋮ → Test ringer: the ringtone for 3 s. It runs inside the member's tap (play() is called before any await).
   function test(ms = 3000) { return start({ durationMs: ms }); }
 
-  window.danzstakCallRinger = Object.freeze({ start, stop, unlock, test, handled, state: () => ring?.mode || "idle", tone: () => ring ? toneId(ring.contact) : "", renderWav, VIBRATION, MAX_RING_MS });
+  // testRinger: the name PR #578 gave the 3 s test, kept for anything that still calls it.
+  window.danzstakCallRinger = Object.freeze({ start, stop, unlock, test, testRinger: () => test(3000), handled, state: () => ring?.mode || "idle", tone: () => ring ? toneId(ring.contact) : "", renderWav, VIBRATION, MAX_RING_MS });
 })();

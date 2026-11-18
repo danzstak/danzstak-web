@@ -55,6 +55,7 @@
   }
 
   function stopRingtone() {
+    window.danzstakCallRinger?.stop?.();
     if (ringtoneTimer?.stop) ringtoneTimer.stop(); // 16-B2: the member's chosen ringtone
     else if (ringtoneTimer) clearInterval(ringtoneTimer);
     ringtoneTimer = null;
@@ -69,8 +70,14 @@
     const remaining = ringtoneDeadline - Date.now();
     if (!current || document.hidden || remaining <= 0) return;
     // 5a00: the shared ringer tries an <audio> ringtone, then Web Audio, then shows "Tap to hear the ringer" (call-ringer.js).
-    if (window.danzstakCallRinger) { ringtoneTimer = window.danzstakCallRinger.start({ contact: current.senderEmail || "", durationMs: remaining, surface: popup, audioContext: ringtoneContext }); return; }
-    if (ringtoneContext?.state !== "running") return;
+    if (window.danzstakCallRinger?.start) { ringtoneTimer = window.danzstakCallRinger.start({ contact: current.senderEmail || "", durationMs: remaining, surface: popup, audioContext: ringtoneContext }); return; }
+    // Task 31 (owner 2026-11-18: "the ringer does not work"): ring without a prior tap where the browser allows it
+    // (installed app); otherwise vibrate and ask for one tap on the call card.
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if ((!ringtoneContext || ringtoneContext.state === "closed") && AudioContextClass) { try { ringtoneContext = new AudioContextClass(); } catch { ringtoneContext = null; } }
+    if (ringtoneContext?.state === "suspended") ringtoneContext.resume().then(() => { if (current && !ringtoneTimer && ringtoneContext?.state === "running") startRingtone(); }).catch(() => {});
+    if (ringtoneContext?.state !== "running") { window.danzstakCallRinger?.vibrateStart?.(remaining); window.danzstakCallRinger?.needsTap?.(popup, unlockRingtone); return; }
+    window.danzstakCallRinger?.stop?.();
     if (window.danzstakSyncTones) { ringtoneTimer = window.danzstakSyncTones.startRing(ringtoneContext, { contact: current.senderEmail || "", durationMs: remaining }); return; }
     const pulse = () => {
       playRingtonePulse(720);

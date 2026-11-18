@@ -24,6 +24,7 @@
     "pop": { name: "Pop", kind: "message", period: 0.5, notes: [[0, 0.12, 660, "sine", 0.8, 990]] },
     "rimshot": { name: "Rimshot", kind: "message", period: 0.5, notes: [[0, 0.06, 900, "triangle", 0.6], [0, 0.04, 5000, "noise", 0.5], [0.14, 0.05, 1200, "triangle", 0.4]] }
   };
+  const RING_MAKEUP_GAIN = 3.2; // rings: compressed, then lifted (owner 2026-11-18: ring tones were too quiet)
   const DEFAULTS = { ring: "classic", message: "pop", ringVibrate: true, messageVibrate: true, contacts: {} };
   let ctx = null, active = null, previewTimer = null;
 
@@ -81,14 +82,25 @@
     if (quiet && window.danzstakSyncPrefs?.quiet?.(tone.kind === "ring" ? "call" : "message")) return { id, stop() {} };
     // "ambient" makes iOS/Safari respect the silent switch while a tone plays (where the browser exposes it).
     const previousSession = setSession("ambient");
-    const master = out.createGain(); master.gain.value = Math.max(0, Math.min(1, volume)); master.connect(out.destination);
+    const master = out.createGain(); master.gain.value = Math.max(0, Math.min(1, volume));
+    // Owner 2026-11-18: "the ring tones are quiet". Rings go through a compressor and make-up gain so a phone speaker
+    // plays them loud without clipping (message tones stay gentle).
+    let loudChain = null;
+    if (tone.kind === "ring" && out.createDynamicsCompressor) {
+      try {
+        const comp = out.createDynamicsCompressor(); comp.threshold.value = -20; comp.knee.value = 6; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.12;
+        const makeup = out.createGain(); makeup.gain.value = RING_MAKEUP_GAIN;
+        master.connect(comp); comp.connect(makeup); makeup.connect(out.destination); loudChain = [comp, makeup];
+      } catch { loudChain = null; }
+    }
+    if (!loudChain) master.connect(out.destination);
     const until = Date.now() + Math.min(maxMs, MAX_RING_MS);
     let next = out.currentTime + 0.03, timer = null, vibeTimer = null, stopped = false;
     const handle = {
       id, stop() {
         if (stopped) return; stopped = true;
         clearInterval(timer); clearInterval(vibeTimer);
-        try { master.gain.cancelScheduledValues(out.currentTime); master.gain.setValueAtTime(0, out.currentTime); master.disconnect(); } catch {}
+        try { master.gain.cancelScheduledValues(out.currentTime); master.gain.setValueAtTime(0, out.currentTime); master.disconnect(); loudChain?.forEach(node => node.disconnect()); } catch {}
         if (vibrate) try { navigator.vibrate?.(0); } catch {}
         if (previousSession !== null) setSession(previousSession);
         if (active === handle) active = null;

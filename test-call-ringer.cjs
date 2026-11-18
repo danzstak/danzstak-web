@@ -151,7 +151,7 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     ringer.start({ durationMs: 25000, surface });
     await b.advance(1000);
     assert.equal(ringer.state(), "blocked");
-    assert.ok(surface.classes.has("is-ringer-blocked"), "the call screen pulses");
+    assert.ok(surface.classes.has("call-ringer-needs-tap"), "the call screen pulses");
     const tap = surface.querySelector(".call-ringer-tap");
     assert.ok(tap && tap.hidden === false, "Tap to hear the ringer is shown");
     assert.equal(tap.textContent, "Tap to hear the ringer");
@@ -160,7 +160,7 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     b.fire("click");
     await b.advance(0);
     assert.equal(ringer.state(), "audio", "after one tap the <audio> ringtone plays");
-    assert.equal(tap.hidden, true); assert.equal(surface.classes.has("is-ringer-blocked"), false);
+    assert.equal(tap.hidden, true); assert.equal(surface.classes.has("call-ringer-needs-tap"), false);
     ringer.stop();
   }
 
@@ -202,7 +202,8 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   }
 
   // ---------- 6. SYNC (chat.js) and the global popup both ring through it, without the old "already unlocked" gate ----------
-  assert.match(chat, /function startIncomingRingtone\(\)\{const remaining=incomingRingDeadline-Date\.now\(\);if\(!pending\|\|document\.hidden\|\|ringTimer\|\|remaining<=0\)return;[^\n]*if\(window\.danzstakCallRinger\)\{ringTimer=window\.danzstakCallRinger\.start\(\{contact:pending\.senderEmail\|\|contact,durationMs:remaining,surface:els\.incoming,audioContext\}\);return;\}if\(audioContext\?\.state!=="running"\)return;/);
+  assert.match(chat, /function startIncomingRingtone\(\)\{const remaining=incomingRingDeadline-Date\.now\(\);if\(!pending\|\|document\.hidden\|\|ringTimer\|\|remaining<=0\)return;[^\n]*?if\(window\.danzstakCallRinger\?\.start\)\{ringTimer=window\.danzstakCallRinger\.start\(\{contact:pending\.senderEmail\|\|contact,durationMs:remaining,surface:els\.incoming,audioContext\}\);return;\}/);
+  assert.doesNotMatch(chat, /function startIncomingRingtone\(\)\{const remaining=incomingRingDeadline-Date\.now\(\);if\(!pending\|\|document\.hidden\|\|audioContext\?\.state!=="running"/, "SYNC no longer gives up silently when audio isn't unlocked yet (PR #578)");
   {
     const fn = chat.match(/function startIncomingRingtone\(\)\{[^\n]+/)[0];
     const calls = [];
@@ -214,7 +215,7 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   assert.match(chat, /for\(const type of\["pointerup","touchend","click"\]\)document\.addEventListener\(type,unlockCallAudio/);
   assert.match(chat, /if\(event\.signalType==="offer"&&endedCalls\.has\(event\.callId\)\)return true;/, "a cancelled call's offer never rings again");
   assert.match(chat, /if\(pending\?\.callId===resolvedCallId&&!peer\)\{endedCalls\.add\(resolvedCallId\);stopRing\(\);/, "a ringing call resolved elsewhere stops ringing here");
-  assert.match(incoming, /if \(window\.danzstakCallRinger\) \{ ringtoneTimer = window\.danzstakCallRinger\.start\(\{ contact: current\.senderEmail \|\| "", durationMs: remaining, surface: popup, audioContext: ringtoneContext \}\); return; \}\r?\n    if \(ringtoneContext\?\.state !== "running"\) return;/);
+  assert.match(incoming, /if \(window\.danzstakCallRinger\?\.start\) \{ ringtoneTimer = window\.danzstakCallRinger\.start\(\{ contact: current\.senderEmail \|\| "", durationMs: remaining, surface: popup, audioContext: ringtoneContext \}\); return; \}/);
   assert.match(incoming, /window\.danzstakCallRinger\?\.handled\(event\.callId\);\r?\n    if \(typeof window\.openMessageDrawer/);
   assert.match(incoming, /<div data-ringer-slot><strong id="globalIncomingTitle">/);
   // The tones stay synthesized: the ringer reads the pattern, sync-tones.js ships no audio file.
@@ -332,9 +333,16 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   }
 
   // ---------- 11. Wiring and translations ----------
-  for (const page of ["messages.html", "feed.html", "profile.html"]) assert.match(read(page), /<script src="assets\/sync-tones\.js\?v=\d+" defer><\/script>\r?\n<script src="assets\/call-ringer\.js\?v=\d+" defer><\/script>/, `${page} loads the ringer after the tones`);
+  for (const page of ["messages.html", "feed.html", "profile.html"]) { assert.match(read(page), /<script src="assets\/call-ringer\.js\?v=\d+" defer><\/script>/, `${page} loads the ringer`); assert.match(read(page), /assets\/call-ringer\.css\?v=\d+/); }
+  assert.match(worker, /"\/assets\/call-ringer\.js", "\/assets\/call-ringer\.css", "\/assets\/call-alerts\.js"/, "cached offline");
+  // Kept from PR #578: louder rings, a louder default, and a Call alerts button that always answers.
+  const setup = read("assets/call-setup.js");
+  assert.match(tonesSource, /tone\.kind === "ring" && out\.createDynamicsCompressor/, "rings are compressed and lifted (owner: ring tones too quiet)");
+  assert.match(tonesSource, /const RING_MAKEUP_GAIN = 3\.2;/);
+  assert.match(setup, /const DEFAULT_RING = 0\.8;/, "louder default ring volume");
+  assert.match(chat, /finally\{delete els\.enable\.dataset\.busy;els\.enable\.disabled=false;\}/, "Call alerts can be tapped again (owner: it did nothing)");
+  assert.match(chat, /window\.danzstakShowFeedback\?\.\(message,\{urgent\}\)/, "Call alerts shows its result on screen");
   assert.match(read("messages.html"), /<script src="assets\/call-alerts\.js\?v=\d+" defer><\/script>/);
-  assert.ok(worker.includes('"/assets/call-ringer.js"') && worker.includes('"/assets/call-alerts.js"'), "both work offline");
   for (const lang of ["it", "fr", "es", "de", "pt"]) {
     const start = i18n.indexOf(`"${lang}": {`), block = i18n.slice(start, i18n.indexOf("\n}", start));
     for (const key of ["Tap to hear the ringer", "Call ended.", "Test ringer", "Turn on call alerts so calls ring when SYNC is closed", "Turn on", "Not now", "Ringing here now, and a test call notification is on its way to this phone."]) assert.ok(block.includes(JSON.stringify(key) + ":"), `${lang}: ${key}`);

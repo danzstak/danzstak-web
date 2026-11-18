@@ -19,14 +19,15 @@ const DEVICE = "44444444-4444-4444-8444-444444444444", TOKEN = "T".repeat(43); /
 (async () => {
   const browser = await chromium.launch({ ...(process.env.DANZSTAK_BROWSER_CHANNEL ? { channel: process.env.DANZSTAK_BROWSER_CHANNEL } : {}), args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
   try {
-    for (const width of widths) for (const screen of ["feed", "sync"]) {
+    for (const width of widths) for (const screen of ["feed", "sync", ...(width === 390 ? ["allowed"] : [])]) {
       const context = await browser.newContext({ viewport: { width, height: width < 700 ? 844 : 900 }, serviceWorkers: "block", hasTouch: width < 700, deviceScaleFactor: 1, permissions: ["camera", "microphone"] });
       // Sound stays blocked until a real tap, like a phone that has not been touched yet in this session.
-      await context.addInitScript(() => {
+      // "allowed": an installed app the member already touched this session, so sound is allowed without a tap.
+      await context.addInitScript(locked => {
         // Headless Chromium can report an activation without a tap, so the lock is a flag only a trusted tap opens.
         let unlocked = false;
         for (const type of ["pointerup", "touchend", "click", "keydown"]) addEventListener(type, event => { if (event.isTrusted) unlocked = true; }, { capture: true });
-        const activated = () => unlocked;
+        const activated = () => unlocked || !locked;
         const realPlay = HTMLMediaElement.prototype.play;
         window.__ringerPlays = [];
         HTMLMediaElement.prototype.play = function () {
@@ -43,7 +44,7 @@ const DEVICE = "44444444-4444-4444-8444-444444444444", TOKEN = "T".repeat(43); /
         }
         Object.defineProperty(window, "AudioContext", { configurable: true, value: LockedAudioContext });
         Object.defineProperty(window, "webkitAudioContext", { configurable: true, value: LockedAudioContext });
-      });
+      }, screen !== "allowed");
       const page = await context.newPage(), errors = [];
       let offer = true;
       page.on("pageerror", error => errors.push(error.message));
@@ -70,16 +71,25 @@ const DEVICE = "44444444-4444-4444-8444-444444444444", TOKEN = "T".repeat(43); /
         request.onerror = () => reject(request.error);
         request.onsuccess = () => { const db = request.result, tx = db.transaction("credentials", "readwrite"); tx.objectStore("credentials").put({ deviceId, deviceToken }, "current"); tx.oncomplete = () => { db.close(); resolve(); }; tx.onerror = () => reject(tx.error); };
       }), [DEVICE, TOKEN]);
-      await page.goto(`${baseUrl}/${screen === "feed" ? "feed.html?view=feed" : "messages.html"}`, { waitUntil: "domcontentloaded" });
-      const surface = page.locator(screen === "feed" ? ".global-incoming-call" : "#incomingCall");
+      await page.goto(`${baseUrl}/${screen === "sync" ? "messages.html" : "feed.html?view=feed"}`, { waitUntil: "domcontentloaded" });
+      const surface = page.locator(screen === "sync" ? "#incomingCall" : ".global-incoming-call");
       await surface.waitFor({ state: "visible", timeout: 15000 });
 
+      if (screen === "allowed") {
+        await page.waitForFunction(() => window.danzstakCallRinger.state() === "audio", null, { timeout: 5000 });
+        assert.equal(await surface.locator(".call-ringer-tap").count(), 0, "no tap prompt when sound is allowed");
+        assert.equal(await page.evaluate(() => !window.__ringer.paused && window.__ringer.loop), true, "rings at once, looping");
+        await surface.locator("[data-decline]").click();
+        await page.waitForFunction(() => window.danzstakCallRinger.state() === "idle", null, { timeout: 3000 });
+        assert.equal(await page.evaluate(() => window.__ringer.paused), true);
+        await context.close(); console.log(`ok ${width}px rings without a tap where allowed`); continue;
+      }
       // 1. Sound is blocked: the call screen pulses and offers one tap. Answer/Decline are there regardless.
       const tap = surface.locator(".call-ringer-tap");
       await tap.waitFor({ state: "visible", timeout: 5000 });
       assert.equal((await tap.innerText()).trim(), "Tap to hear the ringer");
       assert.equal(await page.evaluate(() => window.danzstakCallRinger.state()), "blocked");
-      assert.equal(await surface.evaluate(element => element.classList.contains("is-ringer-blocked")), true);
+      assert.equal(await surface.evaluate(element => element.classList.contains("call-ringer-needs-tap")), true);
       const box = await tap.boundingBox();
       assert.ok(box.height >= 44 && box.x >= 0 && box.x + box.width <= width + 1, `${width}px ${screen}: 44px tap target inside the screen`);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, `${width}px ${screen}: no horizontal overflow`);
