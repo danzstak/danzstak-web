@@ -143,3 +143,8 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
 - [ ] **Upload straight to an album**: pick many photos at once from the phone, they upload into the album. Then the member **chooses which of them also get posted** to Mix ("Post 3 of 48 to Your Mix" — tick the ones to share, one post with those photos and a link to the album). The rest stay in the album only. Photos that are posted follow the Dailies rule (into Dailies for 24 h).
 - [ ] Album owner can reorder, set the cover, add/remove photos, rename, change visibility and delete (Delete everywhere rules). Friends can be tagged in album photos with the existing tagging rules.
 - [ ] Never music files; photos and videos only. Export includes albums.
+
+## Profile Videos tab = the member's videos, with albums (owner 2026-11-18, phone screenshot)
+- [ ] **Videos shows videos, not posts**: same as Photos — a grid of the member's videos only (3 columns of portrait tiles, poster frame + small duration badge, newest first), no post text, dates, view counts or reaction rows. Tap → full-screen player (swipe to the next video; existing sound rules). Linked videos (YouTube etc.) show their thumbnail.
+- [ ] **Video albums** work exactly like photo albums (name, date/place, visibility, upload many at once, choose which ones also get posted to Mix; posted videos go to The Roll and Dailies as usual). Albums can mix photos and videos.
+- [ ] Seen live on the Videos tab: the video rendered as a big black box (no poster frame), the author avatar was half black, and the date showed as "10/25/2026, 7:07:45 PM". Videos always show a poster frame; avatars never crop to black; dates everywhere use the short relative style ("3w", "Oct 25").
