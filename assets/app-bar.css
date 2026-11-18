@@ -27,7 +27,7 @@ body.ds-has-app-bar>header.ds-app-bar>.ds-app-bar-links{display:none!important}
 header.topbar #pivotButton,header.topbar .pivot-header-button{display:none!important}
 .install-app-button:not(.app-header-prompt){display:none!important}
 header.topbar .ds-app-bar-sync{color:#f5f5f2!important}
-@media(max-width:700px){header.topbar.ds-feed-bar{display:flex!important;align-items:center;gap:4px!important}header.topbar.ds-feed-bar>.search{flex:1 1 auto;min-width:0}header.topbar.ds-feed-bar>.topnav{display:none!important}}
+@media(max-width:700px){header.topbar.ds-feed-bar{display:flex!important;align-items:center;gap:4px!important}header.topbar.ds-feed-bar>.search{flex:1 1 auto;min-width:0}}
 @media(min-width:701px){header.topbar .ds-app-bar-sync{display:none!important}} /* desktop already shows SYNC in the top nav */
 .install-app-button{display:none!important} /* install lives in Menu → Install DanzStak */
 /* Mix bar on phones: one row — logo, search, bell, SYNC (the older grid sent bell and SYNC to new rows). */
