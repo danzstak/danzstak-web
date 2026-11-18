@@ -57,3 +57,6 @@ body.messages-page .message-meta{display:flex;justify-content:flex-end;align-ite
 .conversation-row.has-swipe-actions:not([data-swiped="true"]):not(.is-dragging) .conversation-swipe-actions{visibility:hidden}
 .conversation-swipe-action span{max-width:68px;font-size:11px!important;line-height:1.15;white-space:normal;text-align:center}
 .conversation-archived-row{background:#fff;border-radius:12px;margin-bottom:6px;padding:0 12px}
+/* Owner 2026-11-18: on Contacts/Calls the chat preview and the section line ran together ("Click the speakerOpen contact"). Show only the section line. */
+.conversation-row:is([data-sync-section="contacts"],[data-sync-section="calls"]) .conversation-user .conversation-copy small{font-size:0!important}
+.conversation-row:is([data-sync-section="contacts"],[data-sync-section="calls"]) .conversation-user .conversation-copy small::after{font-size:.8rem!important}
