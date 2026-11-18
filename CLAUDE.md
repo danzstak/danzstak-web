@@ -345,6 +345,7 @@ Goal for the next builds: **DanzStak should feel like a finished, familiar phone
 Owner-session only (not Claude Code): deploy the Auth API for AI EPK (#567) and new routes; fix the Stripe test keys; SYNC chat-list cache decision.
 
 ### Builder log (newest first)
+- 2026-11-18 22:20 UTC · Claude (planning chat) · owner asked for a Text button in SYNC calls (note over the other person's video until closed); spec `docs/tasks/30-call-text-overlay.md`, queued first as 5a0 · Next: 5a0
 - 2026-11-18 22:05 UTC · Claude (planning chat) · plan written above; queue rows 5a1–5a8 · Next: 5a1
 - 2026-11-18 21:45 UTC · Claude (planning chat) · queued 5a1 full-screen media viewer, 5a2 Photos/Videos albums, 5a3 friends row · Next: 5a1
 
