@@ -1026,6 +1026,42 @@ function appendProfileFriendRequests(people, relationship) {
 }
 
 let profileShop = null;
+// Owner 2026-11-18: the Shop tab looks like the member's shop: a shop header, then the products as a 2-column grid
+// of square photos with title, price and shipping. Tap a product to open it. Every word and image is the seller's.
+function renderProfileShop(shop = {}, profile = {}) {
+  const own = profile.isOwner === true;
+  const money = cents => new Intl.NumberFormat(document.documentElement.lang || undefined, { style: "currency", currency: "USD" }).format(Math.max(0, Number(cents || 0)) / 100);
+  const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
+  const root = el("section", "profile-shop"); root.setAttribute("aria-label", profileTranslate("Shop"));
+  const head = el("header", "profile-shop-head");
+  const kicker = el("p", "profile-shop-kicker", `${shop.name || profile.name || ""} · ${profileTranslate("Shop")}`.toUpperCase());
+  head.append(kicker);
+  if (own) {
+    const manage = el("a", "ds-icon-button profile-shop-manage"); manage.href = "store.html?manage=1";
+    manage.setAttribute("aria-label", profileTranslate("Manage shop")); manage.title = manage.getAttribute("aria-label");
+    manage.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    head.append(manage);
+  }
+  root.append(head);
+  if (shop.description) root.append(el("p", "profile-shop-about", shop.description));
+  const products = (shop.products || []).filter(item => own || item.available);
+  if (!products.length) { root.append(el("p", "profile-shop-empty", profileTranslate(own ? "No products yet. Add your first one in Manage shop." : "Nothing for sale right now."))); return root; }
+  const grid = el("div", "profile-shop-grid");
+  for (const item of products) {
+    const card = el("a", "profile-shop-card"); card.href = `product.html?id=${encodeURIComponent(item.id)}`;
+    const frame = el("span", "profile-shop-image");
+    if (item.imageUrl) { const image = document.createElement("img"); image.src = item.imageUrl; image.alt = ""; image.loading = "lazy"; image.decoding = "async"; image.referrerPolicy = "no-referrer"; image.addEventListener("error", () => image.remove(), { once: true }); frame.append(image); }
+    const badge = !item.available ? (own && item.status === "draft" ? "DRAFT" : "SOLD OUT") : "";
+    if (badge) frame.append(el("span", "profile-shop-badge", profileTranslate(badge)));
+    card.append(frame, el("strong", "profile-shop-title", item.title));
+    card.append(el("span", "profile-shop-detail", item.shippingCents ? `+${money(item.shippingCents)} ${profileTranslate("shipping")}` : profileTranslate("Free shipping")));
+    card.append(el("span", "profile-shop-price", money(item.priceCents)));
+    grid.append(card);
+  }
+  root.append(grid);
+  return root;
+}
+
 async function loadProfileShop() {
   const version = profileTabVersion;
   tabMessage.textContent = "Loading shop…";
@@ -1037,12 +1073,7 @@ async function loadProfileShop() {
     if (!response.ok) throw new Error(data.error || "This shop could not be loaded.");
     if (version !== profileTabVersion) return;
     profileShop = data.shop;
-    tabMessage.replaceChildren();
-    const heading = document.createElement("h2"); heading.textContent = profileShop.name;
-    const description = document.createElement("p"); description.textContent = profileShop.description || "Physical goods from this DanzStak member.";
-    const link = document.createElement("a"); link.className = "button"; link.href = profile.isOwner === true ? "store.html?manage=1" : `store.html?member=${encodeURIComponent(profile.memberId || "")}`; link.textContent = profile.isOwner === true ? "Manage shop" : "Open shop";
-    const count = document.createElement("p"); count.className = "muted"; count.textContent = `${profileShop.products.length} product${profileShop.products.length === 1 ? "" : "s"}`;
-    tabMessage.append(heading, description, count, link);
+    tabMessage.replaceChildren(renderProfileShop(profileShop, profile));
   } catch (error) { if (version === profileTabVersion) tabMessage.textContent = error.message; }
 }
 
@@ -1098,7 +1129,7 @@ async function openProfileMoreSection(name = "") {
   else if (name === "Friends") await loadProfileFriends();
   else if (name === "Media") await loadProfilePosts(true);
   else if (name === "Shop" && profileShop) await loadProfileShop();
-  if (tabMessage.dataset.profileMoreSection === name) tabMessage.prepend(profileMoreNavigation(name));
+  if (tabMessage.dataset.profileMoreSection === name && name !== "Shop") tabMessage.prepend(profileMoreNavigation(name)); // the Shop tab is the shop itself, no extra "Shop" button
 }
 
 tabs.addEventListener("click", async event => {
