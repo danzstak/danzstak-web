@@ -13,4 +13,8 @@ assert.match(ringer, /navigator\.vibrate\(\[600, 300, 600\]\)/, "repeating vibra
 assert.match(ringer, /label: "Test ringer"/, "Test ringer row in the SYNC sheet");
 for (const page of ["feed.html", "profile.html", "messages.html"]) assert.match(read(page), /assets\/call-ringer\.js\?v=\d+/, `${page} loads the ringer`);
 assert.match(worker, /"\/assets\/call-ringer\.js", "\/assets\/call-ringer\.css"/, "cached offline");
+const tones = read("assets/sync-tones.js"), setup = read("assets/call-setup.js");
+assert.match(tones, /tone\.kind === "ring" && out\.createDynamicsCompressor/, "rings are compressed and lifted (owner: ring tones too quiet)");
+assert.match(tones, /const RING_MAKEUP_GAIN = 3\.2;/);
+assert.match(setup, /const DEFAULT_RING = 0\.8;/, "louder default ring volume");
 console.log("Call ringer checks passed: rings without a tap where allowed, vibrates + asks for a tap when blocked, Test ringer, offline cache.");
