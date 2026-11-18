@@ -23,3 +23,11 @@ Owner: "Phones also need to go through contacts like a phone and be able to be i
 
 ## Tests
 Contact matching only finds opted-in members; non-opted-in and unknown look identical; numbers never in responses/logs/storage; limits; iPhone/desktop fallbacks; invite link → sign-up → lands in chat with inviter + friendship + push; group link join/reset; expiry. Visual check at phone widths.
+
+## Join from SYNC alone (owner 2026-11-18)
+Owner: "They could register their device without being a member of DanzStak — the standalone part. I would make the sign-up page there as well so they auto-become members of DanzStak."
+- The standalone SYNC app (16-G) gets its own short sign-up, so someone who only wants to chat never has to visit the main site: **mobile number → Text me a code (Twilio Verify, the existing flow) → name + @username → done.** That one flow verifies the number, registers this device for calls, and **creates their DanzStak account** at the same time — one account, not a separate SYNC account.
+- Email and password are optional at that point (asked later only when they want the rest of DanzStak, e.g. selling or an EPK). Check the Cognito user pool: if it requires an email, use the phone number as the sign-in attribute for these accounts or add a phone-first pool setting — do not invent placeholder emails.
+- An invite link opened on a phone goes to this SYNC sign-up (not the full site sign-up) and lands in the chat with the inviter.
+- Their DanzStak profile starts minimal (name, @username, avatar if they add one), private by default; Mix, shop and EPK are there when they open DanzStak, with no extra sign-up.
+- All existing SYNC rules hold: the number stays private and hashed, never shown; terms and privacy are accepted on this screen; one number may be linked to up to 10 accounts as today.
