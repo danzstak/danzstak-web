@@ -680,12 +680,9 @@ if ($feed.Contains('data-feature="Photos"') -or $feed.Contains('data-feature="Vi
 foreach ($workspaceDestination in @('href="#friends"', 'href="#events"', 'href="#settings"')) {
   if (-not $feed.Contains($workspaceDestination)) { Add-Failure "Feed workspace has no durable navigation destination: $workspaceDestination" }
 }
-$termsMenuIndex = $feed.IndexOf('<a href="terms.html"><span class="menu-icon"')
-$androidMenuIndex = $feed.IndexOf('data-app-platform="android"')
-$appleMenuIndex = $feed.IndexOf('data-app-platform="apple"')
-$logoutMenuIndex = $feed.IndexOf('<button type="button" class="menu-action logout-menu-link" data-logout><span class="menu-icon"')
-if ($termsMenuIndex -lt 0 -or $androidMenuIndex -lt $termsMenuIndex -or $appleMenuIndex -lt $androidMenuIndex -or $logoutMenuIndex -lt $appleMenuIndex) {
-  Add-Failure 'Feed navigation: Android and Apple app links are not stacked beneath Terms of Service and above Logout'
+# Owner 2026-11-18: one Menu → Install DanzStak item (app-bar.js); no separate Android/Apple menu links.
+if ($feed.Contains('data-app-platform="android"') -or $feed.Contains('data-app-platform="apple"')) {
+  Add-Failure 'Feed navigation: separate Android/Apple install links are back in the menu'
 }
 if ($feed.Contains('This DanzStak section is being prepared.') -or $feed.Contains('const featureCopy =')) {
   Add-Failure 'Feed workspaces still run the retired placeholder click handler before the functional router'
