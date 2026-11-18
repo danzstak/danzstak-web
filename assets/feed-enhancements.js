@@ -1149,7 +1149,9 @@ function renderWorkspace(name) {
     function tribeInitial(name) { return String(name || "").replace(/^[^\p{L}\p{N}]+/u, "").charAt(0).toUpperCase() || "T"; }
     function renderGroups() {
       grid.replaceChildren();
-      const defaults = categories.map(category => ({ id: `default-${legacyCategoryOrder.indexOf(category)}`, name: groupCategoryName(category), category, description: `Connect in ${(groupCategoryName(category)).toLowerCase()}.`, custom: false }));
+      // Owner 2026-11-18: categories are not Tribes. Members create Tribes (name first, then a category); the category
+      // is only a filter and a label, so no built-in "Bands" / "Fans" / ... Tribes are listed.
+      const defaults = [];
       const query = groupSearch.value.trim().toLowerCase();
       const groups = [...customGroups, ...defaults]
         .filter(group => groupView !== "joined" || Boolean(saved.GroupsJoined?.[group.id]))
@@ -1160,10 +1162,12 @@ function renderWorkspace(name) {
         const empty = document.createElement("div");
         empty.className = "groups-empty";
         const heading = document.createElement("strong");
-        heading.textContent = groupView === "joined" ? "You have not joined a Tribe yet" : "No Tribes match that search";
+        const filtered = Boolean(groupSearch.value.trim() || categoryFilter.value);
+        heading.textContent = groupView === "joined" ? "You have not joined a Tribe yet" : filtered ? "No Tribes match that search" : "No Tribes yet. Start one for your scene.";
         const copy = document.createElement("span");
-        copy.textContent = groupView === "joined" ? "Choose Discover to find communities." : "Try another name or category.";
+        copy.textContent = groupView === "joined" ? "Choose Discover to find communities." : filtered ? "Try another name or category." : "";
         empty.append(heading, copy);
+        if (!filtered && groupView !== "joined" && createToggle) { const start = document.createElement("button"); start.type = "button"; start.className = "primary groups-empty-create"; start.textContent = "+ Create Tribe"; start.addEventListener("click", () => { if (createBox.hidden) createToggle.click(); }); empty.append(start); }
         grid.appendChild(empty);
         return;
       }
