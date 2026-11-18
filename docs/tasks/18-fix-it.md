@@ -65,8 +65,8 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 - [ ] Radio stations is missing from Music HQ in the menu.
 
 **EPK builder**
-- [ ] (IN PROGRESS (Claude Code)) Two stacked titles ("EPK Builder" then "Build your EPK in 5 minutes") and "stays private until you publish" said twice. One title, one line.
-- [ ] (IN PROGRESS (Claude Code)) The All-Access laminate graphic is clipped by the right screen edge at 390px.
+- [x] (PR #561) Two stacked titles ("EPK Builder" then "Build your EPK in 5 minutes") and "stays private until you publish" said twice. One title, one line.
+- [x] (PR #561) The All-Access laminate graphic is clipped by the right screen edge at 390px.
 
 ### SYNC call test — 2026-11-17, phone (SFScoop) ↔ computer (Eroticon), both registered
 
