@@ -17,7 +17,7 @@ function feedVideo(name) {
     get muted() { return muted; },
     // Real browsers fire volumechange asynchronously, after the coordinator's guard is released.
     set muted(value) { if (value !== muted) { muted = value; queued.push(video); } },
-    matches(selector) { return selector === "video,iframe.reel-player" || selector === "video.post-media"; },
+    matches(selector) { return String(selector).split(",").map(s => s.trim()).some(s => ["video", "iframe.reel-player", "video.post-media"].includes(s)); },
     closest() { return null; }, getAttribute() { return ""; },
     addEventListener(type, handler) { const list = handlers.get(type) || []; list.push(handler); handlers.set(type, list); },
     emit(type) { for (const handler of handlers.get(type) || []) handler({ target: this }); },

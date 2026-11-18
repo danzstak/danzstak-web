@@ -22,7 +22,7 @@ function feedVideo(name) {
     muted: true,
     plays: 0,
     pauses: 0,
-    matches(selector) { return selector === "video,iframe.reel-player" || selector === "video.post-media"; },
+    matches(selector) { return String(selector).split(",").map(s => s.trim()).some(s => ["video", "iframe.reel-player", "video.post-media"].includes(s)); },
     closest() { return null; },
     getAttribute() { return ""; },
     addEventListener(type, handler) {
