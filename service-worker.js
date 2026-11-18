@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v942";
+const CACHE = "danzstak-shell-v943";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -99,6 +99,10 @@ self.addEventListener("push", event => {
     if (candidate.origin === self.location.origin && /^\/(?:feed|messages|profile)\.html$/.test(candidate.pathname)) url = candidate.pathname + candidate.search + candidate.hash;
   } catch { /* Keep the safe feed destination. */ }
   const call = payload.type === "call";
+  // 5a3: a friend request has Accept and Delete right on the notification (answered without opening the app).
+  const friendRequest = payload.type === "friend_request" && /^[a-f0-9-]{36}$/.test(String(payload.memberId || ""));
+  const actions = call ? [{ action: "answer", title: String(payload.answerTitle || "Accept").slice(0, 40) }, { action: "decline", title: String(payload.declineTitle || payload.dismissTitle || "Decline").slice(0, 40) }]
+    : friendRequest ? [{ action: "friend-accept", title: String(payload.acceptTitle || "Accept").slice(0, 40) }, { action: "friend-delete", title: String(payload.deleteTitle || "Delete").slice(0, 40) }] : [];
   event.waitUntil(self.registration.showNotification(title, {
     body,
     icon: "/assets/favicon-192.png",
@@ -109,8 +113,8 @@ self.addEventListener("push", event => {
     vibrate: payload.silent === true ? [] : call ? [400, 180, 400, 180, 400] : [120],
     requireInteraction: call,
     // 16-F: the lock-screen ring has Accept and Decline. Decline refuses the call without opening the app.
-    actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Accept").slice(0, 40) }, { action: "decline", title: String(payload.declineTitle || payload.dismissTitle || "Decline").slice(0, 40) }] : [],
-    data: { url, type: call ? "call" : payload.type === "booking" ? "booking" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
+    actions,
+    data: { url, type: call ? "call" : payload.type === "booking" ? "booking" : friendRequest ? "friend_request" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "", memberId: friendRequest ? String(payload.memberId) : "" }
   }));
 });
 
@@ -125,9 +129,23 @@ async function declineCallFromNotification(callId) {
   } catch { /* offline: the caller's ring times out */ }
 }
 
+// 5a3: Accept or Delete a friend request from the lock screen (cookie session, same as call Decline). If it fails, the
+// tap opens the notifications list so the member can answer there.
+async function answerFriendRequestFromNotification(memberId, accept, url) {
+  try {
+    const response = await fetch("https://api.danzstak.com/friends/respond", { method: "POST", credentials: "include", cache: "no-store", headers: { "content-type": "application/json" }, body: JSON.stringify({ memberId, accept }) });
+    if (response.ok || response.status === 404) return;
+  } catch { /* offline: fall through and open the list */ }
+  await self.clients.openWindow(url || "/feed.html#notifications");
+}
+
 self.addEventListener("notificationclick", event => {
   event.notification.close();
   if (event.action === "dismiss") return;
+  if ((event.action === "friend-accept" || event.action === "friend-delete") && event.notification.data?.type === "friend_request") {
+    event.waitUntil(answerFriendRequestFromNotification(String(event.notification.data.memberId || ""), event.action === "friend-accept", event.notification.data.url));
+    return;
+  }
   if (event.action === "decline") { if (event.notification.data?.type === "call") event.waitUntil(declineCallFromNotification(String(event.notification.data.callId || ""))); return; }
   const destinationUrl = new URL(event.notification.data?.url || "/feed.html", self.location.origin);
   if (event.action === "answer" && event.notification.data?.type === "call") destinationUrl.searchParams.set("answer", "1");

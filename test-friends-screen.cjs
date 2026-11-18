@@ -122,5 +122,60 @@ const call = async (fn, user, query = {}, body) => JSON.parse(JSON.stringify(awa
   assert.equal(line({ isOwner: false, mutualCount: 0, common: [], listVisible: false }), "", "nothing to say: no row");
   assert.equal(screenUrl({ isOwner: false, memberId: id(2) }), `friends.html?member=${id(2)}`);
   assert.equal(screenUrl({ isOwner: true, memberId: id(1) }), "friends.html");
+
+  // ---------- part 2: accepted notice (bell + push) and Accept/Delete on the lock screen ----------
+  const words = vm.runInNewContext(`(${template.match(/const friendPushWords=(\{[^\n]*\});/)[1]})`);
+  const languages = ["en", "es", "fr", "de", "pt", "it", "ko", "ja", "zh-Hans", "zh-Hant", "fil", "hi", "vi", "th", "id"];
+  assert.deepEqual(Object.keys(words).sort(), [...languages].sort(), "friend push words in every account language");
+  for (const language of languages) { assert.equal(words[language].length, 3); assert.match(words[language][1], /\{name\}/); words[language].forEach(value => assert.ok(value.trim())); }
+  const push = {};
+  vm.runInNewContext([template.match(/const pushTranslations=\{[\s\S]*?\};/)[0], pick("const pushFormat="), pick("const callButtonWords="), pick("const friendPushWords="), pick("function localizedPush(")].join("\n") + "\nresult.accepted=localizedPush('es','friend_accepted','Mara');result.request=localizedPush('de','friend','Mara');", { result: push });
+  assert.deepEqual(JSON.parse(JSON.stringify(push.accepted)), { title: "Nuevo amigo en DanzStak", body: "Mara aceptó tu solicitud de amistad." });
+  assert.equal(push.request.deleteTitle, "Löschen"); assert.ok(push.request.acceptTitle && push.request.body.includes("Mara"), "the request push carries Accept/Delete labels in the member's language");
+  assert.match(template, /\{type:'friend_request',\.\.\.copy,memberId:profile\.memberId,/, "the request push names who asked, so Accept works from the lock screen");
+
+  // friendRespond accepts a memberId (lock screen), stamps acceptedAt on the sender's row and notifies them once.
+  const notified = [];
+  const respondContext = { ...context, notifyFriendAccepted: async (requester, accepter) => { notified.push([requester, accepter]); }, PutItemCommand: command("Put"), DeleteItemCommand: command("Delete"), rows: new Map() };
+  respondContext.db = { send: async request => {
+    const key = request.input.Key || request.input.Item, id2 = `${key.userEmail.S}|${key.friendEmail.S}`;
+    if (request.name === "GetItem") return { Item: respondContext.rows.get(id2) };
+    if (request.name === "Put") { respondContext.rows.set(id2, request.input.Item); return {}; }
+    if (request.name === "Delete") { respondContext.rows.delete(id2); return {}; }
+    return {};
+  } };
+  vm.createContext(respondContext);
+  vm.runInContext(pick("async function friendRespond("), respondContext);
+  const pending = (from, to) => { respondContext.rows.set(`${to}@example.com|${from}@example.com`, { status: { S: "incoming" } }); respondContext.rows.set(`${from}@example.com|${to}@example.com`, { status: { S: "outgoing" } }); };
+  pending("theo", "me");
+  let answer = JSON.parse(JSON.stringify(await respondContext.friendRespond({ body: JSON.stringify({ memberId: id(people.theo), accept: true }) }, { email: "me@example.com" })));
+  assert.deepEqual(answer, { statusCode: 200, body: { accepted: true } });
+  assert.ok(respondContext.rows.get("theo@example.com|me@example.com").acceptedAt?.S, "the sender's row remembers when it was accepted");
+  assert.equal(respondContext.rows.get("me@example.com|theo@example.com").acceptedAt, undefined, "only the sender gets the notice");
+  assert.deepEqual(notified, [["theo@example.com", "me@example.com"]]);
+  pending("ana", "me"); emailOf[id(9)] = "ana@example.com";
+  await respondContext.friendRespond({ body: JSON.stringify({ email: "ana@example.com", accept: false }) }, { email: "me@example.com" });
+  assert.equal(notified.length, 1, "nothing for declines");
+
+  // Bell: "X accepted your friend request" for a week, then gone.
+  const bell = { ...context, QueryCommand: command("Query"), queryAll: async input => input.TableName === "Friends" ? [
+    { friendEmail: { S: "theo@example.com" }, status: { S: "friends" }, acceptedAt: { S: new Date().toISOString() } },
+    { friendEmail: { S: "ana@example.com" }, status: { S: "friends" }, acceptedAt: { S: new Date(Date.now() - 8 * 86400000).toISOString() } },
+    { friendEmail: { S: "lee@example.com" }, status: { S: "incoming" }, createdAt: { S: new Date().toISOString() } }
+  ] : [] };
+  bell.db = { send: async () => ({ Items: [] }) };
+  vm.createContext(bell);
+  vm.runInContext(pick("async function notifications("), bell);
+  const notices = JSON.parse(JSON.stringify(await bell.notifications({ email: "sam@example.com" }))).body.notifications;
+  assert.deepEqual(notices.map(notice => [notice.type, notice.email]).sort(), [["friend_accepted", "theo@example.com"], ["friend_request", "lee@example.com"]]);
+  const feedScript = fs.readFileSync("assets/feed-enhancements.js", "utf8");
+  assert.match(feedScript, /notices\.filter\(notice => notice\.type !== "friend_accepted"\)\.length/, "the accepted notice never keeps the badge lit");
+  assert.match(feedScript, /notice\.type === "friend_accepted"\s*\? feedFormat\("\{name\} accepted your friend request\."/);
+
+  // Service worker: Accept / Delete on the friend-request notification answer without opening the app.
+  const worker = fs.readFileSync("service-worker.js", "utf8");
+  assert.match(worker, /\{ action: "friend-accept", title: String\(payload\.acceptTitle \|\| "Accept"\)/);
+  assert.match(worker, /\{ action: "friend-delete", title: String\(payload\.deleteTitle \|\| "Delete"\)/);
+  assert.match(worker, /fetch\("https:\/\/api\.danzstak\.com\/friends\/respond", \{ method: "POST", credentials: "include"[^]*?body: JSON\.stringify\(\{ memberId, accept \}\)/);
   console.log("friends row + Friends screen: ok");
 })().catch(error => { console.error(error); process.exitCode = 1; });
