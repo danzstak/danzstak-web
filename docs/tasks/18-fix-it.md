@@ -102,3 +102,12 @@ Fix these before item 5 (16-C) is called done; they block a real call between tw
 - Use the same Amazon Transcribe streaming path planned for live call subtitles (task 21), not the browser's built-in speech recognition (Chrome sends that audio to Google — independence rule). Nothing is stored; the audio stream ends when the button is released or after 60 s of silence.
 - Free (no pack needed); rate-limit per account. Languages: the member's DanzStak language, then English, Italian, French, German, Spanish.
 - No mic permission → one plain line explaining how to allow it; never a dead button.
+
+## Walkthrough 2 (owner's Claude, live v911 at 390px, 2026-11-18)
+Release #494 shipped the call screen, button system, SYNC list polish, profile wall, one top bar, Mix fixes and Music HQ. Mix now looks right (one slim bar, full-width Dailies, no TAKE 0, link cards show the domain, views inline). Found live:
+- [x] (hotfix #495) The new top bar hid `.topnav` on phones — that is the phone bottom tab bar, so Mix had no Mix · Music HQ · Events · Bazaar · SYNC · Menu. Fixed; `test-phone-bottom-tabs.cjs` guards it. **Lesson: a browser check at phone width must assert the bottom tabs are visible on every main page.** Add that to the browser checks.
+- [ ] Profile still shows the Privacy Policy · Terms of Service footer above the bottom tabs (the no-footer rule from #473 didn't reach profile.html).
+- [ ] Profile top bar still has the unexplained white down-arrow (install prompt) next to search. Remove it everywhere; install lives in Menu.
+- [ ] SYNC chat list: the music-staff wallpaper is drawn as a box in the middle of the screen under the last chat. Either fill the whole list background edge to edge or show none on the list (wallpaper belongs in threads).
+- [ ] SYNC chat list shows "Loading saved chats…" for ~8 s on a warm load. Show the cached list instantly and refresh in the background.
+- [ ] Every page loads ~70 separate scripts and stylesheets. Plan a bundle step (one JS + one CSS per page, versioned) so phones on mobile data open faster. Plan first, no big-bang rewrite.
