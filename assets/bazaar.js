@@ -37,7 +37,7 @@
     const card = document.createElement("article"); card.className = "bazaar-card bazaar-example"; card.dataset.example = "true";
     card.setAttribute("aria-label", `Example: ${product.title}. Not for sale.`);
     const frame = node("span", "", "bazaar-image-frame");
-    const image = document.createElement("img"); image.src = product.imageUrl; image.alt = ""; image.loading = "lazy"; image.decoding = "async"; frame.append(image, node("span", "Example", "bazaar-example-tag"));
+    const image = document.createElement("img"); image.src = product.imageUrl; image.alt = ""; image.decoding = "async"; frame.append(image, node("span", "Example", "bazaar-example-tag")); // eager: a short, fixed set (keeps every visible card fully loaded)
     const copy = node("span", "", "bazaar-card-copy");
     copy.append(node("strong", product.title, "bazaar-title"), node("span", product.shopName, "bazaar-seller"), node("span", money(product.priceCents), "bazaar-price bazaar-example-price"), node("span", "Example · not for sale", "bazaar-shipping bazaar-example-line"));
     card.append(frame, copy);
