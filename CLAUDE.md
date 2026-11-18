@@ -330,6 +330,7 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 - Keep the log to the latest 20 lines; older lines can go.
 
 ### Builder log (newest first)
+- 2026-11-18 21:46 UTC · Claude Code (session 01B3uuzL) · 5a3 friends row + one Friends screen (part 1) · PR #572 · needs a call-signaling deploy (GET /friends/of, POST /friends/cancel); left for part 2: "X accepted your friend request" in the bell + phone push, Accept/Delete buttons on the phone notification, and a richer now-line on friend rows (next show, new release, Daily). Also open from this session: PR #559 (6b artist verification; owner question in the PR: take unverified already-published EPKs offline at deploy?) and PR #560 (6c example shops; Bazaar empty-state link waits for #558) · Next: 5a1 (cloud builder) / 5a3 part 2 here unless you queue something else first
 - 2026-11-18 21:45 UTC · Claude (planning chat) · queued 5a1 full-screen media viewer, 5a2 Photos/Videos albums, 5a3 friends row · Next: 5a1
 
 ## Owner directives 2026-11-18 (evening, from the owner's phone)
