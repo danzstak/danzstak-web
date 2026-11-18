@@ -15,10 +15,10 @@ const users = [
   { memberId: "22222222-2222-4222-8222-222222222222", name: "Erotic Noise Collective of the Bay", handle: "eroticnoisecollective", friendStatus: "friends", online: true, picture: "" }
 ];
 const words = {
-  en: { syncPlaceholder: "Search chats and people", add: "Add friend", requested: "Requested", friends: "Friends", placeholder: "Search name or @username", welcome: "What should people call you?" },
-  it: { syncPlaceholder: "Cerca chat e persone", add: "Aggiungi agli amici", requested: "Richiesta inviata", friends: "Amici", placeholder: "Cerca nome o @username", welcome: "Come vuoi che ti chiamino?" },
-  fr: { syncPlaceholder: "Rechercher chats et personnes", add: "Ajouter", requested: "Demande envoyée", friends: "Amis", placeholder: "Nom ou @nom d’utilisateur", welcome: "Comment veux-tu qu’on t’appelle ?" },
-  es: { syncPlaceholder: "Buscar chats y personas", add: "Añadir amigo", requested: "Solicitud enviada", friends: "Amigos", placeholder: "Busca nombre o @usuario", welcome: "¿Cómo quieres que te llamen?" }
+  en: { bazaarPlaceholder: "Search the Bazaar or people", syncPlaceholder: "Search chats and people", add: "Add friend", requested: "Requested", friends: "Friends", placeholder: "Search name or @username", welcome: "What should people call you?" },
+  it: { bazaarPlaceholder: "Cerca nel Bazaar o persone", syncPlaceholder: "Cerca chat e persone", add: "Aggiungi agli amici", requested: "Richiesta inviata", friends: "Amici", placeholder: "Cerca nome o @username", welcome: "Come vuoi che ti chiamino?" },
+  fr: { bazaarPlaceholder: "Chercher dans le Bazaar ou des personnes", syncPlaceholder: "Rechercher chats et personnes", add: "Ajouter", requested: "Demande envoyée", friends: "Amis", placeholder: "Nom ou @nom d’utilisateur", welcome: "Comment veux-tu qu’on t’appelle ?" },
+  es: { bazaarPlaceholder: "Buscar en el Bazaar o personas", syncPlaceholder: "Buscar chats y personas", add: "Añadir amigo", requested: "Solicitud enviada", friends: "Amigos", placeholder: "Busca nombre o @usuario", welcome: "¿Cómo quieres que te llamen?" }
 };
 const runs = [...[320, 360, 375, 390, 414, 430].map(width => ["en", width]), ["it", 375], ["fr", 375], ["es", 375]];
 
@@ -86,7 +86,8 @@ async function checkRows(page, width, label, root) {
           assert.equal(await tab.locator(".ds-onboard").count(), 0, `${label}: a named account is not asked to name itself`);
           await button.click();
           await sheet.waitFor({ state: "visible" });
-          assert.equal(await sheet.locator("input").getAttribute("placeholder"), copy.placeholder, `${label}: placeholder`);
+          // The Bazaar's one search (fix-it 18) finds products and people in the same sheet.
+          assert.equal(await sheet.locator("input").getAttribute("placeholder"), page === "bazaar.html" ? copy.bazaarPlaceholder : copy.placeholder, `${label}: placeholder`);
           await sheet.locator("input").fill("@ero");
         }
         await sheet.locator(".person-row").first().waitFor();

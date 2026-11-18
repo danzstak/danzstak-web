@@ -95,6 +95,8 @@
     window.addEventListener("popstate", () => shut(true));
     input.addEventListener("input", run);
     window.danzstakOpenTopSearch = open;
+    // A page can add its own results above People (the Bazaar adds products and shops: one search, not two).
+    document.dispatchEvent(new CustomEvent("danzstak:top-search", { detail: { dialog, input, close: fromHistory => shut(Boolean(fromHistory)) } }));
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount, { once: true }); else mount();
 })();
