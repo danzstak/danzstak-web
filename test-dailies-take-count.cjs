@@ -26,8 +26,8 @@ assert.match(feed, /data\.dailyTakeCount/,
   "the clapper must use the server's durable Take count");
 assert.doesNotMatch(feed, /filter\(story => story\.isOwner && story\.mediaType === "video"\)\.length/,
   "the clapper must not fall back to counting only unexpired visible videos");
-assert.match(feed, /SCENE 1<\/strong><small>TAKE 0/,
-  "the Dailies creator tile must contain a Scene 1 / Take clapper");
+assert.match(feed, /SCENE 1<\/strong><small hidden><\/small>/,
+  "the Dailies creator tile has a Scene 1 clapper; the Take appears from the first upload (fix-it 18: no TAKE 0)");
 assert.match(feed, /formatDailyDate\(now\)/,
   "the creator clapper must show today's date");
 assert.doesNotMatch(art, /daily-clapper \{display:none!important\}/,

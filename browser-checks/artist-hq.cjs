@@ -12,7 +12,7 @@ async function openArtistHq(page) {
   for (let attempt = 0; attempt < 2; attempt++) {
     await page.goto(`${baseUrl}/feed.html?view=hq`, { waitUntil:"load" });
     try {
-      await page.locator(".artist-hq-card").first().waitFor({ state:"visible", timeout:15000 });
+      await page.locator(".artist-hq-tile").first().waitFor({ state:"visible", timeout:15000 });
       return;
     } catch (error) {
       if (attempt === 1) throw error;
@@ -62,10 +62,15 @@ function fixture(pathname) {
         route.fulfill({ status:200, contentType:"application/json", body:JSON.stringify(fixture(url.pathname)) });
       });
       await openArtistHq(page);
-      assert.equal((await page.locator(".artist-hq-card").nth(0).locator(".artist-hq-metric").textContent()).trim(), "Published");
-      assert.equal((await page.locator(".artist-hq-card").nth(1).locator(".artist-hq-metric").textContent()).trim(), "1");
-      assert.equal((await page.locator(".artist-hq-card").nth(2).locator(".artist-hq-metric").textContent()).trim(), "1");
-      assert.equal((await page.locator(".artist-hq-card").nth(3).locator(".artist-hq-metric").textContent()).trim(), "7");
+      // Fix-it 18 (owner 2026-11-17): a compact dashboard of tiles with one primary action.
+      const tileValue = label => page.locator(".artist-hq-tile", { has: page.locator(".artist-hq-label", { hasText: label }) }).locator(".artist-hq-metric").textContent().then(t => t.trim());
+      assert.equal(await tileValue("Booking replies"), "1", `${width}px booking replies tile`);
+      assert.equal(await tileValue("Email credits"), "7", `${width}px email credits tile`);
+      assert.equal(await page.locator(".artist-hq-primary .artist-hq-action").count(), 1, `${width}px HQ must have exactly one primary action`);
+      assert.equal((await page.locator(".artist-hq-primary .artist-hq-action").textContent()).trim(), "Send a pitch", `${width}px a published EPK leads to sending a pitch`);
+      assert.equal(await page.locator(".artist-hq-pivot [data-pivot-trigger]").count(), 1, `${width}px HQ is missing the Pivot card`);
+      const pivotFit = await page.evaluate(() => { const card = document.querySelector(".artist-hq-pivot").getBoundingClientRect(), copy = document.querySelector(".artist-hq-pivot-copy").getBoundingClientRect(), button = document.querySelector(".artist-hq-pivot [data-pivot-trigger]").getBoundingClientRect(); return { overlap: button.left < copy.right - 1 && button.top < copy.bottom - 1 && button.bottom > copy.top + 1, wide: button.width > card.width * .6 }; });
+      assert.ok(!pivotFit.overlap && !pivotFit.wide, `${width}px the Pivot button covers its own text: ${JSON.stringify(pivotFit)}`);
       const answer = page.getByRole("link", { name:"Answer venue", exact:true });
       const followUp = page.getByRole("link", { name:"Review follow-up", exact:true });
       assert.equal(await answer.getAttribute("href"), `messages.html?section=bookings&outreach=${waitingOutreachId}`, `${width}px HQ did not target the exact waiting booking thread`);
@@ -73,7 +78,7 @@ function fixture(pathname) {
       const state = await page.evaluate(() => ({
         scrollWidth:document.documentElement.scrollWidth,
         bodyWidth:document.body.scrollWidth,
-        targets:[...document.querySelectorAll(".artist-hq-action")].map(item => { const r=item.getBoundingClientRect(); return { width:r.width, height:r.height }; }),
+        targets:[...document.querySelectorAll(".artist-hq-action, .artist-hq-tile")].map(item => { const r=item.getBoundingClientRect(); return { width:r.width, height:r.height }; }),
         navs:[...document.querySelectorAll(".ds-mobile-nav")].filter(item => getComputedStyle(item).display !== "none").length
       }));
       assert.equal(errors.length, 0, `${width}px browser errors: ${errors.join(" | ")}`);

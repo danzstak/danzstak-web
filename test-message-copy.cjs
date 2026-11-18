@@ -25,8 +25,11 @@ assert.match(paletteSource, /message\.content[\s\S]*message-copy-choice[\s\S]*me
 assert.match(paletteSource, /copyDirectMessage\(item, message\)/, "the Copy action must invoke the exact-message helper");
 
 const itemSource = messages.slice(itemStart, itemEnd);
-assert.match(itemSource, /pointerdown[\s\S]*closest\?\.\("\.message-text"\)[^\n]+return/, "long-press actions must not steal native text selection from message text");
-assert.match(itemSource, /contextmenu[\s\S]*closest\?\.\("\.message-text"\)[^\n]+return/, "right-click or mobile selection on message text must keep the native copy menu");
+// Task 16-A (owner 2026-11-17): like the phone's messenger, long-press anywhere on a bubble opens its actions (Copy is
+// one of them) instead of the system text selection; links and controls keep their own behavior.
+assert.match(itemSource, /pointerdown", event => \{ if \(event\.target\.closest\?\.\("a,button,video,input,textarea"\)\) return; reactionTimer = setTimeout/, "long-press on a bubble, text included, opens its actions");
+assert.match(fs.readFileSync("assets/sync-shell.css", "utf8"), /body\.messages-page \.message\{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none/, "no system text selection on long-press; Copy lives in the message's actions");
+assert.match(itemSource, /contextmenu", event => \{ if \(event\.target\.closest\?\.\("a,video"\)\) return; event\.preventDefault\(\)/, "right-click / long-press on a bubble opens its actions; links and video keep the native menu");
 
 for (const key of ["Copy message", "Copied.", "Select the message text and copy it."]) {
   assert.ok(i18n.includes(JSON.stringify(key)), `${key} must be registered for localization`);

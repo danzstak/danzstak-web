@@ -124,11 +124,12 @@ function fixture(url) {
       assert.equal(result.captionOverlapsSlate, false, `${width}px Dailies label collides with the clapper`);
       assert.equal(result.plusPresent, false, `${width}px Dailies creator still shows a separate plus sign`);
       if (width <= 700) {
-        assert.ok(Math.abs(result.tileWidth - result.tileHeight) <= 1, `${width}px Dailies creator card is not square`);
+        // Fix-it 18 (owner 2026-11-17): Dailies is a full-width strip; with no other Dailies the creator tile fills the row (was a square, half-width tile).
+        assert.ok(result.tileWidth >= width - 1, `${width}px Dailies creator tile leaves empty space beside it (${result.tileWidth}px of ${width})`);
         assert.ok(result.slateWidth <= 76, `${width}px clapper is too wide: ${result.slateWidth}px`);
         assert.ok(result.artWidth >= 148, `${width}px Dailies photo slot is too narrow: ${result.artWidth}px`);
         assert.ok(result.photoWidth >= 134 && result.photoHeight >= 134, `${width}px Dailies profile image is smaller than the profile treatment`);
-        assert.ok(Math.abs(result.artRatio - 1) <= .02, `${width}px Dailies photo does not fill the square tile: ${result.artRatio}`);
+        assert.ok(result.photoFillsArt, `${width}px Dailies photo does not fill the tile`);
         assert.ok(result.bottomInset >= 6 && result.bottomInset <= 10, `${width}px clapper is not anchored over the lower-left picture: ${result.bottomInset}px bottom inset`);
         assert.ok(result.leftInset >= 6 && result.leftInset <= 10, `${width}px clapper is not anchored over the lower-left picture: ${result.leftInset}px left inset`);
       }

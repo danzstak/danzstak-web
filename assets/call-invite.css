@@ -1,0 +1,18 @@
+/* Answer to join (owner 2026-11-18) */
+.call-invite-sheet{box-sizing:border-box;margin:auto;max-width:min(420px,calc(100vw - 24px));width:100%;border:0;border-radius:16px;padding:22px 20px;background:#0b0b0c;color:#ededea;font:inherit}
+.call-invite-sheet::backdrop{background:rgba(5,5,6,.82)}
+.call-invite-sheet h2{margin:0 0 6px;font-size:1.3rem;font-weight:900;letter-spacing:-.02em;overflow-wrap:anywhere}
+.call-invite-sheet p{margin:0 0 14px;color:#b9bcc4;line-height:1.4}
+.call-invite-sheet .call-invite-kicker{margin:0 0 10px;font:700 .72rem/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#ff5a1f}
+.call-invite-row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.call-invite-row button{flex:1 1 auto;min-height:46px;padding:0 18px;border-radius:10px;border:1px solid #2e2f34;background:transparent;color:#ededea;font:inherit;font-weight:800;cursor:pointer}
+.call-invite-row .call-invite-go{background:#1fae5b;border-color:#1fae5b;color:#fff}
+.call-invite-row button:focus-visible{outline:2px solid #ff5a1f;outline-offset:2px}
+.invite-call{display:grid;gap:8px;padding-top:12px;border-top:1px solid #e2e8f0}
+.invite-call h3{margin:0;font-size:14px;font-weight:850}
+.invite-call p{margin:0;color:#526176;font-size:13px;line-height:1.4}
+.invite-call-kinds{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.invite-call-kinds[hidden],.invite-call-live[hidden],.invite-call .invite-actions[hidden],.invite-call-cancel[hidden]{display:none}
+.invite-call-live{display:grid;gap:8px}
+.invite-call-wait{min-height:20px;color:#145fc6!important;font-weight:700}
+.invite-call-after:empty{display:none}

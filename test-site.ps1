@@ -345,7 +345,7 @@ foreach ($messagePollingBehavior in @('distanceFromBottom', 'followNewest', 'doc
 foreach ($messageHistoryBehavior in @('let nextMessageCursor = ""', 'function renderEarlierMessagesButton()', 'async function loadEarlierMessages()', '"&before=" + encodeURIComponent(cursor)', 'messageList.prepend(fragment)', 'messageTranslate("Load earlier messages")')) {
   if (-not $directMessagesJs.Contains($messageHistoryBehavior)) { Add-Failure "Messages: saved history cannot load beyond the newest page: $messageHistoryBehavior" }
 }
-foreach ($messageIdentityBehavior in @('let activeContactName = messageTranslate("Contact")', 'activeContactName = conversation.name || messageTranslate("Contact")', '(mine ? messageTranslate("You") : activeContactName)')) {
+foreach ($messageIdentityBehavior in @('let activeContactName = messageTranslate("Contact")', 'activeContactName = conversation.name || messageTranslate("Contact")', 'const actor = mine ? messageTranslate("You") : activeContactName;')) {
   if (-not $directMessagesJs.Contains($messageIdentityBehavior)) { Add-Failure "Messages: visible message metadata can expose contact email instead of the profile name: $messageIdentityBehavior" }
 }
 foreach ($chatPresenceBehavior in @('conversation-avatar-wrap', 'conversation.online === true', 'conversation-online-dot', 'aria-label", messageTranslate("Online")')) {
@@ -428,7 +428,7 @@ foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey &&
 foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Sessions expire 30 days after sign-in', '"Account", logout', 'Settings saved to your DanzStak account.', 'darkMode: false', 'language: language.value')) {
   if (-not $feedEnhancements.Contains($settingsBehavior)) { Add-Failure "Settings: persistent control is missing: $settingsBehavior" }
 }
-foreach ($legalSettingsBehavior in @('"Legal and privacy"', 'privacyLink.href = "privacy.html"', 'termsLink.href = "terms.html"', 'legalLinks.append(privacyLink, termsLink)')) {
+foreach ($legalSettingsBehavior in @('"Legal and privacy"', 'privacyLink.href = "privacy.html"', 'termsLink.href = "terms.html"', 'legalLinks.append(privacyLink, termsLink, ownership)')) {
   if (-not $feedEnhancements.Contains($legalSettingsBehavior)) { Add-Failure "Settings: legal navigation is incomplete: $legalSettingsBehavior" }
 }
 foreach ($dataSaverBehavior in @('function applyDataSaver(enabled)', 'video.autoplay = false', 'load.textContent = "Load " + reel.platform + " video"', 'load.replaceWith(createFrame())')) {

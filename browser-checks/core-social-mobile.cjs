@@ -163,7 +163,7 @@ function fixture(pathname) {
                 ? { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height }
                 : null;
             };
-            return { actions, tabs, header: { search: headerRect(document.querySelector("#profileHeaderSearch")), searchPlaceholder: document.querySelector("#profileHeaderSearch")?.placeholder || "", pivot: headerRect(document.querySelector("#profileHeaderPivot")), install: headerRect(document.querySelector("body > .install-app-button")) } };
+            return { actions, tabs, header: { search: headerRect(document.querySelector("#profileHeaderSearch")), searchPlaceholder: document.querySelector("#profileHeaderSearch")?.placeholder || "", pivot: headerRect(document.querySelector("#profileHeaderPivot")), back: headerRect(document.querySelector(".profile-back")), searchToggle: headerRect(document.querySelector(".profile-search-toggle")), install: headerRect(document.querySelector("body > .install-app-button")) } };
           });
           assert.deepEqual(profileControls.actions.map(action => action.label), ["Edit Profile", "Open my shop", "Share Profile", "Invite People"], `${width}px owner profile must retain Edit, Shop, Share, and Invite actions`);
           assert.ok(Math.max(...profileControls.actions.map(action => action.top)) - Math.min(...profileControls.actions.map(action => action.top)) <= 1, `${width}px profile actions must use one row: ${JSON.stringify(profileControls.actions)}`);
@@ -172,11 +172,11 @@ function fixture(pathname) {
           assert.ok(Math.max(...profileControls.tabs.map(tab => tab.top)) - Math.min(...profileControls.tabs.map(tab => tab.top)) <= 1, `${width}px profile tabs must stay on one row: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(profileControls.tabs.every(tab => tab.height >= 44), `${width}px profile tabs must retain touch targets: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(profileControls.tabs.every(tab => tab.left >= 0 && tab.right <= width), `${width}px profile tabs must all remain fully visible: ${JSON.stringify(profileControls.tabs)}`);
-          assert.ok(profileControls.header.search && profileControls.header.search.height >= 38, `${width}px profile search is missing or clipped: ${JSON.stringify(profileControls.header)}`);
-          assert.ok(profileControls.header.pivot && profileControls.header.pivot.height >= 38, `${width}px profile Pivot is missing or clipped: ${JSON.stringify(profileControls.header)}`);
-          assert.ok(profileControls.header.search.right + 4 <= profileControls.header.pivot.left, `${width}px profile Search overlaps Pivot: ${JSON.stringify(profileControls.header)}`);
-          assert.ok(!profileControls.header.install || profileControls.header.pivot.right + 4 <= profileControls.header.install.left, `${width}px profile Pivot overlaps Install: ${JSON.stringify(profileControls.header)}`);
-          assert.equal(profileControls.header.searchPlaceholder, width <= 360 ? "Search" : "Search posts and users", `${width}px profile search prompt must not be visibly clipped`);
+          // Fix-it 18 (owner 2026-11-17): the phone profile top bar is back / the member's name / search; Pivot lives in Edit profile → Moving Day and the Menu.
+          assert.ok(profileControls.header.back && profileControls.header.back.height >= 44 && profileControls.header.back.left >= 0, `${width}px profile Back is missing: ${JSON.stringify(profileControls.header)}`);
+          assert.ok(profileControls.header.searchToggle && profileControls.header.searchToggle.height >= 44, `${width}px profile search toggle is missing: ${JSON.stringify(profileControls.header)}`);
+          assert.ok(!profileControls.header.install || profileControls.header.searchToggle.right <= profileControls.header.install.left + 0.5, `${width}px profile search overlaps Install: ${JSON.stringify(profileControls.header)}`);
+          assert.ok(!profileControls.header.pivot, `${width}px profile phone top bar should not show Pivot: ${JSON.stringify(profileControls.header)}`);
         }
         if (name === "settings") {
           const settingsGeometry = await page.evaluate(() => {

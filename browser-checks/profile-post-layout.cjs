@@ -105,7 +105,7 @@ function normalized(value) { return String(value || "").replace(/\s+/g, ""); }
         throw new Error(`${error.message}\nProfile state: ${JSON.stringify(state)}\nPage errors: ${errors.join(" | ")}`);
       }
       await post.locator(".profile-post-media").waitFor();
-      await post.locator(".profile-post-tools").waitFor();
+      await post.locator(".profile-post-actions").waitFor(); // fix-it 18: the old text-button tools row is gone; the action row is the reactions
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
       const geometry = await post.evaluate((node, mobile) => {
@@ -117,7 +117,7 @@ function normalized(value) { return String(value || "").replace(/\s+/g, ""); }
         const media = node.querySelector(".profile-post-media");
         const mediaRect = media.getBoundingClientRect();
         const mediaStyle = getComputedStyle(media);
-        const tools = node.querySelector(".profile-post-tools");
+        const tools = node.querySelector(".profile-post-actions");
         const toolsStyle = getComputedStyle(tools);
         const toolRects = [...tools.children].map(element => element.getBoundingClientRect());
         const next = node.nextElementSibling?.matches(".profile-post-card") ? node.nextElementSibling.getBoundingClientRect() : null;

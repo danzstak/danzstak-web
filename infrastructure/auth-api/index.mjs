@@ -727,7 +727,15 @@ async function verifyIdToken(token, expectedNonce, expectedSub) {
 }
 
 // START SECURE COGNITO LOGIN OR SIGNUP
-async function startLogin(mode = "login", legalAcceptanceId = "") {
+// Answer to join (owner 2026-11-18): after signup or login, a call invitee returns to the
+// SYNC screen that redeems their invite. Only this exact path shape is accepted, never an
+// arbitrary URL, so the parameter cannot be used as an open redirect.
+function safeReturnPath(value) {
+  const path = String(value || "");
+  return /^\/messages\.html\?invite=[A-Za-z0-9_-]{43}$/.test(path) ? path : "";
+}
+
+async function startLogin(mode = "login", legalAcceptanceId = "", returnPath = "") {
   const state = randomValue();
   const verifier = randomValue();
   const nonce = randomValue();
@@ -744,6 +752,7 @@ async function startLogin(mode = "login", legalAcceptanceId = "") {
       expiresAt: { N: String(now() + loginHandoffSeconds) }
   };
   if (legalAcceptanceId) pendingItem.legalAcceptanceId = { S: legalAcceptanceId };
+  if (safeReturnPath(returnPath)) pendingItem.returnPath = { S: safeReturnPath(returnPath) };
   if (mode === "reauth") pendingItem.reauthentication = { BOOL: true };
 
   await db.send(new PutItemCommand({
@@ -821,7 +830,7 @@ async function startSignup(event) {
   if (acceptance?.type?.S !== "legal_pending" || acceptance.legalVersion?.S !== legalVersion || Number(acceptance.expiresAt?.N || 0) <= now()) {
     return redirect(siteUrl + "/?legal=required", [clearCookie(legalCookieName)]);
   }
-  return startLogin("signup", acceptanceId);
+  return startLogin("signup", acceptanceId, event.queryStringParameters?.next);
 }
 
 // COMPLETE SECURE LOGIN
@@ -1081,7 +1090,8 @@ async function completeLogin(event) {
     responseCookies.push(clearCookie(legalCookieName));
   }
 
-  return redirect(pending.reauthentication?.BOOL ? siteUrl + "/feed.html?view=settings&security=1" : siteUrl + "/", responseCookies);
+  const returnPath = safeReturnPath(pending.returnPath?.S);
+  return redirect(pending.reauthentication?.BOOL ? siteUrl + "/feed.html?view=settings&security=1" : siteUrl + (returnPath || "/"), responseCookies);
 }
 
 // VALIDATE SERVER-SIDE SESSION
@@ -5549,7 +5559,7 @@ export const handler = async event => {
     }
 
     if (method === "GET" && path === "/auth/login") {
-      return await startLogin("login");
+      return await startLogin("login", "", event.queryStringParameters?.next);
     }
 
     if (method === "GET" && path === "/auth/signup") {

@@ -391,7 +391,8 @@ foreach ($pushFanout in @(
   "async function callPushTargets(recipientEmail,excludedDeviceId=''){const [items,devices]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
   "async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){const preferences=await pushPreferences(recipientEmail,'callAlerts');if(!preferences.enabled)return;const [targets,profile]=await Promise.all([callPushTargets(recipientEmail),publicProfile(senderEmail)]",
   "async function notifyCallResolved(recipientEmail,callId,answeredByDeviceId){const targets=await callPushTargets(recipientEmail,answeredByDeviceId)",
-  "async function notifyMessage(recipientEmail,senderEmail,senderMemberId){const preferences=await pushPreferences(recipientEmail,'messageAlerts');if(!preferences.enabled)return;const [items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
+  "async function notifyMessage(recipientEmail,senderEmail,senderMemberId){const preferences=await pushPreferences(recipientEmail,'messageAlerts');if(!preferences.enabled)return;",
+  "if(chat?.muted?.BOOL===true)return;const [items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
   'async function notifyFriendRequest(recipientEmail,senderEmail){const preferences=await pushPreferences(recipientEmail),[items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE'
 )) {
   if (-not $template.Contains($pushFanout)) { throw "Push notifications do not reach every registered device: $pushFanout" }

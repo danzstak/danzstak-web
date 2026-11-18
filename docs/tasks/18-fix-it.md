@@ -7,47 +7,47 @@ Claude Code: take the first unticked item, fix the root cause, add a regression 
 Rules for every fix: one fluid page instead of stacked boxes, no two-line labels on buttons or tabs, icon buttons with accessible names, 44px touch targets, no horizontal overflow, nothing hidden under the header or bottom tabs, no placeholder or instructional copy where the control is obvious.
 
 ## Known from the owner (2026-11-17)
-- [ ] SYNC: messages scroll over/under the header and get cut off (covered by queue item 4, 16-A)
-- [ ] Buttons site-wide look bulky and "HTML" (queue item 5, 16-C)
+- [x] SYNC: messages scroll over/under the header and get cut off (covered by queue item 4, 16-A) — PR #411 + #413
+- [ ] Buttons site-wide look bulky and "HTML" (queue item 5, 16-C) — SYNC: PR #423; other areas to follow
 - [ ] Share UI looks "hokie" (task 17 replaces it later; until then at least make the current sheet tidy)
 
 ## Profile page (owner, 2026-11-17)
 
 Goal in the owner's words: a profile should feel "like looking in the mirror". The member's own cover, face, photos and videos fill the screen; DanzStak chrome, empty background and buttons get out of the way.
 
-- [ ] Remove every big text button on the profile: "Add to the Mix", "View on Reels"/"View in The Roll" and the like. Content already in context needs no button; any remaining action is a slim icon button with an accessible name.
-- [ ] The Dailies image/video strip stretches full width, edge to edge, sitting directly under the profile header and directly above the posts: no side margins, no box, no gap above or below.
-- [ ] Fill the pixels: the profile reads as one continuous wall (like a familiar social profile wall), not cards floating on background. Posts edge to edge with hairline dividers, media full width, no grey gaps or padding bands (see CLAUDE.md "Mobile profile posts").
-- [ ] Profile tabs/menu look janky: one tidy scrollable row (Posts · About · Friends · Photos · Videos, + Shop), single-line labels, a clear active underline, aligned with the header, no wrapping or stacked boxes. Same component for member and official DanzStak profiles.
-- [ ] Profile navigation works the way Facebook members already know (familiar pattern, DanzStak look, no copied assets): a slim top bar with back arrow, the member's name and search; cover, overlapping round avatar, name and a short line; one compact row of actions (Add friend / Message / more); then the scrollable tab row; then the composer and the wall.
-- [ ] Photos and videos size and play like a Facebook feed: full card width edge to edge, original aspect kept and never stretched; landscape and square shown whole; portrait shown up to 4:5 (taller is cropped to 4:5 in the feed and shown whole when tapped); multi-photo posts use a tidy grid with "+N" on the last tile. Video autoplays muted when at least 50% visible, stops when it scrolls out, one at a time, mute toggle bottom-right, tap opens full screen (see CLAUDE.md "Video and The Roll"). Same rules in Mix, The Roll and profiles.
+- [x] (PR #425) Remove every big text button on the profile: "Add to the Mix", "View on Reels"/"View in The Roll" and the like. Content already in context needs no button; any remaining action is a slim icon button with an accessible name.
+- [x] (PR #427) The Dailies image/video strip stretches full width, edge to edge, sitting directly under the profile header and directly above the posts: no side margins, no box, no gap above or below.
+- [x] (PR #427) Fill the pixels: the profile reads as one continuous wall (like a familiar social profile wall), not cards floating on background. Posts edge to edge with hairline dividers, media full width, no grey gaps or padding bands (see CLAUDE.md "Mobile profile posts").
+- [x] (PR #429) Profile tabs/menu look janky: one tidy scrollable row (Posts · About · Friends · Photos · Videos, + Shop), single-line labels, a clear active underline, aligned with the header, no wrapping or stacked boxes. Same component for member and official DanzStak profiles.
+- [x] (PR #429) Profile navigation works the way Facebook members already know (familiar pattern, DanzStak look, no copied assets): a slim top bar with back arrow, the member's name and search; cover, overlapping round avatar, name and a short line; one compact row of actions (Add friend / Message / more); then the scrollable tab row; then the composer and the wall.
+- [x] (PR #432) Photos and videos size and play like a Facebook feed: full card width edge to edge, original aspect kept and never stretched; landscape and square shown whole; portrait shown up to 4:5 (taller is cropped to 4:5 in the feed and shown whole when tapped); multi-photo posts use a tidy grid with "+N" on the last tile. Video autoplays muted when at least 50% visible, stops when it scrolls out, one at a time, mute toggle bottom-right, tap opens full screen (see CLAUDE.md "Video and The Roll"). Same rules in Mix, The Roll and profiles.
 
 ## From the walkthrough (owner's Claude adds below)
 
 ### Walkthrough 1 — 2026-11-17, live site, 390px, signed in as Eroticon
 
 **Whole site**
-- [ ] One top bar on every page. Mix has logo + search + Pivot + bell + a big orange down-arrow; the Bazaar has its own pills and search; the EPK has only logo + search; SYNC has none. Same slim bar everywhere: logo, search, bell, SYNC. The unexplained orange down-arrow goes (install prompts belong in Menu or a one-time banner), and Pivot moves into Menu and HQ's Pivot card instead of taking header space.
-- [ ] Footer links (Privacy · Terms · copyright) don't show inside the signed-in app; they move to Menu → Settings. They currently eat the bottom of every short page.
-- [ ] Music HQ, Events and the menu open on `feed.html` with a hash, so the browser title stays "Your Mix". Each section gets its own title and Back behaves like a real screen change.
-- [ ] Remove explanatory sub-lines under page titles ("Your saved conversations.", "Shows coming up. Promoters: post…", "Your EPK and booking work in one place…"). The controls speak for themselves.
-- [ ] External links (SoundCloud, Mixcloud, YouTube) open outside DanzStak (new tab or the system app). Tapping a SoundCloud post currently replaces DanzStak in the same tab.
-- [ ] Text buttons with blue outlines ("Open bookings", "Tour Manager", "Open outreach") go to the 16-C button system.
+- [x] (PR #471; SYNC's screen with the SYNC session) One top bar on every page. Mix has logo + search + Pivot + bell + a big orange down-arrow; the Bazaar has its own pills and search; the EPK has only logo + search; SYNC has none. Same slim bar everywhere: logo, search, bell, SYNC. The unexplained orange down-arrow goes (install prompts belong in Menu or a one-time banner), and Pivot moves into Menu and HQ's Pivot card instead of taking header space.
+- [x] (PR #473) Footer links (Privacy · Terms · copyright) don't show inside the signed-in app; they move to Menu → Settings. They currently eat the bottom of every short page.
+- [x] (PR #476) Music HQ, Events and the menu open on `feed.html` with a hash, so the browser title stays "Your Mix". Each section gets its own title and Back behaves like a real screen change.
+- [x] (PR #473) Remove explanatory sub-lines under page titles ("Your saved conversations.", "Shows coming up. Promoters: post…", "Your EPK and booking work in one place…"). The controls speak for themselves.
+- [x] (PR #473) External links (SoundCloud, Mixcloud, YouTube) open outside DanzStak (new tab or the system app). Tapping a SoundCloud post currently replaces DanzStak in the same tab.
+- [x] (PR #455) Text buttons with blue outlines ("Open bookings", "Tour Manager", "Open outreach") go to the 16-C button system.
 
 **Profile** (see the section above, plus)
 - [x] (PR #427) The cover has thin side margins; it must touch both screen edges.
-- [ ] The placeholder bio line "Add a short bio so people know more about you." is instructional copy: show nothing to visitors, and a small "+ bio" icon only to the owner.
-- [ ] An empty profile wall shows nothing under the composer; show a friendly one-line empty state ("No posts yet") and the member's Dailies/photos if any.
+- [x] (PR #478) The placeholder bio line "Add a short bio so people know more about you." is instructional copy: show nothing to visitors, and a small "+ bio" icon only to the owner.
+- [x] (PR #478) An empty profile wall shows nothing under the composer; show a friendly one-line empty state ("No posts yet") and the member's Dailies/photos if any.
 
 **Mix**
-- [ ] The Dailies tile is a single half-width tile with empty space beside it; it should be a horizontal strip filling the full width (own tile first, then friends'), and "TAKE 0" should read TAKE 1 at minimum once a member has uploaded, or hide the take until the first upload.
-- [ ] Link posts first render as long raw URLs (Mixcloud with utm junk), then jump when the preview card loads. Show the preview card (or the authorized embed) straight away with a fixed-height placeholder, strip tracking parameters from displayed links, and never print the raw URL under the card.
-- [ ] "N views" sits on its own line and wastes a row; put it in the reaction row or the post header.
-- [ ] Official/older accounts (SFScoop, DanzStak) show gradient placeholder avatars; use the real avatar or the member's initial on brand colour.
+- [x] (PR #481) The Dailies tile is a single half-width tile with empty space beside it; it should be a horizontal strip filling the full width (own tile first, then friends'), and "TAKE 0" should read TAKE 1 at minimum once a member has uploaded, or hide the take until the first upload.
+- [x] (PR #483) Link posts first render as long raw URLs (Mixcloud with utm junk), then jump when the preview card loads. Show the preview card (or the authorized embed) straight away with a fixed-height placeholder, strip tracking parameters from displayed links, and never print the raw URL under the card.
+- [x] (PR #483) "N views" sits on its own line and wastes a row; put it in the reaction row or the post header.
+- [x] (PR #483) Official/older accounts (SFScoop, DanzStak) show gradient placeholder avatars; use the real avatar or the member's initial on brand colour.
 
 **Music HQ**
-- [ ] HQ is a long column of "0" counters with a sentence each and three different button styles. Make it a compact dashboard: next gigs, booking replies, EPK opens, email credits as small tappable tiles in a 2-column grid (each opens its screen, label on one line), one primary action ("Build EPK" or "Send a pitch"), and the Pivot card.
-- [ ] Record shops and Radio stations are missing from HQ (CLAUDE.md: Music HQ = EPK, Booking Agent, Record shops, Radio stations).
+- [x] (PR #484) HQ is a long column of "0" counters with a sentence each and three different button styles. Make it a compact dashboard: next gigs, booking replies, EPK opens, email credits as small tappable tiles in a 2-column grid (each opens its screen, label on one line), one primary action ("Build EPK" or "Send a pitch"), and the Pivot card.
+- [ ] (Record shops: PR #484; Radio stations need a directory first, no page or data exists yet) Record shops and Radio stations are missing from HQ (CLAUDE.md: Music HQ = EPK, Booking Agent, Record shops, Radio stations).
 
 **Events**
 - [ ] The full "Post an event" form is printed on the Events page with a browser-default "Choose File" button and a US-only `mm/dd/yyyy` date field. Events shows the list of shows; a + button opens the composer as its own screen with a styled flyer/video picker and the date in the member's locale.
@@ -92,9 +92,9 @@ Fix these before item 5 (16-C) is called done; they block a real call between tw
 - [x] (PR #445) If the browser blocks the microphone or camera, the box says exactly how to allow it in that browser instead of failing silently (today "Accept" just does nothing).
 
 ### Call screen (owner, 2026-11-17)
-- [ ] **Move the small camera window.** Long-press (about 300 ms) the picture-in-picture self view, then drag it anywhere; on release it snaps to the nearest corner and stays inside the safe area, never over the hang-up/mute/camera buttons. A quick tap still does what it does today (swap big/small view). Same on computers with a mouse drag. Remember the corner for the next call on that device.
-- [ ] **The other person's video fills the whole screen (owner, 2026-11-17, supersedes "center the big window").** During a video call the received video is full screen, edge to edge, like the phone's own video calls, **except a band at the bottom kept for the subtitles when they are on** (task 21: the video area ends above that band so subtitles never cover the picture; when subtitles are off the video uses the full screen): on phones it covers the screen (`object-fit: cover`, centered so faces stay in frame; no letterbox bars, no header, no bottom tabs, safe areas respected for the controls). If the other side's camera is landscape on a portrait phone, still fill and center; a double-tap toggles to "fit" to see the whole frame. On computers the call fills the window, with a full-screen button. The "calling…" avatar is centered too.
-- [ ] **Your own camera window is movable** (see the long-press drag item above): it floats over the full-screen video and the caller can put it in any corner.
+- [x] (PR #480) **Move the small camera window.** Long-press (about 300 ms) the picture-in-picture self view, then drag it anywhere; on release it snaps to the nearest corner and stays inside the safe area, never over the hang-up/mute/camera buttons. A quick tap still does what it does today (swap big/small view). Same on computers with a mouse drag. Remember the corner for the next call on that device.
+- [x] (PR #480) **The other person's video fills the whole screen (owner, 2026-11-17, supersedes "center the big window").** During a video call the received video is full screen, edge to edge, like the phone's own video calls, **except a band at the bottom kept for the subtitles when they are on** (task 21: the video area ends above that band so subtitles never cover the picture; when subtitles are off the video uses the full screen): on phones it covers the screen (`object-fit: cover`, centered so faces stay in frame; no letterbox bars, no header, no bottom tabs, safe areas respected for the controls). If the other side's camera is landscape on a portrait phone, still fill and center; a double-tap toggles to "fit" to see the whole frame. On computers the call fills the window, with a full-screen button. The "calling…" avatar is centered too.
+- [x] (PR #480) **Your own camera window is movable** (see the long-press drag item above): it floats over the full-screen video and the caller can put it in any corner.
 
 ## Voice typing on computers (owner 2026-11-18)
 - Phones already have voice typing in their keyboard and it works in SYNC — leave phones alone (no extra mic button on touch devices).

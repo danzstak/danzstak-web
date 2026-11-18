@@ -1,6 +1,9 @@
 "use strict";
 (() => {
  const tracked=new Set(),visible=new WeakMap(),ratios=new WeakMap(),manualPlayback=new WeakSet();
+ // Owner 2026-11-17: the member's last mute/unmute choice carries to the next video (feed and The Roll).
+ // Kept in memory only: a reload or new visit starts muted again.
+ let feedSound=false;
  let activeMedia=null,audibleMedia=null,sessionRoot=null,sessionSound=false,sessionDirection=1,sessionScrollTop=0,sessionFrame=0;
  const soundEnabled=()=>Boolean(audibleMedia);
  // Owner 2026-11-16: muted autoplay is ON by default (a member can set danzstak_muted_autoplay=off; data saver also stops it).
@@ -8,6 +11,7 @@
  let applyingSound=false;
  const isYouTubeFrame=element=>element?.tagName==='IFRAME'&&element.src?.includes('youtube-nocookie.com/embed/');
  const inSession=element=>Boolean(sessionRoot&&element&&sessionRoot.contains(element));
+ const wantsSound=element=>inSession(element)?sessionSound:feedSound;
  const thresholdFor=()=>0.5; // plays at 50% visible; stops once more than 50% has scrolled out of frame
  function controlYouTube(frame,command){
   if(!isYouTubeFrame(frame)||!frame.contentWindow)return;
@@ -35,7 +39,7 @@
   if(typeof window!=='undefined'&&typeof CustomEvent!=='undefined')window.dispatchEvent(new CustomEvent('danzstak-video-sound-change',{detail:{enabled:soundEnabled()}}));
  }
  function saveSoundPreference(enabled,source){
-  if(inSession(source))sessionSound=Boolean(enabled);
+  if(inSession(source))sessionSound=Boolean(enabled);else if(source)feedSound=Boolean(enabled);
   if(enabled&&eligible(source)){claimPlayback(source,true);audibleMedia=source;}
   else if(!source||source===audibleMedia)audibleMedia=null;
   applySoundPreference();
@@ -43,6 +47,8 @@
  globalThis.danzstakMediaSound={enabled:soundEnabled,apply:applySoundPreference};
  document.addEventListener('volumechange',event=>{
   const video=event.target;if(applyingSound||video?.tagName!=='VIDEO')return;
+  // volumechange fires after our own muting; only a real change by the member differs from the applied state.
+  if(video.muted===(video!==audibleMedia))return;
   saveSoundPreference(!video.muted,video);
  },true);
  const eligible=element=>element?.matches?.('video,iframe.reel-player')&&!element.closest('.video-grid,.call-setup-dialog');
@@ -82,7 +88,7 @@
   connect();
  }
  const dataSaverEnabled=()=>document.documentElement?.classList?.contains('data-saver')||(()=>{try{return localStorage.getItem('danzstak_data_saver')==='1';}catch{return false;}})();
- const isFeedVideo=video=>video?.matches?.('video.post-media');
+ const isFeedVideo=video=>video?.matches?.('video.post-media,video.profile-post-media'); // fix-it 18: profiles autoplay like Mix
  function prepareVideoPreview(video){
   video.playsInline=true;
   const setLayout=()=>{
@@ -158,7 +164,9 @@
   if(!candidate||document.hidden)return;
   if(isYouTubeFrame(candidate)){controlYouTube(candidate,'playVideo');return;}
   if(candidate.tagName==='VIDEO')candidate.play().catch(()=>{
-   if(audibleMedia===candidate){audibleMedia=null;sessionSound=false;applySoundPreference();candidate.play().catch(()=>{});globalThis.dispatchEvent?.(new CustomEvent('danzstak:media-sound-blocked',{detail:{media:candidate}}));}
+   if(audibleMedia===candidate){audibleMedia=null;if(inSession(candidate))sessionSound=false;else feedSound=false;applySoundPreference();candidate.play().catch(()=>{});globalThis.dispatchEvent?.(new CustomEvent('danzstak:media-sound-blocked',{detail:{media:candidate}}));}
+   // Fix-it 18: a play() interrupted by a reload/pause (AbortError) used to leave the chosen video stuck paused. Retry once while it is still the visible choice.
+   else setTimeout(()=>{if(activeMedia===candidate&&candidate.paused&&!document.hidden&&(ratios.get(candidate)||0)>=0.5)candidate.play().catch(()=>{});},250);
   });
  }
  function reconcilePlayback(){
@@ -169,14 +177,15 @@
   const candidate=bestAutomaticCandidate();
   if(!candidate)return;
   if(!claimPlayback(candidate))return;
-  if(sessionRoot&&sessionSound){audibleMedia=candidate;applySoundPreference();}
-  if(!dataSaverEnabled())playCandidate(candidate);
+  if(dataSaverEnabled())return;
+  if(wantsSound(candidate)){audibleMedia=candidate;applySoundPreference();}
+  playCandidate(candidate);
  }
  const observer=new IntersectionObserver(entries=>{
   for(const entry of entries){const ratio=entry.isIntersecting?entry.intersectionRatio:0,inView=ratio>=thresholdFor(entry.target);ratios.set(entry.target,ratio);visible.set(entry.target,inView);if(!inView){manualPlayback.delete(entry.target);pause(entry.target);clearActive(entry.target);continue;}if(entry.target.tagName!=='VIDEO'||document.hidden)continue;const feedVideo=isFeedVideo(entry.target);if(feedVideo&&dataSaverEnabled())continue;entry.target.preload=feedVideo?'auto':'metadata';if(entry.target.readyState===0)entry.target.load?.();}
   reconcilePlayback();
  }, {threshold:[0,0.15,0.5,0.6,1]});
- function track(element){if(!eligible(element)||tracked.has(element))return;ensureAudioControl(element);tracked.add(element);observer.observe(element);if(isYouTubeFrame(element))listenToYouTube(element);if(element.tagName==='VIDEO'){element.muted=true;if(element.dataset?.visibilityPrepared!=='1'){if(element.dataset)element.dataset.visibilityPrepared='1';prepareVideoPreview(element);element.addEventListener('play',()=>{const manual=manualPlayback.has(element);manualPlayback.delete(element);if(document.hidden||(ratios.get(element)||0)<thresholdFor(element)){element.pause();clearActive(element);return;}if(!claimPlayback(element,manual))element.pause();});}}}
+ function track(element){if(!eligible(element)||tracked.has(element))return;ensureAudioControl(element);tracked.add(element);observer.observe(element);if(isYouTubeFrame(element))listenToYouTube(element);if(element.tagName==='VIDEO'){element.muted=true;if(element.dataset?.visibilityPrepared!=='1'){if(element.dataset)element.dataset.visibilityPrepared='1';prepareVideoPreview(element);element.addEventListener('play',()=>{const manual=manualPlayback.has(element);manualPlayback.delete(element);if(document.hidden||(ratios.get(element)||0)<thresholdFor(element)){element.pause();clearActive(element);return;}if(!claimPlayback(element,manual)){element.pause();return;}if(wantsSound(element)&&audibleMedia!==element){audibleMedia=element;applySoundPreference();}});}}}
  function added(root){
   if(root?.tagName==='VIDEO'&&eligible(root))root.muted=true;
   root.querySelectorAll?.('video').forEach(video=>{if(eligible(video))video.muted=true;});
