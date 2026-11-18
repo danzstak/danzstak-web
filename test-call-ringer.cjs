@@ -17,4 +17,6 @@ const tones = read("assets/sync-tones.js"), setup = read("assets/call-setup.js")
 assert.match(tones, /tone\.kind === "ring" && out\.createDynamicsCompressor/, "rings are compressed and lifted (owner: ring tones too quiet)");
 assert.match(tones, /const RING_MAKEUP_GAIN = 3\.2;/);
 assert.match(setup, /const DEFAULT_RING = 0\.8;/, "louder default ring volume");
+assert.match(chat, /finally\{delete els\.enable\.dataset\.busy;els\.enable\.disabled=false;\}/, "Call alerts can be tapped again (owner: it did nothing)");
+assert.match(chat, /window\.danzstakShowFeedback\?\.\(message,\{urgent\}\)/, "Call alerts shows its result on screen");
 console.log("Call ringer checks passed: rings without a tap where allowed, vibrates + asks for a tap when blocked, Test ringer, offline cache.");

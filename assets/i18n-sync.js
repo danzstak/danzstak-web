@@ -5,6 +5,9 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Call alerts are not available in this browser.": "Gli avvisi di chiamata non sono disponibili in questo browser.",
+"Call alerts are on. Calls ring this phone even when SYNC is closed.": "Avvisi di chiamata attivi. Le chiamate suonano su questo telefono anche con SYNC chiuso.",
+"Call alerts could not be turned on. Allow notifications for DanzStak in your phone settings, then try again.": "Impossibile attivare gli avvisi di chiamata. Consenti le notifiche di DanzStak nelle impostazioni del telefono e riprova.",
 "Tap to hear the ringer": "Tocca per sentire la suoneria",
 "Test ringer": "Prova suoneria",
 "Play your ringtone for 3 seconds": "Suona la tua suoneria per 3 secondi",
@@ -252,6 +255,9 @@
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
 },
 "fr": {
+"Call alerts are not available in this browser.": "Les alertes d'appel ne sont pas disponibles dans ce navigateur.",
+"Call alerts are on. Calls ring this phone even when SYNC is closed.": "Alertes d'appel activées. Les appels sonnent sur ce téléphone même quand SYNC est fermé.",
+"Call alerts could not be turned on. Allow notifications for DanzStak in your phone settings, then try again.": "Impossible d'activer les alertes d'appel. Autorise les notifications de DanzStak dans les réglages du téléphone, puis réessaie.",
 "Tap to hear the ringer": "Touche pour entendre la sonnerie",
 "Test ringer": "Tester la sonnerie",
 "Play your ringtone for 3 seconds": "Joue ta sonnerie pendant 3 secondes",
@@ -500,6 +506,9 @@
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
 },
 "es": {
+"Call alerts are not available in this browser.": "Las alertas de llamada no están disponibles en este navegador.",
+"Call alerts are on. Calls ring this phone even when SYNC is closed.": "Alertas de llamada activadas. Las llamadas suenan en este teléfono aunque SYNC esté cerrado.",
+"Call alerts could not be turned on. Allow notifications for DanzStak in your phone settings, then try again.": "No se pudieron activar las alertas de llamada. Permite las notificaciones de DanzStak en los ajustes del teléfono e inténtalo de nuevo.",
 "Tap to hear the ringer": "Toca para oír el tono",
 "Test ringer": "Probar tono",
 "Play your ringtone for 3 seconds": "Suena tu tono durante 3 segundos",
@@ -747,6 +756,9 @@
 "You can resend once. Try again in 10 minutes.": "Solo puedes reenviar una vez. Inténtalo de nuevo en 10 minutos."
 },
 "de": {
+"Call alerts are not available in this browser.": "Anrufbenachrichtigungen sind in diesem Browser nicht verfügbar.",
+"Call alerts are on. Calls ring this phone even when SYNC is closed.": "Anrufbenachrichtigungen sind an. Anrufe klingeln auf diesem Telefon, auch wenn SYNC geschlossen ist.",
+"Call alerts could not be turned on. Allow notifications for DanzStak in your phone settings, then try again.": "Anrufbenachrichtigungen konnten nicht eingeschaltet werden. Erlaube Benachrichtigungen für DanzStak in den Telefoneinstellungen und versuche es erneut.",
 "Tap to hear the ringer": "Tippen, um den Klingelton zu hören",
 "Test ringer": "Klingelton testen",
 "Play your ringtone for 3 seconds": "Spielt deinen Klingelton 3 Sekunden lang",
@@ -806,6 +818,9 @@
 "You can resend once. Try again in 10 minutes.": "Du kannst nur einmal erneut senden. Versuche es in 10 Minuten erneut."
 },
 "pt": {
+"Call alerts are not available in this browser.": "Os alertas de chamada não estão disponíveis neste navegador.",
+"Call alerts are on. Calls ring this phone even when SYNC is closed.": "Alertas de chamada ativados. As chamadas tocam neste telefone mesmo com o SYNC fechado.",
+"Call alerts could not be turned on. Allow notifications for DanzStak in your phone settings, then try again.": "Não foi possível ativar os alertas de chamada. Permita as notificações do DanzStak nas definições do telefone e tente novamente.",
 "Tap to hear the ringer": "Toque para ouvir o toque",
 "Test ringer": "Testar toque",
 "Play your ringtone for 3 seconds": "Toca o seu toque por 3 segundos",
