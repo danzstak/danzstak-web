@@ -1,6 +1,6 @@
 # 28 — Vibe pass: hipper than Facebook
 
-Owner 2026-11-18: "The site needs to be hipper than FB."
+Owner 2026-11-18: "The site needs to be hipper than FB." "A place where the cool kids want to hang out."
 
 Keep the 80% familiar layout (people must find everything on day one). Make the 20% unmistakably DanzStak, so it feels like a flyer wall and a record shop, not a corporate feed. One token set, applied everywhere, phone first. No change to where things are.
 
