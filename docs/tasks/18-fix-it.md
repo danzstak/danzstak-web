@@ -148,3 +148,8 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
 - [ ] **The tiles are exactly (owner 2026-11-18): EPKs sent · Opened · Replied · Confirmed · Credits** — in that order, as one compact row/grid on phones (Credits is the small last tile showing the remaining booking-email credits; it never shows a price). Replace today's Next gigs / Booking replies / EPK opens / Email credits tiles.
 - [ ] Tapping a tile filters the list (EPKs sent → every pitch with its status; Opened → opens; Replied → replies/offered dates; Confirmed → confirmed shows; Credits → credits used and returned, e.g. unopened-pitch refunds). Empty states are one short line, e.g. "No clubs have opened your EPK yet."
 - [ ] Tiles that show 0 before anything exists collapse into the start card (no wall of zeros for a new artist).
+
+## One pitch per club every 2 months (owner 2026-11-18)
+- [ ] If the artist tries to send another pitch to a club they already pitched, the Booking Agent stops it: **"Already sent to The Crocodile on Nov 18. You can pitch them again from Jan 18."** No credit is used. The duplicate-contact window is **60 days per club** (server-enforced, per artist/act, matched by venue id and by the club's booking email so a second contact address at the same club counts too).
+- [ ] Replies and follow-ups inside an existing booking thread are not blocked — the artist can always answer a club that wrote back, and artist-approved follow-ups on an open pitch still go out. Only a new cold pitch is held.
+- [ ] Clubs inside the window show "Pitched Nov 18 · again from Jan 18" in the venue lists and can't be selected for a new pitch until then.

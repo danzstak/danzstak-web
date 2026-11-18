@@ -192,7 +192,7 @@ This section preserves the durable product decisions from the owner's long-form 
 - AI assistance is optional: $5 per EPK and another $5 for a clearly defined AI redesign. Manual edits and manual look switching remain free forever. The artist reviews every generated word; nothing is published or sent unseen. Keep the AI provider swappable and never train on creator content.
 - The primary growth loop is EPK -> venue discovery/saved route -> editable pitch -> preview -> send -> track opens/replies -> artist-approved follow-up -> booking. Every venue receives a per-venue private EPK link. Venues can reply or offer dates without creating an account.
 - Booking mail uses the approved DanzStak sending infrastructure and verified domain. The artist is the display identity and replies return to that artist's booking thread in SYNC. Do not reroute or reconfigure the established support mailbox while implementing booking mail.
-- One-to-one outreach only: daily caps, duplicate-contact window, suppression list, bounce/complaint handling, required disclosures and no BCC blasts. Credits must reserve and restore correctly on delivery failure.
+- One-to-one outreach only: daily caps, duplicate-contact window (owner 2026-11-18: one new pitch per club every 60 days; replies and follow-ups in an open thread are not blocked), suppression list, bounce/complaint handling, required disclosures and no BCC blasts. Credits must reserve and restore correctly on delivery failure.
 
 ### Commerce, Stripe and SFS checkout
 
