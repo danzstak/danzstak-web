@@ -27,19 +27,20 @@ async function shot(page, name) {
     catch (error) { if (attempt >= 3) throw error; await page.waitForTimeout(300); }
   }
 }
-async function open(browser, width, { available = true, credits = 0, owned = false } = {}) {
+async function open(browser, width, { available = true, credits = 0, owned = false, job = null, kit = null, redesignCredits = 0 } = {}) {
   const ctx = await browser.newContext({ viewport: { width, height: 800 }, serviceWorkers: "block", hasTouch: width < 760, isMobile: width < 760, deviceScaleFactor: 2 });
-  const page = await ctx.newPage(), state = { calls: [], errors: [], credits, owned, job: null, steps: 0, review: null };
+  const page = await ctx.newPage(), state = { calls: [], errors: [], credits, owned, job, steps: 0, review: null, redesignCredits, rewritesLeft: job?.rewritesLeft ?? 0, bodies: {} };
   page.on("pageerror", error => state.errors.push(error.message));
   await page.route("https://checkout.stripe.com/**", route => route.fulfill({ status: 200, contentType: "text/html", body: "<title>Stripe test</title><p>Stripe Checkout (test)</p>" }));
   await page.route("https://api.danzstak.com/**", async route => {
     const request = route.request(), p = new URL(request.url()).pathname, method = request.method();
     state.calls.push(`${method} ${p}`);
     const body = request.postData() ? JSON.parse(request.postData()) : {};
+    state.bodies[p] = body;
     if (p === "/auth/session") return route.fulfill(json({ authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111", email: "me@danzstak.test" } }));
     if (p === "/profiles") return route.fulfill(json({ profile: { isOwner: true, name: "Night Shift", handle: "nightshift" } }));
-    if (p === "/epk" && method === "GET") return route.fulfill(json({ kit: null, publicId: "", published: false }));
-    if (p === "/epk/ai") return route.fulfill(json({ available, searchAvailable: true, priceCents: 500, feeCents: 130, totalCents: 630, rewritesIncluded: 3, disclaimer: DISCLAIMER, comingSoon: available ? "" : "AI builder coming soon", owned: state.owned, credits: state.credits, draft: state.draft || null, job: state.job, review: state.review }));
+    if (p === "/epk" && method === "GET") return route.fulfill(json({ kit, publicId: "", published: false }));
+    if (p === "/epk/ai") return route.fulfill(json({ available, searchAvailable: true, priceCents: 500, feeCents: 130, totalCents: 630, rewritesIncluded: 3, disclaimer: DISCLAIMER, comingSoon: available ? "" : "AI builder coming soon", owned: state.owned, credits: state.credits, redesignCredits: state.redesignCredits, draft: state.draft || null, job: state.job, review: state.review }));
     if (p === "/epk/ai/identify") {
       state.input = body.input;
       state.draft = { input: body.input, confirmed: body.input.links, candidates: [...body.input.links.map(url => ({ url, title: "Bandcamp", site: "nightshift.bandcamp.com", own: true })), { url: "https://other-night-shift.example.com/about", title: "Night Shift — the other one", snippet: "A different band from Leeds with the same name.", site: "other-night-shift.example.com", own: false }, { url: "https://www.instagram.com/nightshiftband", title: "Night Shift (@nightshiftband)", snippet: "Oakland punk.", site: "instagram.com", own: false }] };
@@ -57,6 +58,11 @@ async function open(browser, width, { available = true, credits = 0, owned = fal
       const lines = ["Reading Bandcamp…", "Reading Instagram…", "Found 1 release…", "Writing your bio…", "Your draft is ready. Check every section before you publish."];
       state.job = { ...state.job, progress: ["Starting your build…", ...lines.slice(0, state.steps)], status: state.steps >= lines.length ? "draft_ready" : "extracting", alsoFound: state.steps >= lines.length ? [{ url: "https://press.example.com/review", title: "Review in Punk Weekly", site: "press.example.com" }] : [], draft: state.steps >= lines.length ? draft : null };
       return route.fulfill(json({ job: state.job }));
+    }
+    if (p === "/epk/ai/rewrite") {
+      if (state.rewritesLeft < 1) return route.fulfill({ status: 402, contentType: "application/json", body: JSON.stringify({ error: "You've used your 3 rewrites. An AI redesign gives you a fresh draft.", rewritesLeft: 0, needsPayment: true, kind: "redesign" }) });
+      state.rewritesLeft -= 1; state.job.rewritesLeft = state.rewritesLeft;
+      return route.fulfill(json({ section: body.section, text: "Oakland punk, three chords, no mercy.", rewritesLeft: state.rewritesLeft }));
     }
     if (p === "/epk/ai/review") { state.reviews = [...(state.reviews || []), body]; return route.fulfill(json({ review: { pending: [] } })); }
     return route.fulfill(json({}));
@@ -160,8 +166,9 @@ const geometry = (page, root) => page.evaluate(root => ({
         await page.locator("#epkAiReviewGate input").click(); // the gate removes itself once the server saves the review
         await page.waitForFunction(() => !document.querySelector(".epk-ai-mark") && !document.getElementById("epkAiReviewGate"));
         assert.deepEqual(state.reviews.at(-1), { all: true, confirmed: true });
-        // Bought: no price on the AI choice any more.
-        assert.doesNotMatch(await page.locator("#epkAiStart").textContent(), /\$/);
+        // Bought: the AI EPK's price never shows again; the button is now the separately named AI redesign.
+        assert.equal(await page.locator("#epkAiStart").getAttribute("aria-label"), "AI redesign, $6.30");
+        assert.doesNotMatch(await page.locator("#epkAiStart").textContent(), /Let AI build it/);
         const g = await geometry(page, "#epkForm");
         assert.equal(g.overflow, false, `${label}: editor overflow`);
         assert.deepEqual(state.errors, [], `${label}: page errors`);
@@ -187,7 +194,50 @@ const geometry = (page, root) => page.evaluate(root => ({
         if (width === 360) await shot(closed.page, `8-coming-soon-${width}`);
         await closed.ctx.close();
       }
+      // D. Rewrites (3 included) and the AI redesign as its own named purchase.
+      if ([320, 360, 390, 1366].includes(width)) {
+        const label = `${width}px rewrite`;
+        const readyJob = { id: "job9", status: "draft_ready", progress: [], alsoFound: [], rewritesLeft: 3, draft };
+        const savedKit = { artistName: "Night Shift", actType: "band", look: "punk", shortPitch: "Oakland punk.", shortBio: "Night Shift play Oakland punk.", bio: draft.kit.bio, genres: ["punk"], releases: [], notableShows: [], achievements: [], lineup: [], musicLinks: [], videoLinks: [], socialLinks: [], pressQuotes: [], media: [] };
+        try { fs.mkdirSync(output, { recursive: true }); } catch {}
+        const { ctx, page, state } = await open(browser, width, { owned: true, job: readyJob, kit: savedKit });
+        await page.addInitScript(() => { try { localStorage.setItem("danzstak_ai_epk_applied_job9", "1"); } catch {} });
+        await page.goto(`${baseUrl}/epk.html`, { waitUntil: "domcontentloaded" });
+        const rewrite = page.locator("#shortBio").locator("xpath=ancestor::label").locator(".epk-ai-rewrite");
+        await rewrite.waitFor({ timeout: 15000 });
+        assert.equal((await rewrite.textContent()).trim(), "Rewrite with AI · 3 left");
+        await rewrite.click();
+        const sheet = page.locator("dialog.epk-ai-sheet");
+        await sheet.waitFor({ state: "visible" });
+        assert.equal(await sheet.locator("#epkAiTitle").textContent(), "Rewrite: Short biography");
+        assert.deepEqual(await sheet.locator(".epk-ai-chips button").allTextContents(), ["Shorter", "More punk", "In Italian", "In French", "In Spanish"]);
+        await sheet.getByRole("button", { name: "Shorter" }).click();
+        await sheet.locator(".epk-ai-rewrite-text").waitFor();
+        assert.deepEqual(state.bodies["/epk/ai/rewrite"], { section: "shortBio", instruction: "shorter", text: "Night Shift play Oakland punk." });
+        let g = await geometry(page, "dialog.epk-ai-sheet"); assert.equal(g.overflow, false, `${label}: overflow`); assert.deepEqual(g.small, [], `${label}: targets`);
+        if ([360, 390].includes(width)) await shot(page, `9-rewrite-${width}`);
+        await sheet.getByRole("button", { name: "Use this" }).click();
+        await sheet.waitFor({ state: "hidden" });
+        assert.equal(await page.locator("#shortBio").inputValue(), "Oakland punk, three chords, no mercy.");
+        assert.equal(await page.locator('.epk-ai-mark[data-field="shortBio"]').count(), 1, `${label}: the rewrite is an AI draft again`);
+        assert.equal((await rewrite.textContent()).trim(), "Rewrite with AI · 2 left");
+        // Bought and built: the AI button is now the AI redesign, a separate clearly named purchase.
+        const start = page.locator("#epkAiStart");
+        assert.equal(await start.getAttribute("aria-label"), "AI redesign, $6.30");
+        await start.click();
+        await sheet.waitFor({ state: "visible" });
+        assert.equal(await sheet.locator("#epkAiTitle").textContent(), "AI redesign");
+        assert.match(await sheet.textContent(), /Your saved EPK doesn't change until you save/);
+        if ([360, 390].includes(width)) await shot(page, `10-redesign-${width}`);
+        await sheet.getByRole("button", { name: "Continue" }).click();
+        assert.equal((await sheet.locator(".epk-ai-bill").textContent()).replace(/\s+/g, ""), "AIredesign$5.00DanzStakfee$1.30Total$6.30");
+        await sheet.getByRole("button", { name: "Pay $6.30" }).click();
+        await page.waitForURL(/checkout\.stripe\.com/);
+        assert.deepEqual(state.bodies["/tour-manager/ai-epk/checkout"], { kind: "redesign" });
+        assert.deepEqual(state.errors, [], `${label}: page errors`);
+        await ctx.close();
+      }
     }
   } finally { await browser.close(); }
-  console.log(`AI EPK browser checks passed (${widths.join(", ")}px): choice with price until bought, Start with what's included + refund rule + disclaimer, Tell us who you are, Is this you? (only ticked pages), Pay $6.30 to Stripe test checkout, build progress, draft in the editor with marks + sources, Looks right / editing / review gate, Back, coming soon.`);
+  console.log(`AI EPK browser checks passed (${widths.join(", ")}px): choice with price until bought, Start with what's included + refund rule + disclaimer, Tell us who you are, Is this you? (only ticked pages), Pay $6.30 to Stripe test checkout, build progress, draft in the editor with marks + sources, Looks right / editing / review gate, Back, coming soon, 3 rewrites with re-review, AI redesign as its own $6.30 purchase.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

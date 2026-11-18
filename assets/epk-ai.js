@@ -39,7 +39,7 @@
     self.append(el("span", "epk-ai-free", "free"));
     self.setAttribute("aria-label", `${t("Build it myself")}, ${t("free")}`);
     self.addEventListener("click", () => { row.dataset.chosen = "self"; byId("artistName")?.focus(); });
-    aiButton.addEventListener("click", () => openSheet());
+    aiButton.addEventListener("click", () => openSheet(aiButton.dataset.mode === "redesign" ? "redesign" : undefined));
     row.append(self, aiButton);
     guide.querySelector(".epk-guide-heading")?.after(row);
     renderChoice();
@@ -50,9 +50,12 @@
     if (!offer.available) { aiButton.disabled = true; aiButton.firstChild.textContent = t("AI builder coming soon"); price.textContent = ""; aiButton.removeAttribute("aria-label"); return; }
     aiButton.disabled = false;
     const running = offer.job && !["draft_ready", "failed"].includes(offer.job.status);
-    aiButton.firstChild.textContent = t(running ? "Continue your AI build" : "Let AI build it");
+    // Once the AI EPK is bought and built, the button becomes the AI redesign: a separate, clearly named purchase.
+    const redesign = !running && offer.owned && offer.job?.status === "draft_ready" && offer.credits < 1;
+    aiButton.dataset.mode = redesign ? "redesign" : "build";
+    aiButton.firstChild.textContent = t(running ? "Continue your AI build" : redesign ? "AI redesign" : "Let AI build it");
     // The price only until it's bought (or while a paid build is waiting to be used).
-    price.textContent = offer.owned || offer.credits > 0 ? "" : money(offer.totalCents);
+    price.textContent = redesign ? (offer.redesignCredits > 0 ? "" : money(offer.totalCents)) : offer.owned || offer.credits > 0 ? "" : money(offer.totalCents);
     aiButton.setAttribute("aria-label", [aiButton.firstChild.textContent, price.textContent].filter(Boolean).join(", "));
   }
 
@@ -106,6 +109,8 @@
     if (screen === "who") return screenWho();
     if (screen === "confirm") return screenConfirm();
     if (screen === "pay") return screenPay();
+    if (screen === "redesign") return screenRedesign();
+    if (String(screen).startsWith("rewrite:")) return screenRewrite(screen.slice(8));
     return screenBuild();
   }
 
@@ -186,36 +191,101 @@
   }
 
   // 4. Pay
-  function screenPay() {
+  function screenPay(kind = "build") {
     const table = el("dl", "epk-ai-bill");
-    for (const [label, cents] of [["AI EPK", offer.priceCents], ["DanzStak fee", offer.feeCents], ["Total", offer.totalCents]]) table.append(el("dt", "", label), Object.assign(el("dd"), { textContent: money(cents) }));
+    for (const [label, cents] of [[kind === "redesign" ? "AI redesign" : "AI EPK", offer.priceCents], ["DanzStak fee", offer.feeCents], ["Total", offer.totalCents]]) table.append(el("dt", "", label), Object.assign(el("dd"), { textContent: money(cents) }));
     const status = statusLine(), pay = button(`${t("Pay")} ${money(offer.totalCents)}`);
     pay.addEventListener("click", async () => {
       pay.disabled = true; status.textContent = t("Opening secure checkout…");
-      const res = await post("/tour-manager/ai-epk/checkout");
+      const res = await post("/tour-manager/ai-epk/checkout", { kind });
       if (res.ok && /^https:\/\/checkout\.stripe\.com\//.test(res.data.checkoutUrl || "")) { location.assign(res.data.checkoutUrl); return; }
       pay.disabled = false; status.textContent = t(res.data.error || "Checkout couldn't start. Try again.");
     });
-    body("Pay for your AI EPK", table, note("No refund once a draft is made. If you don't use it, the refund is the price minus Stripe's fee."), note(offer.disclaimer, "epk-ai-disclaimer"), status, actions(pay));
+    body(kind === "redesign" ? "Pay for your AI redesign" : "Pay for your AI EPK", table, note("No refund once a draft is made. If you don't use it, the refund is the price minus Stripe's fee."), note(offer.disclaimer, "epk-ai-disclaimer"), status, actions(pay));
   }
 
-  async function startBuild(status, go) {
-    const res = await post("/epk/ai/build");
+  // The artist's current EPK text for a redesign (text fields only; never images, files or contacts).
+  function currentKitText() {
+    const lines = id => (byId(id)?.value || "").split("\n").map(v => v.trim()).filter(Boolean);
+    return { shortPitch: byId("shortPitch")?.value || "", shortBio: byId("shortBio")?.value || "", bio: byId("bio")?.value || "", genres: (byId("genres")?.value || "").split(",").map(v => v.trim()).filter(Boolean), releases: lines("releases"), notableShows: lines("notableShows"), achievements: lines("achievements"), lineup: lines("lineup") };
+  }
+  // AI redesign ($5 + fees): a fresh draft from the current EPK and the confirmed pages, 3 rewrites included.
+  function screenRedesign() {
+    const list = el("ul", "epk-ai-included");
+    for (const item of ["A fresh draft of your pitch and bios, and a suggested look, from your current EPK and your confirmed pages", "3 AI rewrites included", "Your saved EPK doesn't change until you save"]) list.append(el("li", "", item));
+    const paid = offer.redesignCredits > 0, status = statusLine();
+    const price = paid ? null : el("p", "epk-ai-total", `${money(offer.totalCents)}`);
+    if (price) price.append(el("small", "", ` (${money(offer.priceCents)} + ${money(offer.feeCents)} ${t("fee")})`));
+    const go = button(paid ? "Redesign my EPK" : "Continue");
+    go.addEventListener("click", () => { if (paid) { go.disabled = true; startBuild(status, go, "redesign"); } else screenPay("redesign"); });
+    body("AI redesign", list, price, paid ? null : note("No refund once a draft is made. If you don't use it, the refund is the price minus Stripe's fee."), note(offer.disclaimer, "epk-ai-disclaimer"), status, actions(go));
+    go.focus();
+  }
+
+  // One of the included rewrites of a prose section ("shorter", "more punk", "in Italian").
+  function screenRewrite(field) {
+    const input = byId(field); if (!input) return closeSheet(false);
+    const look = byId("epkLook")?.value || "techno", scene = { punk: "More punk", metal: "More metal" }[look] || "More electronic";
+    const status = statusLine(), result = el("div", "epk-ai-rewrite-result"), chips = el("div", "epk-ai-chips");
+    const custom = Object.assign(el("input"), { maxLength: 120, placeholder: t("Or say how") });
+    custom.setAttribute("aria-label", t("Say how to rewrite it"));
+    const left = el("p", "epk-ai-note"); left.textContent = `${offer.job.rewritesLeft} ${t(offer.job.rewritesLeft === 1 ? "rewrite left" : "rewrites left")}`;
+    const run = async instruction => {
+      if (!instruction) { custom.focus(); return; }
+      chips.querySelectorAll("button").forEach(b => { b.disabled = true; }); status.textContent = t("Rewriting…"); result.replaceChildren();
+      const res = await post("/epk/ai/rewrite", { section: field, instruction, text: input.value });
+      chips.querySelectorAll("button").forEach(b => { b.disabled = false; });
+      if (res.status === 402) { offer.job.rewritesLeft = 0; mountRewriteButtons(); renderChoice(); show("redesign"); return; }
+      if (!res.ok) { status.textContent = t(res.data.error || "Something went wrong. Try again."); if (Number.isInteger(res.data.rewritesLeft)) offer.job.rewritesLeft = res.data.rewritesLeft; return; }
+      offer.job.rewritesLeft = res.data.rewritesLeft; status.textContent = ""; left.textContent = `${res.data.rewritesLeft} ${t(res.data.rewritesLeft === 1 ? "rewrite left" : "rewrites left")}`;
+      const use = button("Use this"), keep = button("Keep mine", "text");
+      use.addEventListener("click", () => {
+        input.value = res.data.text;
+        document.querySelector(`.epk-ai-mark[data-field="${field}"]`)?.remove();
+        markSections([field], offer.job.draft);
+        byId("epkForm")?.dispatchEvent(new Event("input", { bubbles: true }));
+        mountRewriteButtons(); closeSheet(false);
+      });
+      keep.addEventListener("click", () => { mountRewriteButtons(); closeSheet(false); });
+      result.append(el("p", "epk-ai-rewrite-text"), actions(keep, use));
+      result.firstChild.textContent = res.data.text;
+      use.focus();
+    };
+    for (const label of ["Shorter", scene, "In Italian", "In French", "In Spanish"]) { const chip = button(label, "tonal"); chip.addEventListener("click", () => run(label.toLowerCase())); chips.append(chip); }
+    const customRow = el("div", "epk-ai-add"), go = button("Rewrite", "tonal"); go.addEventListener("click", () => run(custom.value.trim())); customRow.append(custom, go);
+    const now = el("blockquote", "epk-ai-current"); now.textContent = input.value;
+    body(`${t("Rewrite")}: ${t(LABELS[field] || field)}`, now, chips, customRow, left, status, result);
+  }
+  function mountRewriteButtons() {
+    const left = offer?.job?.status === "draft_ready" ? offer.job.rewritesLeft || 0 : 0;
+    for (const field of ["shortPitch", "shortBio", "bio"]) {
+      const input = byId(field), label = input?.closest("label"); if (!label) continue;
+      let control = label.querySelector(".epk-ai-rewrite");
+      if (!left || !input.value.trim()) { control?.remove(); continue; }
+      if (!control) { control = button("", "text"); control.className = "ds-btn-text epk-ai-rewrite"; control.addEventListener("click", event => { event.preventDefault(); openSheet(`rewrite:${field}`); }); label.insertBefore(control, input); }
+      control.textContent = `${t("Rewrite with AI")} · ${left} ${t("left")}`;
+    }
+  }
+
+  async function startBuild(status, go, kind = "build") {
+    const res = await post("/epk/ai/build", kind === "redesign" ? { kind, kit: currentKitText() } : { kind });
     if (go) go.disabled = false;
-    if (res.status === 402) { show("pay"); return; }
+    if (res.status === 402) { show(kind === "redesign" ? "redesign" : "pay"); return; }
     if (!res.ok) { if (status) status.textContent = t(res.data.error || "The build couldn't start. Try again."); return; }
-    offer.job = res.data.job; offer.credits = Math.max(0, offer.credits - 1); renderChoice();
+    offer.job = res.data.job;
+    if (kind === "redesign") offer.redesignCredits = Math.max(0, (offer.redesignCredits || 0) - 1); else offer.credits = Math.max(0, offer.credits - 1);
+    renderChoice();
     show("build");
   }
 
   // 5. Build (progress), then open the draft in the editor
   function screenBuild() {
     const list = el("ol", "epk-ai-progress"); list.setAttribute("aria-live", "polite");
-    const status = statusLine(), done = button("Open my draft"); done.hidden = true;
+    const status = statusLine(), done = button(offer.job?.kind === "redesign" ? "Open my redesign" : "Open my draft"); done.hidden = true;
     const retry = button("Try again"); retry.hidden = true;
     const found = el("div", "epk-ai-alsofound");
     done.addEventListener("click", () => { applyDraft(offer.job); closeSheet(false); });
-    retry.addEventListener("click", () => { retry.hidden = true; startBuild(status); });
+    retry.addEventListener("click", () => { retry.hidden = true; startBuild(status, null, offer.job?.kind === "redesign" ? "redesign" : "build"); });
     body("Building your EPK", note("This takes a minute or two. You can close this; the build continues when you come back."), note(offer.disclaimer, "epk-ai-disclaimer"), list, status, found, actions(done, retry));
     const paint = job => {
       list.replaceChildren(...(job?.progress || []).map(line => el("li", "", line)));
@@ -240,7 +310,7 @@
   }
 
   // ---------- the draft in the editor ----------
-  function setField(id, value) {
+  function setField(id, value, replace = false) {
     const input = byId(id); if (!input) return false;
     let next = "";
     if (id === "genres") next = value.join(", ");
@@ -248,21 +318,24 @@
     else if (LINK_FIELDS.includes(id)) next = value.map(item => `${item.label} | ${item.url}`).join("\n");
     else if (id === "pressQuotes") next = value.map(item => `${item.quote} | ${item.source}${item.url ? ` | ${item.url}` : ""}`).join("\n");
     else next = String(value || "");
-    if (!next || input.value.trim()) return false; // never overwrite what the artist already wrote
+    if (!next || (input.value.trim() && !replace)) return false; // never overwrite what the artist already wrote (except a paid redesign of the prose)
     input.value = next;
     return true;
   }
   function applyDraft(job) {
     const draft = job?.draft; if (!draft) return;
     const filled = [];
-    for (const field of draft.aiFields) if (setField(field, draft.kit[field])) filled.push(field);
-    if (draft.look && byId("epkLook") && byId("epkLook").value === "techno") { byId("epkLook").value = draft.look; byId("epkLook").dispatchEvent(new Event("change", { bubbles: true })); }
+    const redesign = job.kind === "redesign";
+    for (const field of draft.aiFields) if (setField(field, draft.kit[field], redesign && ["shortPitch", "shortBio", "bio"].includes(field))) filled.push(field);
+    if (draft.look && byId("epkLook") && (redesign || byId("epkLook").value === "techno")) { byId("epkLook").value = draft.look; byId("epkLook").dispatchEvent(new Event("change", { bubbles: true })); }
     // Sections the artist had already written aren't AI drafts: clear them from the review list.
     const untouched = draft.aiFields.filter(field => !filled.includes(field));
     if (untouched.length) post("/epk/ai/review", { sections: untouched });
     try { localStorage.setItem(`danzstak_ai_epk_applied_${job.id}`, "1"); } catch {}
     byId("epkForm")?.dispatchEvent(new Event("input", { bubbles: true }));
+    for (const field of filled) document.querySelector(`.epk-ai-mark[data-field="${field}"]`)?.remove();
     markSections(filled, draft);
+    mountRewriteButtons();
     if (draft.checklist?.length) {
       const guide = byId("epkGuide"); guide?.querySelector(".epk-ai-todo")?.remove();
       const todo = el("div", "epk-ai-todo"); todo.append(el("h3", "", "Still missing"));
@@ -327,15 +400,16 @@
     if (job?.status === "draft_ready") {
       let applied = false; try { applied = localStorage.getItem(`danzstak_ai_epk_applied_${job.id}`) === "1"; } catch {}
       if (!applied) openSheet("build");
-      else if (offer.review?.pending?.length) setTimeout(() => markSections(offer.review.pending, job.draft), 600); // after epk.js fills the form
+      else setTimeout(() => { if (offer.review?.pending?.length) markSections(offer.review.pending, job.draft); mountRewriteButtons(); }, 600); // after epk.js fills the form
     } else if (job && job.status !== "failed") openSheet("build");
     else if (paid && offer.available) {
       // Back from Stripe: the webhook may take a moment to grant the build.
       openSheet("build");
-      for (let tries = 0; tries < 10 && offer.credits < 1; tries++) { await new Promise(r => setTimeout(r, 1500)); const again = await call("/epk/ai"); if (again.ok) offer = again.data; }
-      if (offer.credits > 0) startBuild(); else body("Payment received", note("We're still waiting for Stripe to confirm. This page will be ready in a minute — reopen Let AI build it."));
+      const redesign = params.get("kind") === "redesign", ready = () => redesign ? offer.redesignCredits > 0 : offer.credits > 0;
+      for (let tries = 0; tries < 10 && !ready(); tries++) { await new Promise(r => setTimeout(r, 1500)); const again = await call("/epk/ai"); if (again.ok) offer = again.data; }
+      if (ready()) startBuild(null, null, redesign ? "redesign" : "build"); else body("Payment received", note("We're still waiting for Stripe to confirm. This page will be ready in a minute — reopen Let AI build it."));
     }
   }
-  window.danzstakEpkAi = { applyDraft, setField, markSections };
+  window.danzstakEpkAi = { applyDraft, setField, markSections, mountRewriteButtons };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true }); else load();
 })();
