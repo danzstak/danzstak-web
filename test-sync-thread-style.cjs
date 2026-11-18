@@ -22,3 +22,10 @@ assert.match(worker, /danzstak-shell-v928/, "the PWA shell must advance for the 
 assert.match(worker, /\/assets\/danzstak-score-pattern\.svg/, "the installed PWA must cache the musical-score surface artwork");
 
 console.log("SYNC thread-style checks passed: branded music canvas, readable paired bubbles, speaker grouping, phone fit, and PWA refresh.");
+// Owner 2026-11-18 "icons behind text": reactions hang below the bubble (never over the time); the jump button is compact.
+{
+  const shell = require("node:fs").readFileSync("assets/sync-shell.css", "utf8");
+  require("node:assert/strict").match(shell, /\.message:has\(> \.message-reaction\)\{margin-bottom:20px!important\}/, "a reacted message leaves room for its reaction");
+  require("node:assert/strict").match(shell, /\.message-reaction\{bottom:-18px!important/, "reaction sits below the bubble, clear of the time");
+  require("node:assert/strict").match(shell, /\.sync-jump-latest\{width:38px!important;height:38px!important/, "compact jump button");
+}

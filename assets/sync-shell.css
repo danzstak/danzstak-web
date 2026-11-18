@@ -60,3 +60,9 @@ body.messages-page .message-meta{display:flex;justify-content:flex-end;align-ite
 /* Owner 2026-11-18: on Contacts/Calls the chat preview and the section line ran together ("Click the speakerOpen contact"). Show only the section line. */
 .conversation-row:is([data-sync-section="contacts"],[data-sync-section="calls"]) .conversation-user .conversation-copy small{font-size:0!important}
 .conversation-row:is([data-sync-section="contacts"],[data-sync-section="calls"]) .conversation-user .conversation-copy small::after{font-size:.8rem!important}
+/* Owner 2026-11-18 "icons behind text — needs to be cleaned up": reactions hang below the bubble instead of covering the time,
+   and the jump-to-latest button is smaller and sits clear of the bubbles' text column. */
+#messageList .message:has(> .message-reaction),.message-list .message:has(> .message-reaction){margin-bottom:20px!important}
+.message-reaction{bottom:-18px!important;right:10px!important;line-height:18px;box-shadow:0 1px 3px #17203322}
+.sync-jump-latest{width:38px!important;height:38px!important;right:10px!important;background:#ffffffe6!important;box-shadow:0 1px 6px #17203333!important}
+.sync-jump-latest::before{content:"";position:absolute;inset:-3px}
