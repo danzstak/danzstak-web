@@ -309,7 +309,7 @@ function fakeDb() {
   const index = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8");
   assert.match(index, /const aiBlock = await \(await aiEpkHandler\(\)\)\.publishBlock\(userId\);\r?\n    if \(aiBlock\) return reply\(409, aiBlock\);/);
   assert.match(index, /"danzstak\/ai\/anthropic-key"/);
-  assert.match(index, /aiEpkReady: async userId => \(await aiEpkHandler\(\)\)\.checkoutReady\(userId\)/);
+  assert.match(index, /aiEpkReady: async \(userId, kind\) => \(await aiEpkHandler\(\)\)\.checkoutReady\(userId, kind\)/);
   assert.match(index, /"\/tour-manager\/ai-epk\/checkout", "\/tour-manager\/refunds\/quote"/);
   for (const route of ["GET /epk/ai", "POST /epk/ai/identify", "POST /epk/ai/confirm", "POST /epk/ai/build", "POST /epk/ai/step", "POST /epk/ai/review", "POST /tour-manager/ai-epk/checkout"]) assert.ok(deploy.includes(`"${route}"`), route);
   assert.ok(!/sk-ant-[A-Za-z0-9]{20,}/.test(index + fs.readFileSync("infrastructure/auth-api/ai-epk.mjs", "utf8")), "no key in the code");
