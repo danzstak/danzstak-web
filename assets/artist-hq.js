@@ -49,7 +49,7 @@
     return /^[a-zA-Z0-9_-]{16,100}$/.test(id) ? `messages.html?section=bookings&outreach=${encodeURIComponent(id)}` : "messages.html?section=bookings";
   }
   // Music HQ dashboard (fix-it 18, owner 2026-11-17): not a long column of "0" counters with a sentence each. One
-  // primary action, then small tappable tiles in a 2-column grid (each opens its screen, label on one line), then Pivot.
+  // primary action, then small tappable tiles in a 2-column grid (each opens its screen, label on one line). No Pivot card here (owner 2026-11-18).
   const tr = value => window.danzstakTranslate?.(value) || value;
   function tile(label, value, href, { name = "", hot = false } = {}) {
     const link = node("a", "", `artist-hq-tile${hot ? " is-hot" : ""}`);
@@ -67,15 +67,6 @@
       return /^confirmed$/i.test(String(booking.status || "")) && date >= today;
     }).length;
   }
-  function pivotCard() {
-    const card = node("section", "", "artist-hq-pivot");
-    const copy = node("div", "", "artist-hq-pivot-copy");
-    copy.append(node("strong", tr("Pivot off those platforms")), node("span", tr("Bring your posts, photos and people over. Export or delete any time.")));
-    const go = node("button", tr("Pivot"), "artist-hq-action primary");
-    go.type = "button"; go.setAttribute("data-pivot-trigger", "");
-    card.append(copy, go);
-    return card;
-  }
   async function render(root, description, isCurrent = () => true) {
     root.classList.add("artist-hq-workspace");
     description.textContent = ""; // fix-it 18: no explanatory sub-line under the title
@@ -86,7 +77,7 @@
     // Music HQ = EPK, Booking Agent, Record shops (+ Radio stations once that directory exists): one row of shortcuts.
     const tools = node("nav", "", "artist-hq-tools"); tools.setAttribute("aria-label", tr("Music HQ tools"));
     for (const [label, href] of [["EPK", "epk.html"], ["Booking Agent", "booking.html"], ["Record shops", "record-stores.html"]]) { const link = node("a", tr(label), "artist-hq-tool"); link.href = href; tools.append(link); }
-    root.append(primary, grid, tools, pivotCard());
+    root.append(primary, grid, tools); // owner 2026-11-18: no Pivot card on Music HQ (Pivot lives in Menu)
     const [epkResult, outreachResult, bookingResult, creditsResult] = await Promise.allSettled([get("/epk"), get("/tour-manager/outreach"), get("/booking-pipeline"), get("/tour-manager/credits")]);
     if (!isCurrent()) return;
     // One primary action: build the EPK, publish the draft, or send a pitch.
