@@ -79,8 +79,10 @@
   window.danzstakPushState = state;
   window.danzstakEnablePush = enable;
 
-  async function renewExistingSubscription(force = false) {
+  let relinkRequested = false; // 5a00: the device just registered, so save the subscription again even if synced
+  async function renewExistingSubscription() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window) || Notification.permission !== "granted") return;
+    const force = relinkRequested; relinkRequested = false;
     try {
       if (!force && sessionStorage.getItem("danzstak_push_synced") === "1") return;
     } catch (_) {}
@@ -155,8 +157,9 @@
   addEventListener('danzstak:message-drawer', syncPromptDrawerVisibility);
   addEventListener('danzstak:notification-drawer', syncPromptDrawerVisibility);
   setTimeout(renewExistingSubscription, 2000);
-  addEventListener("danzstak:call-device-registered", () => renewExistingSubscription(true));
-  addEventListener("danzstak:call-device-ready", event => { if (event.detail?.registered === true && !linked()) renewExistingSubscription(true); });
+  const relink = () => { relinkRequested = true; return renewExistingSubscription(); };
+  addEventListener("danzstak:call-device-registered", relink);
+  addEventListener("danzstak:call-device-ready", event => { if (event.detail?.registered === true && !linked()) relink(); });
   window.danzstakPushLinked = linked;
   setTimeout(showPermissionPrompt, 12000);
 

@@ -278,9 +278,11 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   }
 
   // ---------- 8. Server: cancel push, reason, test call push; inline code still parses ----------
-  assert.match(template, /async function notifyCallResolved\(recipientEmail,callId,answeredByDeviceId,reason=answeredByDeviceId\?'answered':'declined'\)\{[^\n]*\{type:'call-resolved',tag:`call-\$\{callId\}`,callId,reason\}/);
+  assert.ok(template.includes("async function notifyCallResolved(recipientEmail,callId,answeredByDeviceId){const targets=await callPushTargets(recipientEmail,answeredByDeviceId)"), "signature pinned by test-infrastructure.ps1");
+  assert.match(template, /\{type:'call-resolved',tag:`call-\$\{callId\}`,callId,reason:answeredByDeviceId\?'answered':'declined'\}/);
+  assert.match(template, /async function notifyCallCancelled\(recipientEmail,callId\)\{const targets=await callPushTargets\(recipientEmail\);[^\n]*reason:'cancelled'/);
   assert.match(template, /async function unansweredOffer\(recipientEmail,senderEmail,callId\)\{[^\n]*FilterExpression:'expiresAt > :n AND callId = :c AND signalType = :o AND senderEmail = :s'/);
-  assert.match(template, /if\(signalType==='hangup'&&\['phone','video'\]\.includes\(mode\)&&await unansweredOffer\(recipientEmail,user\.email,callId\)\.catch\(\(\)=>false\)\)await notifyCallResolved\(recipientEmail,callId,'','cancelled'\)/, "a caller who hangs up before an answer stops the callee's lock-screen ring");
+  assert.match(template, /if\(signalType==='hangup'&&\['phone','video'\]\.includes\(mode\)&&await unansweredOffer\(recipientEmail,user\.email,callId\)\.catch\(\(\)=>false\)\)await notifyCallCancelled\(recipientEmail,callId\)/, "a caller who hangs up before an answer stops the callee's lock-screen ring");
   assert.match(template, /if\(body\.kind==='call'\)\{const device=deviceId\?await authenticatedCallingDevice\(event,user,\{allowDisabled:true\}\):null,mine=device\?items\.filter\(item=>item\.deviceId\?\.S===deviceId\):\[\]/, "the test call goes to this registered phone only");
   assert.match(template, /\{type:'call',test:true,\.\.\.copy,tag:'call-test',url:'\/messages\.html'\}/);
   {
@@ -292,7 +294,8 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   }
 
   // ---------- 9. Push re-link the moment the phone registers ----------
-  assert.match(push, /addEventListener\("danzstak:call-device-registered", \(\) => renewExistingSubscription\(true\)\);/);
+  assert.ok(push.includes("async function renewExistingSubscription()"), "signature pinned by test-site.ps1");
+  assert.match(push, /const relink = \(\) => \{ relinkRequested = true; return renewExistingSubscription\(\); \};\r?\n  addEventListener\("danzstak:call-device-registered", relink\);/);
   assert.match(push, /if \(!force && sessionStorage\.getItem\("danzstak_push_synced"\) === "1"\) return;/);
   assert.match(push, /sessionStorage\.setItem\("danzstak_push_linked", saved\?\.callingDeviceLinked \? "1" : "0"\)/);
 
