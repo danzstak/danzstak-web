@@ -102,7 +102,7 @@ async function checkSession() {
     }
 
     if (response.status === 401) {
-      showSession(false, issue || "Not signed in. Click Log In or Sign Up.");
+      showSession(false, issue || ""); // signed out: the landing page opens at the top, no status box (owner 2026-11-18)
       return;
     }
 
