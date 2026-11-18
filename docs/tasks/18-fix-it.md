@@ -57,8 +57,8 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 - [ ] Empty state is three lines of text on a grey page. One line plus a "+ Sell something" action.
 
 **SYNC list**
-- [ ] Five large round buttons in the header (share, video, call, bell, compose). WhatsApp pattern: title, search, a single ⋮ menu; new chat is a floating button bottom-right; calls live in the Calls tab.
-- [ ] Empty state sits in a framed box of music staves; drop the box, centre a short line and a "Start a chat" action.
+- [x] (PR #494, fa3b1850) Five large round buttons in the header (share, video, call, bell, compose). WhatsApp pattern: title, search, a single ⋮ menu; new chat is a floating button bottom-right; calls live in the Calls tab.
+- [x] (PR #562) Empty state sits in a framed box of music staves; drop the box, centre a short line and a "Start a chat" action.
 
 **Menu**
 - [ ] The menu is a long side drawer list. Use the familiar full-screen menu: profile row on top, a 2-column grid of shortcut tiles (Friends, Tribes, Photos, Videos, EPK, Booking Agent, Tour Manager, Record shops, Radio, Events, Bazaar, Saved), then Settings, Your data, Help, Log out.
@@ -108,7 +108,7 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
 - [x] (hotfix #495) The new top bar hid `.topnav` on phones — that is the phone bottom tab bar, so Mix had no Mix · Music HQ · Events · Bazaar · SYNC · Menu. Fixed; `test-phone-bottom-tabs.cjs` guards it. **Lesson: a browser check at phone width must assert the bottom tabs are visible on every main page.** Add that to the browser checks.
 - [ ] Profile still shows the Privacy Policy · Terms of Service footer above the bottom tabs (the no-footer rule from #473 didn't reach profile.html).
 - [ ] Profile top bar still has the unexplained white down-arrow (install prompt) next to search. Remove it everywhere; install lives in Menu.
-- [ ] SYNC chat list: the music-staff wallpaper is drawn as a box in the middle of the screen under the last chat. Either fill the whole list background edge to edge or show none on the list (wallpaper belongs in threads).
+- [x] (PR #562) SYNC chat list: the music-staff wallpaper is drawn as a box in the middle of the screen under the last chat. Either fill the whole list background edge to edge or show none on the list (wallpaper belongs in threads).
 - [ ] SYNC chat list shows "Loading saved chats…" for ~8 s on a warm load. Show the cached list instantly and refresh in the background.
 - [ ] Every page loads ~70 separate scripts and stylesheets. Plan a bundle step (one JS + one CSS per page, versioned) so phones on mobile data open faster. Plan first, no big-bang rewrite.
 
