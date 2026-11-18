@@ -18,7 +18,7 @@ Owner, from phone screenshots of booking-selections.html:
 - Remove the "Your act, ready to pitch" form (act name, genres, hometown, public EPK link, short pitch). The pitch is built from the published EPK; the artist edits the **email text** in the preview before sending (one editable message box per venue, prefilled from the EPK pitch).
 - "Finish your EPK to start booking" card: keep it short (progress + "Open the EPK builder"), drop the "$5 with AI" line here — AI is sold in the EPK builder.
 - Remove "Tour dates, crew and expense estimate" from booking; that is the Tour Manager.
-- Credits/packs: one clear "Credits: 7 · Get more" bar at the top of the selected-clubs screen; buying opens the purchase pop-up (task 12 fees). Sending a pitch reserves a credit.
+- Credits/packs: a small credit count only; the purchase pop-up (task 12 fees) opens when credits are low (2 or fewer) or when Send needs one the artist doesn't have. Sending a pitch reserves a credit.
 - Once at least one pitch is sent, show **"Plan the tour →"** (opens the Tour Manager with these clubs).
 
 ## Booking Agent: line the dates up as a tour (owner 2026-11-18)
@@ -45,5 +45,9 @@ Booking never asks for anything the EPK has; AI is only in the EPK builder; cred
 ## On the road: "where are we?" (owner 2026-11-18)
 A **Today** card on Music HQ while a tour is live: a small map with where the band is now, tonight's venue, load-in time, the drive to tomorrow's show (hours, miles, fuel stop), tonight's hotel and the weather along tomorrow's drive. No digging through screens to find out where you are.
 
-## No paywall in the Tour Manager (owner 2026-11-18)
+## Where paying happens (owner 2026-11-18)
+- **EPK builder:** the price appears only when the artist chooses **AI-assisted**. Building by hand never shows a price.
+- **Booking Agent:** the purchase prompt appears only when credits run low (or run out at Send). No standing paywall, banner or upsell on the selected-clubs screen; a small credit count is fine.
+- **Tour Manager:** never.
+
 Everything paid is settled before the Tour Manager: AI EPK in the EPK builder; booking-email credits, packs and add-ons (including the **Tour Itinerary**, which the Tour Pack already includes) in Booking. The Tour Manager never shows prices, "Buy", "Unlock" or credit counts. If the artist reaches it without the Tour Itinerary add-on, Booking offers it at the point where the first pitches go out ("Plan the tour →" step), not inside the Tour Manager. Remove any purchase prompt that is there today and add a test that the Tour Manager pages contain no checkout calls.
