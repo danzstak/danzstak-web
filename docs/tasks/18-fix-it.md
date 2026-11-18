@@ -15,12 +15,12 @@ Rules for every fix: one fluid page instead of stacked boxes, no two-line labels
 
 Goal in the owner's words: a profile should feel "like looking in the mirror". The member's own cover, face, photos and videos fill the screen; DanzStak chrome, empty background and buttons get out of the way.
 
-- [ ] Remove every big text button on the profile: "Add to the Mix", "View on Reels"/"View in The Roll" and the like. Content already in context needs no button; any remaining action is a slim icon button with an accessible name.
-- [ ] The Dailies image/video strip stretches full width, edge to edge, sitting directly under the profile header and directly above the posts: no side margins, no box, no gap above or below.
-- [ ] Fill the pixels: the profile reads as one continuous wall (like a familiar social profile wall), not cards floating on background. Posts edge to edge with hairline dividers, media full width, no grey gaps or padding bands (see CLAUDE.md "Mobile profile posts").
-- [ ] Profile tabs/menu look janky: one tidy scrollable row (Posts · About · Friends · Photos · Videos, + Shop), single-line labels, a clear active underline, aligned with the header, no wrapping or stacked boxes. Same component for member and official DanzStak profiles.
-- [ ] Profile navigation works the way Facebook members already know (familiar pattern, DanzStak look, no copied assets): a slim top bar with back arrow, the member's name and search; cover, overlapping round avatar, name and a short line; one compact row of actions (Add friend / Message / more); then the scrollable tab row; then the composer and the wall.
-- [ ] Photos and videos size and play like a Facebook feed: full card width edge to edge, original aspect kept and never stretched; landscape and square shown whole; portrait shown up to 4:5 (taller is cropped to 4:5 in the feed and shown whole when tapped); multi-photo posts use a tidy grid with "+N" on the last tile. Video autoplays muted when at least 50% visible, stops when it scrolls out, one at a time, mute toggle bottom-right, tap opens full screen (see CLAUDE.md "Video and The Roll"). Same rules in Mix, The Roll and profiles.
+- [x] (PR #425) Remove every big text button on the profile: "Add to the Mix", "View on Reels"/"View in The Roll" and the like. Content already in context needs no button; any remaining action is a slim icon button with an accessible name.
+- [x] (PR #427) The Dailies image/video strip stretches full width, edge to edge, sitting directly under the profile header and directly above the posts: no side margins, no box, no gap above or below.
+- [x] (PR #427) Fill the pixels: the profile reads as one continuous wall (like a familiar social profile wall), not cards floating on background. Posts edge to edge with hairline dividers, media full width, no grey gaps or padding bands (see CLAUDE.md "Mobile profile posts").
+- [x] (PR #429) Profile tabs/menu look janky: one tidy scrollable row (Posts · About · Friends · Photos · Videos, + Shop), single-line labels, a clear active underline, aligned with the header, no wrapping or stacked boxes. Same component for member and official DanzStak profiles.
+- [x] (PR #429) Profile navigation works the way Facebook members already know (familiar pattern, DanzStak look, no copied assets): a slim top bar with back arrow, the member's name and search; cover, overlapping round avatar, name and a short line; one compact row of actions (Add friend / Message / more); then the scrollable tab row; then the composer and the wall.
+- [x] (PR #432) Photos and videos size and play like a Facebook feed: full card width edge to edge, original aspect kept and never stretched; landscape and square shown whole; portrait shown up to 4:5 (taller is cropped to 4:5 in the feed and shown whole when tapped); multi-photo posts use a tidy grid with "+N" on the last tile. Video autoplays muted when at least 50% visible, stops when it scrolls out, one at a time, mute toggle bottom-right, tap opens full screen (see CLAUDE.md "Video and The Roll"). Same rules in Mix, The Roll and profiles.
 
 ## From the walkthrough (owner's Claude adds below)
 
@@ -36,8 +36,8 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 
 **Profile** (see the section above, plus)
 - [x] (PR #427) The cover has thin side margins; it must touch both screen edges.
-- [ ] The placeholder bio line "Add a short bio so people know more about you." is instructional copy: show nothing to visitors, and a small "+ bio" icon only to the owner.
-- [ ] An empty profile wall shows nothing under the composer; show a friendly one-line empty state ("No posts yet") and the member's Dailies/photos if any.
+- [x] (PR #478) The placeholder bio line "Add a short bio so people know more about you." is instructional copy: show nothing to visitors, and a small "+ bio" icon only to the owner.
+- [x] (PR #478) An empty profile wall shows nothing under the composer; show a friendly one-line empty state ("No posts yet") and the member's Dailies/photos if any.
 
 **Mix**
 - [ ] The Dailies tile is a single half-width tile with empty space beside it; it should be a horizontal strip filling the full width (own tile first, then friends'), and "TAKE 0" should read TAKE 1 at minimum once a member has uploaded, or hide the take until the first upload.

@@ -88,7 +88,7 @@
   connect();
  }
  const dataSaverEnabled=()=>document.documentElement?.classList?.contains('data-saver')||(()=>{try{return localStorage.getItem('danzstak_data_saver')==='1';}catch{return false;}})();
- const isFeedVideo=video=>video?.matches?.('video.post-media');
+ const isFeedVideo=video=>video?.matches?.('video.post-media,video.profile-post-media'); // fix-it 18: profiles autoplay like Mix
  function prepareVideoPreview(video){
   video.playsInline=true;
   const setLayout=()=>{
@@ -165,6 +165,8 @@
   if(isYouTubeFrame(candidate)){controlYouTube(candidate,'playVideo');return;}
   if(candidate.tagName==='VIDEO')candidate.play().catch(()=>{
    if(audibleMedia===candidate){audibleMedia=null;if(inSession(candidate))sessionSound=false;else feedSound=false;applySoundPreference();candidate.play().catch(()=>{});globalThis.dispatchEvent?.(new CustomEvent('danzstak:media-sound-blocked',{detail:{media:candidate}}));}
+   // Fix-it 18: a play() interrupted by a reload/pause (AbortError) used to leave the chosen video stuck paused. Retry once while it is still the visible choice.
+   else setTimeout(()=>{if(activeMedia===candidate&&candidate.paused&&!document.hidden&&(ratios.get(candidate)||0)>=0.5)candidate.play().catch(()=>{});},250);
   });
  }
  function reconcilePlayback(){
