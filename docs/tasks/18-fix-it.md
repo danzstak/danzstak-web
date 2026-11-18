@@ -53,8 +53,8 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 - [ ] The full "Post an event" form is printed on the Events page with a browser-default "Choose File" button and a US-only `mm/dd/yyyy` date field. Events shows the list of shows; a + button opens the composer as its own screen with a styled flyer/video picker and the date in the member's locale.
 
 **Bazaar**
-- [ ] Two search boxes (top bar and body). Keep one. Use the shared top bar; "Bazaar / My Shop" become tabs under it.
-- [ ] Empty state is three lines of text on a grey page. One line plus a "+ Sell something" action.
+- [x] (PR #496) Two search boxes (top bar and body). Keep one. Use the shared top bar; "Bazaar / My Shop" become tabs under it.
+- [x] (PR #496) Empty state is three lines of text on a grey page. One line plus a "+ Sell something" action.
 
 **SYNC list**
 - [ ] Five large round buttons in the header (share, video, call, bell, compose). WhatsApp pattern: title, search, a single ⋮ menu; new chat is a floating button bottom-right; calls live in the Calls tab.
