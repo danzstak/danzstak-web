@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="assets/icon-buttons.css?v=5">
   <link rel="stylesheet" href="assets/store.css?v=5">
   <link rel="stylesheet" href="assets/pivot.css?v=3">
-  <link rel="stylesheet" href="assets/moving-day.css?v=1">
+  <link rel="stylesheet" href="assets/moving-day.css?v=2">
 <link rel="stylesheet" href="assets/top-search.css?v=1">
 <link rel="stylesheet" href="assets/app-bar.css?v=2">
 </head>
@@ -67,11 +67,13 @@
     <section id="stepPrice" class="moving-step" aria-labelledby="priceTitle" hidden>
       <h2 id="priceTitle"><span class="step-number">4</span>Prices and shipping</h2>
       <div class="moving-grid">
+        <label id="priceAllRow" class="moving-price-all" hidden>Set a price for all picked items (USD)<input id="priceAll" inputmode="decimal" autocomplete="off" placeholder="e.g. 15.00"><small>For items your file has no price for, like a Discogs collection export. A price typed on a row wins. Nothing without a price moves.</small></label>
         <label>Change every price by (%)<input id="priceAdjust" type="number" inputmode="decimal" step="1" min="-90" max="500" value="0"></label>
         <label>Shipping per item (USD)<input id="shippingAll" inputmode="decimal" placeholder="Keep from file"></label>
         <label>Status<select id="moveStatus"><option value="draft">Drafts (check them, then publish)</option><option value="published">Publish straight away</option></select></label>
       </div>
       <p class="moving-note">Prices on DanzStak are in US dollars. If your export is in euros or pounds, use the % change to convert. Shipping can't be more than the item price.</p>
+      <p class="moving-note"><a href="shop-example.html?shop=record">See how a finished record shop looks</a></p>
     </section>
 
     <section id="stepMove" class="moving-step" aria-labelledby="moveTitle" hidden>
@@ -91,8 +93,8 @@
     <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1"></a>
   </nav>
   <script src="assets/icon-buttons.js?v=14" defer></script>
-  <script src="assets/moving-day-parse.js?v=1" defer></script>
-  <script src="assets/moving-day.js?v=2" defer></script>
+  <script src="assets/moving-day-parse.js?v=2" defer></script>
+  <script src="assets/moving-day.js?v=3" defer></script>
 <script src="assets/people-search.js?v=424" defer></script>
 <script src="assets/top-search.js?v=1" defer></script>
 <script src="assets/app-bar.js?v=1" defer></script>
