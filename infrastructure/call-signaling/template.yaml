@@ -368,6 +368,40 @@ Resources:
           KeyType: RANGE
       SSESpecification:
         SSEEnabled: true
+  CallInvitesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Answer to join (owner 2026-11-18). A member sends a one-time call invite link to someone who is not a member yet; answering it creates their account, verifies their device by SMS and connects them to the caller.
+        must: [Store only a SHA-256 hash of the invite token., Never store or return phone numbers., Keep the 7-day TTL so old invites disappear.]
+    Properties:
+      TableName: DanzStak-CallInvites
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: inviteId
+          AttributeType: S
+        - AttributeName: callerEmail
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: N
+      KeySchema:
+        - AttributeName: inviteId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ByCaller
+          KeySchema:
+            - AttributeName: callerEmail
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection: {ProjectionType: ALL}
+      TimeToLiveSpecification:
+        AttributeName: purgeAt
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
   PlansTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -521,6 +555,11 @@ Resources:
               - Effect: Allow
                 Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query]
                 Resource:
+                  - !GetAtt CallInvitesTable.Arn
+                  - !Sub '${CallInvitesTable.Arn}/index/*'
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query]
+                Resource:
                   - !GetAtt PlansTable.Arn
                   - !Sub '${PlansTable.Arn}/index/*'
               - Effect: Allow
@@ -593,6 +632,7 @@ Resources:
           ENGAGEMENT_NOTIFICATIONS_TABLE: DANZSTAK-EngagementNotifications
           POSTS_TABLE: !Ref PostsTable
           PROFILE_NAMES_TABLE: !Ref ProfileNamesTable
+          CALL_INVITES_TABLE: !Ref CallInvitesTable
           STORIES_TABLE: !Ref StoriesTable
           MEDIA_BUCKET: !Ref MediaBucket
           SESSIONS_TABLE: !Ref SessionsTable
@@ -877,6 +917,36 @@ Resources:
               return json(404,{error:'Not found'});
             }catch(error){console.error(error);return json(500,{error:'Service unavailable'});}
           };
+          // Answer to join (owner 2026-11-18): one-time call invite links for people who are not members yet.
+          const plansHandler=exports.handler;
+          const inviteTokenHash=token=>createHash('sha256').update('call-invite:'+token).digest('hex');
+          const validInviteToken=token=>/^[A-Za-z0-9_-]{43}$/.test(String(token||''));
+          const INVITE_RING_SECONDS=86400,INVITE_KEEP_SECONDS=604800,INVITES_PER_DAY=20,OPEN_INVITES=10;
+          const inviteGone=()=>json(404,{error:'This call invite has ended. Ask your friend to send a new one.',code:'CALL_INVITE_GONE'});
+          const inviteOpen=item=>item?.status?.S==='open'&&Number(item.expiresAt?.N||0)>now();
+          const isoAt=seconds=>new Date(Number(seconds||0)*1000).toISOString();
+          async function readInvite(token){if(!validInviteToken(token))return null;const found=await db.send(new GetItemCommand({TableName:process.env.CALL_INVITES_TABLE,Key:{inviteId:{S:inviteTokenHash(token)}},ConsistentRead:true}));const item=found.Item;return item&&Number(item.purgeAt?.N||0)>now()?item:null;}
+          async function callerInvites(user,sinceSeconds){return queryAll({TableName:process.env.CALL_INVITES_TABLE,IndexName:'ByCaller',KeyConditionExpression:'callerEmail = :c AND createdAt >= :since',ExpressionAttributeValues:{':c':{S:user.email},':since':{N:String(now()-sinceSeconds)}}},200);}
+          async function createCallInvite(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const kind=body.kind==='video'?'video':'audio';if(!(await authenticatedCallingDevice(event,user)))return json(403,{error:'Register this device to invite someone to a call.',code:'CALL_DEVICE_REGISTRATION_REQUIRED'});const recent=await callerInvites(user,86400);if(recent.length>=INVITES_PER_DAY)return json(429,{error:'You sent 20 call invites today. Try again tomorrow.',code:'CALL_INVITE_DAILY_LIMIT'});if(recent.filter(inviteOpen).length>=OPEN_INVITES)return json(429,{error:'You already have 10 open call invites. Cancel one first.',code:'CALL_INVITE_OPEN_LIMIT'});const token=randomBytes(32).toString('base64url'),created=now(),inviteId=inviteTokenHash(token);await db.send(new PutItemCommand({TableName:process.env.CALL_INVITES_TABLE,Item:{inviteId:{S:inviteId},callerEmail:{S:user.email},callerId:{S:user.userId},kind:{S:kind},status:{S:'open'},createdAt:{N:String(created)},expiresAt:{N:String(created+INVITE_RING_SECONDS)},purgeAt:{N:String(created+INVITE_KEEP_SECONDS)}},ConditionExpression:'attribute_not_exists(inviteId)'}));return json(201,{inviteId,kind,url:'https://danzstak.com/answer.html?i='+token,expiresAt:isoAt(created+INVITE_RING_SECONDS)});}
+          async function listCallInvites(user){const items=(await callerInvites(user,INVITE_RING_SECONDS)).sort((a,b)=>Number(b.createdAt?.N||0)-Number(a.createdAt?.N||0));const invites=await Promise.all(items.map(async item=>{const raw=item.status?.S||'open',status=raw==='open'&&!inviteOpen(item)?'expired':raw;let joined=null;if(raw==='redeemed'&&item.redeemedByEmail?.S){const profile=await publicProfile(item.redeemedByEmail.S);joined={memberId:item.redeemedById?.S||'',name:profile.name,picture:profile.picture||''};}return {inviteId:item.inviteId.S,kind:item.kind?.S||'audio',status,createdAt:isoAt(item.createdAt?.N),expiresAt:isoAt(item.expiresAt?.N),joined};}));return json(200,{invites});}
+          async function cancelCallInvite(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const inviteId=String(body.inviteId||'');if(!/^[a-f0-9]{64}$/.test(inviteId))return json(400,{error:'Invite required'});try{await db.send(new UpdateItemCommand({TableName:process.env.CALL_INVITES_TABLE,Key:{inviteId:{S:inviteId}},UpdateExpression:'SET #s = :cancelled, cancelledAt = :t',ConditionExpression:'callerEmail = :me AND #s = :open',ExpressionAttributeNames:{'#s':'status'},ExpressionAttributeValues:{':cancelled':{S:'cancelled'},':t':{N:String(now())},':me':{S:user.email},':open':{S:'open'}}}));}catch(error){if(error.name!=='ConditionalCheckFailedException')throw error;return json(404,{error:'Open invite not found'});}return json(200,{cancelled:true});}
+          async function previewCallInvite(event){const item=await readInvite(event.queryStringParameters?.i);if(!inviteOpen(item))return inviteGone();const profile=await publicProfile(item.callerEmail.S);return json(200,{caller:{name:profile.name,picture:profile.picture||''},kind:item.kind?.S||'audio',expiresAt:isoAt(item.expiresAt?.N)});}
+          async function notifyInviteJoined(callerEmail,user){const [items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:callerEmail}}}),publicProfile(user.email)]);const url=/^[a-f0-9-]{36}$/.test(user.userId)?'/messages.html?member='+encodeURIComponent(user.userId):'/messages.html';await Promise.all(items.map(item=>deliverPush(callerEmail,JSON.parse(item.subscription.S),{type:'message',title:profile.name+' joined DanzStak',body:'They answered your call invite. They will call you as soon as their phone is verified.',tag:'call-invite-'+createHash('sha256').update(user.email).digest('hex').slice(0,16),url},item.endpointHash.S)));}
+          async function redeemCallInvite(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const item=await readInvite(String(body.token||''));if(!item)return inviteGone();const caller=item.callerEmail.S,status=item.status?.S;if(caller===user.email)return json(400,{error:'This is your own call invite.',code:'CALL_INVITE_OWN'});if(status==='cancelled')return json(410,{error:'Your friend cancelled this call invite.',code:'CALL_INVITE_CANCELLED'});if(status==='redeemed'&&item.redeemedByEmail?.S!==user.email)return inviteGone();const [mine,theirs]=await relationshipPair(user.email,caller);if(blockedStatus(mine.Item?.status?.S)||blockedStatus(theirs.Item?.status?.S))return inviteGone();if(status==='open'){try{await db.send(new UpdateItemCommand({TableName:process.env.CALL_INVITES_TABLE,Key:{inviteId:item.inviteId},UpdateExpression:'SET #s = :redeemed, redeemedByEmail = :e, redeemedById = :id, redeemedAt = :t',ConditionExpression:'#s = :open',ExpressionAttributeNames:{'#s':'status'},ExpressionAttributeValues:{':redeemed':{S:'redeemed'},':e':{S:user.email},':id':{S:user.userId},':t':{N:String(now())},':open':{S:'open'}}}));}catch(error){if(error.name!=='ConditionalCheckFailedException')throw error;return inviteGone();}}if(mine.Item?.status?.S!=='friends'||theirs.Item?.status?.S!=='friends'){const createdAt=new Date().toISOString();await Promise.all([db.send(new PutItemCommand({TableName:process.env.FRIENDS_TABLE,Item:{userEmail:{S:user.email},friendEmail:{S:caller},status:{S:'friends'},createdAt:{S:createdAt},source:{S:'call-invite'}}})),db.send(new PutItemCommand({TableName:process.env.FRIENDS_TABLE,Item:{userEmail:{S:caller},friendEmail:{S:user.email},status:{S:'friends'},createdAt:{S:createdAt},source:{S:'call-invite'}}}))]);}if(status==='open')await notifyInviteJoined(caller,user).catch(error=>console.error('Call invite push failed',error?.name||'Error'));const profile=await publicProfile(caller);return json(200,{caller:{memberId:item.callerId?.S||'',name:profile.name,picture:profile.picture||''},kind:item.kind?.S||'audio',live:Number(item.expiresAt?.N||0)>now()});}
+          exports.handler=async event=>{
+            const path=String(event.rawPath||'');if(!path.startsWith('/calls/invites'))return plansHandler(event);
+            try{
+              const method=event.requestContext?.http?.method,origin=event.headers?.origin||event.headers?.Origin||'';
+              if(['POST','DELETE'].includes(method)&&!['https://danzstak.com','https://www.danzstak.com','https://review.danzstak.com'].includes(origin))return json(403,{error:'Forbidden origin'});
+              if(method==='GET'&&path==='/calls/invites/preview')return await previewCallInvite(event);
+              const user=await identity(event);if(!user)return json(401,{error:'Authentication required'});
+              if(method==='POST'&&path==='/calls/invites')return await createCallInvite(event,user);
+              if(method==='GET'&&path==='/calls/invites')return await listCallInvites(user);
+              if(method==='DELETE'&&path==='/calls/invites')return await cancelCallInvite(event,user);
+              if(method==='POST'&&path==='/calls/invites/redeem')return await redeemCallInvite(event,user);
+              return json(404,{error:'Not found'});
+            }catch(error){console.error(error);return json(500,{error:'Service unavailable'});}
+          };
   ActivityPushStreamMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
@@ -970,6 +1040,11 @@ Resources:
       IntegrationUri: !GetAtt SignalingFunction.Arn
       PayloadFormatVersion: '2.0'
       TimeoutInMillis: 10000
+  CallInviteCreateRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: POST /calls/invites, Target: !Sub 'integrations/${SignalingIntegration}'}}
+  CallInviteListRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: GET /calls/invites, Target: !Sub 'integrations/${SignalingIntegration}'}}
+  CallInviteCancelRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: DELETE /calls/invites, Target: !Sub 'integrations/${SignalingIntegration}'}}
+  CallInvitePreviewRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: GET /calls/invites/preview, Target: !Sub 'integrations/${SignalingIntegration}'}}
+  CallInviteRedeemRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: POST /calls/invites/redeem, Target: !Sub 'integrations/${SignalingIntegration}'}}
   SignalRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: POST /calls/signal, Target: !Sub 'integrations/${SignalingIntegration}'}}
   IceRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: GET /calls/ice, Target: !Sub 'integrations/${SignalingIntegration}'}}
   InboxRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: GET /calls/inbox, Target: !Sub 'integrations/${SignalingIntegration}'}}

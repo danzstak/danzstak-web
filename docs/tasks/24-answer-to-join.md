@@ -1,6 +1,6 @@
 # 24: Answer to join — SYNC call invites make the invitee a DanzStak member (owner, 2026-11-18)
 
-Read `CLAUDE.md` first ("SYNC", "Current SYNC security rule", "SYNC SMS provider decision", "Signup"). Build after the owner approves this plan. Payments are not involved.
+Read `CLAUDE.md` first ("SYNC", "Current SYNC security rule", "SYNC SMS provider decision", "Signup"). Approved by the owner 2026-11-18 with option A (email + password for now). Payments are not involved.
 
 ## Owner decisions (2026-11-18)
 
@@ -20,7 +20,7 @@ Today a member can only call another member who is a friend or shares a Tribe (`
 
 ### Invitee (not a member)
 1. **Open the link:** caller's name and avatar, one big **Answer** button, one line: "Answering joins you to DanzStak." Terms and Privacy links are visible here.
-2. **Tap Answer → create account** through the existing legal acceptance and hosted signup (`/auth/legal-acceptance`, `/auth/signup`). The invite token survives the round trip in a short-lived server record keyed by the auth `state`, never in localStorage.
+2. **Tick Terms/Privacy, tap Answer → create account** through the existing legal acceptance and hosted signup (`/auth/legal-acceptance`, `/auth/signup?next=…`). The return path is stored on the server's OAuth pending record and only `/messages.html?invite=<43-char token>` is accepted (no open redirect). Never in browser storage.
 3. **Name and @username** (the existing onboarding step, owner 2026-11-16), prefilled from the signup where possible.
 4. **Phone number → Text me a code → code** — the existing one-flow device registration (Twilio Verify, SMS only, language from `navigator.languages`). No skip here: the call needs a registered device. "Later — text only" is still offered and opens the chat with the caller.
 5. **Verified → the call connects.** The server redeems the invite, the caller's device rings (or connects at once if the caller is still on the waiting screen). Media starts only after this point.
@@ -34,12 +34,12 @@ Today a member can only call another member who is a friend or shares a Tribe (`
 ## Server rules
 
 - **Call invite record** (DynamoDB, call-signaling stack): token stored only as a SHA-256 hash; caller user id; created/expiry (**24 hours**); status `open → redeemed | cancelled | expired`; single use; at most **10 open invites per member** and **20 created per day**.
-- **Redeeming** requires: a signed-in account, a device that passed SMS OTP for that account, an open unexpired invite, the invitee is not the caller, and neither side has blocked the other. Redemption makes the two members **friends** (both directions — the caller invited them, and the invitee accepted by answering) so `canContact` passes, creates the conversation, and notifies the caller.
+- **Redeeming** requires: a signed-in account, an invite that is open (or past its 24-hour ring window but under 7 days old, which gives a missed call), the invitee is not the caller, and neither side has blocked the other. It does **not** require a verified device: signup and text chat never sit behind SMS (CLAUDE.md), and the call itself still needs the verified device. Redemption makes the two members **friends** (both directions — the caller invited them, and the invitee accepted by answering) so `canContact` passes, creates the conversation, and notifies the caller.
 - **Rate limits and abuse:** opening a link is anonymous and reveals only the caller's display name and avatar — never email, phone, username search results or any other member data. Wrong/expired tokens get one generic message. Log hashed ids only.
 - **No call media, signaling, ICE, camera or microphone before the device is verified** (existing rule).
 - **Phone numbers** stay private: the invite never contains or reveals the caller's or invitee's number.
 
-## Open question for the owner
+## Signup fields (owner chose A, 2026-11-18)
 
 DanzStak accounts are created through the hosted sign-in page with an **email and password**. That adds two fields to "name, number, code". Options:
 - **A (no auth change):** keep email + password on the hosted page for now. Ships soonest.

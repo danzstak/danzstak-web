@@ -85,7 +85,8 @@
       const profile = (await response.json()).profile || {};
       if (!needsName(profile)) return;
       await nameStep(profile);
-      deviceStep();
+      // Answer to join (owner 2026-11-18): a call invitee is walked through device verification by call-invite.js.
+      if (!/[?&](invite|invited)=/.test(location.search)) deviceStep();
     } catch { /* never block the page on a network error */ }
   }
   window.danzstakSignupOnboarding = { needsName, suggestHandle };
