@@ -351,6 +351,7 @@ Owner-session only (not Claude Code): deploy the Auth API for AI EPK (#567) and 
 Build order for Claude Code right now: **5a0 → 5a04 Tribe creation (design 29a) → 5a01 → 5a02 → 5a03 → 5a2 albums (finish #575) → 5a3 friends row (#572) → 5a1 viewer (#577) review fixes → 5a5 Bazaar in Mix → 5a6 shop skin → 5a7 Dailies carousel → 5a8 share sheet → 5a9 Tribes.**
 
 ### Builder log (newest first)
+- 2026-11-19 01:30 UTC · Claude (working through the night on the owner's word; hourly builder paused) · shipped tonight: #578 calls ring + louder rings + Call alerts fixed, #582 no built-in category Tribes, #584 Tribes home like Facebook Groups (art covers, pins, ⋯), #585 Text button in calls (5a0). Open from other sessions: #577 media viewer (5a1), #575 albums (5a2), #572 friends row (5a3), #567 AI EPK (needs Auth API deploy) · Next: 5a04 Tribe creation (design 29a), then 5a01 share-to-DanzStak, 5a02 auto-translate, 5a03 SYNC own app
 - 2026-11-19 00:45 UTC · Claude (planning chat) · owner asked for the full Facebook-style Tribe creation design → `docs/tasks/29a-tribe-creation-design.md` (flow, flowchart, schema, API); queued as 5a04, right after 5a0 · Next: 5a0
 - 2026-11-19 00:25 UTC · Claude (planning chat) · PR #582 merged (no built-in category Tribes); owner sent Facebook group-creation workflow → spec 29 "Creating a Tribe" · Next: 5a0
 - 2026-11-19 00:10 UTC · Claude (planning chat) · PR #578 merged (ringer, louder rings, Call alerts); owner screenshot: Tribes home like Facebook Groups → spec 29 "Tribes home" · Next: 5a0
