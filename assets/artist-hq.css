@@ -21,3 +21,4 @@
 .artist-hq-tools::-webkit-scrollbar{display:none}
 .artist-hq-tool{display:inline-flex;align-items:center;flex:0 0 auto;min-height:44px;padding:0 16px;border-radius:999px;background:rgba(239,108,32,.12);color:#9a3412;font-weight:700;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent}
 .artist-hq-tool:active{background:rgba(239,108,32,.22);transform:scale(.97)}
+.artist-hq-pivot .artist-hq-action,.artist-hq-tools .artist-hq-tool{width:auto!important}

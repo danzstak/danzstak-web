@@ -14,7 +14,7 @@ const worker = read("service-worker.js");
 assert.match(feed, /href="#hq" data-feature="HQ"/);
 assert.match(feed, /Music HQ/);
 assert.match(feed, /booking-selections\.html#tourManagerTitle/);
-assert.match(feed, /assets\/artist-hq\.css\?v=4/);
+assert.match(feed, /assets\/artist-hq\.css\?v=5/);
 assert.match(feed, /assets\/artist-hq\.js\?v=5/);
 assert.match(enhancements, /\["HQ", "Friends"/);
 assert.match(enhancements, /danzstakArtistHq\?\.render/);

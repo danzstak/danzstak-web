@@ -69,6 +69,8 @@ function fixture(pathname) {
       assert.equal(await page.locator(".artist-hq-primary .artist-hq-action").count(), 1, `${width}px HQ must have exactly one primary action`);
       assert.equal((await page.locator(".artist-hq-primary .artist-hq-action").textContent()).trim(), "Send a pitch", `${width}px a published EPK leads to sending a pitch`);
       assert.equal(await page.locator(".artist-hq-pivot [data-pivot-trigger]").count(), 1, `${width}px HQ is missing the Pivot card`);
+      const pivotFit = await page.evaluate(() => { const card = document.querySelector(".artist-hq-pivot").getBoundingClientRect(), copy = document.querySelector(".artist-hq-pivot-copy").getBoundingClientRect(), button = document.querySelector(".artist-hq-pivot [data-pivot-trigger]").getBoundingClientRect(); return { overlap: button.left < copy.right - 1 && button.top < copy.bottom - 1 && button.bottom > copy.top + 1, wide: button.width > card.width * .6 }; });
+      assert.ok(!pivotFit.overlap && !pivotFit.wide, `${width}px the Pivot button covers its own text: ${JSON.stringify(pivotFit)}`);
       const answer = page.getByRole("link", { name:"Answer venue", exact:true });
       const followUp = page.getByRole("link", { name:"Review follow-up", exact:true });
       assert.equal(await answer.getAttribute("href"), `messages.html?section=bookings&outreach=${waitingOutreachId}`, `${width}px HQ did not target the exact waiting booking thread`);
