@@ -15,7 +15,7 @@ assert.match(js, /history\.pushState\(\{ \.\.\.\(history\.state \|\| \{\}\), pro
 assert.match(js, /window\.addEventListener\("popstate", event => \{ if \(!event\.state\?\.profileEdit && document\.body\.classList\.contains\("profile-editing"\)\) closeEditScreen\(true\); \}\)/);
 assert.match(js, /window\.scrollTo\(0, editScreenScroll\)/);
 assert.match(js, /get\("edit"\) === "1"/);
-assert.match(js, /closeEditScreen\(false\);\n  \} catch \(error\)/, "saving closes the screen");
+assert.match(js, /closeEditScreen\(false\);\r?\n  \} catch \(error\)/, "saving closes the screen");
 // Full screen, opaque, rows with chevrons, sticky Cancel/Save on phones.
 assert.match(css, /body\.profile-editing \.edit-profile-panel:not\(\[hidden\]\)\{position:fixed;inset:0;z-index:10040;[^}]*background:#fff!important/);
 assert.match(css, /\.profile-edit-section\{margin:0;padding:0;border:0;border-bottom:1px solid #e4e8ee;border-radius:0/);
