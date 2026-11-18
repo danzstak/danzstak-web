@@ -35,6 +35,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 14 | Share everywhere with tracked links (replaces the current share UI) | 17 | TODO |
 | 15 | Follow alongside Friends | owner 2026-11-17 (Friend = two-way, Follow = one-way; artist pages lead with Follow) | TODO |
 | 16 | SYNC 16-G: standalone launch | 16 | PR #477 |
+| 17 | **Answer to join:** SYNC call invites — a non-member opens the link, taps Answer, signs up, verifies the phone by SMS and the call connects; signing up for SYNC makes them a DanzStak member and SYNC-first members land in SYNC (owner 2026-11-18). **Waiting for owner approval of the plan and the email/password question in the spec.** | 24 | TODO |
 
 **Order (owner 2026-11-17):** make what exists work and look finished before adding features: SYNC layout, buttons and the fix-it list come before the AI builder and new features.
 
