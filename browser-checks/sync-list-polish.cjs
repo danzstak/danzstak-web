@@ -74,9 +74,46 @@ async function shot(page, name) {
       const text = await sheet.innerText();
       for (const label of ["Invite a friend", "New video call", "Call alerts", "Phone and registered devices"]) assert.match(text, new RegExp(label), `${width}px: ⋮ sheet has ${label}`);
       if ([360, 390].includes(width)) await shot(page, `more-${width}`);
+      // Fix-it 18: no staves box behind the list; the list background is the page.
+      const canvas = await page.evaluate(() => { const panel = document.querySelector(".chat-list-panel"); const s = getComputedStyle(panel); return { image: s.backgroundImage, radius: s.borderTopLeftRadius, watermark: getComputedStyle(panel, "::after").content }; });
+      assert.equal(canvas.image, "none", `${width}px: no music-staff box on the chat list`);
+      assert.equal(canvas.radius, "0px", `${width}px: the list is not a framed box`);
+      assert.ok(["none", "normal"].includes(canvas.watermark), `${width}px: no watermark on the list (${canvas.watermark})`);
       assert.deepEqual(errors, [], `${width}px page errors`);
       await context.close();
     }
-    console.log("SYNC list polish checks passed at 320/360/390/430px: one ⋮ in the header, actions in the sheet, no sub-line, initials on DanzStak colours, broken pictures fall back to the initial.");
+    // Fix-it 18: an empty chat list is one centred line + "Start a chat" (same action as the floating button).
+    for (const width of [320, 360, 390, 430]) {
+      const context = await browser.newContext({ viewport: { width, height: 760 }, serviceWorkers: "block", hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+      const page = await context.newPage(), errors = [];
+      page.on("pageerror", error => errors.push(error.message));
+      await page.route("https://api.danzstak.com/**", route => {
+        const p = new URL(route.request().url()).pathname;
+        if (p === "/auth/session") return route.fulfill(json({ authenticated: true, user: { email: "me@danzstak.test", sub: id(9) } }));
+        if (p === "/conversations") return route.fulfill(json({ conversations: [] }));
+        if (p === "/calls/devices") return route.fulfill(json({ accountTag: "c".repeat(32), currentDeviceRegistered: true, devices: [] }));
+        return route.fulfill(json(p === "/friends" ? { friends: [] } : {}));
+      });
+      await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
+      const start = page.locator("#conversationUsers .sync-empty-start");
+      await start.waitFor({ timeout: 15000 });
+      const empty = await page.evaluate(() => {
+        const line = document.querySelector("#conversationUsers .sync-empty-line"), button = document.querySelector(".sync-empty-start");
+        const l = line.getBoundingClientRect(), b = button.getBoundingClientRect(), s = getComputedStyle(line);
+        return { text: line.textContent.trim(), lineCenter: Math.round(l.left + l.width / 2), buttonCenter: Math.round(b.left + b.width / 2), height: b.height, shadow: s.boxShadow, bg: s.backgroundColor, panel: getComputedStyle(document.querySelector(".chat-list-panel")).backgroundImage };
+      });
+      assert.equal(empty.text, "No chats yet.", `${width}px: one short empty line`);
+      assert.ok(Math.abs(empty.lineCenter - width / 2) <= 24 && Math.abs(empty.buttonCenter - width / 2) <= 24, `${width}px: empty state is centred (${JSON.stringify(empty)})`);
+      assert.ok(empty.height >= 44, `${width}px: Start a chat is a 44px target`);
+      assert.equal(empty.shadow, "none", `${width}px: the empty line is not a floating box`);
+      assert.equal(empty.panel, "none", `${width}px: no staves box behind the empty state`);
+      await page.evaluate(() => { window.__fabClicks = 0; document.querySelector(".sync-new-chat")?.addEventListener("click", () => window.__fabClicks++); });
+      await start.click();
+      assert.equal(await page.evaluate(() => window.__fabClicks), 1, `${width}px: Start a chat runs the new-chat button`);
+      if ([360, 390].includes(width)) await shot(page, `empty-${width}`);
+      assert.deepEqual(errors, [], `${width}px empty-state page errors`);
+      await context.close();
+    }
+    console.log("SYNC list polish checks passed at 320/360/390/430px: one ⋮ in the header, actions in the sheet, no sub-line, initials on DanzStak colours, broken pictures fall back to the initial, no staves box, one-line empty state with Start a chat.");
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
