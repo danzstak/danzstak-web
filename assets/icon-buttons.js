@@ -158,6 +158,8 @@
     new MutationObserver(records => {
       for (const record of records) {
         if (record.type === "characterData") upgrade(record.target.parentElement?.closest("button, a.button, a[role='button'], label[data-icon]"));
+        // A script that resets an icon button's text (e.g. the SYNC alert bell set back to an emoji) gets its icon back.
+        else if (record.target instanceof Element && record.target.matches("button[data-icon], a.button[data-icon], label[data-icon]") && [...record.addedNodes].some(node => node.nodeType === Node.TEXT_NODE)) upgrade(record.target);
         for (const node of record.addedNodes) if (node.nodeType === Node.ELEMENT_NODE) enhance(node);
       }
     }).observe(document.body, { childList: true, subtree: true, characterData: true });

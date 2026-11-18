@@ -7,8 +7,8 @@ Claude Code: take the first unticked item, fix the root cause, add a regression 
 Rules for every fix: one fluid page instead of stacked boxes, no two-line labels on buttons or tabs, icon buttons with accessible names, 44px touch targets, no horizontal overflow, nothing hidden under the header or bottom tabs, no placeholder or instructional copy where the control is obvious.
 
 ## Known from the owner (2026-11-17)
-- [ ] SYNC: messages scroll over/under the header and get cut off (covered by queue item 4, 16-A)
-- [ ] Buttons site-wide look bulky and "HTML" (queue item 5, 16-C)
+- [x] SYNC: messages scroll over/under the header and get cut off (covered by queue item 4, 16-A) — PR #411 + #413
+- [ ] Buttons site-wide look bulky and "HTML" (queue item 5, 16-C) — SYNC: PR #423; other areas to follow
 - [ ] Share UI looks "hokie" (task 17 replaces it later; until then at least make the current sheet tidy)
 
 ## Profile page (owner, 2026-11-17)
@@ -32,7 +32,7 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 - [ ] Music HQ, Events and the menu open on `feed.html` with a hash, so the browser title stays "Your Mix". Each section gets its own title and Back behaves like a real screen change.
 - [ ] Remove explanatory sub-lines under page titles ("Your saved conversations.", "Shows coming up. Promoters: post…", "Your EPK and booking work in one place…"). The controls speak for themselves.
 - [ ] External links (SoundCloud, Mixcloud, YouTube) open outside DanzStak (new tab or the system app). Tapping a SoundCloud post currently replaces DanzStak in the same tab.
-- [ ] Text buttons with blue outlines ("Open bookings", "Tour Manager", "Open outreach") go to the 16-C button system.
+- [x] (PR #455) Text buttons with blue outlines ("Open bookings", "Tour Manager", "Open outreach") go to the 16-C button system.
 
 **Profile** (see the section above, plus)
 - [x] (PR #427) The cover has thin side margins; it must touch both screen edges.
