@@ -26,3 +26,13 @@ Keep the 80% familiar layout (people must find everything on day one). Make the 
 ## Rules
 - [ ] Contrast 4.5:1 or better, 44px targets, light only (no dark mode until it's designed and tested), no infinite scroll, no engagement bait.
 - [ ] Test: a token check (one accent per look, contrast), a reduced-motion check (no animation), and 360px screenshots of Mix, a profile, a shop and SYNC before and after.
+
+## The little things (owner 2026-11-18: "the little things matter")
+Every one gets a check in the 360px screenshot pass:
+- [ ] Spacing is the same everywhere (4/8/12/16 scale), with no 1–3px misalignments: post 1 sits like post 2, edges line up, icons on one baseline.
+- [ ] Text never runs into icons, badges never cover text, counts sit right next to their icon, long names fold with "…" instead of breaking the layout.
+- [ ] Every tap gives feedback: a pressed state, a tiny haptic on phones (where supported), and no dead buttons.
+- [ ] Times read like people talk ("2h", "Yesterday", "Fri"), plurals are right ("1 item", "2 items"), and nothing says "undefined", "null" or placeholder text.
+- [ ] Images never stretch, never show broken-image icons (fall back to initials or the poster frame), and fade in instead of popping.
+- [ ] Loading shows a calm skeleton in the right shape, never a jumping layout. Errors say what happened and what to do, in one line.
+- [ ] Translations fit (Italian and French run longer). Every icon button has an accessible name.
