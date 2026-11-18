@@ -301,7 +301,8 @@ export function createAiEpk({ db, commands, authenticate, corsHeaders, tableName
   async function state(userId) {
     const [draftItem, creditItem, activeItem, reviewItem] = await Promise.all([read(userId, AI_EPK_KEYS.draft), read(userId, AI_EPK_KEYS.credits), read(userId, AI_EPK_KEYS.active), read(userId, AI_EPK_KEYS.review)]);
     const jobId = activeItem?.jobId?.S || "", job = jobId ? json(await read(userId, AI_EPK_KEYS.job(jobId))) : null;
-    return { draft: json(draftItem), credits: Number(creditItem?.builds?.N || 0), job, jobId, review: json(reviewItem) };
+    // Owner 2026-11-18: once bought, the paywall is gone for good (the page never shows the price again).
+    return { draft: json(draftItem), credits: Number(creditItem?.builds?.N || 0), owned: Number(creditItem?.purchasedBuilds?.N || 0) > 0, job, jobId, review: json(reviewItem) };
   }
   const publicJob = job => job && {
     id: job.id, status: job.status, progress: job.progress || [], error: job.error || "", restored: job.restored === true, alsoFound: job.alsoFound || [],
@@ -312,7 +313,7 @@ export function createAiEpk({ db, commands, authenticate, corsHeaders, tableName
   // GET /epk/ai
   async function getState(event, userId) {
     const current = await state(userId);
-    return reply(event, 200, { ...offer(), draft: current.draft, credits: current.credits, job: publicJob(current.job), review: current.review });
+    return reply(event, 200, { ...offer(), owned: current.owned, draft: current.draft, credits: current.credits, job: publicJob(current.job), review: current.review });
   }
 
   // POST /epk/ai/identify — free. "Is this you?": the artist's links plus up to 8 search results.

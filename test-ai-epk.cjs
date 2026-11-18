@@ -116,6 +116,7 @@ function fakeDb() {
     const state = parse(await closed(event("GET", "/epk/ai")));
     assert.equal(state.available, false); assert.equal(state.comingSoon, "AI builder coming soon");
     assert.equal(state.totalCents, 630);
+    assert.equal(state.owned, false);
     assert.equal((await closed(event("POST", "/epk/ai/identify", { input: { artistName: "Night Shift", links: CONFIRMED } }))).statusCode, 503);
     assert.equal((await closed(event("POST", "/epk/ai/build", {}))).statusCode, 503);
     assert.deepEqual(await closed.checkoutReady(userId), { ok: false, error: "AI builder coming soon" });
@@ -183,6 +184,7 @@ function fakeDb() {
   const granted = parse(await webhook("evt_paid1"));
   assert.equal(granted.aiEpkBuildGranted, true);
   assert.equal(credits(), 1, "one build credit");
+  assert.equal(parse(await service(event("GET", "/epk/ai"))).owned, true, "once bought, the paywall is gone for good");
   assert.equal(sends(), 1, "one included booking pitch send");
   // Webhook replay (same event) and a second event for the same session never double-credit.
   assert.equal(parse(await webhook("evt_paid1")).duplicate, true);
