@@ -2,7 +2,14 @@
 
 Owner, 2026-11-18: "make a test store … a model to show users how to build their shop."
 
-A built-in **example shop** that looks exactly like a real member shop done well, with short guide notes, so a musician or record shop can copy the pattern. It is **not** real listings: it never appears in Bazaar search or Mix, nothing can be bought, and every item says "Example".
+A built-in **example shop** that looks exactly like a real member shop done well, with short guide notes, so a musician or record shop can copy the pattern. It is **not** real listings: it never appears in Bazaar search or Mix (except the labelled Bazaar fill above), nothing can be bought, and every item says "Example".
+
+## Examples show in the Bazaar until it fills up (owner 2026-11-18, overrides "never appears in Bazaar" below)
+- [ ] While the Bazaar has fewer than **24 real published items**, the example shops' items are mixed into the Bazaar grid (and nowhere else: never in Mix item slots, never in search results for a real shop name).
+- [ ] Every example card wears a clear **EXAMPLE** tag on the photo and "Example shop · not for sale" in place of the seller line. There's **no price button**, the price is shown greyed, and tapping opens `shop-example.html` at that item with the guide notes and **Start my shop**.
+- [ ] Real items always come first in the shuffled grid. Example items fill the rest. Once the 24 real items are reached, examples leave the Bazaar automatically (they stay at `shop-example.html`).
+- [ ] The server never returns example items as purchasable. Checkout for an example id is refused (400), and there's a test for it.
+- [ ] Eroticon's real shop is **not** an example. It's a real member shop and shows in the Bazaar once its items are published.
 
 ## Where
 - `shop-example.html`, opened from **My Shop** ("See an example shop"), from **Moving Day for shops**, and from the empty Bazaar state ("+ Sell something" → example first).
