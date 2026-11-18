@@ -34,3 +34,10 @@ Record shops pivot their online shop to DanzStak the same way members pivot thei
 - After the move, the shop's "I pivoted to DanzStak" card links to its shop on DanzStak.
 - Prices are USD; the page tells shops with euro or pound exports to use the % change. Multi-currency listings are a later task.
 - Seller-side pitch: the buyer pays DanzStak's 6% (+$1 under $30), so the shop keeps its full price and shipping. Compare with marketplaces that take a selling fee from the shop, without naming rates as guaranteed (they change).
+
+## Shop size: 250 listings unless upgraded (owner 2026-11-18)
+"To have more than 250 listings" a shop needs an upgraded account — this applies to the shop itself, not only to the AI.
+- **Standard shop:** up to **250 active listings** (sold-out, archived and drafts don't count). Server-enforced in `marketplace.mjs` (today `MAX_SHOP_PRODUCTS = 5000` → 250 for standard shops) for manual listings, Moving Day imports and Shop Manager AI alike. At 250 the Add/Import buttons say "Your shop is full — apply for an upgraded shop" instead of failing.
+- **Upgraded shop:** applies once (form above); DanzStak staff approve in the admin queue; approved shops get the higher limit (5000) and can buy further Shop Manager AI batches. A declined shop keeps everything it has; nothing is unlisted.
+- Moving Day for shops shows the limit up front ("You can bring 250 items; you have 3,412 in the file — pick your best 250 or apply for an upgraded shop") and lets the seller choose which items come over.
+- Upgrade is free to apply for; any fee for upgraded shops is the owner's decision and not built until set.
