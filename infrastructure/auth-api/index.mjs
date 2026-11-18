@@ -58,6 +58,7 @@ import { enrichPromoter } from "./promoter-contact.mjs";
 import { bookingReplyNotice, bookingNoticeWrites } from "./booking-reply-notice.mjs";
 import { unopenedRefunds, unopenedRefundTransaction } from "./unopened-credit.mjs";
 import { isDirectoryEditor, parseTrustedContact, trustedContactItems, trustedContactUpdate, trustedPromotersNear, contactId as trustedContactId } from "./trusted-contacts.mjs";
+import { createAlbums } from "./albums.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -4338,6 +4339,21 @@ const epkPublicPartition = "epk-public";
 const epkSharePartition = "epk-private-share";
 const epkOutreachPartition = "epk-outreach-share";
 const epkOutreachPrefix = "EPK#OUTREACH#";
+// Queue 5a2: photo and video albums on the profile (own partition in the tours table). Built on first use.
+let albumsInstance = null;
+const albumsService = () => albumsInstance ||= createAlbums({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, UpdateItemCommand, DeleteItemCommand, TransactWriteItemsCommand },
+  tableName: toursTable,
+  authenticate: getAuthenticatedUser,
+  accountEmail: userId => accountForSub(userId),
+  mediaPrefix: userId => mediaOwnerPrefixForUser(userId),
+  signedUrl: (key, expires) => signedMediaUrl(key, expires),
+  deleteMedia: async keys => (await runCleanup(keys.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }))))) === 0,
+  relationship: async (viewerEmail, ownerEmail) => (await db.send(new GetItemCommand({ TableName: friendsTable, Key: { userEmail: { S: viewerEmail }, friendEmail: { S: ownerEmail } }, ConsistentRead: true, ProjectionExpression: "#status", ExpressionAttributeNames: { "#status": "status" } }))).Item?.status?.S || "",
+  corsHeaders,
+  originAllowed: origin => allowedOrigins.has(origin)
+});
 
 const epkMediaRoles = new Set(["press-photo", "logo", "artwork", "press-clipping", "biography", "technical-rider", "hospitality-rider", "stage-plot", "other"]);
 const epkMediaPattern = ownerPrefix => new RegExp(`^epk/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`);
@@ -5728,6 +5744,7 @@ export const handler = async event => {
     const reviewMatch = path.match(/^\/reviews\/([a-f0-9]{32})$/i);
     if (method === "PATCH" && reviewMatch) return await updateReview(event, reviewMatch[1].toLowerCase());
     if (method === "DELETE" && reviewMatch) return await deleteReview(event, reviewMatch[1].toLowerCase());
+    if (path === "/albums" || path.startsWith("/albums/")) { const albums = await albumsService().handle(event, method, path); if (albums) return albums; }
     if (method === "GET" && path === "/tours") return await listTourPlans(event);
     if (method === "POST" && path === "/tours") return await saveTourPlan(event);
     if (method === "DELETE" && path.startsWith("/tours/")) return await deleteTourPlan(event, decodeURIComponent(path.slice(7)));

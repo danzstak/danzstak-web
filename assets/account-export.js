@@ -55,7 +55,8 @@
         notifications: "/notifications",
         engagementNotifications: "/engagement-notifications",
         tours: "/tours",
-        bookingWorkspace: "/booking-pipeline"
+        bookingWorkspace: "/booking-pipeline",
+        albums: "/albums?full=1"
       };
       const names = Object.keys(endpoints);
       const results = await Promise.allSettled(names.map(name => request(endpoints[name], controller.signal, name === "groups" ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "list" }) } : {})));
