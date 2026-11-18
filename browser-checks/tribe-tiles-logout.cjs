@@ -19,7 +19,7 @@ const json = body => ({ status: 200, contentType: "application/json", body: JSON
         const p = new URL(route.request().url()).pathname;
         if (p === "/auth/logout") { authed = false; return route.fulfill(json({ ok: true })); }
         if (p === "/auth/session") return authed ? route.fulfill(json({ authenticated: true, user: { email: "me@danzstak.test", sub: "me", name: "Night Shift" } })) : route.fulfill({ status: 401, contentType: "application/json", body: "{}" });
-        if (p === "/groups") return route.fulfill(json({ groups: [{ id: "g1", name: "Oakland Noise", category: "Bands", description: "Noise rock.", coverUrl: `${baseUrl}/assets/danzstak-d-icon.png`, memberCount: 3 }] }));
+        if (p === "/groups") return route.fulfill(json({ groups: [{ id: "g1", name: "Oakland Noise", category: "Bands", description: "Noise rock.", coverUrl: `${baseUrl}/assets/danzstak-d-icon.png`, memberCount: 3 }, { id: "g2", name: "Bologna Techno", category: "DJs & Producers", description: "Warehouse nights.", memberCount: 5 }, { id: "g3", name: "Seattle Punk", category: "Bands", description: "DIY shows.", memberCount: 9 }] }));
         return route.fulfill(json({}));
       });
       await page.goto(`${baseUrl}/feed.html#groups`, { waitUntil: "domcontentloaded" });
@@ -30,7 +30,8 @@ const json = body => ({ status: 200, contentType: "application/json", body: JSON
         return { name: card.querySelector(".group-open")?.textContent, photo: cover.classList.contains("has-photo"), image: getComputedStyle(cover).backgroundImage, position: after.position, inset: [after.top, after.left, after.bottom, after.right], place: after.placeItems, box: [box.width, box.height] };
       }));
       const letters = tiles.filter(tile => !tile.photo);
-      assert.ok(letters.length >= 3, `${width}px: default Tribes listed`);
+      assert.ok(letters.length >= 2, `${width}px: member Tribes listed`);
+      assert.ok(!tiles.some(tile => /^(Bands|Fans|Events|Industry|DJs & Producers)$/.test(tile.name || "")), `${width}px: no built-in category Tribes (owner 2026-11-18)`);
       for (const tile of letters) {
         assert.equal(tile.position, "absolute", `${width}px ${tile.name}: initial is laid over the whole box`);
         assert.deepEqual(tile.inset, ["0px", "0px", "0px", "0px"], `${width}px ${tile.name}: initial box fills the tile`);
