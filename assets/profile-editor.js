@@ -111,8 +111,15 @@ async function uploadCloudProfileMedia(file, field) {
 
 const bioElement = document.createElement("p");
 bioElement.className = "profile-bio";
-bioElement.textContent = "Add a short bio so people know more about you.";
+// Fix-it 18 (owner 2026-11-17): no instructional placeholder. Visitors see nothing until there is a bio; the owner
+// gets one small "+ bio" icon that opens the editor.
+bioElement.hidden = true;
 handleElement.insertAdjacentElement("afterend", bioElement);
+const addBioButton = document.createElement("button");
+addBioButton.type = "button"; addBioButton.className = "profile-add-bio"; addBioButton.hidden = true;
+addBioButton.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 5v14M5 12h14"/></svg><span>bio</span>';
+addBioButton.setAttribute("aria-label", profileTranslate("Add a bio")); addBioButton.title = addBioButton.getAttribute("aria-label");
+bioElement.insertAdjacentElement("afterend", addBioButton);
 
 function detail(label, id) {
   const box = document.createElement("div");
@@ -520,8 +527,20 @@ function installProfilePostMedia(article, post) {
     media.className = "profile-post-media";
     media.addEventListener("error", () => { post.mediaUrl = ""; showRecovery(); }, { once: true });
     if (post.mediaType === "image") media.alt = post.content || "Profile post photo";
-    else { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
+    else { media.preload = "metadata"; media.muted = true; media.playsInline = true; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
     media.src = mediaUrl;
+    // Fix-it 18 (owner 2026-11-17): like a familiar feed. No browser controls (media-visibility.js autoplays muted at 50%
+    // and adds the mute toggle); tap opens the photo or video whole, full screen.
+    media.tabIndex = 0;
+    media.setAttribute("role", "button");
+    const openWhole = event => {
+      if (event.type === "keydown" && event.key !== "Enter" && event.key !== " ") return;
+      if (event.target.closest?.(".danzstak-audio-toggle")) return;
+      event.preventDefault();
+      window.danzstakProfileDailies?.openMedia?.([{ mediaType: post.mediaType, mediaUrl, label: post.content || (post.mediaType === "video" ? profileTranslate("Profile post video") : profileTranslate("Profile post photo")) }], 0, media);
+    };
+    media.addEventListener("click", openWhole);
+    media.addEventListener("keydown", openWhole);
     insert(media);
   };
   retry.addEventListener("click", () => { post.mediaUrl = ""; void install(); });
@@ -593,43 +612,22 @@ function profilePostCard(post) {
     const media = document.createElement(post.mediaType === "image" ? "img" : "video");
     media.className = "profile-post-media"; media.src = post.mediaUrl;
     if (post.mediaType === "image") media.alt = post.content || "Profile post photo";
-    else { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
+    else { media.preload = "metadata"; media.muted = true; media.playsInline = true; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
     article.appendChild(media);
   }
   const tools = document.createElement("div");
   tools.className = "profile-post-tools";
-  if (/^[a-f0-9-]{36}$/.test(String(post.postId || ""))) {
-    const open = document.createElement("a");
-    open.className = "secondary profile-post-open";
-    open.href = "feed.html#post-" + encodeURIComponent(post.postId);
-    open.textContent = "View in Your Mix";
-    tools.appendChild(open);
-  }
   window.danzstakRenderSharedPost?.(article, post);
   window.danzstakRenderMediaTags?.(article, post);
-  if (post.isOwner === true && post.postId) {
-    const feature = document.createElement("button");
-    feature.type = "button"; feature.className = "secondary";
-    const paint = () => { feature.textContent = post.featured ? "Remove from Featured" : "Feature on profile"; feature.setAttribute("aria-pressed", String(post.featured === true)); };
-    paint();
-    feature.addEventListener("click", async () => {
-      feature.disabled = true;
-      try {
-        const response = await profileFetch(profileApi + "/secure-posts/" + encodeURIComponent(post.postId), {method:"PATCH",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({featured:!post.featured})});
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "Featured post could not be saved.");
-        post.featured = !post.featured; paint();
-        if (!post.featured && article.closest(".profile-tab-message")?.dataset.profileMoreSection === "Featured") article.remove();
-      } catch (error) { showProfileFeedback(error.message, { urgent: true }); }
-      finally { feature.disabled = false; }
-    });
-    tools.appendChild(feature);
-  }
+  // Fix-it 18 (owner 2026-11-17): no big text buttons on the profile. The post is already in context (no open-in-Mix link),
+  // Featured is gone from profiles (no feature toggle), and removing someone else's wall post is a slim icon.
   if (post.canRemoveFromProfile === true && post.postId) {
     const remove = document.createElement("button");
     remove.type = "button";
-    remove.className = "secondary profile-wall-remove";
-    remove.textContent = "Remove from my profile";
+    remove.className = "profile-wall-remove";
+    remove.dataset.icon = "trash";
+    remove.setAttribute("aria-label", profileTranslate("Remove from my profile"));
+    remove.title = remove.getAttribute("aria-label");
     remove.addEventListener("click", async () => {
       if (!(await window.danzstakConfirm("The post will no longer appear on your profile.", { title: "Remove this post from your profile?", confirmLabel: "Remove post", danger: true }))) return;
       remove.disabled = true;
@@ -652,10 +650,8 @@ function profileWallComposer(profile) {
   const section = document.createElement("section");
   section.className = "profile-wall-composer";
   if (!profile.canPostToProfile && profile.isOwner !== true) {
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent = profile.profilePostPermission === "friends" ? "Only accepted friends can post on this profile." : "Only this member can post on their profile.";
-    section.appendChild(note);
+    // Fix-it 18: no instructional copy where there is nothing to do; a visitor who can't post simply sees no composer.
+    section.hidden = true;
     return section;
   }
   section.classList.toggle("profile-wall-composer-owner", profile.isOwner === true);
@@ -867,7 +863,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
     let posts = window.danzstakProfileCollections.select(data.posts || [], collection, "", !viewingOtherProfile, new Date(), profileMemberId);
     if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType) && (!mediaType || post.mediaType === mediaType));
     tabMessage.replaceChildren();
-    if (collection === "posts" && !mediaOnly && window.danzstakCurrentProfile && typeof profileWallComposer === "function") tabMessage.appendChild(profileWallComposer(window.danzstakCurrentProfile));
+    if (collection === "posts" && !mediaOnly && window.danzstakCurrentProfile && typeof profileWallComposer === "function") tabMessage.appendChild(profileWallComposer(window.danzstakCurrentProfile)); if (collection === "posts" && !mediaOnly) window.danzstakProfileDailies?.mount(tabMessage, profileMemberId);
     if (collection !== "posts") {
       const note = document.createElement("p"); note.className = "muted";
       note.textContent = collection === "memories" ? "Only you can see this Memories view. These are your posts from this day in previous years; their original audiences stay unchanged." : "Featured posts keep their original audience. Highlighting a post does not make it public.";
@@ -908,6 +904,8 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
         }
       }
     }
+    // Fix-it 18: an empty wall says so in one friendly line, below the composer and any Dailies.
+    if (!posts.length && !mediaOnly && collection === "posts" && tabMessage.childElementCount) { const empty = document.createElement("p"); empty.className = "profile-empty-wall"; empty.textContent = profileTranslate("No posts yet"); tabMessage.appendChild(empty); return; }
     if (!posts.length && !tabMessage.childElementCount) { tabMessage.textContent = mediaOnly ? `No ${mediaType === "image" ? "photos" : mediaType === "video" ? "videos" : "photos or videos"} to show yet.` : "No posts to show yet."; return; }
   } catch (error) {
     if (version !== profileTabVersion) return;
@@ -959,6 +957,9 @@ async function loadProfileFriends() {
       copy.append(name, availability); link.append(avatar, copy, status); grid.appendChild(link);
     }
     if (sortedFriends.length) tabMessage.appendChild(grid);
+    // Owner 2026-11-17: pending requests live on the Friends tab too — incoming to answer, sent ones marked "Request sent".
+    appendProfileFriendRequests(data.incoming, "incoming");
+    appendProfileFriendRequests(data.outgoing, "outgoing");
     // Members online now (not already friends), like a familiar "active now" list.
     const onlineMembers = onlineDirectory.filter(user => !friendEmails.has(String(user.email || "").toLowerCase()) && /^[a-f0-9-]{36}$/.test(String(user.memberId || "")));
     if (onlineMembers.length) {
@@ -977,6 +978,51 @@ async function loadProfileFriends() {
       tabMessage.append(onlineHeading, onlineGrid);
     }
   } catch (error) { if (version === profileTabVersion) tabMessage.textContent = error.message; }
+}
+
+function appendProfileFriendRequests(people, relationship) {
+  const list = (Array.isArray(people) ? people : []).filter(person => /^[a-f0-9-]{36}$/.test(String(person.memberId || "")));
+  if (!list.length) return;
+  const heading = document.createElement("h3"); heading.className = "profile-friends-heading";
+  heading.textContent = `${relationship === "incoming" ? "Friend requests" : "Requests sent"} · ${list.length}`;
+  const grid = document.createElement("div"); grid.className = "profile-friend-grid";
+  for (const person of [...list].sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")))) {
+    const displayName = person.name || "DanzStak member";
+    const card = document.createElement("div"); card.className = "profile-friend-card profile-friend-request"; card.dataset.relationship = relationship;
+    const link = document.createElement("a"); link.className = "profile-friend-request-link"; link.href = "profile.html?member=" + encodeURIComponent(person.memberId);
+    const avatar = person.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "profile-friend-avatar";
+    if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, person); }
+    else { avatar.textContent = displayName.charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
+    const copy = document.createElement("span"); const name = document.createElement("strong"); name.textContent = displayName;
+    const detail = document.createElement("small"); detail.textContent = relationship === "incoming" ? "Wants to be friends" : "Request sent";
+    copy.append(name, detail); link.append(avatar, copy); card.appendChild(link);
+    if (relationship === "incoming") {
+      const actions = document.createElement("span"); actions.className = "profile-friend-request-actions";
+      for (const [accept, label, icon] of [[true, "Accept", "person-check"], [false, "Decline", "close"]]) {
+        const button = document.createElement("button"); button.type = "button"; button.dataset.icon = icon;
+        button.className = accept ? "profile-friend-accept" : "profile-friend-decline";
+        button.setAttribute("aria-label", `${label}: ${displayName}`); button.title = button.getAttribute("aria-label"); button.textContent = label;
+        button.addEventListener("click", async () => {
+          actions.querySelectorAll("button").forEach(item => { item.disabled = true; });
+          try {
+            const response = await profileFetch(profileApi + "/friends/respond", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: person.email, accept }) });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || "Friend request could not be updated.");
+            window.danzstakShowFeedback?.(accept ? "You are now friends." : "Friend request declined.");
+            void loadProfileFriends();
+          } catch (error) {
+            actions.querySelectorAll("button").forEach(item => { item.disabled = false; });
+            window.danzstakShowFeedback?.(error.message, { urgent: true });
+          }
+        });
+        actions.appendChild(button);
+      }
+      card.appendChild(actions);
+    }
+    grid.appendChild(card);
+  }
+  tabMessage.append(heading, grid);
+  window.danzstakIcons?.enhance?.(grid);
 }
 
 let profileShop = null;
@@ -1156,7 +1202,9 @@ function renderProfileWebsite(value) {
 function applyProfile(profile) {
   if (profile.name) document.getElementById("profileName").textContent = profile.name;
   if (profile.handle) handleElement.textContent = "@" + profile.handle;
-  bioElement.textContent = profile.bio || "Add a short bio so people know more about you.";
+  bioElement.textContent = profile.bio || "";
+  bioElement.hidden = !profile.bio;
+  addBioButton.hidden = Boolean(profile.bio) || profile.isOwner !== true || viewingOtherProfile;
   window.danzstakLinkifyUserText?.(bioElement);
   setProfileDetail("profileLocation", profile.location);
   setProfileDetail("profileWork", profile.work);
@@ -1180,6 +1228,7 @@ function applyProfile(profile) {
   }
 }
 
+addBioButton.addEventListener("click", () => { editButton.click(); setTimeout(() => { const field = document.querySelector(".edit-profile-panel [name='bio']"); const section = field?.closest("details"); if (section) section.open = true; field?.focus(); field?.scrollIntoView({ block: "center" }); }, 200); });
 editButton.addEventListener("click", () => {
   const profile = window.danzstakCurrentProfile?.cloudProfile ? window.danzstakCurrentProfile : savedProfile();
   panel.elements.name.value = profile.name || document.getElementById("profileName").textContent;

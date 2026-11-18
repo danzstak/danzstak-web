@@ -3,10 +3,14 @@
 (() => {
   const API = "https://api.danzstak.com";
   let installedFor = "";
+  // Deferred scripts run before DOMContentLoaded (readyState is already "interactive"), so track parsing ourselves.
+  let parsed = false; document.addEventListener("DOMContentLoaded", () => { parsed = true; }, { once: true });
   const icon = (name, label, el = "button") => { const b = document.createElement(el); if (el === "button") b.type = "button"; b.className = "button profile-friend-action"; b.dataset.icon = name; b.textContent = label; b.setAttribute("aria-label", label); b.title = label; return b; };
 
   async function install(profile, target) {
     const actions = target || document.querySelector(".profile-actions");
+    // A fast profile load can finish before profile-editor.js builds the action row; try again once the page is parsed.
+    if (!actions && !target && !parsed) { document.addEventListener("DOMContentLoaded", () => install(profile), { once: true }); return; }
     if (!actions || !profile || profile.isOwner || !/^[a-f0-9-]{36}$/.test(profile.memberId || "") || installedFor === profile.memberId) return;
     installedFor = profile.memberId;
     actions.querySelectorAll(".profile-friend-action").forEach(el => el.remove());

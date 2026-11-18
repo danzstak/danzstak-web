@@ -28,7 +28,8 @@
       const video = entry.target;
       if (dataSaver() || video.readyState > 0) { if (video.readyState > 0) nearby.unobserve(video); continue; }
       // Another script may reset preload to "none" right after; ask once now and once more shortly after.
-      const ask = () => { if (video.readyState === 0 && !dataSaver()) { video.preload = "metadata"; try { video.load(); } catch {} } };
+      // Never reload a video that has started (or is starting) to play: load() aborts play() and left autoplay stuck (fix-it 18).
+      const ask = () => { if (video.readyState === 0 && video.paused && !dataSaver()) { video.preload = "metadata"; try { video.load(); } catch {} } };
       ask(); setTimeout(ask, 600);
     }
   }, { rootMargin: "800px 0px" }) : null;

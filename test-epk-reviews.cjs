@@ -40,7 +40,7 @@ assert.match(backend, /publishedReviewTargets\(view\.artistPublicId\)/, "unpubli
 assert.match(css, /min-height:44px/, "review actions must remain touch-sized");
 assert.match(css, /@media\(max-width:700px\)/, "the review surface needs a phone layout");
 assert.match(css, /overflow-wrap:anywhere/, "long review text must not overflow narrow screens");
-assert.match(worker, /danzstak-shell-v909/);
+assert.match(worker, /danzstak-shell-v913/);
 assert.match(worker, /\/assets\/epk-reviews\.css/);
 assert.match(worker, /\/assets\/epk-reviews\.js/);
 

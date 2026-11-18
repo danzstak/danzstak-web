@@ -35,7 +35,8 @@
     const meta = document.createElement("span"); meta.className = "link-preview-meta";
     const cleanTitle = String(preview.title || "").trim();
     if (cleanTitle && cleanTitle.toLowerCase() !== String(preview.host || "").toLowerCase()) { const title = document.createElement("span"); title.className = "link-preview-title"; title.textContent = cleanTitle; meta.append(title); }
-    const url = document.createElement("span"); url.className = "link-preview-url"; url.textContent = displayUrl(href);
+    // Fix-it 18 (owner 2026-11-17): never print the link under the card, just the source name.
+    const url = document.createElement("span"); url.className = "link-preview-url"; url.textContent = String(preview.host || "").replace(/^www\./, "") || displayUrl(href).split("/")[0];
     meta.append(url); link.append(meta);
     return link;
   }
@@ -58,10 +59,18 @@
     if (!post || ownMedia(post) || post.querySelector(".link-preview-card")) return;
     text.dataset.linkPreview = "1";
     let href = anchor.href; if (href.startsWith("http://")) href = "https://" + href.slice(7);
-    const preview = await fetchPreview(href);
-    if (!preview || !text.isConnected || post.querySelector(".link-preview-card")) return;
-    text.after(card(preview));
+    // Fix-it 18 (owner 2026-11-17): no raw URL and no jump. A fixed-size placeholder card takes the link's place at once;
+    // the source's preview fills it when it arrives, or a clean link card stays if the source shares no preview.
+    let host = ""; try { host = new URL(href).hostname.replace(/^www\./, ""); } catch {}
+    const placeholder = card({ url: href, host, image: "", title: "​" }); // an invisible title keeps the title line reserved
+    const frame = document.createElement("span"); frame.className = "link-preview-image link-preview-skeleton"; frame.setAttribute("aria-hidden", "true");
+    placeholder.prepend(frame); placeholder.classList.remove("no-image"); placeholder.classList.add("is-loading");
+    text.after(placeholder);
     hideRawLink(text, anchor);
+    const preview = await fetchPreview(href);
+    if (!placeholder.isConnected) return;
+    if (!preview) { frame.remove(); placeholder.classList.remove("is-loading"); placeholder.classList.add("no-image"); return; }
+    placeholder.replaceWith(card(preview));
   }
 
   const scan = root => {
