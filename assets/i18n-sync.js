@@ -5,6 +5,11 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Tap to hear the ringer": "Tocca per sentire la suoneria",
+"Test ringer": "Prova suoneria",
+"Play your ringtone for 3 seconds": "Suona la tua suoneria per 3 secondi",
+"Playing your ringtone for 3 seconds.": "Suoneria in riproduzione per 3 secondi.",
+"This browser can't play sounds here.": "Questo browser non può riprodurre suoni qui.",
 "No chats yet.": "Nessuna chat per ora.",
 "Start a chat": "Inizia una chat",
 "Your DanzStak chats, calls and booking replies as their own app. Same account, no second login.": "Chat, chiamate e risposte di booking di DanzStak in un'app tutta loro. Stesso account, nessun secondo accesso.",
@@ -247,6 +252,11 @@
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
 },
 "fr": {
+"Tap to hear the ringer": "Touche pour entendre la sonnerie",
+"Test ringer": "Tester la sonnerie",
+"Play your ringtone for 3 seconds": "Joue ta sonnerie pendant 3 secondes",
+"Playing your ringtone for 3 seconds.": "Ta sonnerie joue pendant 3 secondes.",
+"This browser can't play sounds here.": "Ce navigateur ne peut pas jouer de son ici.",
 "No chats yet.": "Aucune discussion pour l'instant.",
 "Start a chat": "Démarrer une discussion",
 "Your DanzStak chats, calls and booking replies as their own app. Same account, no second login.": "Tes discussions, appels et réponses de booking DanzStak dans leur propre app. Même compte, pas de deuxième connexion.",
@@ -490,6 +500,11 @@
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
 },
 "es": {
+"Tap to hear the ringer": "Toca para oír el tono",
+"Test ringer": "Probar tono",
+"Play your ringtone for 3 seconds": "Suena tu tono durante 3 segundos",
+"Playing your ringtone for 3 seconds.": "Sonando tu tono durante 3 segundos.",
+"This browser can't play sounds here.": "Este navegador no puede reproducir sonidos aquí.",
 "No chats yet.": "Aún no hay chats.",
 "Start a chat": "Empezar un chat",
 "Your DanzStak chats, calls and booking replies as their own app. Same account, no second login.": "Tus chats, llamadas y respuestas de booking de DanzStak en su propia app. Misma cuenta, sin segundo inicio de sesión.",
@@ -732,6 +747,11 @@
 "You can resend once. Try again in 10 minutes.": "Solo puedes reenviar una vez. Inténtalo de nuevo en 10 minutos."
 },
 "de": {
+"Tap to hear the ringer": "Tippen, um den Klingelton zu hören",
+"Test ringer": "Klingelton testen",
+"Play your ringtone for 3 seconds": "Spielt deinen Klingelton 3 Sekunden lang",
+"Playing your ringtone for 3 seconds.": "Dein Klingelton spielt 3 Sekunden lang.",
+"This browser can't play sounds here.": "Dieser Browser kann hier keine Töne abspielen.",
 "No chats yet.": "Noch keine Chats.",
 "Start a chat": "Chat starten",
 "Use this phone for this account?": "Dieses Telefon für dieses Konto verwenden?",
@@ -786,6 +806,11 @@
 "You can resend once. Try again in 10 minutes.": "Du kannst nur einmal erneut senden. Versuche es in 10 Minuten erneut."
 },
 "pt": {
+"Tap to hear the ringer": "Toque para ouvir o toque",
+"Test ringer": "Testar toque",
+"Play your ringtone for 3 seconds": "Toca o seu toque por 3 segundos",
+"Playing your ringtone for 3 seconds.": "A tocar o seu toque por 3 segundos.",
+"This browser can't play sounds here.": "Este navegador não consegue tocar sons aqui.",
 "No chats yet.": "Ainda não há conversas.",
 "Start a chat": "Começar uma conversa",
 "Use this phone for this account?": "Usar este telefone nesta conta?",
