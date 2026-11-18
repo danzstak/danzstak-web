@@ -76,7 +76,7 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
   assert.match(tones, /if \(quiet && window\.danzstakSyncPrefs\?\.quiet\?\.\(/, "quiet hours silence in-app tones");
   assert.match(myo, /fetch\(API \+ "\/settings\/sync-prefs", \{ method: "POST"/, "saved to the account");
   assert.match(myo, /localStorage\.setItem\(CACHE/, "cached on the device for offline");
-  assert.equal((myo.match(/line\("/g) || []).length, 8, "every choice has its own Reset line");
+  assert.equal((myo.match(/line\("/g) || []).length, 7, "every choice has its own Reset line (theme removed, light-only)");
   assert.doesNotMatch(myo.replace(/^\s*\/\/.*$/gm, ""), /price|\$\d|streak|checkout/i, "no paid cosmetics, no streaks");
   assert.match(html, /<script src="assets\/sync-make-it-yours\.js\?v=\d+" defer><\/script>/);
   for (const lang of ["it", "fr", "es"]) { const b = i18n.slice(i18n.indexOf(`"${lang}": {`), i18n.indexOf("\n}", i18n.indexOf(`"${lang}": {`))); for (const k of ["Make it yours", "Quiet hours", "Hide message previews", "Quick reactions", "Accent color"]) assert.ok(b.includes(JSON.stringify(k) + ":"), `${lang}: ${k}`); }
@@ -85,7 +85,8 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
 // Owner 2026-11-18: the phone's dark setting must not switch on the retired site-wide dark mode (it jumbled the chat list).
 {
   const src = fs.readFileSync("assets/sync-make-it-yours.js", "utf8");
-  assert.match(src, /const darkWanted = \(\) => prefs\.theme === "dark";/, "only an explicit Dark choice makes SYNC dark");
+  assert.match(src, /const darkWanted = \(\) => false;/, "SYNC is light-only (owner 2026-11-18)");
+  assert.doesNotMatch(src, /line\("Theme"/, "no theme switch until a dark SYNC theme is designed");
   assert.doesNotMatch(src, /prefers-color-scheme/, "SYNC never follows the phone's dark setting");
   assert.doesNotMatch(src, /\["auto", "Auto"\]/, "no Auto theme button");
 }
