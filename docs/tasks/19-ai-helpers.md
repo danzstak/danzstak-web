@@ -34,3 +34,5 @@ Record shops pivot their online shop to DanzStak the same way members pivot thei
 - After the move, the shop's "I pivoted to DanzStak" card links to its shop on DanzStak.
 - Prices are USD; the page tells shops with euro or pound exports to use the % change. Multi-currency listings are a later task.
 - Seller-side pitch: the buyer pays DanzStak's 6% (+$1 under $30), so the shop keeps its full price and shipping. Compare with marketplaces that take a selling fee from the shop, without naming rates as guaranteed (they change).
+
+- Shop Manager AI price (owner confirmed 2026-11-18): $20 for up to 250 listings, $21.20 with fees (Test Mode until go-live).
