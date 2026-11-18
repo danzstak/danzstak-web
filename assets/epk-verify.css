@@ -1,0 +1,53 @@
+/* Task 20: "Verify your act" in the EPK builder, the editor review queue, and on the public EPK the
+   "Verified artist on DanzStak" mark and "Report impersonation". Phone first; builder colors follow the
+   DanzStak Techno skin tokens (epk-skin.css) with plain fallbacks. */
+.epk-verify{margin:0 0 14px;padding:16px 0;border-top:1px solid var(--sk-rule,#e4e8ef);border-bottom:1px solid var(--sk-rule,#e4e8ef)}
+.epk-verify__head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.epk-verify__head h2{margin:0}
+.epk-verify__chip{display:inline-flex;align-items:center;min-height:28px;padding:2px 10px;border:1px solid currentColor;font:600 .72rem/1.2 var(--sk-mono,ui-monospace,monospace);letter-spacing:.08em;text-transform:uppercase;color:var(--sk-muted,#596579);white-space:nowrap}
+.epk-verify[data-status=verified] .epk-verify__chip{color:var(--sk-ok,#1a7f45)}
+.epk-verify:is([data-status=needs_review],[data-status=hold],[data-status=checking]) .epk-verify__chip{color:var(--sk-accent,#d9480f)}
+.epk-verify__summary{margin:10px 0 12px}
+.epk-verify__steps{display:grid;gap:12px}
+.epk-verify__steps[hidden],.epk-verify__code[hidden],.epk-verify__panel[hidden],.epk-verify__reason[hidden],.epk-verify button[hidden]{display:none}
+.epk-verify__steps>.primary{justify-self:start}
+.epk-verify__code{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.epk-verify__label{flex-basis:100%;font:600 .72rem var(--sk-mono,ui-monospace,monospace);letter-spacing:.1em;text-transform:uppercase;color:var(--sk-muted,#596579)}
+.epk-verify__code code{font:700 1.3rem/1 var(--sk-mono,ui-monospace,monospace);letter-spacing:.06em;padding:10px 12px;border:1px dashed var(--sk-accent,#d9480f);color:var(--sk-ink,#172033);user-select:all}
+.epk-verify__copy{min-height:44px;min-width:44px}
+.epk-verify__expires{font-size:.84rem;color:var(--sk-muted,#596579)}
+.epk-verify__ways{display:flex;gap:6px;flex-wrap:wrap;border:0;padding:0;margin:0;min-width:0}
+.epk-verify__ways legend{font-weight:700;margin:0 0 6px;padding:0}
+.epk-verify__way{display:inline-flex;align-items:center;gap:7px;min-height:44px;margin:0;padding:0 12px;border:1px solid var(--sk-rule,#c9d1dc);cursor:pointer;font-weight:600}
+.epk-verify__way input{width:auto;min-height:0;margin:0;accent-color:var(--sk-accent,#d9480f)}
+.epk-verify__way:has(input:checked){border-color:var(--sk-accent,#d9480f);color:var(--sk-accent,#d9480f)}
+.epk-verify__way:has(input:focus-visible){outline:2px solid var(--sk-accent,#d9480f);outline-offset:2px}
+.epk-verify__panel{display:grid;gap:8px}
+.epk-verify__panel p,.epk-verify__panel label{margin:0}
+.epk-verify__panel>button{justify-self:start}
+.epk-verify__snippet-row{display:flex;gap:8px;align-items:stretch;min-width:0}
+.epk-verify__snippet{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;padding:12px 10px;font:500 .8rem/1.2 var(--sk-mono,ui-monospace,monospace);background:var(--sk-field,#f5f7fa);border:1px solid var(--sk-rule,#c9d1dc);color:var(--sk-ink,#172033)}
+.epk-verify__or{margin-top:6px!important}
+.epk-verify__message{margin:12px 0 0;font-weight:600}
+.epk-verify__message:empty{display:none}
+.epk-verify__note{margin:10px 0 0;font-size:.8rem;color:var(--sk-muted,#596579)}
+.epk-verify__reason{margin:8px 0 0;font-size:.88rem;color:var(--sk-muted,#596579)}
+#publishEpk:disabled{opacity:.45;cursor:not-allowed}
+
+.epk-verify-editor{margin:20px 0;padding:16px;border:1px solid var(--sk-rule,#d8dee8)}
+.epk-verify-editor h2{margin:0 0 6px}
+.epk-verify-editor__list{list-style:none;margin:0;padding:0;display:grid}
+.epk-verify-editor__list li{padding:12px 0;border-top:1px solid var(--sk-rule,#e4e8ef)}
+.epk-verify-editor__list p{margin:6px 0}
+.epk-verify-editor__reason{color:var(--sk-muted,#596579);font-size:.86rem}
+.epk-verify-editor__links a{display:inline-flex;align-items:center;min-height:44px;margin-right:14px;color:var(--sk-accent,#0b56b3)}
+.epk-verify-editor__actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.epk-verified-mark{display:inline-flex;align-items:center;gap:6px;margin:8px 0 0;padding:4px 10px 4px 5px;background:#ffffffeb;color:#0b0b0c;font:700 .8rem/1.2 system-ui,-apple-system,sans-serif;border-radius:999px}
+.epk-verified-mark__tick{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#1a7f45;color:#fff;font-size:.68rem}
+.epk-report{max-width:1180px;margin:14px auto 0;padding:0 16px;text-align:center}
+.epk-report__button{min-height:44px;padding:0 10px;background:none;border:0;color:inherit;opacity:.72;text-decoration:underline;font-weight:600}
+.epk-report__status{margin:4px 0 0}
+.epk-report__status:empty{display:none}
+@media (max-width:420px){.epk-verify__ways{display:grid}.epk-verify__way{width:100%}}
+@media print{.epk-report,.epk-verify,.epk-verify-editor,.epk-verify__reason{display:none!important}}
