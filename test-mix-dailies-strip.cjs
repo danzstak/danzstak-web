@@ -5,9 +5,10 @@ const fs = require("node:fs");
 const crypto = require("node:crypto");
 const html = fs.readFileSync("feed.html", "utf8");
 const css = fs.readFileSync("assets/mix-polish.css", "utf8");
-assert.match(html, /takeLine\.textContent = takes \? `TAKE \$\{takes\}` : "";\s*takeLine\.hidden = !takes;/, "no TAKE 0 before the first upload");
+assert.match(html, /takeLine\.textContent = `TAKE \$\{takes\}`;\s*takeLine\.hidden = false;/, "owner 2026-11-18: the clapper always shows the member's Dailies count");
 assert.match(html, /<strong>SCENE 1<\/strong><small hidden><\/small>/, "the first paint has no TAKE 0 either");
-assert.match(css, /body\.danzstak-original #storiesRail \.story,\s*body\.danzstak-original #storiesRail:not\(:has\(\.story\[data-story-id\]\)\) \.story-create\{\s*flex:0 0 calc\(\(100% - 4px\) \/ 3\.25\)!important;/, "tiles stay a third of the screen (owner 2026-11-18: never one tile stretched full width)");
+assert.match(css, /body\.danzstak-original #storiesRail \.story,\s*body\.danzstak-original #storiesRail:not\(:has\(\.story\[data-story-id\]\)\) \.story-create\{\s*flex:0 0 calc\(\(100% - 4px\) \/ 3\)!important;/, "three tiles across, each a third of the screen (owner 2026-11-18)");
+assert.match(css, /#storiesRail \.story-create\{position:sticky!important;left:0;/, "the member's own tile is pinned while friends' Dailies scroll (owner 2026-11-18)");
 // The inline script edit must keep the CSP hash in step, or the whole Mix script is blocked (caught while building this).
 const csp = html.match(/script-src ([^;]*)/)[1];
 for (const [, body] of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {

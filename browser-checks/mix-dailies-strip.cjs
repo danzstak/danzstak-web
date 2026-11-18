@@ -1,6 +1,6 @@
 "use strict";
 // Mix Dailies strip (fix-it 18, owner 2026-11-17): a horizontal strip, tiles a third of the screen — own tile first, then
-// friends' — instead of one half-width tile with empty space beside it; no "TAKE 0" before the first upload.
+// friends' — instead of one half-width tile with empty space beside it; clapper shows the member's Dailies count.
 // Run: DANZSTAK_BASE_URL=http://127.0.0.1:8141 node browser-checks/mix-dailies-strip.cjs
 const { chromium } = require("playwright");
 const fs = require("node:fs");
@@ -44,15 +44,15 @@ const friendStories = Array.from({ length: 4 }, (_, i) => ({ storyId: `s${i}`, m
       if (Math.abs(strip.left) > 0.5 || Math.abs(strip.right - width) > 0.5) failures.push(`${label}: strip does not reach both edges (${Math.round(strip.left)}-${Math.round(strip.right)})`);
       if (!strip.tiles.length || !strip.tiles[0].own) failures.push(`${label}: own tile is not first`);
       // Owner 2026-11-18: tiles stay about a third of the screen, even when only the member's own tile is there.
-      const third = (width - 4) / 3.25;
+      const third = (width - 4) / 3;
       if (strip.tiles.length && Math.abs(strip.tiles[0].width - third) > 3) failures.push(`${label}: own tile is not a third of the screen (${Math.round(strip.tiles[0].width)} vs ${Math.round(third)})`);
       if (withFriends) { const filled = strip.tiles.filter(t => t.left < width).reduce((max, t) => Math.max(max, Math.min(t.right, width)), 0); if (filled < width - 1) failures.push(`${label}: empty space beside the tiles with friends (${Math.round(width - filled)}px)`); }
       if (withFriends) {
         if (strip.tiles.length < 5) { failures.push(`${label}: friends' Dailies missing (${strip.tiles.length} tiles; errors: ${errors.join(' | ').slice(0, 200)})`); await context.close(); continue; }
-        const expected = (width - 4) / 3.25;
+        const expected = (width - 4) / 3;
         if (Math.abs(strip.tiles[1].width - expected) > 3) failures.push(`${label}: tiles are not about a third of the screen (${Math.round(strip.tiles[1].width)} vs ${Math.round(expected)})`);
       }
-      if (/TAKE 0/.test(strip.take)) failures.push(`${label}: shows "TAKE 0" before the first upload`);
+      if (!/^TAKE \d+$/.test(strip.take)) failures.push(`${label}: clapper does not show the member's Dailies count ("${strip.take}")`);
       if ([360, 390].includes(width)) await page.screenshot({ path: path.join(output, `${prefix}-${withFriends ? "friends" : "own"}-${width}.png`), clip: { x: 0, y: 0, width, height: 360 } });
       if (errors.length) failures.push(`${label}: page errors ${errors.join(" | ")}`);
       await context.close();
@@ -60,5 +60,5 @@ const friendStories = Array.from({ length: 4 }, (_, i) => ({ storyId: `s${i}`, m
   } finally { await browser.close(); }
   const unique = [...new Set(failures)];
   if (unique.length) { console[process.env.AUDIT_ONLY ? "log" : "error"](`Mix Dailies strip: ${unique.length} problem(s)\n- ${unique.join("\n- ")}`); if (!process.env.AUDIT_ONLY) process.exitCode = 1; return; }
-  console.log("Mix Dailies strip checks passed: full-width strip, own tile first then friends', tiles about a third of the screen, no empty space, no TAKE 0.");
+  console.log("Mix Dailies strip checks passed: full-width strip, own tile first then friends', tiles about a third of the screen, own tile pinned, clapper shows the Dailies count.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
