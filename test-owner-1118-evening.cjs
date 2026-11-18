@@ -12,4 +12,6 @@ assert.doesNotMatch(tribes, /\.group-card-cover\{[^}]*;background:#121418!import
 assert.match(feed, /if \(group\.coverUrl\) \{ cover\.style\.backgroundImage = `url\(/, "Tribe directory box shows the Tribe's own picture");
 assert.match(editor, /profileActionRow\.appendChild\(addBioButton\)/, "+ bio joins the action row");
 assert.match(polish, /\.profile-actions \.profile-add-bio--icon\{order:99;/, "+ bio is the last (5th) icon");
+assert.match(editor, /if \(profile\.isOwner && profile\.picture\) installCompactAvatar\(profile\);/, "profile composer fetches the owner photo when missing");
+assert.doesNotMatch(editor, /compactAvatar\.textContent = "D";/, "never the DanzStak D in the profile composer");
 console.log("Owner evening checks passed: logout to landing, centred Tribe initials and pictures, + bio as the 5th icon.");
