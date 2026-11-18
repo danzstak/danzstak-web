@@ -34,3 +34,8 @@ Record shops pivot their online shop to DanzStak the same way members pivot thei
 - After the move, the shop's "I pivoted to DanzStak" card links to its shop on DanzStak.
 - Prices are USD; the page tells shops with euro or pound exports to use the % change. Multi-currency listings are a later task.
 - Seller-side pitch: the buyer pays DanzStak's 6% (+$1 under $30), so the shop keeps its full price and shipping. Compare with marketplaces that take a selling fee from the shop, without naming rates as guaranteed (they change).
+
+## Where the AI profile lives (owner 2026-11-18, phone screenshot of Edit profile)
+- On **Edit your profile**, right under the title: a single **"Write it with AI"** row (sparkle icon, "$6.30" shown only until bought). Tapping it asks 3–4 quick questions (what you do, scene/genres, city, one line about you, links) and drafts the bio, the "More profile details" fields and an @username suggestion; the member reviews every word, edits, then saves. Nothing is saved or published unseen.
+- Price follows the paywall rule: the price shows only when the member chooses AI and hasn't bought it; once bought, the row just says "Write it with AI" (rewrites included for that profile).
+- While here, tidy the screen: no "This is the name friends and other members will see" or "Choose the name you want…" explanation lines (fix-it rule: no explanatory sub-lines); the four collapsed boxes become plain rows with chevrons in the 16-C style, not bordered HTML disclosure boxes.
