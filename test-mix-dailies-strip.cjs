@@ -11,6 +11,8 @@ assert.match(css, /body\.danzstak-original #storiesRail \.story,\s*body\.danzsta
 assert.match(css, /#storiesRail \.story-create\{position:sticky!important;left:0;/, "the member's own tile is pinned while friends' Dailies scroll (owner 2026-11-18)");
 assert.match(html, /for \(let slot = visibleStories\.length; slot < 2; slot \+= 1\)/, "owner 2026-11-18: always three tiles — two placeholders when friends have no Dailies");
 assert.match(css, /\.story\.story-placeholder\{position:relative;background:#121418!important;background-image:none!important;/, "placeholders are plain dark film frames, no gradient");
+assert.match(html, /\["LIGHTS", "SOUND"\]/, "owner 2026-11-18: empty slots say Lights, Sound, Action");
+assert.match(html, /"ACTION!"/, "Action is the last cue");
 // The inline script edit must keep the CSP hash in step, or the whole Mix script is blocked (caught while building this).
 const csp = html.match(/script-src ([^;]*)/)[1];
 for (const [, body] of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
