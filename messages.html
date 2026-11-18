@@ -148,9 +148,6 @@
   <header><div><span class="eyebrow">SYNC device</span><h2 id="callingDevicesTitle">Verify this device by SMS</h2></div><button id="closeCallingDevices" type="button" data-icon="close" aria-label="Close registered devices" title="Close">×</button></header>
   <p id="callingDeviceReason" class="calling-device-reason">Calls and voice messages need this device's own SMS code. Text messaging works without registering.</p>
   <p class="calling-device-account"><span>Account name</span><strong id="callingAccountName">Loading account…</strong></p>
-  <p id="deviceStatus" class="device-status" role="status">Checking this device…</p>
-  <ul id="registeredDevices" class="registered-devices" aria-label="Your registered calling devices"></ul>
-  <p class="push-test-row"><button id="pushTestButton" type="button">Send a test notification</button><span id="pushTestStatus" role="status"></span></p>
   <section class="sync-phone-verification" aria-labelledby="syncPhoneTitle">
     <h3 id="syncPhoneTitle" class="sr-only">Verify this device by SMS</h3>
     <p id="syncPhoneIntro" hidden>DanzStak stores only a protected phone fingerprint and the last four digits. The number stays private, unsearchable, and is never a public SYNC identity.</p>
@@ -166,6 +163,10 @@
     </form>
     <div id="syncPhoneVerified" hidden><button id="syncPhoneRemove" type="button" class="secondary" data-music-icon="eject" aria-label="Remove private number"><span class="ds-cue-label">Remove</span></button></div>
   </section>
+  <p id="deviceStatus" class="device-status" role="status">Checking this device…</p>
+  <ul id="registeredDevices" class="registered-devices" aria-label="Your registered calling devices"></ul>
+  <p class="push-test-row"><button id="pushTestButton" type="button">Send a test notification</button><span id="pushTestStatus" role="status"></span></p>
+
   <section class="sync-network-number" aria-labelledby="syncNetworkNumberTitle" hidden><!-- DS numbers stay out of the panel until they launch (owner SYNC call test 2026-11-17) -->
     <p class="sync-network-number-kicker">Optional · Test Mode</p>
     <h3 id="syncNetworkNumberTitle">DanzStak Network number</h3>

@@ -11,3 +11,10 @@ assert.match(devices, /window\.danzstakRecheckCallingDevice=\(\)=>window\.danzst
 assert.match(devices, /window\.danzstakRefreshCallingDevice=async\(\)=>\{state\.known=false;await loadDevices\(\);return state\.known\?state\.registered:null;\};/);
 assert.match(chat, /function openCallDeviceRegistration\(options=\{\}\)\{if\(window\.danzstakSyncDeviceRegistered\?\.\(\)===true\)\{Promise\.resolve\(window\.danzstakRecheckCallingDevice/, "a registered device re-checks with the server before being sent to registration");
 console.log("SYNC registration-loop checks passed: no reopening registration window on registered devices.");
+// Owner 2026-11-18: on an unregistered computer the SMS number form sat below the other devices' list, so the dialog looked like a loop.
+{
+  const html = fs.readFileSync("messages.html", "utf8");
+  const dialog = html.slice(html.indexOf('id="callingDevicesDialog"'));
+  assert.ok(dialog.indexOf('class="sync-phone-verification"') < dialog.indexOf('id="registeredDevices"'), "the SMS number form comes before the list of other devices");
+  assert.ok(dialog.indexOf('id="syncPhoneNumberForm"') < dialog.indexOf('id="deviceStatus"'), "number form is the first thing under the account name");
+}
