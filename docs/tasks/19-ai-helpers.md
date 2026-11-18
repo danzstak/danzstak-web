@@ -35,8 +35,9 @@ Record shops pivot their online shop to DanzStak the same way members pivot thei
 - Prices are USD; the page tells shops with euro or pound exports to use the % change. Multi-currency listings are a later task.
 - Seller-side pitch: the buyer pays DanzStak's 6% (+$1 under $30), so the shop keeps its full price and shipping. Compare with marketplaces that take a selling fee from the shop, without naming rates as guaranteed (they change).
 
-## Shop Manager AI (bulk) — owner 2026-11-18
-- For shops listing many items (record stores moving a Discogs crate). **Hard cap: 250 listings per purchase.** Never 500.
-- Going past 250 means **filing for an upgraded shop account** (owner 2026-11-18): an application from the Shop Manager screen ("Apply for an upgraded shop") with the shop's name, what it sells, roughly how many items, its existing store or Discogs/eBay seller page, location and contact. DanzStak staff review it in an admin queue and approve or decline with a short reason. Only an upgraded shop can buy further batches of 250. No self-serve unlimited use.
-- Drafts are reviewed in batches (the seller sees every listing before it goes live); nothing publishes unseen.
-- Price: proposed **$20 for up to 250 listings** ($21.20 with fees) — **awaiting the owner's confirmation**; do not create the Stripe product until confirmed.
+## Shop size: 250 listings unless upgraded (owner 2026-11-18)
+"To have more than 250 listings" a shop needs an upgraded account — this applies to the shop itself, not only to the AI.
+- **Standard shop:** up to **250 active listings** (sold-out, archived and drafts don't count). Server-enforced in `marketplace.mjs` (today `MAX_SHOP_PRODUCTS = 5000` → 250 for standard shops) for manual listings, Moving Day imports and Shop Manager AI alike. At 250 the Add/Import buttons say "Your shop is full — apply for an upgraded shop" instead of failing.
+- **Upgraded shop:** applies once (form above); DanzStak staff approve in the admin queue; approved shops get the higher limit (5000) and can buy further Shop Manager AI batches. A declined shop keeps everything it has; nothing is unlisted.
+- Moving Day for shops shows the limit up front ("You can bring 250 items; you have 3,412 in the file — pick your best 250 or apply for an upgraded shop") and lets the seller choose which items come over.
+- Upgrade is free to apply for; any fee for upgraded shops is the owner's decision and not built until set.
