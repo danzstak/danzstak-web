@@ -174,8 +174,8 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
   - Server: requests, accept, cancel and decline write the notification and push through the existing push pipeline (16-F); tests for both directions and for no duplicate pushes.
 
 ## Owner 2026-11-18 (evening, phone)
-- [x] (PR #PRNUM) **Log out takes you out of DanzStak to the landing page**, straight away, opened at the top (no "Not signed in" box). Turning off push no longer holds logout up for up to 8 s.
-- [x] (PR #PRNUM) **Tribe tiles:** the initial sits dead centre in its box; a Tribe whose Elders set a picture (Add cover inside the Tribe) shows that picture in its directory box.
+- [x] (PR #568) **Log out takes you out of DanzStak to the landing page**, straight away, opened at the top (no "Not signed in" box). Turning off push no longer holds logout up for up to 8 s.
+- [x] (PR #568) **Tribe tiles:** the initial sits dead centre in its box; a Tribe whose Elders set a picture (Add cover inside the Tribe) shows that picture in its directory box.
 - [ ] **Bazaar item every 4th post in Mix, after The Roll:** after The Roll, every 4th post is a different Bazaar item (queue item 6e / task 23b). The Bazaar now has 7 live Eroticon items to rotate.
 - [ ] **Still: tapping a video or photo doesn't open full screen.** Tap → full screen, swipe left/right through that member's videos or photos full screen with none of the post text; Back returns to the same spot in Mix (see "Tap any photo or video anywhere → full screen" above).
-- [x] (PR #PRNUM) **"+ bio" is the 5th icon** in the profile action row (edit · shop · share · people · bio), not its own line.
+- [x] (PR #568) **"+ bio" is the 5th icon** in the profile action row (edit · shop · share · people · bio), not its own line.
