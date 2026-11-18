@@ -82,3 +82,15 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
   for (const lang of ["it", "fr", "es"]) { const b = i18n.slice(i18n.indexOf(`"${lang}": {`), i18n.indexOf("\n}", i18n.indexOf(`"${lang}": {`))); for (const k of ["Make it yours", "Quiet hours", "Hide message previews", "Quick reactions", "Accent color"]) assert.ok(b.includes(JSON.stringify(k) + ":"), `${lang}: ${k}`); }
   console.log("Make it yours checks passed: account-saved prefs validated, quiet hours (time zone, calls ring), hidden previews, contrast ≥ 4.5 for every accent × theme × dim, reactions/vibration/quiet wired, it/fr/es.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
+// Owner 2026-11-18: the phone's dark setting must not switch on the retired site-wide dark mode (it jumbled the chat list).
+{
+  const src = fs.readFileSync("assets/sync-make-it-yours.js", "utf8");
+  assert.match(src, /const darkWanted = \(\) => prefs\.theme === "dark";/, "only an explicit Dark choice makes SYNC dark");
+  assert.doesNotMatch(src, /prefers-color-scheme/, "SYNC never follows the phone's dark setting");
+  assert.doesNotMatch(src, /\["auto", "Auto"\]/, "no Auto theme button");
+}
+
+{
+  const shell = fs.readFileSync("assets/sync-shell.css", "utf8");
+  assert.match(shell, /\[data-sync-section="contacts"\],\[data-sync-section="calls"\]\) \.conversation-user \.conversation-copy small\{font-size:0!important\}/, "Contacts/Calls rows show one line, not the chat preview run into it");
+}
