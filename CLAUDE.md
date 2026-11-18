@@ -346,9 +346,12 @@ Owner-session only (not Claude Code): deploy the Auth API for AI EPK (#567) and 
 
 9. **5a00 Incoming calls ring** (spec 31, PR #578). **5a0 Text button in calls** (spec 30): 5th call button, note over the other person's video until they close it. **5a01 Share a phone photo to DanzStak** (spec 32): DanzStak in the Android Share menu → composer with the photo attached → it posts and lands in the "Phone photos" album.
 
-Build order for Claude Code right now: **5a0 → 5a01 → 5a2 albums (finish #575) → 5a3 friends row (#572) → 5a1 viewer (#577) review fixes → 5a5 Bazaar in Mix → 5a6 shop skin → 5a7 Dailies carousel → 5a8 share sheet → 5a9 Tribes.**
+10. **Translation** (owner 2026-11-18): **5a02 SYNC auto-translate messages** (spec 33) and **real-time call captions** (task 21, queue 9b, after the call fixes).
+
+Build order for Claude Code right now: **5a0 → 5a01 → 5a02 → 5a2 albums (finish #575) → 5a3 friends row (#572) → 5a1 viewer (#577) review fixes → 5a5 Bazaar in Mix → 5a6 shop skin → 5a7 Dailies carousel → 5a8 share sheet → 5a9 Tribes.**
 
 ### Builder log (newest first)
+- 2026-11-18 23:35 UTC · Claude (planning chat) · owner: real-time translation + SYNC auto-translate; spec 33 queued as 5a02, call captions stay task 21 / 9b · Next: 5a0
 - 2026-11-18 23:15 UTC · Claude (planning chat) · 5a00 ringer PR #578; owner: shared/posted photos go into albums ("Uploads", "Phone photos", renameable) + named albums with bulk upload; spec 32 share-to-DanzStak queued as 5a01 · Next: 5a0
 - 2026-11-18 22:30 UTC · Claude (planning chat) · owner phone test: video call works (picture-in-picture drag works) but incoming calls don't ring; spec `docs/tasks/31-call-ringer.md`, queued first as 5a00, then 5a0 Text button · Next: 5a00
 - 2026-11-18 22:20 UTC · Claude (planning chat) · owner asked for a Text button in SYNC calls (note over the other person's video until closed); spec `docs/tasks/30-call-text-overlay.md`, queued first as 5a0 · Next: 5a0
