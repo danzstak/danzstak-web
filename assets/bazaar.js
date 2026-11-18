@@ -26,11 +26,38 @@
       throw error;
     } finally { clearTimeout(timer); }
   }
+  // Until the Bazaar has 24 real items (and only when not searching), labelled examples fill the grid after real items.
+  const examplesFor = (term, realCount) => {
+    const examples = Array.isArray(window.danzstakBazaarExamples) ? window.danzstakBazaarExamples : [];
+    const limit = Number(window.danzstakBazaarExampleLimit) || 24;
+    return term || realCount >= limit ? [] : examples.slice(0, Math.max(0, limit - realCount));
+  };
+  function exampleCard(product) {
+    // Not a link and no buy action: examples never reach a product page or checkout.
+    const card = document.createElement("article"); card.className = "bazaar-card bazaar-example"; card.dataset.example = "true";
+    card.setAttribute("aria-label", `Example: ${product.title}. Not for sale.`);
+    const frame = node("span", "", "bazaar-image-frame");
+    const image = document.createElement("img"); image.src = product.imageUrl; image.alt = ""; image.loading = "lazy"; image.decoding = "async"; frame.append(image, node("span", "Example", "bazaar-example-tag"));
+    const copy = node("span", "", "bazaar-card-copy");
+    copy.append(node("strong", product.title, "bazaar-title"), node("span", product.shopName, "bazaar-seller"), node("span", money(product.priceCents), "bazaar-price bazaar-example-price"), node("span", "Example · not for sale", "bazaar-shipping bazaar-example-line"));
+    card.append(frame, copy);
+    return card;
+  }
   function render() {
     const term = search.value.trim();
-    const shown = catalog;
+    const real = catalog, examples = examplesFor(term, total || real.length);
+    const shown = real;
     more.hidden = nextOffset === null;
     list.replaceChildren();
+    if (examples.length) {
+      const note = node("p", "Shops open soon. These are examples of what the Bazaar will look like; nothing here is for sale yet.", "bazaar-example-note");
+      list.before(note); document.querySelectorAll(".bazaar-example-note").forEach(old => { if (old !== note) old.remove(); });
+    } else document.querySelectorAll(".bazaar-example-note").forEach(old => old.remove());
+    if (!shown.length && examples.length) {
+      for (const product of examples) list.append(exampleCard(product));
+      status.textContent = `${examples.length} example items. Nothing is for sale yet.`;
+      return;
+    }
     if (!shown.length) {
       list.append(node("p", term ? "No products match that search." : "The community is stocking its shops. Check back soon.", "bazaar-empty"));
       status.textContent = term ? "0 products found." : "No published products are available right now.";
@@ -45,10 +72,15 @@
       copy.append(node("strong", product.title, "bazaar-title"), node("span", product.shopName, "bazaar-seller"), node("span", money(product.priceCents), "bazaar-price"), node("span", product.shippingCents ? `+${money(product.shippingCents)} shipping` : "Free shipping", "bazaar-shipping"));
       card.append(frame, copy); list.append(card);
     }
+    if (nextOffset === null) for (const product of examples) list.append(exampleCard(product));
     status.textContent = `${total || shown.length} product${(total || shown.length) === 1 ? "" : "s"}. Fixed price, no bidding.`;
   }
   // Search runs on the server so shops with thousands of records are searchable; "Show more" loads the next page (no infinite scroll).
-  const load = () => request(0).then(products => { catalog = products; render(); }).catch(error => { list.replaceChildren(); more.hidden = true; status.textContent = error.message; });
+  const load = () => request(0).then(products => { catalog = products; render(); }).catch(error => {
+    list.replaceChildren(); more.hidden = true; status.textContent = error.message;
+    // Pre-launch: the examples still show what the Bazaar looks like when the live list can't load.
+    if (!search.value.trim() && examplesFor("", 0).length) { catalog = []; nextOffset = null; total = 0; render(); status.textContent = error.message; }
+  });
   document.querySelector(".bazaar-search").addEventListener("submit", event => { event.preventDefault(); load(); });
   search.addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(load, 300); });
   more.addEventListener("click", () => { if (nextOffset === null) return; more.disabled = true; request(nextOffset).then(products => { catalog = catalog.concat(products); render(); }).catch(error => { status.textContent = error.message; }).finally(() => { more.disabled = false; }); });
