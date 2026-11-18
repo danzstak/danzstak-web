@@ -120,3 +120,12 @@ body:has(#feed){background:var(--mix-surface)!important}
 #feed > .post .post-actions{margin:0!important;padding:0!important}
 #feed > .post .commentList:empty{margin:0!important}
 #feed > .post .comments[hidden]{display:none!important}
+/* Phone Mix top (owner 2026-11-17): Dailies sits right under the header, the post box right under
+   Dailies, and the first post right under the post box. No idle gaps; one hairline between sections. */
+@media (max-width:700px){
+  body:has(#feed) .layout{margin-top:0!important;padding-top:0!important}
+  body:has(#feed) #newsFeedView{padding-top:0!important;margin-top:0!important}
+  body:has(#feed) #storiesRail{margin:0!important;padding:4px 0 6px!important}
+  body:has(#feed) #postComposer{margin:0!important;padding-top:6px!important;padding-bottom:6px!important;border:0!important;border-bottom:1px solid var(--mix-rule)!important;border-radius:0!important;box-shadow:none!important}
+  body:has(#feed) #feed > :first-child{margin-top:0!important}
+}
