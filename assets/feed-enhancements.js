@@ -802,7 +802,8 @@ function renderWorkspace(name) {
     tabs.setAttribute("aria-label", "Tribe views");
     let groupView = "discover";
     const viewButtons = {};
-    for (const [value, label] of [["discover", "Discover"], ["joined", "Your Tribes"]]) {
+    if (Object.values(saved.GroupsJoined || {}).some(Boolean)) groupView = "joined"; // owner 2026-11-18: opens on your Tribes, like Facebook Groups
+    for (const [value, label] of [["joined", "Your Tribes"], ["discover", "Discover"]]) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "groups-tab";
@@ -841,6 +842,17 @@ function renderWorkspace(name) {
     createToggle.textContent = "+ Create Tribe";
     createToggle.setAttribute("aria-expanded", "false");
     discoverControls.append(groupSearch, categoryFilter, createToggle);
+    // Owner 2026-11-18: Tribes opens like Facebook Groups. Pills, then a search icon and + on the right; the search box and
+    // the category filter only appear after tapping search.
+    const searchToggle = document.createElement("button");
+    searchToggle.type = "button"; searchToggle.className = "ds-icon-button tribes-search-toggle";
+    searchToggle.setAttribute("aria-label", "Search Tribes"); searchToggle.setAttribute("aria-expanded", "false");
+    searchToggle.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    toolbar.classList.add("tribes-head");
+    searchToggle.addEventListener("click", () => { const open = !toolbar.classList.contains("is-searching"); toolbar.classList.toggle("is-searching", open); searchToggle.setAttribute("aria-expanded", String(open)); if (open) groupSearch.focus(); else if (groupSearch.value || categoryFilter.value) { groupSearch.value = ""; categoryFilter.value = ""; renderGroups(); } });
+    const headActions = document.createElement("div"); headActions.className = "tribes-head-actions";
+    headActions.append(searchToggle, createToggle);
+    tabs.append(headActions);
     toolbar.append(tabs, discoverControls);
     const createBox = document.createElement("div");
     createBox.className = "group-create-box";
@@ -992,6 +1004,7 @@ function renderWorkspace(name) {
       const hero = document.createElement("header"); hero.className = "tribe-hero";
       const cover = document.createElement("div"); cover.className = "tribe-hero-cover";
       if (group.coverUrl) { cover.style.backgroundImage = `linear-gradient(180deg,transparent 45%,rgba(8,12,20,.72)),url("${String(group.coverUrl).replace(/["\\]/g, "")}")`; cover.classList.add("has-photo"); }
+      else if (window.danzstakTribeArt) { cover.classList.add("has-art"); cover.setAttribute("aria-hidden", "true"); cover.append(window.danzstakTribeArt.art(group.name, group.category)); }
       else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); cover.setAttribute("aria-hidden", "true"); }
       if ((group.isElder || group.isOwner) && group.custom) {
         const editCover = document.createElement("button"); editCover.type = "button"; editCover.className = "tribe-cover-edit"; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
@@ -1116,6 +1129,10 @@ function renderWorkspace(name) {
 
     // Tribe covers without a photo show the Tribe's initial in DanzStak type (owner 2026-11-16: not generic).
     function tribeInitial(name) { return String(name || "").replace(/^[^\p{L}\p{N}]+/u, "").charAt(0).toUpperCase() || "T"; }
+    // Owner 2026-11-18 (Facebook Groups screenshot): a pin on each of your Tribes keeps it on top. The member's own choice,
+    // stored on this device only; no ranking.
+    const tribePins = new Set((() => { try { return JSON.parse(localStorage.getItem("danzstak_tribe_pins") || "[]"); } catch { return []; } })());
+    const saveTribePins = () => { try { localStorage.setItem("danzstak_tribe_pins", JSON.stringify([...tribePins])); } catch { /* optional */ } };
     function renderGroups() {
       grid.replaceChildren();
       // Owner 2026-11-18: categories are not Tribes. Members create Tribes (name first, then a category); the category
@@ -1126,7 +1143,7 @@ function renderWorkspace(name) {
         .filter(group => groupView !== "joined" || Boolean(saved.GroupsJoined?.[group.id]))
         .filter(group => !categoryFilter.value || group.category === categoryFilter.value)
         .filter(group => !query || `${group.name} ${group.description || ""} ${groupCategoryName(group.category)}`.toLowerCase().includes(query))
-        .sort((a, b) => Number(Boolean(saved.GroupsJoined?.[b.id])) - Number(Boolean(saved.GroupsJoined?.[a.id])) || Number(Boolean(b.custom)) - Number(Boolean(a.custom)) || String(a.name).localeCompare(String(b.name)));
+        .sort((a, b) => Number(tribePins.has(b.id)) - Number(tribePins.has(a.id)) || Number(Boolean(saved.GroupsJoined?.[b.id])) - Number(Boolean(saved.GroupsJoined?.[a.id])) || Number(Boolean(b.custom)) - Number(Boolean(a.custom)) || String(a.name).localeCompare(String(b.name)));
       if (!groups.length) {
         const empty = document.createElement("div");
         empty.className = "groups-empty";
@@ -1150,6 +1167,7 @@ function renderWorkspace(name) {
         // Owner 2026-11-18: the Tribe's own picture fills the box when its Elders set one (Add cover inside the Tribe);
         // otherwise the initial sits dead centre.
         if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); }
+        else if (window.danzstakTribeArt) { cover.classList.add("has-art"); cover.append(window.danzstakTribeArt.art(group.name, group.category)); }
         else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); }
         const title = document.createElement("h4");
         const open = document.createElement("button"); open.type = "button"; open.className = "group-open"; open.textContent = group.name; open.addEventListener("click", () => openTribe(group)); title.appendChild(open);
@@ -1160,13 +1178,14 @@ function renderWorkspace(name) {
         description.textContent = group.description;
         const meta = document.createElement("div");
         meta.className = "group-meta";
-        meta.textContent = `${Number(group.memberCount || 0) ? Number(group.memberCount) + " in The Crew · " : ""}${group.isElder || group.isOwner ? "Elder · " : ""}${groupCategoryName(group.category)}`;
+        { const count = Number(group.memberCount || 0), members = count ? `${count} ${count === 1 ? "member" : "members"}` : ""; meta.textContent = [group.isElder || group.isOwner ? "Elder" : "", members || groupCategoryName(group.category)].filter(Boolean).join(" · "); } // owner 2026-11-18: Facebook Groups line
         const join = document.createElement("button");
         join.type = "button";
         join.className = "primary";
         const joined = Boolean(saved.GroupsJoined?.[group.id]);
         const pendingSync = group.custom && !group.cloud;
-        join.textContent = pendingSync ? "Waiting to sync" : joined ? "Joined" : "Join Tribe";
+        join.textContent = pendingSync ? "Waiting to sync" : joined ? "Joined" : "Join";
+        join.setAttribute("aria-label", joined ? `Joined ${group.name}` : `Join ${group.name}`);
         join.disabled = pendingSync;
         if (pendingSync) join.title = "This tribe is saved on this device. Reopen Tribes when connected to retry syncing it.";
         join.classList.toggle("is-selected", joined);
@@ -1175,7 +1194,7 @@ function renderWorkspace(name) {
           join.disabled = true;
           try {
             await saveGroupMembership(group, nextJoined);
-            join.textContent = nextJoined ? "Joined" : "Join Tribe";
+            join.textContent = nextJoined ? "Joined" : "Join";
             join.classList.toggle("is-selected", nextJoined);
             renderGroups();
           } catch (error) {
@@ -1185,6 +1204,14 @@ function renderWorkspace(name) {
           }
         });
         card.append(cover, category, title, meta, description);
+        if (joined) {
+          const pin = document.createElement("button"); pin.type = "button"; pin.className = "ds-icon-button tribe-pin";
+          const pinned = tribePins.has(group.id);
+          pin.setAttribute("aria-pressed", String(pinned)); pin.setAttribute("aria-label", pinned ? `Unpin ${group.name}` : `Pin ${group.name}`);
+          pin.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M15 3l6 6-3 1-4 4 1 5-2 1-4-4-5 5-1-1 5-5-4-4 1-2 5 1 4-4z" fill="' + (pinned ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+          pin.addEventListener("click", () => { if (tribePins.has(group.id)) tribePins.delete(group.id); else tribePins.add(group.id); saveTribePins(); renderGroups(); });
+          card.append(pin);
+        }
         const moderation = document.createElement("div");
         moderation.className = "group-moderation-notice";
         const moderationTitle = document.createElement("strong");
@@ -1211,6 +1238,11 @@ function renderWorkspace(name) {
         });
         moderation.append(moderationTitle, moderationText, report);
         card.appendChild(moderation);
+        // Owner 2026-11-18: rows stay clean like Facebook Groups; Report and the Elder tools sit behind a ⋯ button.
+        const more = document.createElement("button"); more.type = "button"; more.className = "ds-icon-button tribe-row-more";
+        more.setAttribute("aria-label", `More for ${group.name}`); more.setAttribute("aria-expanded", "false"); more.textContent = "⋯";
+        more.addEventListener("click", () => { const open = !card.classList.contains("show-tools"); card.classList.toggle("show-tools", open); more.setAttribute("aria-expanded", String(open)); });
+        card.appendChild(more);
         card.appendChild(join);
         if (group.custom && group.isOwner !== false) {
           if (group.cloud && group.isOwner === true) {
