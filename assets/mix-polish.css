@@ -168,3 +168,5 @@ img.post-avatar,img.feed-online-avatar,img.friend-avatar,img.comment-avatar,img.
 .post-view-count.is-inline{display:inline!important;margin:0!important;font-size:11.52px!important;font-weight:400!important;line-height:1.3!important;color:#626b78!important;text-align:left!important;white-space:nowrap}
 .post-view-count.is-inline::before{content:"·";margin:0 5px}
 .post-meta-line{display:inline-flex;align-items:center;flex-wrap:wrap;gap:0;min-width:0}
+/* Owner 2026-11-18: an empty status line between the post box and Mix added a 15px gap above the first post; hide it so post 1 sits like post 2. */
+#feedStatus:empty,.feed-search-feedback:empty{display:none!important;margin:0!important}
