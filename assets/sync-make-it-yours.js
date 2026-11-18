@@ -20,13 +20,18 @@
   let prefs = clone(DEFAULTS), saveTimer = null, dialog = null;
   try { prefs = { ...clone(DEFAULTS), ...JSON.parse(localStorage.getItem(CACHE) || "{}") }; prefs.quietHours = { ...DEFAULTS.quietHours, ...(prefs.quietHours || {}) }; } catch {}
 
-  const darkWanted = () => prefs.theme === "dark" || (prefs.theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+  // Owner 2026-11-18: following the phone's dark setting ("auto") put the whole page in the retired site-wide dark mode and
+  // jumbled the chat list (swipe actions showing, bottom tabs gone). DanzStak is light-only; SYNC goes dark only when the
+  // member picks Dark in Make it yours.
+  // Owner 2026-11-18: the dark look made typed text and names unreadable (light ink on white fields). DanzStak is
+  // light-only until a dark SYNC theme is designed and contrast-tested on every screen, so a saved "dark" shows light.
+  const darkWanted = () => false;
   function apply() {
     const root = document.documentElement, accent = ACCENTS[prefs.accent] || ACCENTS.orange, dark = darkWanted();
     root.dataset.syncAccent = prefs.accent;
     root.dataset.syncBubbles = prefs.bubbles;
     root.dataset.syncText = String(prefs.textSize);
-    if (prefs.theme !== "auto" || root.dataset.syncTheme) root.classList.toggle("dark-mode", dark);
+    root.classList.toggle("dark-mode", dark);
     root.dataset.syncTheme = prefs.theme;
     root.style.setProperty("--sync-accent", accent.solid);
     root.style.setProperty("--sync-on-accent", accent.on);
@@ -90,7 +95,6 @@
     preview.innerHTML = '<div class="message"><span class="message-text"></span></div><div class="message mine"><span class="message-text"></span></div>';
     preview.querySelectorAll(".message-text")[0].textContent = t("Soundcheck at 5?"); preview.querySelectorAll(".message-text")[1].textContent = t("On my way with the cables.");
     body.append(preview);
-    body.append(line("Theme", () => segmented("theme", [["light", "Light"], ["dark", "Dark"], ["auto", "Auto"]], prefs.theme, v => { prefs.theme = v; }), () => { prefs.theme = DEFAULTS.theme; }));
     body.append(line("Accent color", () => {
       const wrap = document.createElement("div"); wrap.className = "myo-accents"; wrap.setAttribute("role", "radiogroup");
       for (const [id, a] of Object.entries(ACCENTS)) {
@@ -154,7 +158,6 @@
   }
 
   apply();
-  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => { if (prefs.theme === "auto") apply(); });
   load();
   window.danzstakSyncSettings?.add({ id: "make-it-yours", label: "Make it yours", hint: "Theme, accent, bubbles, text size, vibration, quiet hours, reactions", icon: "sparkles", order: 5, run: open });
   window.danzstakSyncPrefs = api;
