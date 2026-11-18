@@ -2681,7 +2681,7 @@ document.querySelectorAll("[data-feature]").forEach(control => {
 });
 
 document.querySelector('[data-route="home"]')?.addEventListener("click", () => closeNotificationDrawer(false), { capture: true });
-document.querySelector('[data-route="home"]')?.addEventListener("click", () => { activateMobileScreen("home"); globalThis.danzstakSyncMobileMenuCurrent?.(false); }, { capture: true });
+document.querySelector('[data-route="home"]')?.addEventListener("click", () => { activateMobileScreen("home"); globalThis.danzstakSyncMobileMenuCurrent?.(false); setTimeout(() => setScreenTitle(""), 0); }, { capture: true }); // Fix-it 18: Mix tab leaves Friends/HQ/Events and its title
 document.getElementById("messagesNav")?.addEventListener("click", () => activateMobileScreen("chat"), { capture: true });
 
 function restoreWorkspaceRoute() {
@@ -3871,11 +3871,21 @@ function setViewerProfilePicture(profile = {}) {
   avatar.dataset.viewerPicture = picture;
   const image = new Image();
   image.referrerPolicy = "no-referrer";
+  // Fix-it 18: never an empty black circle. The photo replaces the initial only after it decodes with real pixels;
+  // a photo that fails (expired link, blocked, zero-size) leaves or restores the member's initial.
+  const restoreInitial = () => {
+    if (!avatar.isConnected || avatar.dataset.viewerPicture !== picture) return;
+    avatar.style.backgroundImage = "";
+    avatar.textContent = initial;
+    delete avatar.dataset.viewerPicture;
+  };
   image.onload = () => {
     if (!avatar.isConnected || avatar.dataset.viewerPicture !== picture) return;
+    if (!image.naturalWidth || !image.naturalHeight) return restoreInitial();
     avatar.style.backgroundImage = `url("${picture}")`;
     avatar.textContent = "";
   };
+  image.onerror = restoreInitial;
   image.src = picture;
 }
 
@@ -3886,6 +3896,7 @@ function setDailyCreatorPicture(profile = {}) {
   const identity = dailyAvatar.closest(".story-create-identity");
   const initial = String(profile.name || profile.authorName || "D").trim().charAt(0).toUpperCase() || "D";
   const picture = String(profile.picture || profile.authorPicture || "").trim();
+  if (dailyAvatar.tagName !== "IMG" && !dailyAvatar.dataset.viewerPicture) dailyAvatar.textContent = initial; // Fix-it 18: own initial, not "D"
   if (!picture) {
     identity?.querySelector("img.story-create-avatar-pending")?.remove();
     if (identity) delete identity.dataset.pendingPicture;
