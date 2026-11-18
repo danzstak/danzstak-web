@@ -287,7 +287,7 @@ const tourManagerBilling = createTourManagerBilling({
   env: stripeEnvironment,
   validateOutreachEpkLink: validateBookingOutreachEpkLink,
   accountEmail: userId => accountForSub(userId),
-  aiEpkReady: async userId => (await aiEpkHandler()).checkoutReady(userId),
+  aiEpkReady: async (userId, kind) => (await aiEpkHandler()).checkoutReady(userId, kind),
   // Bell notification when a venue answers through the reply page (owner 2026-11-16).
   notifyBookingReply: async ({ artistId, outreachId, dedupe, action, preview, proposedDate, at }) => {
     const send = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${outreachId}` } }, ConsistentRead: true }))).Item;

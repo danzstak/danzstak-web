@@ -351,7 +351,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
     const userId = await authenticate(event);
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
-    const ready = await aiEpkReady(userId);
+    const kind = parseBody(event)?.kind === "redesign" ? "redesign" : "build";
+    const ready = await aiEpkReady(userId, kind);
     if (!ready?.ok) return response(503, { error: ready?.error || "AI builder coming soon", comingSoon: true }, headers);
     if (!paymentsAllowed() || !testMode()) return response(503, { error: "AI EPK checkout runs in Stripe Test Mode until the owner approves live payments." }, headers);
     if (!await stripeAccountMatches()) return response(503, { error: "DanzStak payments are not connected to the approved Stripe account." }, headers);
@@ -362,7 +363,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       ...REFUND_NOTICE,
       "line_items[0][price_data][currency]": "usd",
       "line_items[0][price_data][unit_amount]": String(AI_EPK_PRICE_CENTS),
-      "line_items[0][price_data][product_data][name]": "AI EPK",
+      "line_items[0][price_data][product_data][name]": kind === "redesign" ? "AI EPK redesign" : "AI EPK",
       "line_items[0][quantity]": "1",
       "line_items[1][price_data][currency]": "usd",
       "line_items[1][price_data][unit_amount]": String(AI_EPK_FEE_CENTS),
@@ -371,13 +372,13 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       client_reference_id: userId,
       "metadata[product]": AI_EPK_PRODUCT,
       "metadata[userId]": userId,
-      "metadata[kind]": "build",
-      success_url: `${returnBaseUrl}/epk.html?ai-epk=paid`,
+      "metadata[kind]": kind,
+      success_url: `${returnBaseUrl}/epk.html?ai-epk=paid${kind === "redesign" ? "&kind=redesign" : ""}`,
       cancel_url: `${returnBaseUrl}/epk.html?ai-epk=cancelled`
     });
     const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `ai-epk-${userId}-${requestId}` }, body: form.toString() });
     if (!/^cs_test_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
-    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, product: { S: AI_EPK_PRODUCT }, amountCents: { N: String(AI_EPK_TOTAL_CENTS) }, environment: { S: "test" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
+    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, product: { S: AI_EPK_PRODUCT }, kind: { S: kind }, amountCents: { N: String(AI_EPK_TOTAL_CENTS) }, environment: { S: "test" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
     return response(200, { checkoutUrl: session.url, priceCents: AI_EPK_PRICE_CENTS, feeCents: AI_EPK_FEE_CENTS, totalCents: AI_EPK_TOTAL_CENTS, currency: "usd", testMode: true }, headers);
   }
 
@@ -691,12 +692,12 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (expectedLive) return null;
     const userId = session.client_reference_id, metadata = session.metadata || {}, lines = Array.isArray(session.line_items?.data) ? session.line_items.data : [];
     const amounts = lines.map(line => Number(line?.amount_total)).sort((a, b) => a - b);
-    const valid = session.mode === "payment" && session.livemode === false && validUserId(userId) && metadata.product === AI_EPK_PRODUCT && metadata.userId === userId && metadata.kind === "build"
+    const valid = session.mode === "payment" && session.livemode === false && validUserId(userId) && metadata.product === AI_EPK_PRODUCT && metadata.userId === userId && ["build", "redesign"].includes(metadata.kind)
       && session.currency === "usd" && Number(session.amount_total) === AI_EPK_TOTAL_CENTS && lines.length === 2 && lines.every(line => Number(line?.quantity) === 1)
       && amounts[0] === AI_EPK_FEE_CENTS && amounts[1] === AI_EPK_PRICE_CENTS;
     if (!valid) return null;
     const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
-    return item?.sessionId?.S === session.id && item.product?.S === AI_EPK_PRODUCT && Number(item.amountCents?.N) === AI_EPK_TOTAL_CENTS && item.environment?.S === "test" ? { session, userId, product: AI_EPK_PRODUCT } : null;
+    return item?.sessionId?.S === session.id && item.product?.S === AI_EPK_PRODUCT && Number(item.amountCents?.N) === AI_EPK_TOTAL_CENTS && item.environment?.S === "test" && (item.kind?.S || "build") === metadata.kind ? { session, userId, product: AI_EPK_PRODUCT, kind: metadata.kind } : null;
   }
 
   // One build credit, plus the one free booking pitch send that comes with every paid AI EPK (owner 2026-11-16).
@@ -706,9 +707,9 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
         { Put: { TableName: tableName, Item: { ...eventKey(notification.id), sessionId: { S: verified.session.id }, eventType: { S: notification.type }, processedAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
         { Update: { TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), UpdateExpression: "SET #status = :paid, paidAt = :paidAt, amountPaidCents = :amount", ConditionExpression: "#status <> :paid AND sessionId = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":paidAt": { S: processedAt }, ":amount": { N: String(verified.session.amount_total) }, ":sessionId": { S: verified.session.id } } } },
-        { Update: { TableName: tableName, Key: aiEpkCreditsKey(verified.userId), UpdateExpression: "ADD builds :one, purchasedBuilds :one SET updatedAt = :at, lastSessionId = :sessionId", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
-        { Update: { TableName: tableName, Key: creditKey(verified.userId), UpdateExpression: "ADD credits :one, includedCredits :one SET updatedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt } } } },
-        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "ai_epk_purchase" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "1" }, status: { S: "settled" }, description: { S: "AI EPK build, with 1 included booking pitch send (no cash value, not refundable on its own)" }, createdAt: { S: processedAt } } } }
+        { Update: { TableName: tableName, Key: aiEpkCreditsKey(verified.userId), UpdateExpression: verified.kind === "redesign" ? "ADD redesigns :one, purchasedRedesigns :one SET updatedAt = :at, lastSessionId = :sessionId" : "ADD builds :one, purchasedBuilds :one SET updatedAt = :at, lastSessionId = :sessionId", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
+        ...(verified.kind === "redesign" ? [] : [{ Update: { TableName: tableName, Key: creditKey(verified.userId), UpdateExpression: "ADD credits :one, includedCredits :one SET updatedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt } } } }]),
+        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: verified.kind === "redesign" ? "ai_epk_redesign_purchase" : "ai_epk_purchase" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "1" }, status: { S: "settled" }, description: { S: verified.kind === "redesign" ? "AI EPK redesign" : "AI EPK build, with 1 included booking pitch send (no cash value, not refundable on its own)" }, createdAt: { S: processedAt } } } }
       ] }));
     } catch (error) {
       const [duplicate, checkout] = await Promise.all([
@@ -857,8 +858,9 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
         db.send(new GetItemCommand({ TableName: tableName, Key: aiEpkCreditsKey(verified.userId), ConsistentRead: true })),
         db.send(new GetItemCommand({ TableName: tableName, Key: creditKey(verified.userId), ConsistentRead: true }))
       ]);
-      const unusedBuild = Number(buildsItem.Item?.builds?.N || 0) >= 1, unusedSend = Number(sendsItem.Item?.credits?.N || 0) >= 1;
-      if (unusedBuild) items.push({ Update: { TableName: tableName, Key: aiEpkCreditsKey(verified.userId), UpdateExpression: "ADD builds :minus, refundedBuilds :one SET updatedAt = :at", ConditionExpression: "builds >= :one", ExpressionAttributeValues: { ":minus": { N: "-1" }, ":one": { N: "1" }, ":at": { S: processedAt } } } });
+      const redesign = verified.kind === "redesign", counter = redesign ? "redesigns" : "builds";
+      const unusedBuild = Number(buildsItem.Item?.[counter]?.N || 0) >= 1, unusedSend = !redesign && Number(sendsItem.Item?.credits?.N || 0) >= 1;
+      if (unusedBuild) items.push({ Update: { TableName: tableName, Key: aiEpkCreditsKey(verified.userId), UpdateExpression: `ADD ${counter} :minus, refunded${redesign ? "Redesigns" : "Builds"} :one SET updatedAt = :at`, ConditionExpression: `${counter} >= :one`, ExpressionAttributeValues: { ":minus": { N: "-1" }, ":one": { N: "1" }, ":at": { S: processedAt } } } });
       if (unusedBuild && unusedSend) items.push({ Update: { TableName: tableName, Key: creditKey(verified.userId), UpdateExpression: "ADD credits :minus, includedCredits :minus SET updatedAt = :at", ConditionExpression: "credits >= :one", ExpressionAttributeValues: { ":minus": { N: "-1" }, ":one": { N: "1" }, ":at": { S: processedAt } } } });
       items.push({ Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: unusedBuild ? "ai_epk_refund" : "ai_epk_refund_after_draft" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: unusedBuild ? "-1" : "0" }, status: { S: "settled" }, createdAt: { S: processedAt } } } });
     } else if (verified.product === SYNC_NETWORK_PRODUCT) {
@@ -951,7 +953,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     }
     if (verified.product === AI_EPK_PRODUCT) {
       const granted = await grantAiEpk(notification, verified);
-      return response(200, { received: true, aiEpkBuildGranted: granted, duplicate: !granted });
+      return response(200, { received: true, aiEpkBuildGranted: granted, kind: verified.kind, duplicate: !granted });
     }
     if (verified.product === PHONE_PRODUCT) {
       const granted = await grantPhoneEntitlement(notification, verified);
