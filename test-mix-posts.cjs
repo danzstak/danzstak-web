@@ -12,3 +12,5 @@ assert.match(views, /row\.className = 'post-meta-line'; audience\.before\(row\);
 assert.ok(views.includes("const countWatch = typeof MutationObserver === 'function' ? new MutationObserver"), "the label follows the post's real count (it used to read 0 views)");
 assert.match(polish, /\.post-avatar,\.feed-online-avatar,\.friend-avatar,\.comment-avatar,\.comment-composer-avatar\{background:#121418!important;color:#ff5a1f!important/, "no gradient placeholder avatars");
 console.log("Mix post checks passed.");
+// Owner 2026-11-18: The Roll is edge to edge on phones.
+require("node:assert/strict").match(require("node:fs").readFileSync("assets/mix-polish.css", "utf8"), /\.reels-rail\.post \.reels-list\{margin-left:calc\(-1 \* var\(--mix-pad,12px\)\)!important;margin-right:calc\(-1 \* var\(--mix-pad,12px\)\)!important;[^}]*padding:0!important/, "The Roll runs edge to edge");
