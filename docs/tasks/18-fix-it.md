@@ -50,7 +50,7 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 - [ ] Record shops and Radio stations are missing from HQ (CLAUDE.md: Music HQ = EPK, Booking Agent, Record shops, Radio stations).
 
 **Events**
-- [ ] The full "Post an event" form is printed on the Events page with a browser-default "Choose File" button and a US-only `mm/dd/yyyy` date field. Events shows the list of shows; a + button opens the composer as its own screen with a styled flyer/video picker and the date in the member's locale.
+- [x] (PR #486, on #389) The full "Post an event" form is printed on the Events page with a browser-default "Choose File" button and a US-only `mm/dd/yyyy` date field. Events shows the list of shows; a + button opens the composer as its own screen with a styled flyer/video picker and the date in the member's locale.
 
 **Bazaar**
 - [ ] Two search boxes (top bar and body). Keep one. Use the shared top bar; "Bazaar / My Shop" become tabs under it.
