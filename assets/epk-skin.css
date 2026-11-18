@@ -120,3 +120,14 @@ body.epk-skin:not(.public-mode) .epk-type-instead[open]>summary{color:var(--sk-a
 @media(max-width:700px){.epk-rider-slots{grid-template-columns:1fr}.epk-rider-slot{min-height:0;grid-template-columns:auto 1fr;column-gap:12px;align-items:center}.epk-rider-slot__icon{grid-row:span 3}}
 @media(prefers-reduced-motion:reduce){body.epk-skin:not(.public-mode) :is(.epk-laminate,.epk-guide-checklist){transform:none}}
 @media print{.epk-laminate{display:none!important}}
+
+/* Fix-it 18 (EPK builder): one title, one line; the guide heading row is just "Step N of 5" + Preview. */
+.epk-sr-only{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+body.epk-skin:not(.public-mode) .epk-guide-heading{align-items:center;min-height:0}
+body.epk-skin:not(.public-mode) .epk-guide-heading .epk-guide-progress-text{margin:0 0 6px}
+/* The All-Access laminate is rotated 3deg; keep its tilted corners and shadow inside the screen at every phone width. */
+body.epk-skin:not(.public-mode) .intro{overflow:visible}
+@media(max-width:700px){
+  body.epk-skin:not(.public-mode) .intro{grid-template-columns:minmax(0,1fr) 104px;padding-top:12px}
+  body.epk-skin:not(.public-mode) .epk-laminate{width:96px;margin:4px 8px 0 0;padding:20px 7px 7px;box-shadow:0 10px 22px #0008}
+}
