@@ -106,10 +106,11 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
     assert.equal(listGeometry.overflow, false, `${width}px conversation list overflows horizontally`);
     const listSurface = await page.locator(".chat-list-panel").evaluate(element => {
       const computed = getComputedStyle(element), watermark = getComputedStyle(element, "::after");
-      return { backgroundImage:computed.backgroundImage, watermarkImage:watermark.backgroundImage, watermarkOpacity:watermark.opacity };
+      return { backgroundImage:computed.backgroundImage, watermarkImage:watermark.backgroundImage, watermarkOpacity:watermark.opacity, watermarkContent:watermark.content };
     });
-    assert.match(listSurface.backgroundImage, /danzstak-score-pattern\.svg/, `${width}px sparse chat list is missing its musical-score layer`);
-    assert.match(listSurface.watermarkImage, /danzstak-d-icon\.png/, `${width}px sparse chat list is missing its DanzStak watermark`);
+    // Fix-it 18 (owner 2026-11-18): the score wallpaper belongs in threads; the chat list is plain, edge to edge.
+    assert.equal(listSurface.backgroundImage, "none", `${width}px chat list must not draw the musical-score box`);
+    assert.ok(["none", "normal"].includes(listSurface.watermarkContent), `${width}px chat list must not draw the DanzStak watermark (${listSurface.watermarkContent})`);
     assert.equal(listSurface.watermarkOpacity, "0.055", `${width}px chat-list watermark is not restrained`);
     const initialPicture = await chatRow.locator("img.conversation-list-avatar").getAttribute("src");
     await page.evaluate(() => {

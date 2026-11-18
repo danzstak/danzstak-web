@@ -57,16 +57,16 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 - [ ] Empty state is three lines of text on a grey page. One line plus a "+ Sell something" action.
 
 **SYNC list**
-- [ ] Five large round buttons in the header (share, video, call, bell, compose). WhatsApp pattern: title, search, a single ⋮ menu; new chat is a floating button bottom-right; calls live in the Calls tab.
-- [ ] Empty state sits in a framed box of music staves; drop the box, centre a short line and a "Start a chat" action.
+- [x] (PR #494, fa3b1850) Five large round buttons in the header (share, video, call, bell, compose). WhatsApp pattern: title, search, a single ⋮ menu; new chat is a floating button bottom-right; calls live in the Calls tab.
+- [x] (PR #562) Empty state sits in a framed box of music staves; drop the box, centre a short line and a "Start a chat" action.
 
 **Menu**
 - [ ] The menu is a long side drawer list. Use the familiar full-screen menu: profile row on top, a 2-column grid of shortcut tiles (Friends, Tribes, Photos, Videos, EPK, Booking Agent, Tour Manager, Record shops, Radio, Events, Bazaar, Saved), then Settings, Your data, Help, Log out.
 - [ ] Radio stations is missing from Music HQ in the menu.
 
 **EPK builder**
-- [ ] Two stacked titles ("EPK Builder" then "Build your EPK in 5 minutes") and "stays private until you publish" said twice. One title, one line.
-- [ ] The All-Access laminate graphic is clipped by the right screen edge at 390px.
+- [x] (PR #561) Two stacked titles ("EPK Builder" then "Build your EPK in 5 minutes") and "stays private until you publish" said twice. One title, one line.
+- [x] (PR #561) The All-Access laminate graphic is clipped by the right screen edge at 390px.
 
 ### SYNC call test — 2026-11-17, phone (SFScoop) ↔ computer (Eroticon), both registered
 
@@ -106,9 +106,9 @@ Fix these before item 5 (16-C) is called done; they block a real call between tw
 ## Walkthrough 2 (owner's Claude, live v911 at 390px, 2026-11-18)
 Release #494 shipped the call screen, button system, SYNC list polish, profile wall, one top bar, Mix fixes and Music HQ. Mix now looks right (one slim bar, full-width Dailies, no TAKE 0, link cards show the domain, views inline). Found live:
 - [x] (hotfix #495) The new top bar hid `.topnav` on phones — that is the phone bottom tab bar, so Mix had no Mix · Music HQ · Events · Bazaar · SYNC · Menu. Fixed; `test-phone-bottom-tabs.cjs` guards it. **Lesson: a browser check at phone width must assert the bottom tabs are visible on every main page.** Add that to the browser checks.
-- [ ] Profile still shows the Privacy Policy · Terms of Service footer above the bottom tabs (the no-footer rule from #473 didn't reach profile.html).
-- [ ] Profile top bar still has the unexplained white down-arrow (install prompt) next to search. Remove it everywhere; install lives in Menu.
-- [ ] SYNC chat list: the music-staff wallpaper is drawn as a box in the middle of the screen under the last chat. Either fill the whole list background edge to edge or show none on the list (wallpaper belongs in threads).
+- [x] (PR #523) Profile still shows the Privacy Policy · Terms of Service footer above the bottom tabs (the no-footer rule from #473 didn't reach profile.html).
+- [x] (PR #563) Profile top bar still has the unexplained white down-arrow (install prompt) next to search. Remove it everywhere; install lives in Menu.
+- [x] (PR #562) SYNC chat list: the music-staff wallpaper is drawn as a box in the middle of the screen under the last chat. Either fill the whole list background edge to edge or show none on the list (wallpaper belongs in threads).
 - [ ] SYNC chat list shows "Loading saved chats…" for ~8 s on a warm load. Show the cached list instantly and refresh in the background.
 - [ ] Every page loads ~70 separate scripts and stylesheets. Plan a bundle step (one JS + one CSS per page, versioned) so phones on mobile data open faster. Plan first, no big-bang rewrite.
 
@@ -116,7 +116,7 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
 - [x] (PRs #498 #499 #500 #501) In Mix the strip is horizontal, three tiles across, each a third of the screen and the full height of the strip. The member's own tile (photo + clapper showing **TAKE N** = how many Dailies they have uploaded) is pinned on the left; friends' Dailies (photos or videos, cover-fit) scroll left to right behind it, two at a time, like Facebook. With fewer than two friends' Dailies, dark film-frame placeholders keep it at three.
 - [ ] **Full-screen Dailies viewer = card carousel.** Tapping a friend's Daily opens it full screen; swipe left/right (or tap the right/left third) moves to the next/previous Daily as a card carousel — the next card peeks in from the side while swiping — through every friend's Dailies in strip order, then on to the following ones, ending with "You're caught up". Videos play muted by default with the lower-right sound toggle (sound choice carries to the next card, one player at a time); photos show for 6 s with a progress bar on top. Swipe down or Back closes and returns to the same scroll spot in the strip. Own tile opens the member's own profile (see below), not an upload. Phone first, 44px targets, works at 320–430px.
 - [ ] Count check: TAKE N currently counts uploaded **videos** only (server `dailyTakeCount`). Owner says "how many Dailies that user has uploaded" — count photos too, lifetime, never decreasing on expiry/deletion.
-- [ ] The composer avatar for a member with no photo is an empty black circle on some accounts (seen on the owner's phone). It must show the member's initial (orange on dark), like the Dailies tile.
+- [x] (PR #564) The composer avatar for a member with no photo is an empty black circle on some accounts (seen on the owner's phone). It must show the member's initial (orange on dark), like the Dailies tile.
 - [ ] **Tap any photo or video anywhere → full screen (owner 2026-11-18).** One shared full-screen media viewer for every photo and video on DanzStak: Mix posts, profiles (Posts/Photos/Videos tabs), Dailies, The Roll, Tribes, SYNC chats, shop items, events, EPK galleries. Tap opens it full screen (fit to the screen, never stretched); swipe left/right moves through the other media in the same place (the post's gallery, the profile's Photos tab, the chat's media, the Dailies strip — the Dailies card carousel above uses the same viewer); videos follow the existing sound rules (muted default, lower-right toggle, one player at a time); pinch-zoom on photos; swipe down or Back closes to the exact scroll spot. Linked YouTube/SoundCloud embeds open their own full-screen player where the provider allows. Captions/alt text stay readable; keyboard Esc and arrows on computers.
 
 ## Sharing (owner 2026-11-18, phone screenshots)
@@ -131,8 +131,8 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
 ## Dailies come from posts; profile pictures open profiles; Home leaves sub-screens (owner 2026-11-18, phone screenshots)
 - [ ] **No separate Dailies upload.** Tapping the Dailies tile opened the phone's photo picker. Remove that. Every photo or video a member posts (Mix composer, profile composer, Tribe post) automatically goes into their Dailies for 24 hours; every **video** also goes into The Roll (permanent, until the member deletes it). The post itself stays in Mix/profile as normal. Owner 2026-11-18: **all** photos and videos go to Dailies for 24 h and **all** videos go to The Roll and stay — automatic, no extra choice on the composer (the member removes a Roll video by deleting it). TAKE N counts these lifetime (photos and videos), never decreasing. Server: one post write creates the Daily (24 h expiry) and, for video, the Roll entry; deleting the post with **Delete everywhere** removes both.
 - [ ] **Tapping any profile picture anywhere opens that member's profile**: post authors, comments, friends lists, search results, SYNC chat list and thread header, notifications, Tribe members, shop seller rows, event hosts, and the Dailies tiles (own tile → own profile; on a friend's tile the round avatar/name opens their profile, the media itself opens the full-screen Dailies carousel). One shared handler, real links (`<a href="profile.html?u=…">`), 44px targets, keyboard-accessible.
-- [ ] **Home (Mix tab) always returns to Mix.** On Friends (opened from the menu, `feed.html` with a hash) tapping the Mix/home tab did nothing. Any bottom tab must leave the current sub-screen and open its own screen; tapping the active tab again scrolls Mix to the top. Back still unwinds one step.
-- [ ] **Dailies strip showed at the bottom of the Friends screen.** Only one primary screen may be active (CLAUDE.md shell rule): the Dailies strip, composer and posts belong to Mix only and must be hidden on Friends, Notifications, Menu, Music HQ and Events views.
+- [x] (PR #565) **Home (Mix tab) always returns to Mix.** On Friends (opened from the menu, `feed.html` with a hash) tapping the Mix/home tab did nothing. Any bottom tab must leave the current sub-screen and open its own screen; tapping the active tab again scrolls Mix to the top. Back still unwinds one step.
+- [x] (PR #565) **Dailies strip showed at the bottom of the Friends screen.** Only one primary screen may be active (CLAUDE.md shell rule): the Dailies strip, composer and posts belong to Mix only and must be hidden on Friends, Notifications, Menu, Music HQ and Events views.
 
 ## Media fills the canvas, no visible inner containers (owner 2026-11-18, Facebook screenshot as a counter-example)
 - [ ] Every photo and video in Mix, profiles, Tribes, The Roll previews and SYNC fills the full width of the column, edge to edge, never wider and never narrower. **Shared/quoted posts** ("X shared Y's post", memories, reshares) must not draw a bordered inner card on phones with the media spilling past its border (Facebook itself gets this wrong): on phones the quoted author line and text sit on a subtle tinted band, and the media below runs full width with no side border. On desktop the quoted card may keep a border, and its media is clipped to the card with matching radius. Add a browser check at 320–430px that every `img`/`video` in a post is exactly the column width and no media rect extends outside its card's rect.
@@ -172,3 +172,11 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
   - **The sender is notified when it's accepted**: "Mary accepted your friend request" → opens their profile; the two are now friends and can SYNC.
   - Pending requests also show as a small row at the top of the owner's Friends page ("2 friend requests"). No reminder spam: one notification per request, nothing for declines.
   - Server: requests, accept, cancel and decline write the notification and push through the existing push pipeline (16-F); tests for both directions and for no duplicate pushes.
+
+## Owner 2026-11-18 (evening, phone)
+- [x] (PR #568) **Log out takes you out of DanzStak to the landing page**, straight away, opened at the top (no "Not signed in" box). Turning off push no longer holds logout up for up to 8 s.
+- [x] (PR #568) **Tribe tiles:** the initial sits dead centre in its box; a Tribe whose Elders set a picture (Add cover inside the Tribe) shows that picture in its directory box.
+- [ ] **Bazaar item every 4th post in Mix, after The Roll:** after The Roll, every 4th post is a different Bazaar item (queue item 6e / task 23b). The Bazaar now has 7 live Eroticon items to rotate.
+- [ ] **Still: tapping a video or photo doesn't open full screen.** Tap → full screen, swipe left/right through that member's videos or photos full screen with none of the post text; Back returns to the same spot in Mix (see "Tap any photo or video anywhere → full screen" above).
+- [x] (PR #568) **"+ bio" is the 5th icon** in the profile action row (edit · shop · share · people · bio), not its own line.
+- [x] (PR #569) **Shop tab looks like the shop** (owner 2026-11-18): shop kicker + about, 2-column grid of square product photos with title, shipping and price; tap opens the product; owner gets a Manage icon; no extra "Shop" button. Task 23 extras (chips, featured bundle, shipping table, all-in prices) follow once the seller fields exist.
