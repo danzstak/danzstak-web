@@ -29,7 +29,7 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 **Whole site**
 - [x] (PR #471; SYNC's screen with the SYNC session) One top bar on every page. Mix has logo + search + Pivot + bell + a big orange down-arrow; the Bazaar has its own pills and search; the EPK has only logo + search; SYNC has none. Same slim bar everywhere: logo, search, bell, SYNC. The unexplained orange down-arrow goes (install prompts belong in Menu or a one-time banner), and Pivot moves into Menu and HQ's Pivot card instead of taking header space.
 - [x] (PR #473) Footer links (Privacy · Terms · copyright) don't show inside the signed-in app; they move to Menu → Settings. They currently eat the bottom of every short page.
-- [ ] Music HQ, Events and the menu open on `feed.html` with a hash, so the browser title stays "Your Mix". Each section gets its own title and Back behaves like a real screen change.
+- [x] (PR #476) Music HQ, Events and the menu open on `feed.html` with a hash, so the browser title stays "Your Mix". Each section gets its own title and Back behaves like a real screen change.
 - [x] (PR #473) Remove explanatory sub-lines under page titles ("Your saved conversations.", "Shows coming up. Promoters: post…", "Your EPK and booking work in one place…"). The controls speak for themselves.
 - [x] (PR #473) External links (SoundCloud, Mixcloud, YouTube) open outside DanzStak (new tab or the system app). Tapping a SoundCloud post currently replaces DanzStak in the same tab.
 - [x] (PR #455) Text buttons with blue outlines ("Open bookings", "Tour Manager", "Open outreach") go to the 16-C button system.

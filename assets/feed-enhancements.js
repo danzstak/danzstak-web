@@ -2432,11 +2432,16 @@ function syncMobileMenuCurrent(menuOpen = document.body.classList.contains("mobi
   mobileMenuControl?.setAttribute("aria-pressed", String(representsCurrentScreen));
 }
 globalThis.danzstakSyncMobileMenuCurrent = syncMobileMenuCurrent;
+// Fix-it 18 (owner 2026-11-17): every screen inside feed.html gets its own browser title, like a real screen change.
+const screenTitles = { HQ: "Music HQ", Groups: "Tribes" };
+let titleBeforeMenu = "";
+function setScreenTitle(name) { const label = screenTitles[name] || name || "Your Mix"; document.title = "DanzStak | " + (window.danzstakTranslate?.(label) || label); }
 function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {}) {
   const shouldOpen = Boolean(open && matchMedia("(max-width: 700px)").matches);
   if (shouldOpen) globalThis.danzstakActivateMobileScreen?.("menu", { preserveMenu: true });
   const wasOpen = document.body.classList.contains("mobile-menu-open");
   document.body.classList.toggle("mobile-menu-open", shouldOpen);
+  if (shouldOpen && !wasOpen) { titleBeforeMenu = document.title; setScreenTitle("Menu"); } else if (!shouldOpen && wasOpen && titleBeforeMenu) { document.title = titleBeforeMenu; titleBeforeMenu = ""; }
   mobileMenuControl?.setAttribute("aria-expanded", String(shouldOpen));
   globalThis.danzstakSyncMobileMenuCurrent?.(shouldOpen);
   if (shouldOpen && updateHistory && history.state?.danzstakMenuOpen !== true) {
@@ -2509,6 +2514,7 @@ function closeNotificationDrawer(restoreFocus = true, { fromHistory = false } = 
   else {
     featurePanel.hidden = true;
     notificationFeedView.hidden = false;
+    setScreenTitle("");
   }
   notificationControls.forEach(control => {
     control.setAttribute("aria-expanded", "false");
@@ -2526,6 +2532,7 @@ function closeNotificationDrawer(restoreFocus = true, { fromHistory = false } = 
 }
 
 function openNotificationDrawer(opener, { updateHistory = true } = {}) {
+  setScreenTitle("Notifications");
   document.getElementById("messageDrawer")?.querySelector(".message-drawer-close")?.click();
   setMobileMenu(false);
   document.body.classList.remove("content-only");
@@ -2637,6 +2644,7 @@ function openWorkspaceRoute(name, pushHistory = true) {
   document.getElementById("newsFeedView").hidden = true;
   featurePanel.hidden = false;
   const visibleName = canonicalName === "Groups" ? "Tribes" : canonicalName;
+  setScreenTitle(canonicalName);
   featureHeading.textContent = visibleName;
   const pageHeading = document.getElementById("pageHeading");
   if (pageHeading) pageHeading.textContent = visibleName;
@@ -2692,6 +2700,7 @@ function restoreWorkspaceRoute() {
   if (name) openWorkspaceRoute(name, false);
   else if (!location.hash || location.hash === "#feed" || location.hash.startsWith("#post-")) {
     activateMobileScreen("home");
+    setScreenTitle("");
     // The regular Home URL must keep the familiar desktop rails visible.
     // Focused deep links may still remove the rails so a specific post can
     // use the available width, but `?view=feed` is the ordinary Home route.
