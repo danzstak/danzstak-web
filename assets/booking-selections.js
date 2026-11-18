@@ -643,7 +643,9 @@
       }
     });
     creditPrompt.append(creditMessage, buyCredit);
-    creditPrompt.hidden = !window.danzstakTourManagerBilling?.credits || Number(window.danzstakTourManagerBilling.credits.bookingEmailCredits || 0) > 0;
+    // Task 25 (owner 2026-11-18): no standing paywall on the venue card. The buy prompt appears only when an
+    // approved send needs a credit the artist doesn't have (the 402 below); previewing and selecting never ask to pay.
+    creditPrompt.hidden = true;
     button.addEventListener("click", async () => {
       const currentArtist = artist(), currentSubject = subject.value.trim(), currentMessage = draft.value.trim();
       if (booking.dateEnd && booking.showDate && booking.dateEnd < booking.showDate) { window.danzstakShowFeedback?.("The end of the date range cannot be before the proposed show date.", { urgent:true }); return; }

@@ -40,3 +40,9 @@ console.log("Booking contact-sheet checks passed: removable leads, evidence, sou
   assert.match(js, /if \(!auto && current\.name && next\.name/, "the published EPK wins without an act-switch prompt");
   console.log("Booking reads the act from the published EPK.");
 }
+{
+  const js = fs.readFileSync("assets/booking-selections.js", "utf8");
+  assert.match(js, /creditPrompt\.hidden = true;/, "no standing credit prompt on venue cards");
+  assert.match(js, /if \(error\.status === 402 && \/booking-email credits\/i\.test\(error\.message\)\) \{\s*creditPrompt\.hidden = false;/, "the buy prompt opens only when Send needs a credit");
+  console.log("Credits are asked for only at Send.");
+}
