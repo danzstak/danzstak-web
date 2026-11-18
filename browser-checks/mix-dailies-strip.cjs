@@ -1,5 +1,5 @@
 "use strict";
-// Mix Dailies strip (fix-it 18, owner 2026-11-17): a horizontal strip that fills the full width — own tile first, then
+// Mix Dailies strip (fix-it 18, owner 2026-11-17): a horizontal strip, tiles a third of the screen — own tile first, then
 // friends' — instead of one half-width tile with empty space beside it; no "TAKE 0" before the first upload.
 // Run: DANZSTAK_BASE_URL=http://127.0.0.1:8141 node browser-checks/mix-dailies-strip.cjs
 const { chromium } = require("playwright");
@@ -43,8 +43,10 @@ const friendStories = Array.from({ length: 4 }, (_, i) => ({ storyId: `s${i}`, m
       });
       if (Math.abs(strip.left) > 0.5 || Math.abs(strip.right - width) > 0.5) failures.push(`${label}: strip does not reach both edges (${Math.round(strip.left)}-${Math.round(strip.right)})`);
       if (!strip.tiles.length || !strip.tiles[0].own) failures.push(`${label}: own tile is not first`);
-      const filled = strip.tiles.filter(t => t.left < width).reduce((max, t) => Math.max(max, Math.min(t.right, width)), 0);
-      if (filled < width - 1) failures.push(`${label}: empty space beside the tiles (${Math.round(width - filled)}px)`);
+      // Owner 2026-11-18: tiles stay about a third of the screen, even when only the member's own tile is there.
+      const third = (width - 4) / 3.25;
+      if (strip.tiles.length && Math.abs(strip.tiles[0].width - third) > 3) failures.push(`${label}: own tile is not a third of the screen (${Math.round(strip.tiles[0].width)} vs ${Math.round(third)})`);
+      if (withFriends) { const filled = strip.tiles.filter(t => t.left < width).reduce((max, t) => Math.max(max, Math.min(t.right, width)), 0); if (filled < width - 1) failures.push(`${label}: empty space beside the tiles with friends (${Math.round(width - filled)}px)`); }
       if (withFriends) {
         if (strip.tiles.length < 5) { failures.push(`${label}: friends' Dailies missing (${strip.tiles.length} tiles; errors: ${errors.join(' | ').slice(0, 200)})`); await context.close(); continue; }
         const expected = (width - 4) / 3.25;
