@@ -3,7 +3,7 @@
 **Claude Code:** read this file at the start of every session and after every PR you open.
 1. Take the **first** item whose status is `TODO`, set it to `IN PROGRESS (Claude Code)`, and commit that change on your branch.
 2. Build it as described in its spec, open the PR against main, and set the status to `PR #<n>`. **Don't merge or deploy.**
-3. Go on to the next `TODO`.
+3. Add one line to the top of the **Builder log** in CLAUDE.md (time · item · PR · blocked · "Next: …"), then go on to the next `TODO`.
 4. If a PR of yours shows conflicts with main, rebase it first. Use `node scripts/bump-versions.cjs` for version clashes and take the higher number.
 
 **Owner's Claude (review/deploy):** reviews each PR, merges it, deploys it (Auth API Lambdas; CloudFormation change sets for call-signaling), tests it live, then sets the status to `DONE (date)`. It adds new owner requests to this queue, in priority order.
@@ -20,9 +20,19 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 3 | One phone verification across the same person's accounts (up to 10) | owner 2026-11-17 | PR #405 (merged) |
 | 4 | (Owner 2026-11-17: a two-device **video call worked well** — Chrome/computer ↔ phone. Keep it working.) SYNC 16-A: native shell + layout (messages scroll under the header, nothing cut off, keyboard) | 16 | PR #411 + #413 |
 | 5 | SYNC 16-C: button system, SYNC first, then site-wide (no "HTML-looking" buttons) | 16 | PR #423 (SYNC), site sweep #455 → #464 |
+| 5a00 | **Incoming SYNC calls must ring** (owner 2026-11-18 phone test: calls connect, no ringer). Foreground ringtone via `<audio>` + vibration with audio unlock, background push that rings/vibrates and re-notifies while ringing, "Test ringer" row, call-alerts prompt | 31 | PR #578 (foreground ring + vibration + tap prompt + Test ringer; server re-notify while ringing still TODO) |
+| 5a0 | **Text button in SYNC calls (owner 2026-11-18, do first):** 5th button in the call controls opens a text box; Send shows the note over the other person's video until they close it (existing WebRTC data channel, no server) | 30 | TODO |
+| 5a03 | **"Get SYNC as its own app" installs a SYNC icon on the home screen** (own `/sync/` scope so Android installs it next to DanzStak) | 34 | TODO |
+| 5a01 | **Share a phone photo to DanzStak** (Android Share menu → DanzStak → composer with the photo attached; Web Share Target) | 32 | TODO |
+| 5a02 | **SYNC auto-translate messages** (setting off by default; incoming messages shown in your language with "Show original"; Amazon Translate via Auth API, fail-closed) | 33 | TODO |
 | 5a1 | **Owner 2026-11-18 evening (top priority):** tap a video or photo anywhere → full screen, media only (no post text), swipe **horizontally** through **that member's** videos or photos; Back returns to the same spot in Mix/profile. Same viewer for Mix, profiles, Dailies, The Roll. | 18 ("Tap any photo or video anywhere"), CLAUDE.md "Owner directives 2026-11-18 (evening)" | TODO |
 | 5a2 | **Owner 2026-11-18 evening:** profile **Photos** and **Videos** tabs are media-only grids with **named albums** (concert, date, someone's wedding…): create/rename/visibility, upload many at once, choose which also get posted. Frontend first, then the album API. | 18 ("Profile Photos tab", "Profile Videos tab") | TODO |
 | 5a3 | **Owner 2026-11-18 evening:** Facebook-style **friends row** under the profile name (small overlapping friend photos + "N friends" / "Friends with things in common"); tap → Friends · Following · Things in common; tapping a friend's photo opens that friend's profile. | 18 ("Friends row under the profile header") | TODO |
+| 5a5 | **Bazaar item every 4th post in Mix, after The Roll** (server cursor + Mix slot card; see CLAUDE.md "Plan (Claude, 2026-11-18 night)" step 4) | 23b | TODO |
+| 5a6 | **Shop skin part 2 + product page** (task 23 items 2–7, product page with the 5a1 viewer; seller fields in `marketplace.mjs`) | 23, CLAUDE.md plan step 5 | TODO |
+| 5a7 | **Dailies card carousel** on the 5a1 viewer | 18 ("Full-screen Dailies viewer") | TODO |
+| 5a8 | **Share sheet rebuild** (one bottom sheet, 16-C buttons, every page) | 18 ("Share post box"), 17 | TODO |
+| 5a9 | **Tribes like Facebook Groups** (directory cards, Tribe page with cover, members row, Join/Invite, tabs Discussion · Featured · Members · Events · Media · About, Elder tools, private join requests; see CLAUDE.md plan step 8) | 29 | TODO |
 | 5a4 | Profile composer shows the member's own photo, never "D" | owner 2026-11-18 | PR #570 (merged) |
 | 5b | **NEXT (owner 2026-11-18: "still no AI-assisted EPK") — AI EPK builder** via the Anthropic API (AWS Bedrock is on hold for this account, with every model throttled). Build `ai-epk.mjs` with the `llm` provider = Anthropic Messages API (plain fetch, model `claude-haiku-4-5` for extraction and Sonnet for writing), key read from Secrets Manager `danzstak/ai/anthropic-key` (JSON `{"apiKey": "..."}`, us-west-1; the auth API role may read only that secret). Fail-closed: with no key, the "Let AI build it" choice says "AI builder coming soon" and nothing is charged. Keep the provider swappable (Bedrock later). Everything else as in the spec: Stripe Test Mode only. | 08 | PR #522 + #525 + #527, combined as **PR #567** (needs Auth API deploy, then merge) |
 | 5b2 | (owner 2026-11-18: "Edit profile should have AI-assisted profile $5" — build right after the AI EPK, same provider) **AI profile** and **AI shop** ($5 + fees = $6.30 each; shop covers setup + up to 10 listings), then the other AI helpers behind flags (pitch, event post, town plan). Shop Manager AI for big catalogs waits for a price. | 19 | AI profile PR #542, AI shop PR #549 (other helpers TODO) |
