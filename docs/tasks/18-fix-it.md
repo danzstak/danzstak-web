@@ -148,3 +148,12 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
 - [ ] **Videos shows videos, not posts**: same as Photos — a grid of the member's videos only (3 columns of portrait tiles, poster frame + small duration badge, newest first), no post text, dates, view counts or reaction rows. Tap → full-screen player (swipe to the next video; existing sound rules). Linked videos (YouTube etc.) show their thumbnail.
 - [ ] **Video albums** work exactly like photo albums (name, date/place, visibility, upload many at once, choose which ones also get posted to Mix; posted videos go to The Roll and Dailies as usual). Albums can mix photos and videos.
 - [ ] Seen live on the Videos tab: the video rendered as a big black box (no poster frame), the author avatar was half black, and the date showed as "10/25/2026, 7:07:45 PM". Videos always show a poster frame; avatars never crop to black; dates everywhere use the short relative style ("3w", "Oct 25").
+
+## Profile About tab = the member's vanity wall (owner 2026-11-18: "the bio — this user's vanity wall, give them a look in the mirror")
+- [ ] About is not three grey boxes (LOCATION / WORK / WEBSITE). It is one fluid page that shows the member back to themselves, proud and personal, in their genre look:
+  - **Bio first, big**: the full bio as a large pull-quote in the display font (not clipped to one line), with an "Edit" pencil only for the owner. Empty bio → the owner sees "Tell people who you are" + **Write it with AI** (task 19); visitors see nothing.
+  - **Who they are at a glance**: scene/genre chips (techno, punk…), what they do (DJ, band, promoter, fan, crew, record shop), hometown with a small map pin, "On DanzStak since Nov 2026".
+  - **Their music and links**: SoundCloud/Bandcamp/YouTube/website as round brand-neutral icons with the domain under each (links open outside DanzStak); a "Listen" row with up to 3 featured tracks as link cards (never hosted audio).
+  - **Their story on DanzStak**: counts that open the thing — shows played/booked, Tribes, friends, photos, videos, shop items — and, for artists, the EPK as a backstage-laminate card ("View EPK").
+  - Work/role and any other details as plain lines with small icons, no boxes. Visibility per field follows Privacy and tagging.
+- [ ] Edge to edge on phones, hairline dividers, no bordered cards, no empty sections for visitors.
