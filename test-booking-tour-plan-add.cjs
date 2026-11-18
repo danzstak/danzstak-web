@@ -49,8 +49,8 @@ window.danzstakToggleBookingVenue(cypress);
 assert.equal(all.textContent, "+ Add all 2 clubs to booking list", "removing one club re-enables add-all");
 
 // Wired into the tour plan: main club toggle, backups as toggles, add-all above the table.
-assert.match(agent, /venueCell\.append\(venueName, venueStatus, bookingListToggle\(venue\)\);\n\s*planVenues\.push\(venue\);/);
-assert.match(agent, /if \(planVenues\.length\) details\.append\(addAllToBookingList\(planVenues\)\);\n\s*details\.append\(tableBox\);/);
+assert.match(agent, /venueCell\.append\(venueName, venueStatus, bookingListToggle\(venue\)\);\r?\n\s*planVenues\.push\(venue\);/);
+assert.match(agent, /if \(planVenues\.length\) details\.append\(addAllToBookingList\(planVenues\)\);\r?\n\s*details\.append\(tableBox\);/);
 const css = fs.readFileSync("assets/booking-agent.css", "utf8");
 assert.match(css, /\.tour-plan-add\{[^}]*min-height:44px/);
 assert.match(css, /\.tour-lead-backups \.tour-plan-add-backup\{[^}]*min-height:44px/);
