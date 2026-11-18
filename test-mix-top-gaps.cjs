@@ -9,6 +9,7 @@ assert.match(block, /body:has\(#feed\) \.layout\{margin-top:0!important;padding-
 assert.match(block, /#storiesRail\{margin:0!important;padding:4px 0 6px!important\}/, "Dailies rail has no outer margin");
 assert.match(block, /#postComposer\{margin:0!important;[^}]*border-bottom:1px solid var\(--mix-rule\)!important/, "post box sits on the first post with one hairline");
 assert.match(block, /#feed > :first-child\{margin-top:0!important\}/, "first post has no top gap");
+assert.match(css, /#feedStatus:empty,\.feed-search-feedback:empty\{display:none!important;margin:0!important\}/, "empty status line adds no gap above the first post");
 const feed = fs.readFileSync("feed.html", "utf8");
 assert.ok(feed.indexOf("mix-polish.css") > feed.indexOf("mobile-design-system.css"), "mix-polish loads after the mobile design system so it wins");
 console.log("Mix top gap checks passed: Dailies under the header, post box under Dailies, first post under the post box.");
