@@ -675,7 +675,9 @@ foreach ($workspaceRouting in @('const workspaceRoutes = new Map(', 'history.pus
 foreach ($workspaceAccessibility in @('control.setAttribute("aria-current", "page")', 'featureHeading.tabIndex = -1', 'featureHeading.focus({ preventScroll: true })')) {
   if (-not $feedEnhancements.Contains($workspaceAccessibility)) { Add-Failure "Feed workspaces do not announce navigation accessibly: $workspaceAccessibility" }
 }
-foreach ($workspaceDestination in @('href="#friends"', 'href="#photos"', 'href="#videos"', 'href="#events"', 'href="#settings"')) {
+# Queue 5a3 (owner 2026-11-18): Menu -> Friends opens the one Friends screen (friends.html), not the old Mix workspace.
+if (-not $feed.Contains('<a href="friends.html"><span class="menu-icon" data-menu-icon="users"')) { Add-Failure "Menu Friends does not open the one Friends screen (friends.html)" }
+foreach ($workspaceDestination in @('href="#photos"', 'href="#videos"', 'href="#events"', 'href="#settings"')) {
   if (-not $feed.Contains($workspaceDestination)) { Add-Failure "Feed workspace has no durable navigation destination: $workspaceDestination" }
 }
 $termsMenuIndex = $feed.IndexOf('<a href="terms.html"><span class="menu-icon"')
