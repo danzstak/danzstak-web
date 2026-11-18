@@ -1205,6 +1205,9 @@ function applyProfile(profile) {
   bioElement.textContent = profile.bio || "";
   bioElement.hidden = !profile.bio;
   addBioButton.hidden = Boolean(profile.bio) || profile.isOwner !== true || viewingOtherProfile;
+  // Owner 2026-11-18: "+ bio" is the 5th icon in the action row (edit · shop · share · people · bio), not its own line.
+  const profileActionRow = document.querySelector(".profile-actions");
+  if (profileActionRow && addBioButton.parentElement !== profileActionRow) { addBioButton.classList.add("ds-icon-button", "profile-add-bio--icon"); profileActionRow.appendChild(addBioButton); }
   window.danzstakLinkifyUserText?.(bioElement);
   setProfileDetail("profileLocation", profile.location);
   setProfileDetail("profileWork", profile.work);
