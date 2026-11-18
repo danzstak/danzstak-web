@@ -3,7 +3,7 @@
 **Claude Code:** read this file at the start of every session and after every PR you open.
 1. Take the **first** item whose status is `TODO`, set it to `IN PROGRESS (Claude Code)`, and commit that change on your branch.
 2. Build it as described in its spec, open the PR against main, and set the status to `PR #<n>`. **Don't merge or deploy.**
-3. Go on to the next `TODO`.
+3. Add one line to the top of the **Builder log** in CLAUDE.md (time · item · PR · blocked · "Next: …"), then go on to the next `TODO`.
 4. If a PR of yours shows conflicts with main, rebase it first. Use `node scripts/bump-versions.cjs` for version clashes and take the higher number.
 
 **Owner's Claude (review/deploy):** reviews each PR, merges it, deploys it (Auth API Lambdas; CloudFormation change sets for call-signaling), tests it live, then sets the status to `DONE (date)`. It adds new owner requests to this queue, in priority order.
