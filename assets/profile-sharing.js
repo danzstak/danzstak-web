@@ -29,12 +29,13 @@
       const url = new URL('profile.html', location.href); url.search = ''; url.searchParams.set('member', member);
       show('Share Profile', url.href, 'Share this profile with friends and people in your Tribes on DanzStak.', share);
     });
-    const invite = document.createElement('button'); invite.type = 'button'; invite.textContent = 'Invite People'; invite.dataset.icon = 'users'; invite.setAttribute('aria-label', 'Invite People');
-    invite.hidden = Boolean(new URLSearchParams(location.search).get('user') || new URLSearchParams(location.search).get('member'));
-    invite.addEventListener('click', () => show('Invite People', new URL('./', location.href).href, 'Join me on DanzStak. Create an account to connect and share your original content.', invite));
-    actions.append(share, invite);
-    const update = () => { share.hidden = !/^[a-f0-9-]{36}$/.test(window.danzstakCurrentProfile?.memberId || ''); if (window.danzstakCurrentProfile?.isOwner === true) invite.hidden = false; };
+    // Queue 5a3 (owner 2026-11-18): no separate people/Invite button here; the friends row under the name opens the
+    // Friends screen, and inviting lives there.
+    actions.append(share);
+    const update = () => { share.hidden = !/^[a-f0-9-]{36}$/.test(window.danzstakCurrentProfile?.memberId || ''); };
     window.addEventListener('danzstak:profile-loaded', update); update();
   }
+  // The Friends screen's owner row opens the same translated Invite People dialog (queue 5a3).
+  window.danzstakInvitePeople = opener => show('Invite People', new URL('./', location.href).href, 'Join me on DanzStak. Create an account to connect and share your original content.', opener);
   if (document.readyState !== 'complete') document.addEventListener('DOMContentLoaded', start, {once:true}); else start();
 })();

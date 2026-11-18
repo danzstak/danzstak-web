@@ -20,6 +20,6 @@ assert.match(source, /fetch\("https:\/\/api\.danzstak\.com\/profiles", \{[\s\S]*
 assert.doesNotMatch(source, /method:\s*"POST"/, "opening Mix must never submit or rename an established account");
 assert.doesNotMatch(source, /profileOnboarding|needsIdentityOnboarding|danzstak_name_prompt_dismissed_/, "the retired blocking onboarding state must not survive in the menu hydrator");
 assert.doesNotMatch(source, /profile\.email|profile\.username|email address/i, "menu identity hydration must not expose account email or login identity");
-assert.match(feed, /href="#friends" data-feature="Friends"/, "friend discovery stays one tap away in the Mix menu");
+assert.match(feed, /href="friends\.html"><span class="menu-icon" data-menu-icon="users"/, "friend discovery stays one tap away in the Mix menu");
 
 console.log("Profile identity checks passed: Mix opens directly, does not rename the account, and hydrates the menu from the signed profile.");

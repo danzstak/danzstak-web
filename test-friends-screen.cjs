@@ -1,0 +1,126 @@
+"use strict";
+// Queue 5a3 (owner 2026-11-18): friends row under the profile name and the one Friends screen
+// (Friends · Following · Things in common). Runs the real server functions from the call-signaling template
+// against fakes, then checks the wiring of the front end.
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+
+const template = fs.readFileSync("infrastructure/call-signaling/template.yaml", "utf8");
+const lines = template.split("\n").map(line => line.trim());
+const pick = start => { const line = lines.find(value => value.startsWith(start)); assert.ok(line, `template has ${start}`); return line; };
+const server = [
+  pick("const tribeNames="), pick("const placeKey="), pick("async function accountByEmail("), pick("async function linkStates("),
+  pick("async function friendsOf("), pick("async function friendCancel(")
+].join("\n");
+
+// ---------- fakes ----------
+const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+const people = { me: 1, mara: 2, danny: 3, kemal: 4, ines: 5, theo: 6, troll: 7, stranger: 8 };
+const emailOf = Object.fromEntries(Object.keys(people).map(name => [id(people[name]), `${name}@example.com`]));
+const links = new Map(); // "a|b" -> status
+const link = (a, b, status = "friends", back = status === "friends" ? "friends" : status === "outgoing" ? "incoming" : status) => { links.set(`${a}@example.com|${b}@example.com`, status); links.set(`${b}@example.com|${a}@example.com`, back); };
+link("me", "mara"); link("me", "danny"); link("me", "kemal"); link("me", "troll", "blocked", "blocked_by");
+link("mara", "danny"); link("mara", "kemal"); link("mara", "theo"); link("mara", "troll"); link("mara", "ines");
+link("me", "ines", "outgoing");
+const settings = { "me@example.com": "Tacoma, WA", "mara@example.com": "tacoma,  wa", "danny@example.com": "Tacoma WA", "kemal@example.com": "Seattle" };
+const groups = { "me@example.com": ["default-6", "tribe-x", "gone"], "mara@example.com": ["default-6", "tribe-x", "gone"], "danny@example.com": ["default-6"], "kemal@example.com": ["tribe-x"] };
+const writes = [];
+const command = name => class { constructor(input) { this.input = input; this.name = name; } };
+const context = {
+  console, Promise, JSON, String, Number, Object, Math, Set, Map, Boolean, Array, Error,
+  process: { env: { FRIENDS_TABLE: "Friends", SETTINGS_TABLE: "Settings", GROUPS_TABLE: "Groups", USER_POOL_ID: "pool" } },
+  ListUsersCommand: command("ListUsers"), GetItemCommand: command("GetItem"), TransactWriteItemsCommand: command("Transact"),
+  json: (statusCode, body) => ({ statusCode, body }),
+  attr: (account, name) => account?.Attributes?.find(entry => entry.Name === name)?.Value || "",
+  blockedStatus: status => /^blocked/.test(status || ""),
+  mapLimit: async (items, limit, work) => Promise.all(items.map(work)),
+  queryAll: async input => [...links].filter(([key]) => key.startsWith(`${input.ExpressionAttributeValues[":u"].S}|`)).map(([key, status]) => ({ friendEmail: { S: key.split("|")[1] }, status: { S: status } })),
+  accountByMemberId: async memberId => emailOf[memberId] ? { Attributes: [{ Name: "email", Value: emailOf[memberId] }, { Name: "sub", Value: memberId }] } : null,
+  cognito: { send: async request => { const email = /email = "([^"]+)"/.exec(request.input.Filter)?.[1]; const sub = Object.entries(emailOf).find(([, value]) => value === email)?.[0]; return { Users: sub ? [{ Attributes: [{ Name: "email", Value: email }, { Name: "sub", Value: sub }] }] : [] }; } },
+  publicProfile: async (email, account) => ({ memberId: context.attr(account, "sub"), name: email.split("@")[0].replace(/^./, char => char.toUpperCase()), picture: email.startsWith("ines") ? "" : `https://media.example/${email.split("@")[0]}.jpg` }),
+  canContact: async (a, b) => links.get(`${a}|${b}`) === "friends" || (groups[a] || []).some(group => (groups[b] || []).includes(group)),
+  groupIds: async email => new Set(groups[email] || []),
+  groupExists: async groupId => groupId !== "gone",
+  db: { send: async request => {
+    if (request.name === "Transact") { for (const item of request.input.TransactItems) { const key = `${item.Delete.Key.userEmail.S}|${item.Delete.Key.friendEmail.S}`, expected = item.Delete.ExpressionAttributeValues[Object.keys(item.Delete.ExpressionAttributeValues)[0]].S; if (links.get(key) !== expected) throw Object.assign(new Error("cancelled"), { name: "TransactionCanceledException" }); } for (const item of request.input.TransactItems) links.delete(`${item.Delete.Key.userEmail.S}|${item.Delete.Key.friendEmail.S}`); writes.push("transact"); return {}; }
+    const key = request.input.Key;
+    if (request.input.TableName === "Settings") return { Item: settings[key.userEmail.S] ? { profileLocation: { S: settings[key.userEmail.S] } } : undefined };
+    if (request.input.TableName === "Groups") return { Item: key.userEmail.S === "GROUP#tribe-x" ? { name: { S: "Tacoma Doom" } } : undefined };
+    return {};
+  } }
+};
+vm.createContext(context);
+vm.runInContext(server, context);
+// Results come back as plain JSON, as API Gateway would send them (and so arrays compare across the sandbox).
+const call = async (fn, user, query = {}, body) => JSON.parse(JSON.stringify(await context[fn]({ queryStringParameters: query, body: body ? JSON.stringify(body) : undefined }, { email: `${user}@example.com` })));
+
+(async () => {
+  // Owner: the whole list and count; blocked people never appear; no things in common with yourself.
+  let result = await call("friendsOf", "me");
+  assert.equal(result.statusCode, 200);
+  assert.deepEqual([result.body.isOwner, result.body.count, result.body.common.length], [true, 3, 0]);
+  assert.deepEqual(result.body.friends.map(friend => friend.name).sort(), ["Danny", "Kemal", "Mara"]);
+  assert.ok(!JSON.stringify(result.body).includes("troll") && !JSON.stringify(result.body).includes("@example.com"), "no blocked people and no email addresses");
+
+  // A friend visiting Mara: her whole list, mutual friends first, blocked people hidden.
+  result = await call("friendsOf", "me", { member: id(people.mara) });
+  assert.deepEqual([result.body.isFriend, result.body.listVisible, result.body.mutualCount], [true, true, 2]);
+  assert.deepEqual(result.body.friends.map(friend => [friend.name, friend.mutual]), [["Danny", true], ["Kemal", true], ["Theo", false], ["Ines", false]], "mutual first, real photos before initials");
+  assert.equal(result.body.count, 5, "Mara's friends include me (counted, not listed); Troll, blocked by the viewer, never shows or counts");
+  // Things in common: the same city however it is typed, shared Tribes by name, and which of my friends share them.
+  assert.deepEqual(result.body.common.map(item => [item.kind, item.label]), [["place", "tacoma,  wa"], ["tribe", "Bands"], ["tribe", "Tacoma Doom"]]);
+  assert.deepEqual(result.body.common[0].friends.map(friend => friend.name), ["Danny"], "Danny also lives in Tacoma");
+  assert.deepEqual(result.body.common[1].friends.map(friend => friend.name), ["Danny"]);
+  assert.deepEqual(result.body.common[2].friends.map(friend => friend.name), ["Kemal"]);
+  assert.ok(!result.body.common.some(item => item.groupId === "gone"), "deleted Tribes never count");
+
+  // Tribe-only visitor: mutual friends only, no total.
+  groups["stranger@example.com"] = ["default-6"]; link("stranger", "danny");
+  result = await call("friendsOf", "stranger", { member: id(people.mara) });
+  assert.deepEqual([result.body.isFriend, result.body.listVisible, result.body.count], [false, false, null]);
+  assert.deepEqual(result.body.friends.map(friend => friend.name), ["Danny"]);
+  // No relationship at all: 403.
+  groups["stranger@example.com"] = [];
+  links.delete("stranger@example.com|danny@example.com");
+  assert.equal((await call("friendsOf", "theo", { member: id(people.me) })).statusCode, 403);
+  assert.equal((await call("friendsOf", "me", { member: "not-an-id" })).statusCode, 400);
+
+  // Cancel: only a pending request I sent, both rows go.
+  result = await call("friendCancel", "me", {}, { memberId: id(people.ines) });
+  assert.deepEqual(result, { statusCode: 200, body: { cancelled: true, memberId: id(people.ines) } });
+  assert.equal(links.has("me@example.com|ines@example.com") || links.has("ines@example.com|me@example.com"), false);
+  assert.equal((await call("friendCancel", "me", {}, { memberId: id(people.mara) })).statusCode, 404, "an accepted friend is not a pending request");
+
+  // ---------- wiring ----------
+  assert.match(template, /RouteKey: GET \/friends\/of,/);
+  assert.match(template, /RouteKey: POST \/friends\/cancel,/);
+  assert.match(template, /key==='GET \/friends\/of'\)return await friendsOf\(event,user\);if\(key==='POST \/friends\/cancel'\)return await friendCancel\(event,user\)/);
+  const profile = fs.readFileSync("profile.html", "utf8"), screen = fs.readFileSync("friends.html", "utf8"), feed = fs.readFileSync("feed.html", "utf8"), sw = fs.readFileSync("service-worker.js", "utf8");
+  assert.match(profile, /assets\/friends-row\.js\?v=\d+/);
+  assert.match(screen, /assets\/profile-sharing\.js\?v=\d+[\s\S]*assets\/friends-screen\.js\?v=\d+/, "Invite uses the shared, translated invite dialog");
+  assert.match(feed, /<a href="friends\.html"><span class="menu-icon" data-menu-icon="users"/, "Menu → Friends opens the same screen");
+  for (const file of ["/friends.html", "/assets/friends-screen.js", "/assets/friends-screen.css", "/assets/friends-row.js"]) assert.ok(sw.includes(`"${file}"`), `${file} is cached offline`);
+  const sharing = fs.readFileSync("assets/profile-sharing.js", "utf8");
+  assert.doesNotMatch(sharing, /dataset\.icon = 'users'/, "no separate people button in the profile action row");
+  assert.match(sharing, /window\.danzstakInvitePeople = opener => show\('Invite People'/);
+  const friendButton = fs.readFileSync("assets/profile-friend.js", "utf8");
+  assert.match(friendButton, /has\(data\.outgoing\) \? "requested" : has\(data\.incoming\) \? "incoming"/, "Requested survives a reload");
+  assert.match(friendButton, /API \+ "\/friends\/cancel"/, "tap Requested again to cancel");
+  assert.match(friendButton, /location\.href = "friends\.html"/, "an incoming request opens Friends to answer it");
+
+  // Friends row copy and the "also have this" line.
+  const ctx = { window: {}, document: { addEventListener() {}, querySelector: () => null, getElementById: () => null, querySelectorAll: () => [] }, location: {}, fetch: async () => ({ ok: false }) };
+  ctx.window.addEventListener = () => {};
+  vm.runInNewContext(fs.readFileSync("assets/friends-row.js", "utf8"), { ...ctx, window: ctx.window });
+  const { line, screenUrl } = ctx.window.DanzStakFriendsRow;
+  assert.equal(line({ isOwner: true, count: 128 }), "128 friends");
+  assert.equal(line({ isOwner: true, count: 0 }), "Find your friends on DanzStak");
+  assert.equal(line({ isOwner: false, mutualCount: 12, common: [] }), "12 mutual friends");
+  assert.equal(line({ isOwner: false, mutualCount: 1, common: [] }), "1 mutual friend");
+  assert.equal(line({ isOwner: false, mutualCount: 0, common: [{ kind: "place" }] }), "Friends with things in common");
+  assert.equal(line({ isOwner: false, mutualCount: 0, common: [], listVisible: false }), "", "nothing to say: no row");
+  assert.equal(screenUrl({ isOwner: false, memberId: id(2) }), `friends.html?member=${id(2)}`);
+  assert.equal(screenUrl({ isOwner: true, memberId: id(1) }), "friends.html");
+  console.log("friends row + Friends screen: ok");
+})().catch(error => { console.error(error); process.exitCode = 1; });
