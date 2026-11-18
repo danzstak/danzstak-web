@@ -1133,8 +1133,10 @@ tabs.addEventListener("keydown", event => {
 const panel = document.createElement("form");
 panel.className = "edit-profile-panel";
 panel.hidden = true;
-panel.innerHTML = '<h2>' + profileEditorWords.heading + '</h2>' +
-  '<div class="profile-identity-fields"><label>' + profileEditorWords.name + '<input name="name" minlength="2" maxlength="80" autocomplete="name" required><small>' + profileEditorWords.nameHelp + '</small></label><label>' + profileEditorWords.language + '<select name="language" data-profile-language></select></label></div>' +
+// Edit profile is its own screen (owner 2026-11-18): top bar with Back, the title and Save; Back returns to the
+// profile at the same scroll spot. No explanation lines, plain rows with chevrons, no Moving Day box (Pivot is in Menu).
+panel.innerHTML = '<div class="edit-screen-bar"><button type="button" class="ds-btn-icon edit-screen-back" data-edit-back aria-label="' + profileTranslate("Back") + '"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2Z"/></svg></button><h2 tabindex="-1">' + profileEditorWords.edit + '</h2><button type="submit" class="ds-btn-text edit-screen-save">' + profileTranslate("Save") + '</button></div>' +
+  '<div class="profile-identity-fields"><label>' + profileEditorWords.name + '<input name="name" minlength="2" maxlength="80" autocomplete="name" required></label><label>' + profileEditorWords.language + '<select name="language" data-profile-language></select></label></div>' +
   '<details class="profile-edit-section profile-username"><summary>' + profileEditorWords.advanced + '</summary><div class="profile-edit-section-body"><label>' + profileEditorWords.handle + '<input name="handle" minlength="3" maxlength="24" pattern="[A-Za-z0-9._]+"><small>' + profileEditorWords.handleHelp + '</small></label></div></details>' +
   '<details class="profile-edit-section"><summary>More profile details</summary><div class="profile-edit-section-body">' +
   '<label>Bio<textarea name="bio" maxlength="160"></textarea></label>' +
@@ -1144,9 +1146,7 @@ panel.innerHTML = '<h2>' + profileEditorWords.heading + '</h2>' +
   '<details class="profile-edit-section" data-profile-privacy><summary>Privacy and tagging</summary><div class="profile-edit-section-body">' +
   '<label>Who can post on your profile?<select name="profilePostPermission"><option value="owner">Just me</option><option value="friends">Friends</option><option value="anyone">Public</option></select></label>' +
   '<label class="profile-tag-setting"><input name="allowTags" type="checkbox">Allow accepted friends to tag me in photos and videos</label></div></details>' +
-  '<p class="edit-note">' + profileEditorWords.note + '</p>' +
-  '<div class="edit-actions"><button class="secondary" type="button" data-cancel>' + profileEditorWords.cancel + '</button><button class="button" type="submit">' + profileEditorWords.save + '</button></div>' +
-  '<details class="profile-edit-section profile-import"><summary>Pivot — Moving Day</summary><div class="profile-edit-section-body"><button id="profilePivotButton" class="profile-pivot-button" type="button" data-pivot-trigger data-icon-layout="label" aria-label="Open Moving Day to choose what to move"><span data-menu-icon="refresh" aria-hidden="true"></span><span>Open Moving Day</span></button><p>Pivot away from billionaire platforms. Preview your export and choose what to move to DanzStak, where you own your data.</p></div></details>';
+  '<div class="edit-actions"><button class="secondary" type="button" data-cancel>' + profileEditorWords.cancel + '</button><button class="button" type="submit">' + profileEditorWords.save + '</button></div>';
 // Keep profile controls beside the profile actions instead of after the entire
 // post history.  Appending the form to the card made a deep profile timeline
 // push the editor off-screen while the edit route was trying to focus it.
@@ -1240,9 +1240,44 @@ editButton.addEventListener("click", () => {
   panel.elements.profilePostPermission.value = profile.profilePostPermission || "owner";
   panel.elements.allowTags.checked = profile.allowTags !== false;
   panel.elements.language.value = (() => { try { return localStorage.getItem("danzstak_language") || document.documentElement.lang || "en"; } catch { return document.documentElement.lang || "en"; } })();
-  panel.hidden = false;
-  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  openEditScreen();
 });
+let editScreenPushed = false, editScreenScroll = 0;
+function openEditScreen() {
+  if (!panel.hidden && document.body.classList.contains("profile-editing")) return;
+  editScreenScroll = window.scrollY;
+  panel.hidden = false;
+  document.body.classList.add("profile-editing");
+  panel.scrollTop = 0;
+  try {
+    const url = new URL(location.href); url.searchParams.set("edit", "1");
+    history.pushState({ ...(history.state || {}), profileEdit: true }, "", url.pathname + url.search + url.hash);
+    editScreenPushed = true;
+  } catch { editScreenPushed = false; }
+  panel.querySelector(".edit-screen-bar h2")?.focus({ preventScroll: true });
+}
+function closeEditScreen(fromHistory) {
+  if (panel.hidden && !document.body.classList.contains("profile-editing")) return;
+  panel.hidden = true;
+  document.body.classList.remove("profile-editing");
+  if (!fromHistory && editScreenPushed) history.back();
+  editScreenPushed = false;
+  // Back lands on the profile exactly where the member left it.
+  window.scrollTo(0, editScreenScroll);
+  requestAnimationFrame(() => window.scrollTo(0, editScreenScroll));
+  editButton.focus({ preventScroll: true });
+}
+window.addEventListener("popstate", event => { if (!event.state?.profileEdit && document.body.classList.contains("profile-editing")) closeEditScreen(true); });
+panel.querySelector("[data-edit-back]").addEventListener("click", () => panel.querySelector("[data-cancel]").click());
+// profile.html?edit=1 opens straight into Edit profile; Back still returns to the profile.
+if (new URLSearchParams(location.search).get("edit") === "1") {
+  try { const url = new URL(location.href); url.searchParams.delete("edit"); history.replaceState(history.state, "", url.pathname + url.search + url.hash); } catch {}
+  const started = Date.now();
+  (function waitForOwner() {
+    if (!viewingOtherProfile && !editButton.hidden && editButton.isConnected) { editButton.click(); return; }
+    if (Date.now() - started < 10000) setTimeout(waitForOwner, 200);
+  })();
+}
 nameEditHint.addEventListener("click", () => {
   editButton.click();
   requestAnimationFrame(() => panel.elements.name.focus({ preventScroll: true }));
@@ -1253,7 +1288,7 @@ document.getElementById("profileName").addEventListener("click", () => {
   nameEditHint.click();
 });
 
-panel.querySelector("[data-cancel]").addEventListener("click", () => { panel.hidden = true; repositioning = false; finishReposition.hidden = true; coverElement.classList.remove("repositioning"); repositionButton.classList.remove("active"); repositionButton.textContent = "Reposition Cover"; });
+panel.querySelector("[data-cancel]").addEventListener("click", () => { closeEditScreen(false); repositioning = false; finishReposition.hidden = true; coverElement.classList.remove("repositioning"); repositionButton.classList.remove("active"); repositionButton.textContent = "Reposition Cover"; });
 panel.addEventListener("submit", async event => {
   event.preventDefault();
   if (!panel.reportValidity()) return;
@@ -1286,7 +1321,7 @@ panel.addEventListener("submit", async event => {
       applyProfile(profile);
       status.textContent = profileTranslate("Profile saved in this browser. Cloud sync is temporarily unavailable.");
     }
-    panel.hidden = true;
+    closeEditScreen(false);
   } catch (error) {
     status.textContent = error.message;
   } finally { submit.disabled = false; }
