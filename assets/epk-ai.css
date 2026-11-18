@@ -61,3 +61,14 @@
 .epk-ai-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
 .epk-ai-chips button{min-height:44px;padding:0 14px}
 .epk-ai-rewrite-text{margin:12px 0 0;padding:10px 12px;border-left:3px solid #ef6c20;background:#fff7f1;white-space:pre-wrap}
+/* "Write it with AI" on Edit profile (task 19): one row under the title, price only until bought. */
+.profile-ai-row{display:flex;width:100%;min-height:48px;justify-content:flex-start;gap:10px;margin:4px 0 10px;padding:0 14px;border-radius:12px}
+.profile-ai-row svg{flex:none;color:var(--ds-btn-accent,#ef6c20)}
+.profile-ai-label{flex:1;text-align:left}
+.profile-ai-price{font-weight:800}
+.profile-ai-price:empty{display:none}
+.profile-ai-status{margin:0 0 10px;padding:8px 12px;border-left:3px solid #ef6c20;background:#fff7f1;color:#16191f;font-weight:600}
+.profile-ai-draft{display:grid;gap:4px;margin:8px 0 0}
+.profile-ai-draft dt{margin-top:8px;color:#4b5565;font-size:.82rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.profile-ai-draft dd{margin:0;line-height:1.45;overflow-wrap:anywhere}
+.profile-ai-draft .ds-btn-tonal[aria-pressed="true"]{background:var(--ds-btn-primary,#c2410c);color:#fff}

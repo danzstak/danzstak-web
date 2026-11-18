@@ -55,6 +55,7 @@ function normalUrl(raw) {
   } catch { return ""; }
 }
 const hostOf = url => { try { return new URL(url).hostname.replace(/^www\./, "").toLowerCase(); } catch { return ""; } };
+export { text as cleanText, stripUrls, normalUrl }; // shared with ai-profile.mjs
 const MUSIC_HOSTS = /(^|\.)(bandcamp\.com|soundcloud\.com|mixcloud\.com|open\.spotify\.com|spotify\.com|music\.apple\.com|deezer\.com|tidal\.com|beatport\.com|discogs\.com|audiomack\.com)$/;
 const VIDEO_HOSTS = /(^|\.)(youtube\.com|youtu\.be|vimeo\.com)$/;
 const SOCIAL_HOSTS = /(^|\.)(instagram\.com|facebook\.com|x\.com|twitter\.com|tiktok\.com|threads\.net|bsky\.app|ra\.co|residentadvisor\.net|mastodon\.social|linktr\.ee)$/;

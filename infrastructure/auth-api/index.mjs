@@ -42,6 +42,7 @@ import {
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import { anthropicLlm, braveSearch, createAiEpk, safeFetchPage } from "./ai-epk.mjs";
+import { createAiProfile } from "./ai-profile.mjs";
 import { EPK_WORKSPACE_KEY, canMove, epkGate, pitchStats, stageOf, venueEvents, withPipeline } from "./booking-pipeline.mjs";
 import { MAX_ROUTE_STOPS, cleanDateOptions, planRouteDates, withRoadLegs } from "./booking-route-dates.mjs";
 import { VENUE_REPORT_OWNER, cleanReport, freshness, signalFromItem, signalUpdate, sortByFreshness, validSignalVenueKey, venueSignalKey } from "./booking-venue-signals.mjs";
@@ -251,7 +252,8 @@ async function personalPhoneService() {
 // Anthropic key the builder says "AI builder coming soon" and nothing can be charged.
 const anthropicSecretName = process.env.ANTHROPIC_SECRET_NAME || "danzstak/ai/anthropic-key";
 const braveSecretName = process.env.BRAVE_SEARCH_SECRET_NAME || "danzstak/ai/brave-search-key";
-let aiEpkPromise = null, aiEpkLoadedAt = 0;
+let aiEpkPromise = null, aiEpkLoadedAt = 0, aiProfile = null;
+async function aiProfileHandler() { await aiEpkHandler(); return aiProfile; }
 async function optionalAiSecret(name, fields) {
   try { return secretText(await secretsManager.send(new GetSecretValueCommand({ SecretId: name })), fields); }
   catch (error) { console.warn("AI secret unavailable", { name, reason: error.name || "error" }); return ""; }
@@ -264,13 +266,16 @@ function aiEpkHandler() {
       optionalAiSecret(anthropicSecretName, ["apiKey", "ANTHROPIC_API_KEY", "key", "value"]),
       String(process.env.BRAVE_SEARCH_API_KEY || "").trim() || optionalAiSecret(braveSecretName, ["apiKey", "BRAVE_SEARCH_API_KEY", "key", "value"])
     ]);
+    const llm = anthropicLlm({ apiKey: anthropicKey, extractModel: process.env.AI_EPK_EXTRACT_MODEL || "claude-haiku-4-5", writeModel: process.env.AI_EPK_WRITE_MODEL || "claude-sonnet-5-5" });
+    // Write it with AI (task 19) shares the provider and the key.
+    aiProfile = createAiProfile({ db, commands: { GetItemCommand, UpdateItemCommand }, authenticate: getAuthenticatedUser, corsHeaders, tableName: toursTable, llm });
     return createAiEpk({
       db,
       commands: { GetItemCommand, PutItemCommand, UpdateItemCommand, TransactWriteItemsCommand },
       authenticate: getAuthenticatedUser,
       corsHeaders,
       tableName: toursTable,
-      llm: anthropicLlm({ apiKey: anthropicKey, extractModel: process.env.AI_EPK_EXTRACT_MODEL || "claude-haiku-4-5", writeModel: process.env.AI_EPK_WRITE_MODEL || "claude-sonnet-5-5" }),
+      llm,
       search: braveSearch({ apiKey: braveKey }),
       fetchPage: safeFetchPage()
     });
@@ -287,7 +292,7 @@ const tourManagerBilling = createTourManagerBilling({
   env: stripeEnvironment,
   validateOutreachEpkLink: validateBookingOutreachEpkLink,
   accountEmail: userId => accountForSub(userId),
-  aiEpkReady: async (userId, kind) => (await aiEpkHandler()).checkoutReady(userId, kind),
+  aiEpkReady: async (userId, kind) => kind === "profile" ? (await aiProfileHandler()).checkoutReady(userId) : (await aiEpkHandler()).checkoutReady(userId, kind),
   // Bell notification when a venue answers through the reply page (owner 2026-11-16).
   notifyBookingReply: async ({ artistId, outreachId, dedupe, action, preview, proposedDate, at }) => {
     const send = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${outreachId}` } }, ConsistentRead: true }))).Item;
@@ -5586,6 +5591,10 @@ export const handler = async event => {
       if (method === "POST" && ["/tour-manager/stripe/webhook", "/sync-network-number/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout", "/sync-network-number/checkout", "/tour-manager/ai-epk/checkout", "/tour-manager/refunds/quote", "/tour-manager/refunds/accept"].includes(path)) await ensureStripeSecrets();
       const billingResponse = await tourManagerBilling(event);
       if (billingResponse) return billingResponse;
+    }
+    if (path === "/profile/ai" || path?.startsWith("/profile/ai/")) {
+      const aiProfileResponse = await (await aiProfileHandler())(event);
+      if (aiProfileResponse) return aiProfileResponse;
     }
     if (path === "/epk/ai" || path?.startsWith("/epk/ai/")) {
       const aiEpkResponse = await (await aiEpkHandler())(event);
