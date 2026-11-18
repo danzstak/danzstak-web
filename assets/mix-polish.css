@@ -152,7 +152,8 @@ body:has(#feed){background:var(--mix-surface)!important}
   html body.danzstak-original #storiesRail.stories .story.story-placeholder{position:relative;background:#121418!important;background-image:none!important;border-top:8px solid #0b0b0c;border-bottom:8px solid #0b0b0c;box-sizing:border-box}
   html body.danzstak-original #storiesRail.stories .story.story-placeholder::before,html body.danzstak-original #storiesRail.stories .story.story-placeholder::after{display:none!important}
   body.danzstak-original #storiesRail .story-placeholder-cue{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
-  body.danzstak-original #storiesRail .story-placeholder-cue b{font:900 17px/1 Archivo,system-ui,sans-serif;font-stretch:125%;letter-spacing:1.5px;color:#c7ccd4}
+  body.danzstak-original #storiesRail .story-placeholder-cue{padding:0 8px}
+  body.danzstak-original #storiesRail .story-placeholder-cue b{font:900 14px/1.1 Archivo,system-ui,sans-serif;letter-spacing:1px;color:#c7ccd4;overflow-wrap:anywhere}
   body.danzstak-original #storiesRail .story-placeholder-cue b.is-action{font-size:20px;color:#ff5a1f}
 }
 
