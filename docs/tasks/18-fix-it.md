@@ -136,3 +136,39 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
 
 ## Media fills the canvas, no visible inner containers (owner 2026-11-18, Facebook screenshot as a counter-example)
 - [ ] Every photo and video in Mix, profiles, Tribes, The Roll previews and SYNC fills the full width of the column, edge to edge, never wider and never narrower. **Shared/quoted posts** ("X shared Y's post", memories, reshares) must not draw a bordered inner card on phones with the media spilling past its border (Facebook itself gets this wrong): on phones the quoted author line and text sit on a subtle tinted band, and the media below runs full width with no side border. On desktop the quoted card may keep a border, and its media is clipped to the card with matching radius. Add a browser check at 320–430px that every `img`/`video` in a post is exactly the column width and no media rect extends outside its card's rect.
+
+## Profile Photos tab = the member's photos, with albums (owner 2026-11-18, phone screenshot)
+- [ ] **Photos shows photos, not posts.** The tab is a tight 3-column grid of the member's photos only (square crops, 2px gaps, newest first) — no post text, captions or reaction rows. Tap a photo → the shared full-screen viewer (swipe through the grid; pinch-zoom). Videos tab is the same for videos. Seen live: the tab sat on "Loading media…" with the footer showing — it must load fast and never show the Privacy/Terms footer.
+- [ ] **Albums.** At the top of Photos: an **Albums** row ("All photos" + the member's albums as covers with a count) and a **+ New album** button. An album has a name (e.g. "Hellfest 2026", "Mike & Ana's wedding"), optional date/place, and who can see it (Public / Friends / Only me / chosen people).
+- [ ] **Upload straight to an album**: pick many photos at once from the phone, they upload into the album. Then the member **chooses which of them also get posted** to Mix ("Post 3 of 48 to Your Mix" — tick the ones to share, one post with those photos and a link to the album). The rest stay in the album only. Photos that are posted follow the Dailies rule (into Dailies for 24 h).
+- [ ] Album owner can reorder, set the cover, add/remove photos, rename, change visibility and delete (Delete everywhere rules). Friends can be tagged in album photos with the existing tagging rules.
+- [ ] Never music files; photos and videos only. Export includes albums.
+
+## Profile Videos tab = the member's videos, with albums (owner 2026-11-18, phone screenshot)
+- [ ] **Videos shows videos, not posts**: same as Photos — a grid of the member's videos only (3 columns of portrait tiles, poster frame + small duration badge, newest first), no post text, dates, view counts or reaction rows. Tap → full-screen player (swipe to the next video; existing sound rules). Linked videos (YouTube etc.) show their thumbnail.
+- [ ] **Video albums** work exactly like photo albums (name, date/place, visibility, upload many at once, choose which ones also get posted to Mix; posted videos go to The Roll and Dailies as usual). Albums can mix photos and videos.
+- [ ] Seen live on the Videos tab: the video rendered as a big black box (no poster frame), the author avatar was half black, and the date showed as "10/25/2026, 7:07:45 PM". Videos always show a poster frame; avatars never crop to black; dates everywhere use the short relative style ("3w", "Oct 25").
+
+## Profile About tab = the member's vanity wall (owner 2026-11-18: "the bio — this user's vanity wall, give them a look in the mirror")
+- [ ] About is not three grey boxes (LOCATION / WORK / WEBSITE). It is one fluid page that shows the member back to themselves, proud and personal, in their genre look:
+  - **Bio first, big**: the full bio as a large pull-quote in the display font (not clipped to one line), with an "Edit" pencil only for the owner. Empty bio → the owner sees "Tell people who you are" + **Write it with AI** (task 19); visitors see nothing.
+  - **Who they are at a glance**: scene/genre chips (techno, punk…), what they do (DJ, band, promoter, fan, crew, record shop), hometown with a small map pin, "On DanzStak since Nov 2026".
+  - **Their music and links**: SoundCloud/Bandcamp/YouTube/website as round brand-neutral icons with the domain under each (links open outside DanzStak); a "Listen" row with up to 3 featured tracks as link cards (never hosted audio).
+  - **Their story on DanzStak**: counts that open the thing — shows played/booked, Tribes, friends, photos, videos, shop items — and, for artists, the EPK as a backstage-laminate card ("View EPK").
+  - Work/role and any other details as plain lines with small icons, no boxes. Visibility per field follows Privacy and tagging.
+- [ ] Edge to edge on phones, hairline dividers, no bordered cards, no empty sections for visitors.
+
+## Friends row under the profile header + "things in common" (owner 2026-11-18, Facebook screenshots)
+- [ ] Under the name/bio on every profile: a row of **small overlapping friend avatars** (3–6 round photos, real photos first, initials fallback, never empty circles) with one short line — on your own profile "**128 friends**"; on someone else's "**Friends with things in common**" or "**12 mutual friends**". The whole row is one tap target — **no separate button** (owner 2026-11-18): remove the people/Friends icon button from the profile action row; tapping the avatars opens the screen below.
+- [ ] Tapping it opens a full screen (own top bar: ← back, the member's name, search) with tabs **Friends · Following · Things in common**:
+  - **Friends** — the member's friends (mutual first when you're a visitor), each row: avatar → their profile, name, a line about what they have going on now (next show, new release, a Daily, "playing Fri at …", their shop's newest item) and Message.
+  - **Following** — artists/venues/shops they follow (once Follow ships, queue item 15).
+  - **Things in common** — what the viewer shares with this member and which friends share it too: hometown, current city, scenes/genres, Tribes, shows both attended, record shops both buy from. Each item lists a few friend avatars and "Danny, Kemal and 47 others also have this". Only fields both members made visible to each other; birthday never appears unless the member chose to show it.
+- [ ] **This is the Friends page everywhere** (owner 2026-11-18): the profile's Friends tab, Menu → Friends and the avatar row all open this same Friends · Following · Things in common screen, so there is one friends experience. The old Friends list with the "Invite a friend" button and "All friends / Online / Requests / Find friends" pills folds into it (requests and find-friends as a small row at the top for the owner only).
+- [ ] Ends with a small "Add more about you to find people who share it" → Edit profile (owner only). No nagging.
+- [ ] **Easy to connect + friend-request notifications (owner 2026-11-18).**
+  - **Add friend** is one tap on any profile, search result, "Things in common" row and SYNC contact; it changes to "Requested" (tap again to cancel).
+  - **Receiving a request** sends the member a notification right away: the bell in the top bar (badge count) **and** a phone push (lock screen, registered devices) — "Mary sent you a friend request" with the sender's photo and **Accept** / **Delete** right in the notification and in the bell list.
+  - **The sender is notified when it's accepted**: "Mary accepted your friend request" → opens their profile; the two are now friends and can SYNC.
+  - Pending requests also show as a small row at the top of the owner's Friends page ("2 friend requests"). No reminder spam: one notification per request, nothing for declines.
+  - Server: requests, accept, cancel and decline write the notification and push through the existing push pipeline (16-F); tests for both directions and for no duplicate pushes.
