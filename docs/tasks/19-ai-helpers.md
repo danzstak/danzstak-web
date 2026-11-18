@@ -37,6 +37,6 @@ Record shops pivot their online shop to DanzStak the same way members pivot thei
 
 ## Shop Manager AI (bulk) — owner 2026-11-18
 - For shops listing many items (record stores moving a Discogs crate). **Hard cap: 250 listings per purchase.** Never 500.
-- Going past 250 needs **approval**: the shop asks from the Shop Manager screen ("Request more"), DanzStak staff approve or decline in an admin queue, and only an approved shop can buy another batch. No self-serve unlimited use.
+- Going past 250 means **filing for an upgraded shop account** (owner 2026-11-18): an application from the Shop Manager screen ("Apply for an upgraded shop") with the shop's name, what it sells, roughly how many items, its existing store or Discogs/eBay seller page, location and contact. DanzStak staff review it in an admin queue and approve or decline with a short reason. Only an upgraded shop can buy further batches of 250. No self-serve unlimited use.
 - Drafts are reviewed in batches (the seller sees every listing before it goes live); nothing publishes unseen.
 - Price: proposed **$20 for up to 250 listings** ($21.20 with fees) — **awaiting the owner's confirmation**; do not create the Stripe product until confirmed.
