@@ -40,6 +40,21 @@ Read first: `CLAUDE.md` ("Plan (Claude, 2026-11-18 night)" step 8), `infrastruct
 
 ## Screens (phone first, 320–430px, familiar Facebook Groups layout, DanzStak look)
 
+### Members create Tribes; the category is picked inside "create" (owner 2026-11-18, correction)
+"Users need to create a Tribe first and name it what they want … when users start to make a group they can select a category for their group, not the other way around."
+- **Remove the built-in category Tribes** (Bands, DJs & Producers, Events, Fans, Industry…) from the directory. They are categories, not Tribes.
+- **+ Create Tribe** flow, one screen:
+  1. **name** (required, the member's own words);
+  2. **category** picker (Bands, DJs & Producers, Promoters & Events, Fans, Industry & Crew, Record shops, Radio, Local scene…);
+  3. city (optional);
+  4. Public / Private;
+  5. cover picture (optional);
+  6. description and rules (optional);
+  7. **Create**.
+  The creator becomes the Elder.
+- Categories are only a **filter in Discover** and a label on each Tribe card. A category never appears as a Tribe of its own.
+- With no Tribes yet, the empty state is one line ("No Tribes yet. Start one for your scene.") and **+ Create Tribe**.
+
 ### Tribes home (owner 2026-11-18 screenshot of Facebook Groups: "Groups should look like this")
 - **Top bar:** ← back, title **Tribes**, then three icons: **+** (create a Tribe), **search**, and **⋮** (with an unread badge for Tribe activity).
 - **Tabs (pills):** **For you · Your Tribes · Your activity · Discover**.
