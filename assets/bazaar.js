@@ -33,7 +33,7 @@
     list.replaceChildren();
     if (!shown.length) {
       list.append(node("p", term ? "No products match that search." : "The community is stocking its shops. Check back soon.", "bazaar-empty"));
-      status.textContent = term ? "0 products found." : "No published products are available right now.";
+      status.textContent = "";
       return;
     }
     for (const product of shown) {
@@ -45,7 +45,7 @@
       copy.append(node("strong", product.title, "bazaar-title"), node("span", product.shopName, "bazaar-seller"), node("span", money(product.priceCents), "bazaar-price"), node("span", product.shippingCents ? `+${money(product.shippingCents)} shipping` : "Free shipping", "bazaar-shipping"));
       card.append(frame, copy); list.append(card);
     }
-    status.textContent = `${total || shown.length} product${(total || shown.length) === 1 ? "" : "s"}. Fixed price, no bidding.`;
+    status.textContent = "";
   }
   // Search runs on the server so shops with thousands of records are searchable; "Show more" loads the next page (no infinite scroll).
   const load = () => request(0).then(products => { catalog = products; render(); }).catch(error => { list.replaceChildren(); more.hidden = true; status.textContent = error.message; });

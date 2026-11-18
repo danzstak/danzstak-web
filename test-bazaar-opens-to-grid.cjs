@@ -1,0 +1,22 @@
+"use strict";
+// Owner 2026-11-18: the Bazaar opens straight to the whole grid with a little search bar in the header row.
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const html = fs.readFileSync("bazaar.html", "utf8");
+assert.ok(!html.includes("bazaar-intro"), "no intro block above the grid");
+assert.ok(!html.includes("Physical releases, art, gear"), "no blurb above the grid");
+const header = html.slice(html.indexOf('<header class="market-header">'), html.indexOf("</header>"));
+assert.match(header, /<form class="bazaar-search" role="search">/, "search lives in the header");
+assert.match(header, /class="visually-hidden" for="bazaarQuery"/, "search keeps an accessible label");
+assert.match(header, /aria-label="Search the Bazaar"/, "icon search button has a name");
+const main = html.slice(html.indexOf("<main"), html.indexOf("</main>"));
+assert.ok(main.indexOf("bazaarProducts") < 400, "the grid is the first thing in the page body");
+assert.match(html, /<h1 id="bazaarTitle" class="visually-hidden">/, "page keeps a heading for screen readers");
+const bar = fs.readFileSync("assets/app-bar.js", "utf8");
+assert.match(bar, /querySelector\("\.bazaar-search"\)[\s\S]{0,200}ds-app-tabrow[\s\S]{0,120}row\.append\(nav, pageSearch\)/, "app bar puts the search in the tab row");
+const css = fs.readFileSync("assets/app-bar.css", "utf8");
+assert.match(css, /\.ds-app-tabrow>\.bazaar-search\{[^}]*height:36px/, "slim 36px search field");
+assert.match(css, /\.ds-app-tabrow>\.bazaar-search \.bazaar-search-go\{[^}]*width:36px;height:36px/, "icon button inside the field");
+const js = fs.readFileSync("assets/bazaar.js", "utf8");
+assert.ok(!js.includes("No published products are available right now"), "empty Bazaar shows one line, not two");
+console.log("Bazaar opens to the grid with a slim search in the tab row.");

@@ -29,7 +29,10 @@
     if (nav && /bazaar|store\.html/.test(nav.innerHTML) && document.body.matches(".bazaar-page, :has(.market-header)")) {
       nav.classList.add("ds-app-tabs"); nav.setAttribute("role", "tablist");
       nav.querySelectorAll("a").forEach(link => link.setAttribute("role", "tab"));
-      header.after(nav);
+      // Owner 2026-11-18: the Bazaar's slim search sits in the same row as the Bazaar · My Shop tabs.
+      const pageSearch = header.querySelector(".bazaar-search");
+      if (pageSearch) { const row = document.createElement("div"); row.className = "ds-app-tabrow"; row.append(nav, pageSearch); header.after(row); }
+      else header.after(nav);
     } else if (nav) nav.classList.add("ds-app-bar-links");
     const actions = document.createElement("div");
     actions.className = "ds-app-bar-actions";
