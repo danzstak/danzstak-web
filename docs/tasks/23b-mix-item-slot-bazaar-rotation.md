@@ -15,6 +15,7 @@ Build **after task 23**. Read `CLAUDE.md` first, then `docs/tasks/14-promoters-c
 
 ## Mix
 - **Every 4 posts a new item (owner 2026-11-18)**: after every 4 member posts comes one item card, labelled **"For sale"** or **"Tickets"**, and each card is a **different** item. The 4 is an owner setting. The only time a slot is skipped is when there is no unseen item left to show.
+- **Sellers see their own items in Mix too (owner 2026-11-18)**: a member's own listings are part of their rotation like anyone else's, so they can see how their items look and that they're out there. On their own card, a small "Your item · seen by N" line replaces the buy cue, and N is a count only.
 - Each slot shows a **different seller and a different kind** from the previous slot. The kinds are gig ticket, band merch, record and craft.
 - The slot is **skipped when nothing fits**.
 - **Never paid, never boosted.**
