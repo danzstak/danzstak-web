@@ -10,6 +10,9 @@
 
 The owner should never have to paste prompts: everything Claude Code needs is in this file and the specs it links.
 
+
+> **StakGuard is ON HOLD (owner 2026-11-18)** until the owner works out the legal side. Skip any StakGuard work; don't merge StakGuard PRs; keep StakGuard screens hidden.
+
 | # | Item | Spec | Status |
 |---|------|------|--------|
 | 1 | SYNC texts via Twilio Verify | CLAUDE.md "SYNC SMS provider decision" | DONE (2026-11-17, #402 + ttl fix) |
