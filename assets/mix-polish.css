@@ -149,9 +149,12 @@ body:has(#feed){background:var(--mix-surface)!important}
   body.danzstak-original #storiesRail .story .story-open video,
   body.danzstak-original #storiesRail .story-create-art img{width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important}
   body.danzstak-original #storiesRail .story .story-open{display:block;width:100%;height:100%}
-  html body.danzstak-original #storiesRail.stories .story.story-placeholder{position:relative;background:#121418!important;background-image:none!important;border-top:8px solid #0b0b0c;border-bottom:8px solid #0b0b0c;box-sizing:border-box}
+  /* Owner 2026-11-18: empty slots look like a strip of film — sprocket holes along the top and bottom, a frame in the middle. */
+  html body.danzstak-original #storiesRail.stories .story.story-placeholder{position:relative;box-sizing:border-box;border:0!important;
+    background:repeating-linear-gradient(90deg,#d9d6cf 0 8px,transparent 8px 16px) left 4px top 5px/calc(100% - 4px) 7px no-repeat,
+      repeating-linear-gradient(90deg,#d9d6cf 0 8px,transparent 8px 16px) left 4px bottom 5px/calc(100% - 4px) 7px no-repeat,#0b0b0c!important}
   html body.danzstak-original #storiesRail.stories .story.story-placeholder::before,html body.danzstak-original #storiesRail.stories .story.story-placeholder::after{display:none!important}
-  body.danzstak-original #storiesRail .story-placeholder-cue{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
+  body.danzstak-original #storiesRail .story-placeholder-cue{position:absolute;inset:17px 5px;border-radius:3px;background:#1b1f26;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
   body.danzstak-original #storiesRail .story-placeholder-cue{padding:0 8px}
   body.danzstak-original #storiesRail .story-placeholder-cue b{font:900 14px/1.1 Archivo,system-ui,sans-serif;letter-spacing:1px;color:#c7ccd4;overflow-wrap:anywhere}
   body.danzstak-original #storiesRail .story-placeholder-cue b.is-action{font-size:20px;color:#ff5a1f}
