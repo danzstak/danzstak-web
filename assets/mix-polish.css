@@ -131,14 +131,14 @@ body:has(#feed){background:var(--mix-surface)!important}
 }
 
 /* Fix-it 18 (owner 2026-11-17): Dailies is a strip that fills the full width — own tile first, then friends'.
-   Tiles are about a third of the screen; with fewer tiles they grow to fill the row instead of leaving empty space.
+   Tiles are about a third of the screen and stay that size even when only your own tile is there (owner 2026-11-18: horizontal, a third of the width — not one tile stretched full width).
    Selectors match the older danzstak-original rules exactly so this later file wins. */
 @media(max-width:700px){
   body.danzstak-original #storiesRail.stories{display:flex!important;gap:2px!important;margin:0 0 6px!important;padding:0!important;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
   body.danzstak-original #storiesRail.stories::-webkit-scrollbar{display:none}
   body.danzstak-original #storiesRail .story,
   body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create{
-    flex:1 0 calc((100% - 4px) / 3.25)!important;width:auto!important;max-width:none!important;min-width:calc((100% - 4px) / 3.25)!important;
+    flex:0 0 calc((100% - 4px) / 3.25)!important;width:calc((100% - 4px) / 3.25)!important;max-width:calc((100% - 4px) / 3.25)!important;min-width:calc((100% - 4px) / 3.25)!important;
     height:196px!important;min-height:196px!important;margin:0!important;border-radius:0!important;scroll-snap-align:start;aspect-ratio:auto!important
   }
 }
