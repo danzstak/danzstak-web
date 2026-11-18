@@ -30,3 +30,26 @@
 .shared-post-recovery,.profile-media-recovery{display:grid;gap:8px;place-items:center;min-height:92px;padding:14px;border-radius:8px;background:#eef1f5;color:#536172;text-align:center}.shared-post-recovery button,.profile-media-recovery button{min-height:36px;padding:7px 12px;border:1px solid #c8d0db;border-radius:8px;background:#fff;color:#121418;font:inherit;font-weight:750}.dark-mode .shared-post-recovery,.dark-mode .profile-media-recovery{background:#202938;color:#d9e1eb}
 .profile-pivot-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:9px 14px;border:1px solid #121418;border-radius:9px;background:#121418;color:#fff;font:inherit;font-weight:850;cursor:pointer}.profile-pivot-button [data-menu-icon]{display:inline-flex;width:19px;height:19px}.profile-pivot-button .ds-action-icon{width:19px;height:19px}.profile-pivot-button:hover,.profile-pivot-button:focus-visible{background:#000000}.profile-pivot-button:focus-visible{outline:3px solid #ff9b32;outline-offset:2px}@media(max-width:560px){.profile-pivot-button{width:100%}}
 .profile-friend-request-link{display:flex;align-items:center;gap:12px;min-width:0;flex:1;color:inherit;text-decoration:none}.profile-friend-request-link strong{display:block}.profile-friend-request-link small{color:#65676b}.profile-friend-request[data-relationship=outgoing] small{color:#c2410c;font-weight:700}.profile-friend-request-actions{display:flex;gap:6px;flex:0 0 auto}.profile-friend-request-actions button{width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;display:grid;place-items:center}.profile-friend-accept{background:#ff5a1f;color:#fff;border:0}.profile-friend-decline{background:#f0f2f5;color:#1c1e21;border:1px solid #d7dbe0}
+/* Edit profile is its own screen (owner 2026-11-18): full screen with a top bar (Back, title, Save), plain rows with
+   chevrons instead of bordered boxes, sticky Cancel/Save at the bottom on phones. Nothing of the profile shows through. */
+.edit-screen-bar{display:none}
+body.profile-editing{overflow:hidden}
+body.profile-editing .edit-profile-panel:not([hidden]){position:fixed;inset:0;z-index:10040;width:auto;max-width:none;margin:0;padding:0 max(16px,calc((100vw - 640px)/2)) 0;border:0;border-radius:0;background:#fff!important;box-shadow:none;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column} /* an own screen is opaque, unlike the transparent page sections */
+body.profile-editing .edit-profile-panel:not([hidden])>*{flex-shrink:0}
+body.profile-editing .edit-screen-bar{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:4px;margin:0 calc(-1 * max(16px,calc((100vw - 640px)/2))) 12px;padding:calc(6px + env(safe-area-inset-top)) max(8px,calc((100vw - 640px)/2 - 8px)) 6px;border-bottom:3px solid #ef6c20;background:#121418;color:#fff}
+body.profile-editing .edit-screen-bar h2{margin:0;overflow:hidden;color:#fff;font-size:1.1rem;text-overflow:ellipsis;white-space:nowrap;outline:none}
+body.profile-editing .edit-screen-back{color:#fff}
+body.profile-editing .edit-screen-save{min-height:44px;padding:0 12px;color:#ffb38a;font-weight:800}
+body.profile-editing .edit-profile-panel .profile-edit-section{margin:0;padding:0;border:0;border-bottom:1px solid #e4e8ee;border-radius:0;background:transparent;box-shadow:none}
+body.profile-editing .edit-profile-panel .profile-edit-section>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:0 4px;list-style:none;font-weight:700;cursor:pointer}
+body.profile-editing .edit-profile-panel .profile-edit-section>summary::-webkit-details-marker{display:none}
+body.profile-editing .edit-profile-panel .profile-edit-section>summary::before{content:none}
+body.profile-editing .edit-profile-panel .profile-edit-section>summary::after{content:"";flex:none;width:9px;height:9px;margin-right:6px;border-right:2px solid #5b6472;border-bottom:2px solid #5b6472;transform:rotate(-45deg);transition:transform .15s ease}
+body.profile-editing .edit-profile-panel .profile-edit-section[open]>summary::after{transform:rotate(45deg)}
+body.profile-editing .edit-profile-panel .profile-edit-section-body{padding:0 4px 14px}
+body.profile-editing .edit-profile-panel .edit-actions{position:sticky;bottom:0;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:auto 0 0;padding:10px 0 calc(10px + env(safe-area-inset-bottom));border-top:1px solid #e4e8ee;background:#fff}
+body.profile-editing .edit-profile-panel .edit-actions button{min-height:48px}
+@media(min-width:761px){body.profile-editing .edit-profile-panel .edit-actions{position:static;border-top:0;display:flex;justify-content:flex-end}}
+.dark-mode body.profile-editing .edit-profile-panel:not([hidden]){background:#111827!important}
+.dark-mode body.profile-editing .edit-profile-panel .edit-actions{background:#111827}
+.dark-mode body.profile-editing .edit-profile-panel .profile-edit-section,.dark-mode body.profile-editing .edit-profile-panel .edit-actions{border-color:#2b3443}
