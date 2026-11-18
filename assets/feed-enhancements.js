@@ -1173,8 +1173,10 @@ function renderWorkspace(name) {
         const cover = document.createElement("div");
         cover.className = "group-card-cover";
         cover.setAttribute("aria-hidden", "true");
-        cover.textContent = groupIcon(group.category);
-        cover.dataset.initial = tribeInitial(group.name);
+        // Owner 2026-11-18: the Tribe's own picture fills the box when its Elders set one (Add cover inside the Tribe);
+        // otherwise the initial sits dead centre.
+        if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); }
+        else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); }
         const title = document.createElement("h4");
         const open = document.createElement("button"); open.type = "button"; open.className = "group-open"; open.textContent = group.name; open.addEventListener("click", () => openTribe(group)); title.appendChild(open);
         const category = document.createElement("span");
