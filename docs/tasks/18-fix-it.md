@@ -172,3 +172,20 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
   - **The sender is notified when it's accepted**: "Mary accepted your friend request" → opens their profile; the two are now friends and can SYNC.
   - Pending requests also show as a small row at the top of the owner's Friends page ("2 friend requests"). No reminder spam: one notification per request, nothing for declines.
   - Server: requests, accept, cancel and decline write the notification and push through the existing push pipeline (16-F); tests for both directions and for no duplicate pushes.
+
+## SYNC chat ⋮ menu: a real menu, with Block and phone contacts (owner 2026-11-18, phone screenshot)
+Seen live: the ⋮ menu in a chat opened as a dark box of red icons with no words. One item rendered as a big orange-rimmed oval (Make plans), the box covered the messages and the header line, and there was no Block. (Part of this was the retired dark mode turning on from the phone's dark setting, fixed in PR #532. The menu itself still needs this.)
+- [ ] It works like the phone's messenger menu: a white sheet anchored under ⋮, each row a **small icon plus words** (44px rows, ink text, no red except Block and Delete), and it closes on outside tap, Back or Esc. On phones it can be a bottom sheet. It never covers the composer.
+- [ ] The rows, in this order:
+  - **View contact** (their profile)
+  - **Search in chat**
+  - **Mute notifications** (8 hours · 1 week · Always)
+  - **Wallpaper**
+  - **Make plans**
+  - **Phone contacts**, which opens the phone's own contact picker on Android to start a chat or send a "SYNC up" invite (task 24, no numbers stored or shown). On iPhone and computers this row is **Invite to SYNC** (link/QR).
+  - **Add to phone contacts**, which downloads a vCard with their name, @username and DanzStak profile link, **never a phone number**.
+  - **Block** (red), using the existing friend-block API, so a block stops messages, calls and profile contact both ways. It asks for one confirm and says plainly what blocking does. **Unblock** appears when the person is already blocked.
+  - **Delete chat** (red, Remove from here / Delete everywhere rules).
+- [ ] Make plans no longer renders as an oval. Every row uses the 16-C button tokens.
+- [ ] Tests: the menu has every row with an accessible name and visible text; Block calls the block API and the thread then refuses new messages and calls; the vCard contains no phone number; at 360px the menu fits on screen and doesn't cover the composer.
+
