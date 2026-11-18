@@ -1173,8 +1173,10 @@ function renderWorkspace(name) {
         const cover = document.createElement("div");
         cover.className = "group-card-cover";
         cover.setAttribute("aria-hidden", "true");
-        cover.textContent = groupIcon(group.category);
-        cover.dataset.initial = tribeInitial(group.name);
+        // Owner 2026-11-18: the Tribe's own picture fills the box when its Elders set one (Add cover inside the Tribe);
+        // otherwise the initial sits dead centre.
+        if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); }
+        else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); }
         const title = document.createElement("h4");
         const open = document.createElement("button"); open.type = "button"; open.className = "group-open"; open.textContent = group.name; open.addEventListener("click", () => openTribe(group)); title.appendChild(open);
         const category = document.createElement("span");
@@ -2681,7 +2683,7 @@ document.querySelectorAll("[data-feature]").forEach(control => {
 });
 
 document.querySelector('[data-route="home"]')?.addEventListener("click", () => closeNotificationDrawer(false), { capture: true });
-document.querySelector('[data-route="home"]')?.addEventListener("click", () => { activateMobileScreen("home"); globalThis.danzstakSyncMobileMenuCurrent?.(false); }, { capture: true });
+document.querySelector('[data-route="home"]')?.addEventListener("click", () => { activateMobileScreen("home"); globalThis.danzstakSyncMobileMenuCurrent?.(false); setTimeout(() => setScreenTitle(""), 0); }, { capture: true }); // Fix-it 18: Mix tab leaves Friends/HQ/Events and its title
 document.getElementById("messagesNav")?.addEventListener("click", () => activateMobileScreen("chat"), { capture: true });
 
 function restoreWorkspaceRoute() {
@@ -3871,11 +3873,21 @@ function setViewerProfilePicture(profile = {}) {
   avatar.dataset.viewerPicture = picture;
   const image = new Image();
   image.referrerPolicy = "no-referrer";
+  // Fix-it 18: never an empty black circle. The photo replaces the initial only after it decodes with real pixels;
+  // a photo that fails (expired link, blocked, zero-size) leaves or restores the member's initial.
+  const restoreInitial = () => {
+    if (!avatar.isConnected || avatar.dataset.viewerPicture !== picture) return;
+    avatar.style.backgroundImage = "";
+    avatar.textContent = initial;
+    delete avatar.dataset.viewerPicture;
+  };
   image.onload = () => {
     if (!avatar.isConnected || avatar.dataset.viewerPicture !== picture) return;
+    if (!image.naturalWidth || !image.naturalHeight) return restoreInitial();
     avatar.style.backgroundImage = `url("${picture}")`;
     avatar.textContent = "";
   };
+  image.onerror = restoreInitial;
   image.src = picture;
 }
 
@@ -3886,6 +3898,7 @@ function setDailyCreatorPicture(profile = {}) {
   const identity = dailyAvatar.closest(".story-create-identity");
   const initial = String(profile.name || profile.authorName || "D").trim().charAt(0).toUpperCase() || "D";
   const picture = String(profile.picture || profile.authorPicture || "").trim();
+  if (dailyAvatar.tagName !== "IMG" && !dailyAvatar.dataset.viewerPicture) dailyAvatar.textContent = initial; // Fix-it 18: own initial, not "D"
   if (!picture) {
     identity?.querySelector("img.story-create-avatar-pending")?.remove();
     if (identity) delete identity.dataset.pendingPicture;

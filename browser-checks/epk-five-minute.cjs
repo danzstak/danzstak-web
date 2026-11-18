@@ -32,6 +32,9 @@ fs.mkdirSync(output, { recursive:true });
         const toggle = document.querySelector("#toggleMobilePreview");
         return {
           documentWidth:document.documentElement.scrollWidth,
+          laminate:(() => { const node = document.querySelector(".epk-laminate"); if (!node || getComputedStyle(node).display === "none") return null; const rect = node.getBoundingClientRect(); return { left:rect.left, right:rect.right, top:rect.top }; })(),
+          headerBottom:document.querySelector("header")?.getBoundingClientRect().bottom || 0,
+          visibleTitles:[...document.querySelectorAll("#builderIntro h1, #epkGuide h2")].filter(node => { const rect = node.getBoundingClientRect(); return rect.width > 1 && rect.height > 1; }).map(node => node.textContent.trim()),
           visibleSteps:visibleSteps.map(node => node.dataset.epkStep),
           previewVisible:getComputedStyle(preview).display !== "none",
           toggleVisible:getComputedStyle(toggle).display !== "none",
@@ -40,6 +43,12 @@ fs.mkdirSync(output, { recursive:true });
       });
       assert.equal(errors.length, 0, `${width}px initial EPK errors: ${errors.join(" | ")}`);
       assert.ok(initial.documentWidth <= width, `${width}px EPK overflow: ${JSON.stringify(initial)}`);
+      // Fix-it 18: one visible title, and the tilted All-Access laminate stays fully on screen (8px clear of the edge).
+      assert.deepEqual(initial.visibleTitles, ["EPK Builder"], `${width}px builder should show one title: ${JSON.stringify(initial.visibleTitles)}`);
+      if (initial.laminate) {
+        assert.ok(initial.laminate.right <= width - 8 && initial.laminate.left >= 0, `${width}px laminate is clipped by the screen edge: ${JSON.stringify(initial.laminate)}`);
+        assert.ok(initial.laminate.top >= initial.headerBottom, `${width}px laminate runs under the header: ${JSON.stringify(initial)}`);
+      }
       assert.deepEqual(initial.visibleSteps, ["1"], `${width}px should show only the first guided step`);
       assert.ok(initial.touchTargets.every(height => height >= 44), `${width}px guide controls need 44px targets: ${JSON.stringify(initial.touchTargets)}`);
       assert.equal(initial.previewVisible, width >= 700, `${width}px preview visibility should be intentional`);
