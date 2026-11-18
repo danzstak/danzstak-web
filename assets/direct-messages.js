@@ -1385,12 +1385,21 @@ async function loadConversations() {
       const empty = document.createElement("p");
       empty.className = "chat-note";
       const emptyBySection = activeFilter === "chats"
-        ? "No saved conversations yet. Open Contacts to start one."
+        ? "No chats yet."
         : activeFilter === "calls"
           ? "No contacts are currently available to call."
           : "No permitted contacts are available yet.";
       empty.textContent = messageTranslate(query ? "No contacts match your search." : emptyBySection);
       conversationUsers.appendChild(empty);
+      // Fix-it 18 (SYNC list): an empty chat list is one short line and a "Start a chat" action, no framed box.
+      if (activeFilter === "chats" && !query) {
+        empty.className = "chat-note sync-empty-line";
+        const start = document.createElement("button");
+        start.type = "button"; start.className = "sync-empty-start";
+        start.textContent = messageTranslate("Start a chat");
+        start.addEventListener("click", () => document.querySelector(".sync-new-chat")?.click());
+        conversationUsers.appendChild(start);
+      }
       if (!sourcesComplete) appendConversationAvailabilityWarning();
       return;
     }
