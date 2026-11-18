@@ -325,7 +325,7 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 
 ## StakGuard (ON HOLD — owner 2026-11-18)
 
-**On hold until the owner has worked out the legal side.** Do not build, ship, advertise, price or create Stripe products for StakGuard; leave existing StakGuard PRs unmerged and any StakGuard screens hidden. The notes below are kept for later.
+**On hold until the owner has worked out the legal side.** Do not build, ship, advertise, price or create Stripe products for StakGuard; leave existing StakGuard PRs unmerged and any StakGuard screens hidden. **DanzStak gives no advice at all on data brokers, people-search sites or removing personal data (owner 2026-11-18: "DanzStak can't even give advice to users until I dig deeper")** — no help pages, tips, templates, broker lists or links, and the AI helpers and support replies must not offer it either. DanzStak's own privacy policy statement ("DanzStak is not a data broker") stays.
 
 
 StakGuard is DanzStak's data-broker protection product for every member under Settings -> Your data. It is separate from creator-content provenance and share-link tracking. Finding supported data-broker and people-search exposure, showing its source/date, preparing member-approved opt-outs and linking free official tools are free. Monitoring is $4 per month as a one-time charge with no auto-renewal ever and no prepaid bundles (owner, 2026-11-16); one reminder before the paid month expires. Broker removal comes first; dark-web checks are later and never claim "all of the dark web." Phase A is research with synthetic data only—no vendors, Stripe products or charging without owner approval. Full spec: `instructions/pages/17-privacy-shield`.
