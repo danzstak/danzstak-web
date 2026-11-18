@@ -659,7 +659,7 @@ function profileWallComposer(profile) {
   compact.className = "profile-create-row";
   const compactAvatar = document.createElement("span");
   compactAvatar.className = "profile-create-avatar";
-  compactAvatar.textContent = "D";
+  compactAvatar.textContent = String(profile.isOwner ? profile.name || "" : "").trim().charAt(0).toUpperCase() || "·"; // never the DanzStak "D"
   compactAvatar.setAttribute("aria-hidden", "true");
   const installCompactAvatar = viewer => {
     const name = String(viewer?.name || "DanzStak member");
@@ -673,7 +673,9 @@ function profileWallComposer(profile) {
     window.danzstakIdentityMedia?.install(image, viewer);
     compactAvatar.replaceWith(image);
   };
-  if (profile.isOwner) installCompactAvatar(profile);
+  // Owner 2026-11-18: the composer shows the member's own profile photo. The wall can render before the profile
+  // photo arrives, so the owner's photo is fetched too when it isn't in hand yet.
+  if (profile.isOwner && profile.picture) installCompactAvatar(profile);
   else profileFetch(profileApi + "/profiles", { credentials: "include", cache: "no-store" })
     .then(async response => { if (response.ok) installCompactAvatar((await response.json()).profile || {}); })
     .catch(() => {});
