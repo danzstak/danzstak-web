@@ -39,6 +39,20 @@ Read first: `CLAUDE.md` ("Plan (Claude, 2026-11-18 night)" step 8), `infrastruct
 - Every route checks access on the server: read needs a public Tribe or approved membership; writing needs approved membership; moderation needs the Moderator or Elder role. Banned members can't read private Tribes or post anywhere.
 
 ## Screens (phone first, 320–430px, familiar Facebook Groups layout, DanzStak look)
+
+### Tribes home (owner 2026-11-18 screenshot of Facebook Groups: "Groups should look like this")
+- **Top bar:** ← back, title **Tribes**, then three icons: **+** (create a Tribe), **search**, and **⋮** (with an unread badge for Tribe activity).
+- **Tabs (pills):** **For you · Your Tribes · Your activity · Discover**.
+- **For you:**
+  - section **"Your Tribes"** with **See all**: rows of a rounded-square Tribe picture (or its centred initial), the Tribe name, and a second line:
+    - "Elder · 203 members" when you run it, or
+    - "25+ new posts ●" when there are unread posts (orange dot);
+  - a **pin** icon on each row (pinned Tribes stay on top; you pin them yourself; no ranking).
+  - Below that, **"Latest from your Tribes"**: a **chronological** feed of posts from the Tribes you joined. Each post shows the Tribe picture with the author's small photo overlapping it, the Tribe name, role badges (Elder / Moderator), "author · 4d · audience", ⋯ and ✕ (hide this post), then the standard post body and full-width media. **No "Recommended" algorithm** (CLAUDE.md rule): Discover lists Tribes by city/genre and newest, never ranked.
+- **Your Tribes:** all joined Tribes (pinned first, then by name), with the same rows.
+- **Your activity:** your posts and comments in Tribes, and your pending join requests.
+- **Discover:** search plus filters by city and genre (punk, metal, electronic first), and cards with Join.
+
 - **Directory:** cards with the Tribe picture (or centred initial), name, "Public · N in The Crew" with small member photos, and Join / Joined / Requested.
 - **Tribe page:**
   - full-width cover (Elders: change cover), name, Public/Private · N members, row of small member photos;
