@@ -11,7 +11,7 @@ const instructions = read("instructions/README.md");
 const design = read("instructions/00c-design-direction-80-20.md");
 const standing = [claude, owner, product, instructions, design].join("\n");
 
-assert.match(claude, /## StakGuard \(planned\)/);
+assert.match(claude, /## StakGuard \((planned|ON HOLD[^)]*)\)/);
 assert.match(owner, /StakGuard monitoring \| \$4 a month, no auto-renewal/);
 assert.match(product, /# DANZSTAK StakGuard/);
 assert.match(product, /always \$4 per month/i);
