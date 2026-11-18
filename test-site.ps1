@@ -675,7 +675,9 @@ foreach ($workspaceRouting in @('const workspaceRoutes = new Map(', 'history.pus
 foreach ($workspaceAccessibility in @('control.setAttribute("aria-current", "page")', 'featureHeading.tabIndex = -1', 'featureHeading.focus({ preventScroll: true })')) {
   if (-not $feedEnhancements.Contains($workspaceAccessibility)) { Add-Failure "Feed workspaces do not announce navigation accessibly: $workspaceAccessibility" }
 }
-foreach ($workspaceDestination in @('href="#friends"', 'href="#photos"', 'href="#videos"', 'href="#events"', 'href="#settings"')) {
+# Owner 2026-11-18: Photos and Videos live on the profile tabs, not in the main menu.
+if ($feed.Contains('data-feature="Photos"') -or $feed.Contains('data-feature="Videos"')) { Add-Failure "Photos and Videos must not be in the main menu" }
+foreach ($workspaceDestination in @('href="#friends"', 'href="#events"', 'href="#settings"')) {
   if (-not $feed.Contains($workspaceDestination)) { Add-Failure "Feed workspace has no durable navigation destination: $workspaceDestination" }
 }
 $termsMenuIndex = $feed.IndexOf('<a href="terms.html"><span class="menu-icon"')
