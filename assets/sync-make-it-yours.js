@@ -23,7 +23,9 @@
   // Owner 2026-11-18: following the phone's dark setting ("auto") put the whole page in the retired site-wide dark mode and
   // jumbled the chat list (swipe actions showing, bottom tabs gone). DanzStak is light-only; SYNC goes dark only when the
   // member picks Dark in Make it yours.
-  const darkWanted = () => prefs.theme === "dark";
+  // Owner 2026-11-18: the dark look made typed text and names unreadable (light ink on white fields). DanzStak is
+  // light-only until a dark SYNC theme is designed and contrast-tested on every screen, so a saved "dark" shows light.
+  const darkWanted = () => false;
   function apply() {
     const root = document.documentElement, accent = ACCENTS[prefs.accent] || ACCENTS.orange, dark = darkWanted();
     root.dataset.syncAccent = prefs.accent;
@@ -93,7 +95,6 @@
     preview.innerHTML = '<div class="message"><span class="message-text"></span></div><div class="message mine"><span class="message-text"></span></div>';
     preview.querySelectorAll(".message-text")[0].textContent = t("Soundcheck at 5?"); preview.querySelectorAll(".message-text")[1].textContent = t("On my way with the cables.");
     body.append(preview);
-    body.append(line("Theme", () => segmented("theme", [["light", "Light"], ["dark", "Dark"]], prefs.theme === "dark" ? "dark" : "light", v => { prefs.theme = v; }), () => { prefs.theme = DEFAULTS.theme; }));
     body.append(line("Accent color", () => {
       const wrap = document.createElement("div"); wrap.className = "myo-accents"; wrap.setAttribute("role", "radiogroup");
       for (const [id, a] of Object.entries(ACCENTS)) {
