@@ -41,9 +41,9 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 
 **Mix**
 - [ ] The Dailies tile is a single half-width tile with empty space beside it; it should be a horizontal strip filling the full width (own tile first, then friends'), and "TAKE 0" should read TAKE 1 at minimum once a member has uploaded, or hide the take until the first upload.
-- [x] (PR #NN) Link posts first render as long raw URLs (Mixcloud with utm junk), then jump when the preview card loads. Show the preview card (or the authorized embed) straight away with a fixed-height placeholder, strip tracking parameters from displayed links, and never print the raw URL under the card.
-- [x] (PR #NN) "N views" sits on its own line and wastes a row; put it in the reaction row or the post header.
-- [x] (PR #NN) Official/older accounts (SFScoop, DanzStak) show gradient placeholder avatars; use the real avatar or the member's initial on brand colour.
+- [x] (PR #483) Link posts first render as long raw URLs (Mixcloud with utm junk), then jump when the preview card loads. Show the preview card (or the authorized embed) straight away with a fixed-height placeholder, strip tracking parameters from displayed links, and never print the raw URL under the card.
+- [x] (PR #483) "N views" sits on its own line and wastes a row; put it in the reaction row or the post header.
+- [x] (PR #483) Official/older accounts (SFScoop, DanzStak) show gradient placeholder avatars; use the real avatar or the member's initial on brand colour.
 
 **Music HQ**
 - [ ] HQ is a long column of "0" counters with a sentence each and three different button styles. Make it a compact dashboard: next gigs, booking replies, EPK opens, email credits as small tappable tiles in a 2-column grid (each opens its screen, label on one line), one primary action ("Build EPK" or "Send a pitch"), and the Pivot card.
