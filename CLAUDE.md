@@ -323,6 +323,15 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 - **SYNC signup = DanzStak membership (owner, 2026-11-18).** Signing up for SYNC makes the person a DanzStak member: one account, one identity, no separate SYNC account. A member who joins through SYNC lands in SYNC after signup (the conversation they were invited to, or the chat list), with Mix one tap away. Someone invited to a call just wants to answer it: the invite link shows who is calling and **Answer**; answering creates the account, asks for name/@username and the SMS code, then connects the call. The caller sees "Waiting for … to join" instead of a ring timeout; if the call is gone, the new member lands on a missed call with **Call back**. Spec: `docs/tasks/24-answer-to-join.md`.
 - **No ChatGPT/Codex references.** Remove ChatGPT, OpenAI and Codex references and dependencies from the repository, scripts and branch/deploy names; DanzStak is built with Claude.
 
+## Hand-off: Claude Code builds, Claude plans (owner 2026-11-18)
+
+- **Claude Code (the hourly cloud builder)**: at the end of every run, after opening its pull request, add one line at the **top** of the "Builder log" below on the same branch: date/time UTC · queue item · PR number · what's left or blocked · **"Next: <the next TODO in QUEUE.md>"**.
+- **Claude (the owner's planning chat) or Copilot**: reads the Builder log, decides the next task, and pastes it into `docs/tasks/QUEUE.md` as the first TODO (with a spec in `docs/tasks/` when it's bigger than one screen). Claude Code always builds the first TODO in the queue.
+- Keep the log to the latest 20 lines; older lines can go.
+
+### Builder log (newest first)
+- 2026-11-18 21:45 UTC · Claude (planning chat) · queued 5a1 full-screen media viewer, 5a2 Photos/Videos albums, 5a3 friends row · Next: 5a1
+
 ## Owner directives 2026-11-18 (evening, from the owner's phone)
 
 Claude Code builds these in this order (queue items in `docs/tasks/QUEUE.md`; details in `docs/tasks/18-fix-it.md`):
