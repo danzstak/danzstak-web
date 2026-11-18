@@ -307,7 +307,7 @@ function fakeDb() {
 
   // ---- 11. wiring ----
   const index = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8");
-  assert.match(index, /const aiBlock = await \(await aiEpkHandler\(\)\)\.publishBlock\(userId\);\n    if \(aiBlock\) return reply\(409, aiBlock\);/);
+  assert.match(index, /const aiBlock = await \(await aiEpkHandler\(\)\)\.publishBlock\(userId\);\r?\n    if \(aiBlock\) return reply\(409, aiBlock\);/);
   assert.match(index, /"danzstak\/ai\/anthropic-key"/);
   assert.match(index, /aiEpkReady: async userId => \(await aiEpkHandler\(\)\)\.checkoutReady\(userId\)/);
   assert.match(index, /"\/tour-manager\/ai-epk\/checkout", "\/tour-manager\/refunds\/quote"/);
