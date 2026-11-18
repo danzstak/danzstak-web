@@ -41,6 +41,9 @@ installButton.type = "button";
 installButton.className = "install-app-button";
 installButton.textContent = "Install DanzStak";
 installButton.hidden = true;
+// Fix-it 18 (owner 2026-11-18): no install arrow in any signed-in top bar; install lives in Menu → Install DanzStak,
+// which clicks this (never visible) button. The signed-out homepage keeps its own install links.
+if (signedInPage) installButton.style.setProperty("display", "none", "important");
 const updateButton = document.createElement("button");
 updateButton.type = "button";
 updateButton.className = "app-update-button";
