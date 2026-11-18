@@ -352,7 +352,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
     const userId = await authenticate(event);
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
-    const kind = ["redesign", "profile"].includes(parseBody(event)?.kind) ? parseBody(event).kind : "build";
+    const kind = ["redesign", "profile", "shop"].includes(parseBody(event)?.kind) ? parseBody(event).kind : "build";
     const ready = await aiEpkReady(userId, kind);
     if (!ready?.ok) return response(503, { error: ready?.error || "AI builder coming soon", comingSoon: true }, headers);
     if (!paymentsAllowed() || !testMode()) return response(503, { error: "AI EPK checkout runs in Stripe Test Mode until the owner approves live payments." }, headers);
@@ -364,7 +364,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       ...REFUND_NOTICE,
       "line_items[0][price_data][currency]": "usd",
       "line_items[0][price_data][unit_amount]": String(AI_EPK_PRICE_CENTS),
-      "line_items[0][price_data][product_data][name]": kind === "redesign" ? "AI EPK redesign" : kind === "profile" ? "AI profile" : "AI EPK",
+      "line_items[0][price_data][product_data][name]": kind === "redesign" ? "AI EPK redesign" : kind === "profile" ? "AI profile" : kind === "shop" ? "AI shop (setup + 10 listings)" : "AI EPK",
       "line_items[0][quantity]": "1",
       "line_items[1][price_data][currency]": "usd",
       "line_items[1][price_data][unit_amount]": String(AI_EPK_FEE_CENTS),
@@ -375,8 +375,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       "metadata[userId]": userId,
       "metadata[kind]": kind,
       // Write it with AI comes back to Edit profile; the AI EPK and redesign come back to the EPK builder.
-      success_url: kind === "profile" ? `${returnBaseUrl}/profile.html?ai-profile=paid` : `${returnBaseUrl}/epk.html?ai-epk=paid${kind === "redesign" ? "&kind=redesign" : ""}`,
-      cancel_url: kind === "profile" ? `${returnBaseUrl}/profile.html?ai-profile=cancelled` : `${returnBaseUrl}/epk.html?ai-epk=cancelled`
+      success_url: kind === "profile" ? `${returnBaseUrl}/profile.html?ai-profile=paid` : kind === "shop" ? `${returnBaseUrl}/store.html?manage=1&ai-shop=paid` : `${returnBaseUrl}/epk.html?ai-epk=paid${kind === "redesign" ? "&kind=redesign" : ""}`,
+      cancel_url: kind === "profile" ? `${returnBaseUrl}/profile.html?ai-profile=cancelled` : kind === "shop" ? `${returnBaseUrl}/store.html?manage=1&ai-shop=cancelled` : `${returnBaseUrl}/epk.html?ai-epk=cancelled`
     });
     const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `ai-epk-${userId}-${requestId}` }, body: form.toString() });
     if (!/^cs_test_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
@@ -694,7 +694,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (expectedLive) return null;
     const userId = session.client_reference_id, metadata = session.metadata || {}, lines = Array.isArray(session.line_items?.data) ? session.line_items.data : [];
     const amounts = lines.map(line => Number(line?.amount_total)).sort((a, b) => a - b);
-    const valid = session.mode === "payment" && session.livemode === false && validUserId(userId) && metadata.product === AI_EPK_PRODUCT && metadata.userId === userId && ["build", "redesign", "profile"].includes(metadata.kind)
+    const valid = session.mode === "payment" && session.livemode === false && validUserId(userId) && metadata.product === AI_EPK_PRODUCT && metadata.userId === userId && ["build", "redesign", "profile", "shop"].includes(metadata.kind)
       && session.currency === "usd" && Number(session.amount_total) === AI_EPK_TOTAL_CENTS && lines.length === 2 && lines.every(line => Number(line?.quantity) === 1)
       && amounts[0] === AI_EPK_FEE_CENTS && amounts[1] === AI_EPK_PRICE_CENTS;
     if (!valid) return null;
@@ -709,11 +709,13 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
         { Put: { TableName: tableName, Item: { ...eventKey(notification.id), sessionId: { S: verified.session.id }, eventType: { S: notification.type }, processedAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
         { Update: { TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), UpdateExpression: "SET #status = :paid, paidAt = :paidAt, amountPaidCents = :amount", ConditionExpression: "#status <> :paid AND sessionId = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":paidAt": { S: processedAt }, ":amount": { N: String(verified.session.amount_total) }, ":sessionId": { S: verified.session.id } } } },
-        verified.kind === "profile"
+        verified.kind === "shop"
+          ? { Update: { TableName: tableName, Key: { userId: { S: verified.userId }, tourId: { S: "AI_SHOP#CREDITS" } }, UpdateExpression: "ADD purchased :one SET updatedAt = :at, lastSessionId = :sessionId", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt }, ":sessionId": { S: verified.session.id } } } }
+          : verified.kind === "profile"
           ? { Update: { TableName: tableName, Key: aiProfileCreditsKey(verified.userId), UpdateExpression: "ADD purchased :one SET updatedAt = :at, lastSessionId = :sessionId", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt }, ":sessionId": { S: verified.session.id } } } }
           : { Update: { TableName: tableName, Key: aiEpkCreditsKey(verified.userId), UpdateExpression: verified.kind === "redesign" ? "ADD redesigns :one, purchasedRedesigns :one SET updatedAt = :at, lastSessionId = :sessionId" : "ADD builds :one, purchasedBuilds :one SET updatedAt = :at, lastSessionId = :sessionId", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
         ...(verified.kind !== "build" ? [] : [{ Update: { TableName: tableName, Key: creditKey(verified.userId), UpdateExpression: "ADD credits :one, includedCredits :one SET updatedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt } } } }]),
-        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: verified.kind === "profile" ? "ai_profile_purchase" : verified.kind === "redesign" ? "ai_epk_redesign_purchase" : "ai_epk_purchase" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "1" }, status: { S: "settled" }, description: { S: verified.kind === "profile" ? "AI profile (Write it with AI)" : verified.kind === "redesign" ? "AI EPK redesign" : "AI EPK build, with 1 included booking pitch send (no cash value, not refundable on its own)" }, createdAt: { S: processedAt } } } }
+        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: verified.kind === "shop" ? "ai_shop_purchase" : verified.kind === "profile" ? "ai_profile_purchase" : verified.kind === "redesign" ? "ai_epk_redesign_purchase" : "ai_epk_purchase" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "1" }, status: { S: "settled" }, description: { S: verified.kind === "shop" ? "AI shop (setup and 10 listings)" : verified.kind === "profile" ? "AI profile (Write it with AI)" : verified.kind === "redesign" ? "AI EPK redesign" : "AI EPK build, with 1 included booking pitch send (no cash value, not refundable on its own)" }, createdAt: { S: processedAt } } } }
       ] }));
     } catch (error) {
       const [duplicate, checkout] = await Promise.all([
@@ -856,6 +858,13 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
         { Update: { TableName: tableName, Key: phoneEntitlementKey(verified.userId), UpdateExpression: "SET #status = :refunded, refundedAt = :refundedAt, provisioningActionRequired = :required", ConditionExpression: "paymentReference = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":refunded": { S: "refunded" }, ":refundedAt": { S: processedAt }, ":required": { BOOL: true }, ":sessionId": { S: verified.session.id } } } },
         { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "phone_activation_refund" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "refunded" }, description: { S: "Phone activation payment refunded; provider follow-up required" }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
       );
+    } else if (verified.product === AI_EPK_PRODUCT && verified.kind === "shop") {
+      // AI shop: a refund takes the purchase back only while none of it was used (Terms 8A).
+      const shop = await db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: verified.userId }, tourId: { S: "AI_SHOP#CREDITS" } }, ConsistentRead: true }));
+      const n = field => Number(shop.Item?.[field]?.N || 0), bought = Math.max(0, n("purchased") - n("refunded"));
+      const unused = bought > 0 && bought * 10 - n("listingsUsed") >= 10 && (bought > 1 || n("setupDrafts") === 0);
+      if (unused) items.push({ Update: { TableName: tableName, Key: { userId: { S: verified.userId }, tourId: { S: "AI_SHOP#CREDITS" } }, UpdateExpression: "ADD refunded :one SET updatedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt } } } });
+      items.push({ Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: unused ? "ai_shop_refund" : "ai_shop_refund_after_draft" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: unused ? "-1" : "0" }, status: { S: "settled" }, createdAt: { S: processedAt } } } });
     } else if (verified.product === AI_EPK_PRODUCT && verified.kind === "profile") {
       // Write it with AI counts as used once a draft was generated (Terms 8A); before that a refund takes it back.
       const profile = await db.send(new GetItemCommand({ TableName: tableName, Key: aiProfileCreditsKey(verified.userId), ConsistentRead: true }));
