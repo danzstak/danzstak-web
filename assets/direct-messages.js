@@ -133,7 +133,8 @@ function conversationVisualState(conversation) {
     canContact: conversation?.canContact !== false,
     unread: Math.max(0, Number(conversation?.unread || 0)),
     hasConversation: conversation?.hasConversation === true,
-    sharedGroup: conversation?.sharedGroup === true
+    sharedGroup: conversation?.sharedGroup === true,
+    typing: conversation?.typing === true
   };
 }
 
@@ -588,7 +589,7 @@ async function copySelectedDirectMessages() {
 function openMessageReactions(item, message, x, y, focusFirst = false) {
   document.querySelector(".message-reaction-palette")?.remove();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
-  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
+  for (const emoji of (globalThis.danzstakSyncPrefs?.reactions?.() || ["👍","❤️","😂","😮","😢","😡"])) { /* 16-H: the member's 6 quick reactions */ const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
   if (message.content) {
     const copy = document.createElement("button");
     copy.type = "button";
@@ -608,7 +609,8 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
     select.addEventListener("click", () => toggleMessageSelection(item, message));
     palette.appendChild(select);
   }
-  if (message.senderEmail === currentEmail && message.content) {
+  globalThis.danzstakSyncReply?.paletteActions?.(palette, item, message, () => palette.remove(), { me: currentEmail, contactName: activeContactName, chats: () => cachedConversations }); // 16-E
+  if (message.senderEmail === currentEmail && message.content && !message.forwarded && Date.now() - Date.parse(message.createdAt) < 15 * 60 * 1000) { // 16-E: edit for 15 minutes
     const edit = document.createElement("button");
     edit.type = "button";
     edit.className = "message-edit-choice";
@@ -635,15 +637,26 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
   if (focusFirst) palette.querySelector("button")?.focus();
 }
 
+// 16-D: "last seen today at 22:41" / "yesterday" / a date; nothing when the member hides it.
+function lastSeenText(iso) {
+  const at = new Date(iso);
+  if (!iso || Number.isNaN(at.getTime())) return "";
+  const time = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), today = new Date(), yesterday = new Date(today.getTime() - 86400000);
+  if (at.toDateString() === today.toDateString()) return messageFormat("last seen today at {time}", { time });
+  if (at.toDateString() === yesterday.toDateString()) return messageFormat("last seen yesterday at {time}", { time });
+  return messageFormat("last seen {date}", { date: at.toLocaleDateString([], { day: "numeric", month: "short" }) });
+}
+let contactTyping = false;
 function updateConversationPresence(conversation) {
   if (!conversationPresence) return;
   const isOnline = conversation?.online === true;
   const contactName = conversation?.name || conversationName?.textContent || "DanzStak member";
-  const translatedPresence = messageTranslate(isOnline ? "Online" : "Offline");
-  conversationPresence.hidden = false;
+  const translatedPresence = contactTyping ? messageTranslate("typing…") : isOnline ? messageTranslate("Online") : lastSeenText(conversation?.lastSeenAt);
+  conversationPresence.hidden = !translatedPresence;
   conversationPresence.textContent = translatedPresence;
-  conversationPresence.classList.toggle("is-offline", !isOnline);
-  conversationPresence.setAttribute("aria-label", `${contactName}: ${translatedPresence}`);
+  conversationPresence.classList.toggle("is-offline", !isOnline && !contactTyping);
+  conversationPresence.classList.toggle("is-typing", contactTyping);
+  conversationPresence.setAttribute("aria-label", translatedPresence ? `${contactName}: ${translatedPresence}` : contactName);
 }
 
 function openConversation(conversation, { updateHistory = true } = {}) {
@@ -660,6 +673,7 @@ function openConversation(conversation, { updateHistory = true } = {}) {
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: true }, location.origin);
   contactInput.value = conversation.contactEmail;
   window.danzstakActiveContactName = conversation.name || "DanzStak member";
+  if (typeof CustomEvent === "function") window.dispatchEvent?.(new CustomEvent("danzstak:sync-conversation-opened")); // 16-B: the per-chat wallpaper follows the open chat
   activeCanContact = conversation.canContact !== false;
   setConversationActionsEnabled(activeCanContact);
   directContact = "";
@@ -831,12 +845,12 @@ function directMessageItem(message) {
   meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · " + messageTranslate("edited") : "");
   if (mine) {
     const receipt = document.createElement("span");
-    receipt.className = message.read ? "message-receipt is-read" : "message-receipt";
-    receipt.textContent = message.read ? "✓✓" : "✓";
-    receipt.setAttribute("aria-label", messageTranslate(message.read ? "Read" : "Sent"));
+    receipt.className = "message-receipt";
     meta.append(" ", receipt);
+    updateDirectMessageReceipt(item, message, receipt);
   }
   item.appendChild(meta);
+  globalThis.danzstakSyncReply?.decorate?.(item, message, { me: currentEmail, contactName: activeContactName }); // 16-E
   updateMessageReactionBadge(item, message);
   item.addEventListener("pointerdown", event => { if (event.target.closest?.(".message-text")) return; reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
   for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
@@ -859,13 +873,15 @@ function directMessageItem(message) {
   return item;
 }
 
-function updateDirectMessageReceipt(item, message) {
-  const receipt = item?.querySelector?.(".message-receipt");
+// 16-D: ✓ sent, ✓✓ delivered (grey), ✓✓ read (blue) — server-side states, like familiar messengers.
+function updateDirectMessageReceipt(item, message, given) {
+  const receipt = given || item?.querySelector?.(".message-receipt");
   if (!receipt || message.senderEmail !== currentEmail) return;
-  const read = message.read === true;
+  const read = message.read === true, delivered = read || message.delivered === true;
   receipt.classList.toggle("is-read", read);
-  receipt.textContent = read ? "✓✓" : "✓";
-  receipt.setAttribute("aria-label", messageTranslate(read ? "Read" : "Sent"));
+  receipt.classList.toggle("is-delivered", delivered && !read);
+  receipt.textContent = delivered ? "✓✓" : "✓";
+  receipt.setAttribute("aria-label", messageTranslate(read ? "Read" : delivered ? "Delivered" : "Sent"));
 }
 
 function firstSafeMessageUrl(content) {
@@ -985,7 +1001,7 @@ async function loadDirectMessages(reset = false) {
     const distanceFromBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight;
     const followNewest = reset || distanceFromBottom < 80;
     if (reset) { shownMessages.clear(); nextMessageCursor = data.nextCursor || ""; messageList.replaceChildren(); }
-    let appended = 0;
+    let appended = 0, incomingArrived = false;
     for (const message of data.messages || []) {
       if (shownMessages.has(message.messageId)) {
         const existing = [...messageList.querySelectorAll(".message")].find(item => item.dataset.messageId === message.messageId);
@@ -998,7 +1014,9 @@ async function loadDirectMessages(reset = false) {
       shownMessages.add(message.messageId);
       messageList.appendChild(directMessageItem(message));
       appended += 1;
+      if (!reset && message.senderEmail !== currentEmail) incomingArrived = true;
     }
+    if (incomingArrived) window.danzstakSyncTones?.messageArrived?.(contact); // 16-B2: the member's message tone, app open only
     if (reset) renderEarlierMessagesButton();
     const receivedMessages = data.messages || [];
     const newest = receivedMessages.length ? receivedMessages[receivedMessages.length - 1].createdAt : "";
@@ -1006,6 +1024,7 @@ async function loadDirectMessages(reset = false) {
     if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-read", contact }, location.origin);
     if (followNewest && appended) messageList.scrollTop = messageList.scrollHeight;
     activeCanContact = data.canContact !== false;
+    if (contactTyping !== (data.typing === true)) { contactTyping = data.typing === true; updateConversationPresence(activeConversation); }
     setConversationActionsEnabled(activeCanContact);
     messageInput.disabled = !activeCanContact;
     sendButton.disabled = !activeCanContact;
@@ -1031,6 +1050,8 @@ async function loadDirectMessages(reset = false) {
 }
 
 let loadingConversations = false;
+const unreadSeen = new Map(); // 16-B2: unread counts from the last list refresh (message tone on increase)
+let unreadPrimed = false;
 async function readMessagingArrayResponse(response, key) {
   if (!response?.ok) return { available: false, items: [] };
   try {
@@ -1179,6 +1200,18 @@ async function loadConversations() {
     for (const conversation of conversationSource.items) {
       if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), { ...conversation, hasConversation: true });
     }
+    // 16-B2: a chat that is not open gained unread messages since the last refresh → one message tone.
+    if (conversationSource.available) try {
+      const openContact = document.body?.classList?.contains("is-conversation-open") ? String(document.getElementById?.("contactEmail")?.value || "").toLowerCase() : "";
+      let toneFor = "";
+      for (const conversation of conversationSource.items) {
+        const email = String(conversation.contactEmail || "").toLowerCase(), unread = Math.max(0, Number(conversation.unread || 0));
+        if (email && unreadSeen.has(email) && unread > unreadSeen.get(email) && email !== openContact) toneFor = toneFor || email;
+        if (email) unreadSeen.set(email, unread);
+      }
+      if (toneFor && unreadPrimed) globalThis.danzstakSyncTones?.messageArrived?.(toneFor);
+      unreadPrimed = true;
+    } catch { /* a tone is never worth breaking the chat list */ }
     for (const friend of friendsSource.items) {
       const email = String(friend.email || "").toLowerCase();
       if (!email) continue;
@@ -1209,6 +1242,7 @@ async function loadConversations() {
         updatedAt: existing?.updatedAt || "",
         sharedGroup: existing?.sharedGroup === true || member.sharedGroup === true,
         online: member.online === true,
+        lastSeenAt: member.lastSeenAt || existing?.lastSeenAt || "",
         hasConversation: existing?.hasConversation === true
       });
     }
@@ -1279,7 +1313,8 @@ async function loadConversations() {
       }
       const copy = document.createElement("span"); copy.className = "conversation-copy";
       const name = document.createElement("strong"); name.textContent = conversation.name || "DanzStak member";
-      const preview = document.createElement("small"); preview.textContent = conversation.preview || messageTranslate("Open chat");
+      const preview = document.createElement("small"); preview.textContent = conversation.typing === true ? messageTranslate("typing…") : conversation.preview || messageTranslate("Open chat");
+      preview.classList.toggle("is-typing", conversation.typing === true);
       const unread = Number(conversation.unread || 0) > 0;
       button.classList.toggle("is-unread", Boolean(unread));
       const meta = document.createElement("span"); meta.className = "conversation-list-meta";
@@ -1437,6 +1472,17 @@ window.addEventListener("danzstak-contact-selected", event => {
 });
 
 messageInput?.addEventListener("input", () => saveChatDraft(contactInput.value.trim().toLowerCase(), messageInput.value));
+// 16-D: tell the other person "typing…" at most every 4 s; it fades by itself after 6 s on the server.
+let typingSentAt = 0;
+function sendTyping(typing) {
+  const contact = String(contactInput?.value || "").trim().toLowerCase();
+  if (!contact || !activeCanContact) return;
+  if (typing && Date.now() - typingSentAt < 4000) return;
+  typingSentAt = typing ? Date.now() : 0;
+  directFetch("/messages/typing", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ contactEmail: contact, typing }) }).catch(() => {});
+}
+messageInput?.addEventListener("input", () => { if (messageInput.value.trim()) sendTyping(true); });
+globalThis.danzstakStopTyping = () => { if (typingSentAt) sendTyping(false); };
 
 // Mobile Return and physical Enter use the same guarded send path.
 messageInput?.addEventListener("keydown", event => {
@@ -1452,6 +1498,7 @@ messageForm?.addEventListener("submit", async event => {
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
   if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
+  globalThis.danzstakStopTyping?.(); // 16-D: "typing…" stops the moment the message goes
   conversationFeedbackVersion += 1;
   availabilityNoticePending = false;
   const mediaFile = selectedMessageMedia;
@@ -1465,6 +1512,7 @@ messageForm?.addEventListener("submit", async event => {
     retryMessageSend = null;
   }
   const clientMessageId = retry?.clientMessageId || `${String(Date.now()).padStart(13, "0")}#${crypto.randomUUID()}`;
+  const replyToId = globalThis.danzstakSyncReply?.idFor?.(recipientEmail) || ""; // 16-E
   if (window.navigator?.onLine === false && window.danzstakQueueOffline) {
     try {
       if (selectedMessageMedia) throw new Error(messageTranslate("Attachments need a connection. Your draft is still here."));
@@ -1487,12 +1535,13 @@ messageForm?.addEventListener("submit", async event => {
   try {
     if (mediaFile && !attachment.mediaKey) callStatus.textContent = messageTranslate("Uploading attachment…");
     if (mediaFile && !attachment.mediaKey) attachment = await uploadSelectedMessageMedia(mediaFile);
-    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, clientMessageId, ...attachment }) });
+    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, clientMessageId, ...attachment, ...(replyToId ? { replyToId } : {}) }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(data.error || messageTranslate("Message could not be sent"));
     }
     retryMessageSend = null;
+    if (replyToId) globalThis.danzstakSyncReply?.clear?.();
     if (version !== conversationVersion) { await loadConversations(); return; }
     if (data.message?.messageId) {
       shownMessages.add(data.message.messageId);

@@ -2,13 +2,15 @@ import { createHash } from "node:crypto";
 import { DynamoDBClient, GetItemCommand, PutItemCommand, TransactWriteItemsCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { headerValue, decodePart, cleanReply, receiptIsSafe } from "./mime.mjs";
-import { bookingReplyNotice } from "./notice.mjs";
+import { bookingReplyNotice, bookingNoticeWrites } from "./notice.mjs";
 
 const inboundRegion = process.env.AWS_REGION || "us-east-1";
 const appRegion = process.env.APP_REGION || "us-west-1";
 const bucket = process.env.INBOUND_BUCKET || "";
 const tableName = process.env.TOURS_TABLE || "DANZSTAK-Tours";
 const noticeTable = process.env.ENGAGEMENT_NOTIFICATIONS_TABLE || "DANZSTAK-EngagementNotifications";
+// 16-F: when set (plus dynamodb:PutItem on that table), booking replies also push to the artist's lock screen.
+const outboxTable = process.env.ACTIVITY_PUSH_OUTBOX_TABLE || "";
 const s3 = new S3Client({ region: inboundRegion, maxAttempts: 3 });
 const db = new DynamoDBClient({ region: appRegion, maxAttempts: 3 });
 const TOKEN_OWNER = "TOUR_MANAGER#OPT_OUT_TOKEN";
@@ -49,8 +51,8 @@ export async function handler(event) {
     // Bell notification for the artist (owner 2026-11-16). Best effort: the reply is already saved.
     try {
       const notice = bookingReplyNotice({ tableName: noticeTable, artistEmail: source.artistEmail?.S, outreachId: route.outreachId.S, dedupe: dedupe.slice(0, 40), venueName: source.venueName?.S, action: "reply", preview: content, at });
-      if (notice) await db.send(new PutItemCommand(notice));
-    } catch (error) { if (error.name !== "ConditionalCheckFailedException") console.error("Booking reply notice not saved:", error.name); }
+      if (notice) await db.send(new TransactWriteItemsCommand({ TransactItems: bookingNoticeWrites(notice, outboxTable) })); // 16-F: bell + lock-screen push
+    } catch (error) { if (error.name !== "ConditionalCheckFailedException" && error.name !== "TransactionCanceledException") console.error("Booking reply notice not saved:", error.name); }
     return { accepted: true };
   } catch (error) {
     const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: replyKey, ConsistentRead: true }));

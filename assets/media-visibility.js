@@ -45,7 +45,7 @@
   const video=event.target;if(applyingSound||video?.tagName!=='VIDEO')return;
   saveSoundPreference(!video.muted,video);
  },true);
- const eligible=element=>element?.matches?.('video,iframe.reel-player')&&!element.closest('.video-grid');
+ const eligible=element=>element?.matches?.('video,iframe.reel-player')&&!element.closest('.video-grid,.call-setup-dialog');
  const supportsAudioButton=element=>element?.tagName==='VIDEO'||isYouTubeFrame(element);
  function ensureAudioControl(element){
   if(!supportsAudioButton(element)||element.closest?.('.danzstak-media-shell'))return;

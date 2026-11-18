@@ -1,0 +1,22 @@
+{
+  "id": "/sync",
+  "name": "SYNC by DanzStak",
+  "short_name": "SYNC",
+  "description": "Chats, calls and booking replies from DanzStak, as their own app. Same account, no second login.",
+  "start_url": "/messages.html?app=sync",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0b0c",
+  "theme_color": "#0b0b0c",
+  "orientation": "portrait",
+  "categories": ["social", "communication"],
+  "shortcuts": [
+    {"name": "Chats", "url": "/messages.html?app=sync", "icons": [{"src": "/assets/sync-icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "Booking replies", "url": "/messages.html?app=sync&section=bookings", "icons": [{"src": "/assets/sync-icon-192.png", "sizes": "192x192", "type": "image/png"}]}
+  ],
+  "icons": [
+    {"src": "/assets/sync-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/assets/sync-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/assets/sync-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

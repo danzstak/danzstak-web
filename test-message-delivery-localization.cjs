@@ -26,7 +26,7 @@ for (const language of languages) {
   });
 }
 
-assert.match(messages, /messageTranslate\(message\.read \? "Read" : "Sent"\)/, "receipt labels should follow the selected language without overstating delivery");
+assert.match(messages, /messageTranslate\(read \? "Read" : delivered \? "Delivered" : "Sent"\)/, "receipt labels follow the selected language; Delivered only when the server confirms it (16-D)");
 assert.match(messages, /messageTranslate\("Sending…"\)/, "pending delivery text should follow the selected language");
 assert.match(messages, /messageTranslate\("edited"\)/, "edited markers should follow the selected language");
 assert.match(messages, /messageFormat\("You: \{text\}\. Sending\."/, "pending message announcements should preserve user text inside a localized template");
