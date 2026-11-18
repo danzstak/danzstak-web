@@ -30,7 +30,9 @@
   const examplesFor = (term, realCount) => {
     const examples = Array.isArray(window.danzstakBazaarExamples) ? window.danzstakBazaarExamples : [];
     const limit = Number(window.danzstakBazaarExampleLimit) || 24;
-    return term || realCount >= limit ? [] : examples.slice(0, Math.max(0, limit - realCount));
+    // A shop that has real items (e.g. Eroticon once it's live) never also appears as an example.
+    const realShops = new Set(catalog.map(product => String(product.shopName || "").trim().toLowerCase()).filter(Boolean));
+    return term || realCount >= limit ? [] : examples.filter(item => !realShops.has(item.shopName.toLowerCase())).slice(0, Math.max(0, limit - realCount));
   };
   function exampleCard(product) {
     // Not a link and no buy action: examples never reach a product page or checkout.
