@@ -21,7 +21,7 @@ assert.match(html, /assets\/booking-workspace\.css\?v=14/);
 assert.match(html, /assets\/booking-map\.js\?v=451/);
 assert.match(html, /assets\/booking-discovery\.css\?v=5/);
 assert.match(html, /assets\/booking-discovery\.js\?v=5/);
-assert.match(html, /assets\/booking-agent\.js\?v=500/);
+assert.match(html, /assets\/booking-agent\.js\?v=501/);
 assert.match(html, /assets\/booking-conversation\.js\?v=486/);
 
 assert.match(css, /\.booking-start[\s\S]*grid-template-columns: minmax\(270px, \.8fr\) minmax\(420px, 1\.2fr\)/);
@@ -57,7 +57,9 @@ assert.match(agent, /data-route-budget-input="averageShowPay"/);
 assert.match(agent, /data-route-budget-input="averageMerchPerShow"/);
 assert.match(agent, /Projected money in/);
 assert.match(agent, /Break-even per show/);
-assert.match(agent, /projectedIncome - finishBudget/);
+assert.match(agent, /projectedNet = projectedIncome - total;/, "owner 2026-11-18: the emergency reserve is not counted as a loss");
+assert.match(agent, /breakEven: total \/ shows/);
+assert.match(agent, /Emergency cash \(not spent\)/);
 assert.match(agent, /<th>Sleep plan<\/th>/);
 assert.match(agent, /Sleeper van · parking permission needed/);
 assert.match(agent, /permission required/);
@@ -79,7 +81,7 @@ assert.doesNotMatch(agent, /Choose the first date and the date the act must be h
 assert.match(map, /danzstak:booking-selection/);
 assert.match(map, /window\.danzstakToggleBookingVenue/);
 
-assert.match(worker, /danzstak-shell-v923/);
+assert.match(worker, /danzstak-shell-v924/);
 assert.match(worker, /"\/assets\/booking-workspace\.css"/);
 
 console.log("Booking workspace design checks passed: one compact planning card, truthful status timing, shared tool header, optional advanced controls, and PWA coverage.");
