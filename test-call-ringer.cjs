@@ -8,7 +8,7 @@ assert.doesNotMatch(chat, /function startIncomingRingtone\(\)\{const remaining=i
 assert.match(chat, /audioContext=new AudioContextClass\(\)/, "SYNC creates its audio context for an incoming call");
 assert.match(chat, /danzstakCallRinger\?\.needsTap\?\.\(els\.incoming,\(\)=>unlockCallAudio\(\)\)/, "SYNC asks for one tap when sound is blocked");
 assert.match(incoming, /if \(ringtoneContext\?\.state !== "running"\) \{ window\.danzstakCallRinger\?\.vibrateStart\?\.\(remaining\); window\.danzstakCallRinger\?\.needsTap\?\.\(popup, unlockRingtone\); return; \}/, "Mix/profile calls vibrate and ask for a tap when blocked");
-assert.match(incoming, /function stopRingtone\(\) \{\n    window\.danzstakCallRinger\?\.stop\?\.\(\);/, "stopping the ring stops vibration and the tap prompt");
+assert.match(incoming, /function stopRingtone\(\) \{\r?\n    window\.danzstakCallRinger\?\.stop\?\.\(\);/, "stopping the ring stops vibration and the tap prompt");
 assert.match(ringer, /navigator\.vibrate\(\[600, 300, 600\]\)/, "repeating vibration");
 assert.match(ringer, /label: "Test ringer"/, "Test ringer row in the SYNC sheet");
 for (const page of ["feed.html", "profile.html", "messages.html"]) assert.match(read(page), /assets\/call-ringer\.js\?v=\d+/, `${page} loads the ringer`);
