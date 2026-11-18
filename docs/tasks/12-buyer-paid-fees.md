@@ -64,3 +64,10 @@ Buy any pack as many times as needed (except the Starter). Prices shown all-in.
 4. **Refunds**: refunds of unused/cancelled items return the item price. Whether fees are refunded follows ToS 8A/8B (lawyer to confirm; EU withdrawal within 14 days refunds everything).
 5. **Copy and terms**: update ToS 8A/8B, the event composer, the store fee preview, OWNER-DIRECTIVES and CLAUDE.md (already updated in this PR).
 6. **Tests**: $5 → $6.30; $29.99 → +$1.80 + $1; $30 → +$1.80 only; multi-item crossing $30 drops the $1; shipping excluded; payouts equal the item price; webhook rejects a wrong `amount_total`; the displayed price matches the server total.
+
+## Tell members nothing renews (owner 2026-11-18)
+DanzStak has no subscriptions and nothing renews automatically. Members must be able to see that, so they decide each time:
+- The purchase pop-up shown before every payment carries one plain line under the price: **"One-time payment. Nothing renews — you choose if you buy again."** Same line on the Stripe checkout description and on the email receipt.
+- Anything with a time limit (StakGuard monitoring month) or a balance (booking credits, translation minutes, Shop Manager AI batches) shows what is left where it is used ("3 credits left", "StakGuard monitoring ends 18 Dec"). One reminder before a time-limited purchase ends, with **Buy again** and **No thanks**; no repeat nagging.
+- No saved-card auto-charge, no "continue automatically" box, no free trial that turns into a charge. Stripe Checkout runs in `payment` mode only, never `subscription`; add a test that fails if `mode: "subscription"` or a recurring price appears anywhere.
+- Terms of Service and the Bazaar/Booking help say it once in plain words: "No subscriptions. Every purchase is one-time."
