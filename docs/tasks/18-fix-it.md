@@ -136,3 +136,14 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
 
 ## Media fills the canvas, no visible inner containers (owner 2026-11-18, Facebook screenshot as a counter-example)
 - [ ] Every photo and video in Mix, profiles, Tribes, The Roll previews and SYNC fills the full width of the column, edge to edge, never wider and never narrower. **Shared/quoted posts** ("X shared Y's post", memories, reshares) must not draw a bordered inner card on phones with the media spilling past its border (Facebook itself gets this wrong): on phones the quoted author line and text sit on a subtle tinted band, and the media below runs full width with no side border. On desktop the quoted card may keep a border, and its media is clipped to the card with matching radius. Add a browser check at 320–430px that every `img`/`video` in a post is exactly the column width and no media rect extends outside its card's rect.
+
+## Music HQ: one clear start, then what the clubs did (owner 2026-11-18, phone screenshot)
+- [ ] Remove the three pills under the tiles (EPK · Booking Agent · Record shops) — nobody knows what they're for.
+- [ ] **Before the EPK is published**, the top is one clear start: **"Build your EPK to get started"** (primary) and right under it a small secondary **"Want it AI-assisted?"** (opens the AI EPK flow; price shows only there, per the paywall rule). Once published, the primary becomes "Send a pitch".
+- [ ] **Under the tiles, the interaction list from the boxes** — a chronological list of what clubs did with the EPK, newest first, each row: club name + city, what happened and when, tap → that booking thread:
+  - **Confirmed** (green) — "The Crocodile, Seattle confirmed Fri 13"
+  - **Offered dates / replied** — "Doug Fir, Portland replied · offered Sun 15"
+  - **Opened** — "Opened your EPK · 2h ago" (from the per-venue EPK link)
+  - **Not opened yet** — sent pitches still unopened, with days since sent
+- [ ] Tapping a tile filters the list (Next gigs → confirmed; Booking replies → replied/offered; EPK opens → opened). Empty states are one short line, e.g. "No clubs have opened your EPK yet."
+- [ ] Tiles that show 0 before anything exists collapse into the start card (no wall of zeros for a new artist).
