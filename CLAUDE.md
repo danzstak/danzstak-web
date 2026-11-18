@@ -329,7 +329,22 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 - **Claude (the owner's planning chat) or Copilot**: reads the Builder log, decides the next task, and pastes it into `docs/tasks/QUEUE.md` as the first TODO (with a spec in `docs/tasks/` when it's bigger than one screen). Claude Code always builds the first TODO in the queue.
 - Keep the log to the latest 20 lines; older lines can go.
 
+### Plan (Claude, 2026-11-18 night): what the owner is looking for
+
+Goal for the next builds: **DanzStak should feel like a finished, familiar phone app** (Facebook/WhatsApp-level polish, DanzStak look), with **media you can tap and swipe**, **shops that look like real record shops**, and **the Bazaar woven into Mix**. Build in this order; one queue row = one PR; frontend first; every PR checked at 320/360/390/430px with screenshots.
+
+1. **5a1 Full-screen media viewer** (`assets/media-viewer.js` + `.css`, one shared component). Tap any photo/video (Mix, profile Posts/Photos/Videos, Dailies, The Roll, Tribes, SYNC, shop items) → black full-screen layer, media only (no post text, no reaction rows); swipe left/right moves through the **same member's** photos (from a photo) or videos (from a video); videos autoplay muted with the lower-right sound toggle (sound choice carries over, one player at a time); pinch-zoom on photos; swipe down, ✕ or system Back closes and restores the exact scroll spot (history state, no reload). Done when: a browser check taps a Mix photo, swipes twice, presses Back and lands on the same scroll Y.
+2. **5a2 Photos / Videos tabs + albums.** Tabs show only media in a 3-column grid (square photos, portrait video tiles with duration and poster frame); tap → the 5a1 viewer. Albums row at the top ("All" + named albums + "+ New album": name, optional date/place, visibility). Frontend + `infrastructure/auth-api` album routes (owner session deploys). Upload many at once into an album, tick which also post to Mix.
+3. **5a3 Friends row + Things in common.** Under the profile name: 3–6 small overlapping friend photos + "N friends" (own) / "N mutual friends" or "Friends with things in common" (others); one tap target → Friends · Following · Things in common screen (things in common = same hometown, location, birthday month, genres, Tribes, with the matching friends' small photos). Tapping a friend's photo opens their profile. Replaces the old Friends list everywhere (profile tab, Menu → Friends).
+4. **5a5 Bazaar item every 4th post in Mix (after The Roll)** — task 23b. Server cursor in DynamoDB + Mix slot card ("For sale"), different seller/kind each slot, 2-week no-repeat, never paid; tap → seller's Shop tab with the product open; Back restores the spot.
+5. **5a6 Shop skin part 2** — task 23 items 2–7 and the product page: kicker "LABEL · SHIPS FROM REGION", seller-editable shop title, "Every order comes with…" box, category chips with counts, featured bundle card, item badges, shipping table; product page with big photo carousel (5a1 viewer), title, mono detail line, price + shipping, Buy, seller row. New seller fields in `marketplace.mjs` (owner session deploys).
+6. **5a7 Dailies card carousel** (fix-it 18 "Full-screen Dailies viewer"), using the 5a1 viewer.
+7. **5a8 Share sheet rebuild** (fix-it 18 "Share post box looks broken") as one bottom sheet with the 16-C buttons; then server-rendered share previews (task 17).
+
+Owner-session only (not Claude Code): deploy the Auth API for AI EPK (#567) and new routes; fix the Stripe test keys; SYNC chat-list cache decision.
+
 ### Builder log (newest first)
+- 2026-11-18 22:05 UTC · Claude (planning chat) · plan written above; queue rows 5a1–5a8 · Next: 5a1
 - 2026-11-18 21:45 UTC · Claude (planning chat) · queued 5a1 full-screen media viewer, 5a2 Photos/Videos albums, 5a3 friends row · Next: 5a1
 
 ## Owner directives 2026-11-18 (evening, from the owner's phone)
