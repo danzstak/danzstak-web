@@ -212,11 +212,11 @@ async function makeVideos(browser) {
         await tallImage.scrollIntoViewIfNeeded();
         await tallImage.click();
         await page.waitForTimeout(300);
-        const whole = await page.evaluate(() => { const v = document.querySelector("dialog[open] img"); if (!v) return null; const cs = getComputedStyle(v); return { fit: cs.objectFit, src: v.getAttribute("src") }; });
+        const whole = await page.evaluate(() => { const v = document.querySelector(".ds-media-viewer .ds-media-viewer-slide[aria-hidden=\"false\"] img"); if (!v) return null; const cs = getComputedStyle(v); return { fit: cs.objectFit, src: v.getAttribute("src") }; });
         if (!whole || whole.fit !== "contain" || !/tall\.svg/.test(whole.src || "")) failures.push(`${label}: tapping a photo does not open it whole and full screen ${JSON.stringify(whole)}`);
         else if ([360, 390].includes(width)) await page.screenshot({ path: path.join(output, `${prefix}-${who}-photo-${width}.png`) });
         if (whole) { await page.goBack(); await page.waitForTimeout(300); }
-        if (await page.evaluate(() => Boolean(document.querySelector("dialog[open]")))) failures.push(`${label}: Back does not close the photo`);
+        if (await page.evaluate(() => Boolean(document.querySelector("dialog[open], .ds-media-viewer")))) failures.push(`${label}: Back does not close the photo`);
       }
       await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(200);
       if ([360, 390].includes(width)) {

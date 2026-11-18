@@ -88,7 +88,7 @@
   connect();
  }
  const dataSaverEnabled=()=>document.documentElement?.classList?.contains('data-saver')||(()=>{try{return localStorage.getItem('danzstak_data_saver')==='1';}catch{return false;}})();
- const isFeedVideo=video=>video?.matches?.('video.post-media,video.profile-post-media'); // fix-it 18: profiles autoplay like Mix
+ const isFeedVideo=video=>video?.matches?.('video.post-media,video.profile-post-media,video.ds-media-viewer-video'); // 5a1: the full-screen viewer plays like Mix // fix-it 18: profiles autoplay like Mix
  function prepareVideoPreview(video){
   video.playsInline=true;
   const setLayout=()=>{

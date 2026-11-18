@@ -12,7 +12,7 @@ const polish = fs.readFileSync("assets/profile-polish.css", "utf8");
 const fit = fs.readFileSync("assets/media-fit.js", "utf8");
 
 // Root cause: autoplay only counted Mix videos.
-assert.match(visibility, /isFeedVideo=video=>video\?\.matches\?\.\('video\.post-media,video\.profile-post-media'\);/, "profile videos autoplay like Mix");
+assert.match(visibility, /isFeedVideo=video=>video\?\.matches\?\.\('video\.post-media,video\.profile-post-media,video\.ds-media-viewer-video'\);/, "profile videos autoplay like Mix");
 // No browser controls on profile videos; muted inline; tap or Enter opens the viewer.
 assert.doesNotMatch(editor, /media\.controls = true; media\.preload = "metadata";/, "profile videos have no native controls");
 assert.match(editor, /media\.preload = "metadata"; media\.muted = true; media\.playsInline = true;/);
