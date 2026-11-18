@@ -871,7 +871,8 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
       if (!posts.length) { const empty = document.createElement("p"); empty.textContent = collection === "memories" ? "No memories from this day yet." : "No featured posts to show yet."; tabMessage.appendChild(empty); }
     }
     // Owner 2026-11-18: the Videos tab is videos only (no captions, likes or comments); tap → full-screen vertical player.
-    const videoGrid = mediaOnly && mediaType === "video" && window.danzstakProfileVideos ? window.danzstakProfileVideos.createGrid() : null;
+    // Owner 2026-11-18: Photos the same way: photos only, tap → full screen, scroll through all of them.
+    const videoGrid = mediaOnly && (mediaType === "video" || mediaType === "image") && window.danzstakProfileVideos ? window.danzstakProfileVideos.createGrid({ kind: mediaType }) : null;
     const addVideo = item => { if (!videoGrid) return false; videoGrid.add(item); if (videoGrid.items.length && !videoGrid.element.isConnected) tabMessage.appendChild(videoGrid.element); return true; };
     for (const post of posts) if (!addVideo({ mediaUrl: post.mediaUrl, content: post.content || "", refresh: () => refreshProfilePostMedia(post) })) tabMessage.appendChild(profilePostCard(post));
     if (mediaOnly && mediaType !== "image") {

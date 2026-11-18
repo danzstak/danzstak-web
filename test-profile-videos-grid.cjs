@@ -9,7 +9,13 @@ const editor = fs.readFileSync("assets/profile-editor.js", "utf8"), page = fs.re
 const visibility = fs.readFileSync("assets/media-visibility.js", "utf8"), worker = fs.readFileSync("service-worker.js", "utf8");
 
 // The Videos tab builds the grid, not post cards; Photos and Posts keep their cards.
-assert.match(editor, /mediaOnly && mediaType === "video" && window\.danzstakProfileVideos \? window\.danzstakProfileVideos\.createGrid\(\) : null/);
+assert.match(editor, /mediaOnly && \(mediaType === "video" \|\| mediaType === "image"\) && window\.danzstakProfileVideos \? window\.danzstakProfileVideos\.createGrid\(\{ kind: mediaType \}\) : null/, "Photos and Videos tabs both use the grid");
+// Photos (owner 2026-11-18): square stills, full-screen photos that fit the screen, same vertical scroll and Back.
+assert.match(js, /element\.className = kind === "image" \? "profile-video-grid profile-photo-grid" : "profile-video-grid"/);
+assert.match(js, /photo\.className = "pvv-photo"/);
+assert.match(js, /"Photo \{n\} of \{total\}"/);
+assert.match(css, /\.profile-photo-tile\{aspect-ratio:1\/1\}/);
+assert.match(css, /img\.pvv-photo\{[^}]*object-fit:contain/);
 assert.match(editor, /if \(!addVideo\(\{ mediaUrl: post\.mediaUrl, content: post\.content \|\| "", refresh: \(\) => refreshProfilePostMedia\(post\) \}\)\) tabMessage\.appendChild\(profilePostCard\(post\)\)/);
 assert.match(editor, /addVideo\(\{ mediaUrl, content: "Profile video", refresh: refreshProfileVideo \}\)/, "the profile video joins the grid too");
 // Grid tiles: no caption text, no reactions, never autoplay or grab sound.

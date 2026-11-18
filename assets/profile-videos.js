@@ -1,7 +1,7 @@
 "use strict";
-// Profile Videos tab (owner 2026-11-18, phone screenshot): the tab shows the member's videos only, as a
-// grid with no captions, likes or comments. Tapping one opens a full-screen vertical player at that
-// video; swipe up for the member's next video (newest to oldest), down for the previous. After the
+// Profile Photos and Videos tabs (owner 2026-11-18, phone screenshots): each tab shows the member's photos or
+// videos only, as a grid (no captions, likes or comments). Tapping one opens a full-screen vertical viewer at
+// that item; swipe up for the member's next photo/video (newest to oldest), down for the previous. After the
 // last one a short "That's all from <name>" card; Back (device or ←) returns to the same spot.
 // Sound follows media-visibility.js: one player at a time, muted unless the member already unmuted,
 // lower-right toggle. Playback runs as a coordinator session on the viewer's scroll list.
@@ -15,7 +15,9 @@
     return { name: String(profile.name || "").trim(), picture: String(profile.picture || "").trim() };
   }
 
-  // One retry with a fresh signed URL when a stored video link has expired.
+  const isPhoto = item => item?.kind === "image";
+  let viewerKind = "video";
+  // One retry with a fresh signed URL when a stored media link has expired.
   function playable(video, item) {
     let retried = false;
     video.addEventListener("error", async () => {
@@ -67,13 +69,28 @@
   function slide(item, index, total) {
     const section = document.createElement("section");
     section.className = "pvv-slide";
-    section.setAttribute("aria-label", fmt("Video {n} of {total}", { n: index + 1, total }));
+    section.setAttribute("aria-label", fmt(isPhoto(item) ? "Photo {n} of {total}" : "Video {n} of {total}", { n: index + 1, total }));
+    if (isPhoto(item)) {
+      // Photos: fit the screen, never stretched; pinch to zoom stays with the browser.
+      const photo = document.createElement("img");
+      photo.className = "pvv-photo"; photo.alt = item.content || t("Profile post photo"); photo.decoding = "async";
+      photo.loading = Math.abs(index - (open.startIndex || 0)) <= 1 ? "eager" : "lazy";
+      playable(photo, item);
+      section.appendChild(photo);
+      appendCaption(section, item);
+      return section;
+    }
     const video = document.createElement("video");
     video.className = "reel-player pvv-video";
     video.muted = true; video.playsInline = true; video.loop = true; video.preload = "none";
     video.setAttribute("aria-label", item.content ? `${t("Video")}: ${item.content}` : t("Profile post video"));
     playable(video, item);
     section.appendChild(video);
+    appendCaption(section, item);
+    return section;
+  }
+
+  function appendCaption(section, item) {
     const caption = String(item.content || "").trim();
     if (caption && caption !== "Profile video") {
       const text = document.createElement("p");
@@ -86,7 +103,6 @@
         section.appendChild(more);
       }
     }
-    return section;
   }
 
   function endCard() {
@@ -107,6 +123,9 @@
     ensureViewer();
     window.danzstakMediaCoordinator?.pauseAll?.();
     returnTo = from; fromHistory = false;
+    viewerKind = isPhoto(items[0]) ? "image" : "video";
+    viewer.setAttribute("aria-label", t(viewerKind === "image" ? "Photos" : "Videos"));
+    open.startIndex = index;
     paintHeader();
     list.replaceChildren(...items.map((item, i) => slide(item, i, items.length)), endCard());
     scrollLock = document.documentElement.style.overflow;
@@ -134,15 +153,27 @@
     returnTo?.focus?.({ preventScroll: true });
   }
 
-  // The tab's grid: still frames only, no text. Tiles are added as videos arrive.
-  function createGrid() {
+  // The tab's grid: stills only, no text. Tiles are added as media arrives. kind "image" = Photos tab.
+  function createGrid({ kind = "video" } = {}) {
     const items = [], element = document.createElement("div");
-    element.className = "profile-video-grid";
+    element.className = kind === "image" ? "profile-video-grid profile-photo-grid" : "profile-video-grid";
     element.setAttribute("role", "list");
     function add(item) {
       if (!item?.mediaUrl) return;
+      if (kind === "image") item.kind = "image";
       const index = items.push(item) - 1;
       const tile = document.createElement("button");
+      if (kind === "image") {
+        tile.type = "button"; tile.className = "profile-video-tile profile-photo-tile"; tile.setAttribute("role", "listitem");
+        tile.setAttribute("aria-label", item.content ? `${t("Open photo")}: ${item.content}` : t("Open photo"));
+        const thumb = document.createElement("img");
+        thumb.className = "profile-video-still"; thumb.alt = ""; thumb.loading = "lazy"; thumb.decoding = "async";
+        playable(thumb, item);
+        tile.append(thumb);
+        tile.addEventListener("click", () => open(items, index, tile));
+        element.appendChild(tile);
+        return;
+      }
       tile.type = "button"; tile.className = "profile-video-tile"; tile.setAttribute("role", "listitem");
       tile.setAttribute("aria-label", item.content && item.content !== "Profile video" ? `${t("Play video")}: ${item.content}` : t("Play video"));
       const still = document.createElement("video");
