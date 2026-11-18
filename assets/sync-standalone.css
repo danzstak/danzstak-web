@@ -1,0 +1,14 @@
+/* SYNC install/landing page (16-G). */
+*{box-sizing:border-box}
+body.sync-standalone{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px 16px calc(24px + env(safe-area-inset-bottom));background:#0b0b0c;color:#ededea;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.sync-standalone-card{width:min(420px,100%);display:grid;justify-items:center;gap:10px;text-align:center}
+.sync-standalone-icon{width:112px;height:112px;border-radius:26px}
+.sync-standalone h1{margin:8px 0 0;font-size:40px;letter-spacing:.04em}
+.sync-standalone-by{margin:0;color:#ff5a1f;font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:13px}
+.sync-standalone-pitch{margin:8px 0;line-height:1.5;color:#d6d6d2}
+.sync-standalone-primary,.sync-standalone-secondary{display:grid;place-items:center;width:100%;min-height:48px;padding:0 20px;border:0;border-radius:999px;font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
+.sync-standalone-primary{background:#ff5a1f;color:#0b0b0c}
+.sync-standalone-secondary{background:rgba(255,90,31,.14);color:#ffb08f}
+.sync-standalone-primary[hidden],.sync-standalone-hint[hidden]{display:none}
+.sync-standalone-hint,.sync-standalone-note{margin:4px 0 0;color:#a3a3a0;font-size:13px;line-height:1.4}
+.sync-standalone :focus-visible{outline:3px solid #ff5a1f;outline-offset:3px}

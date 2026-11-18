@@ -168,3 +168,9 @@ body.is-conversation-open>.install-app-button,body.is-conversation-open>.app-upd
 .dark-mode .chat-contact-online{border-color:#253044}
 
 .push-test-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:8px 0}.push-test-row button{min-height:44px;padding:0 16px;border:1px solid #c5cfdd;border-radius:999px;background:#fff;font:inherit;font-weight:800;cursor:pointer}.push-test-row span{font-size:13px;color:#526173}
+/* Owner SYNC call test 2026-11-17: one-line registration panel (hidden parts stay hidden) and inline device rename. */
+.calling-devices-dialog [hidden]{display:none!important}
+.device-rename{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%;margin-top:8px}
+.device-rename input{flex:1 1 160px;min-width:0;min-height:44px;padding:0 12px;border:1px solid #cfd5dd;border-radius:10px;font:inherit}
+.device-rename button{min-height:44px;padding:0 16px;border-radius:999px;white-space:nowrap}
+.registered-devices button{white-space:nowrap;padding-left:12px!important;padding-right:12px!important;min-height:44px}

@@ -42,7 +42,7 @@ assert.match(messages, /const translated = messageTranslate\(labels\[key\]\)/, "
 assert.match(messages, /mine \? messageTranslate\("You"\)/, "message ownership labels should stay translated");
 assert.match(messages, /messageFormat\("Loading messages with \{name\}…", \{ name: activeContactName \}\)/, "conversation loading should translate without losing the contact name");
 assert.match(messages, /messageFormat\("You can message \{name\} directly\.", \{ name: activeContactName \}\)/, "conversation permission guidance should translate without losing the contact name");
-assert.match(messages, /messageTranslate\(isOnline \? "Online" : "Offline"\)/, "conversation presence should use the selected language");
+assert.match(messages, /isOnline \? messageTranslate\("Online"\) : lastSeenText\(conversation\?\.lastSeenAt\)/, "conversation presence should use the selected language");
 assert.match(messages, /addChoice\(messageTranslate\("Remove for everyone"\)/, "destructive message choices should use the selected language");
 assert.match(messages, /callStatus\.textContent = messageTranslate\("Saved offline — waiting to send when you reconnect\."\)/, "offline delivery guidance should use the selected language");
 

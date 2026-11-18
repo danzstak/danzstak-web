@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v889";
+const CACHE = "danzstak-shell-v902";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -18,7 +18,7 @@ const SHELL = [
   "/assets/profile-collections.js", "/assets/activity-history-core.js", "/assets/account-export-core.js", "/assets/account-export.js",
   "/assets/booking-workspace.css", "/assets/store.css", "/assets/store.js", "/assets/bazaar.css", "/assets/bazaar.js", "/assets/product.js", "/assets/event.css", "/assets/event.js",
   "/assets/link-preview-cards.css", "/assets/roll-reels.css", "/assets/tribes-polish.css", "/assets/profile-friend.js", "/assets/link-preview-cards.js", "/assets/support.css", "/assets/support.js", "/assets/booking-agent.css", "/assets/booking-agent-driver.css", "/assets/booking-discovery.css", "/assets/booking-agent.js", "/assets/booking-legs.js", "/assets/booking-identity.js", "/assets/booking-conversation.js", "/assets/booking-discovery.js", "/assets/booking-map.js", "/assets/booking-selections.css", "/assets/booking-selections.js", "/assets/booking-pipeline.js", "/assets/booking-freshness.js", "/assets/booking-billing.js", "/assets/purchase-terms.js", "/assets/media-fit.js", "/assets/media-fit.css", "/assets/mix-polish.css", "/assets/profile-polish.css", "/assets/signup-onboarding.js", "/assets/signup-onboarding.css", "/assets/purchase-terms.css", "/assets/booking-opt-out.css", "/assets/booking-opt-out.js", "/assets/booking-reply.css", "/assets/booking-reply.js", "/assets/booking-sync.js", "/assets/record-stores.css", "/assets/record-placement.css", "/assets/record-stores-pagination.css", "/assets/record-stores.js", "/assets/epk.css", "/assets/epk-looks.css", "/assets/epk-production.css", "/assets/epk-reviews.css", "/assets/epk-media.css", "/assets/epk-production.js", "/assets/epk-reviews.js", "/assets/epk.js", "/assets/epk-skin.css", "/assets/epk-laminate.js",
-  "/assets/profile-editor.css", "/assets/profile-interactions.css", "/assets/profile-interactions.js", "/assets/profile-onboarding.css", "/assets/profile-onboarding.js", "/assets/display-preferences.js", "/assets/feed-enhancements.js", "/assets/push-notifications.js", "/assets/call-devices.js", "/assets/phone-verification.js", "/assets/i18n-sync.js", "/assets/phone-verification.css", "/assets/sync-network-number.js", "/assets/sync-network-number.css", "/assets/direct-messages.js", "/assets/make-plans.js", "/assets/make-plans.css", "/assets/incoming-calls.js", "/assets/incoming-calls.css",
+  "/assets/profile-editor.css", "/assets/profile-interactions.css", "/assets/profile-interactions.js", "/assets/profile-onboarding.css", "/assets/profile-onboarding.js", "/assets/display-preferences.js", "/assets/feed-enhancements.js", "/assets/push-notifications.js", "/assets/call-devices.js", "/assets/call-setup.js", "/assets/call-setup.css", "/assets/phone-setup.js", "/assets/sync-tones.js", "/assets/sync-privacy.js", "/assets/sync-reply.js", "/assets/sync-make-it-yours.js", "/sync.html", "/sync.webmanifest", "/assets/sync-standalone.js", "/assets/sync-standalone.css", "/assets/sync-icon-192.png", "/assets/sync-icon-512.png", "/assets/sync-apple-touch-icon.png", "/assets/sync-make-it-yours.css", "/assets/sync-reply.css", "/assets/sync-tones.css", "/assets/sync-settings.js", "/assets/sync-wallpaper.js", "/assets/sync-wallpaper.css", "/assets/phone-verification.js", "/assets/i18n-sync.js", "/assets/phone-verification.css", "/assets/sync-network-number.js", "/assets/sync-network-number.css", "/assets/direct-messages.js", "/assets/make-plans.js", "/assets/make-plans.css", "/assets/incoming-calls.js", "/assets/incoming-calls.css",
   "/assets/feed-enhancements.css", "/assets/artist-hq.js", "/assets/artist-hq.css", "/assets/chat.js", "/assets/chat.css", "/assets/sync.css", "/assets/legal.css", "/assets/soft-ui.css", "/assets/accessibility.css",
   "/assets/notification-badge.png"
 ];
@@ -104,17 +104,30 @@ self.addEventListener("push", event => {
     badge: "/assets/notification-badge.png",
     tag: String(payload.tag || "danzstak-alert").slice(0, 80),
     renotify: true,
-    silent: false,
-    vibrate: call ? [400, 180, 400, 180, 400] : [120],
+    silent: payload.silent === true, // 16-H quiet hours: delivered without sound or vibration
+    vibrate: payload.silent === true ? [] : call ? [400, 180, 400, 180, 400] : [120],
     requireInteraction: call,
-    actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Answer").slice(0, 40) }, { action: "dismiss", title: String(payload.dismissTitle || "Dismiss").slice(0, 40) }] : [],
-    data: { url, type: call ? "call" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
+    // 16-F: the lock-screen ring has Accept and Decline. Decline refuses the call without opening the app.
+    actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Accept").slice(0, 40) }, { action: "decline", title: String(payload.declineTitle || payload.dismissTitle || "Decline").slice(0, 40) }] : [],
+    data: { url, type: call ? "call" : payload.type === "booking" ? "booking" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
   }));
 });
+
+// 16-F: Decline from the lock screen. The server refuses the offer (cookie session, no camera or microphone) and tells the
+// caller; open SYNC windows stop ringing. If the network is down the caller's ring simply times out.
+async function declineCallFromNotification(callId) {
+  if (!/^[a-f0-9-]{36}$/.test(callId)) return;
+  const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  clients.forEach(client => client.postMessage({ type: "DANZSTAK_CALL_RESOLVED", callId }));
+  try {
+    await fetch("https://api.danzstak.com/calls/decline", { method: "POST", credentials: "include", cache: "no-store", headers: { "content-type": "application/json" }, body: JSON.stringify({ callId }) });
+  } catch { /* offline: the caller's ring times out */ }
+}
 
 self.addEventListener("notificationclick", event => {
   event.notification.close();
   if (event.action === "dismiss") return;
+  if (event.action === "decline") { if (event.notification.data?.type === "call") event.waitUntil(declineCallFromNotification(String(event.notification.data.callId || ""))); return; }
   const destinationUrl = new URL(event.notification.data?.url || "/feed.html", self.location.origin);
   if (event.action === "answer" && event.notification.data?.type === "call") destinationUrl.searchParams.set("answer", "1");
   if (event.action === "answer" && event.notification.data?.type === "call" && event.notification.data?.callId) destinationUrl.searchParams.set("callId", event.notification.data.callId);

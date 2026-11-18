@@ -494,7 +494,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       ] }));
       await venueSignal(item.venueKey?.S || "", "reply", at);
       try { await notifyBookingReply({ artistId: item.artistId.S, outreachId: item.outreachId.S, dedupe: clientMessageId, action, preview: content, proposedDate, at }); }
-      catch (error) { if (error.name !== "ConditionalCheckFailedException") console.error("Booking reply notice not saved:", error.name); }
+      catch (error) { if (error.name !== "ConditionalCheckFailedException" && error.name !== "TransactionCanceledException") console.error("Booking reply notice not saved:", error.name); }
       return response(201, { received: true }, headers);
     } catch (error) {
       const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: replyKey, ConsistentRead: true }));
