@@ -157,9 +157,12 @@ body:has(#feed){background:var(--mix-surface)!important}
       repeating-linear-gradient(90deg,#d9d6cf 0 8px,transparent 8px 16px) left 4px bottom 5px/calc(100% - 4px) 7px no-repeat,#0b0b0c!important}
   html body.danzstak-original #storiesRail.stories .story.story-placeholder::before,html body.danzstak-original #storiesRail.stories .story.story-placeholder::after{display:none!important}
   body.danzstak-original #storiesRail .story-placeholder-cue{position:absolute;inset:17px 5px;border-radius:3px;background:#1b1f26;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
-  body.danzstak-original #storiesRail .story-placeholder-cue{padding:0 8px}
-  body.danzstak-original #storiesRail .story-placeholder-cue b{font:900 14px/1.1 Archivo,system-ui,sans-serif;letter-spacing:1px;color:#c7ccd4;overflow-wrap:anywhere}
-  body.danzstak-original #storiesRail .story-placeholder-cue b.is-action{font-size:20px;color:#ff5a1f}
+  /* A set call never splits a word (it wrapped "ACTIO" / "N!" at 320px). The words scale with the tile (container query
+     units, with a viewport fallback for older browsers) and wrap only between words. 10-letter BACKGROUND is the widest
+     cue; 11.5cqi keeps it inside the frame even in wide fallback fonts. Checked by browser-checks/dailies-set-call-fit.cjs. */
+  body.danzstak-original #storiesRail .story-placeholder-cue{padding:0 4px;container-type:inline-size}
+  body.danzstak-original #storiesRail .story-placeholder-cue b{display:block;max-width:100%;font:900 14px/1.1 Archivo,system-ui,sans-serif;font-size:clamp(8px,calc((33.33vw - 18px) * .115),14px);font-size:clamp(8px,11.5cqi,14px);letter-spacing:.04em;color:#c7ccd4;overflow-wrap:normal;word-break:keep-all;-webkit-hyphens:none;hyphens:none;text-wrap:balance}
+  body.danzstak-original #storiesRail .story-placeholder-cue b.is-action{font-size:20px;font-size:clamp(12px,calc((33.33vw - 18px) * .19),20px);font-size:clamp(12px,19cqi,20px);color:#ff5a1f}
 }
 
 /* Fix-it 18 (owner 2026-11-17): no gradient placeholder avatars. A member without a photo shows their initial on the
