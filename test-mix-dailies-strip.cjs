@@ -7,7 +7,7 @@ const html = fs.readFileSync("feed.html", "utf8");
 const css = fs.readFileSync("assets/mix-polish.css", "utf8");
 assert.match(html, /takeLine\.textContent = takes \? `TAKE \$\{takes\}` : "";\s*takeLine\.hidden = !takes;/, "no TAKE 0 before the first upload");
 assert.match(html, /<strong>SCENE 1<\/strong><small hidden><\/small>/, "the first paint has no TAKE 0 either");
-assert.match(css, /body\.danzstak-original #storiesRail \.story,\s*body\.danzstak-original #storiesRail:not\(:has\(\.story\[data-story-id\]\)\) \.story-create\{\s*flex:1 0 calc\(\(100% - 4px\) \/ 3\.25\)!important;/, "tiles are a third of the screen and grow to fill the row");
+assert.match(css, /body\.danzstak-original #storiesRail \.story,\s*body\.danzstak-original #storiesRail:not\(:has\(\.story\[data-story-id\]\)\) \.story-create\{\s*flex:0 0 calc\(\(100% - 4px\) \/ 3\.25\)!important;/, "tiles stay a third of the screen (owner 2026-11-18: never one tile stretched full width)");
 // The inline script edit must keep the CSP hash in step, or the whole Mix script is blocked (caught while building this).
 const csp = html.match(/script-src ([^;]*)/)[1];
 for (const [, body] of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
