@@ -17,7 +17,9 @@ document.addEventListener("click", async event => {
     const original = button.textContent;
     button.textContent = "Logging out…";
     try {
-      await window.danzstakDisablePush?.().catch(() => false);
+      // Owner 2026-11-18: Log out takes you straight out to the landing page. Turning off this device's push runs
+      // alongside the logout and never holds it up for more than 1.5 s.
+      const pushOff = Promise.race([Promise.resolve(window.danzstakDisablePush?.()).catch(() => false), new Promise(resolve => setTimeout(resolve, 1500))]);
       const response = await logoutFetch({
         method: "POST",
         credentials: "include",
@@ -25,8 +27,9 @@ document.addEventListener("click", async event => {
         body: "{}"
       });
       if (!response.ok) throw new Error("Logout failed");
+      await pushOff;
       window.danzstakClearAccountData?.();
-      location.replace("./");
+      location.replace("./?signedout=1");
     } catch (error) {
       button.disabled = false;
       button.removeAttribute("aria-disabled");

@@ -100,7 +100,9 @@ body:has(#feed){background:var(--mix-surface)!important}
 #feed > .post .post-actions{border-top:0!important}
 #feed > .post .comments-more[hidden]{display:none!important}
 /* DanzStak palette instead of stock social blue: initials avatars and in-post links. */
-.menu-profile-avatar,.story-create-avatar,.composer-avatar,.post-avatar-fallback{background:#0b0b0c!important;color:#ff5a1f!important}
+.menu-profile-avatar,.story-create-avatar,.composer-avatar,.post-avatar-fallback{background-color:#0b0b0c!important;background-size:cover;background-position:center;background-repeat:no-repeat;color:#ff5a1f!important}
+/* Fix-it 18: background-color only. The old "background:#0b0b0c!important" wiped the member's photo (set as an inline
+   background-image) after the initial was removed, leaving an empty black circle in the composer. */
 #feed .user-content-link{color:#d9480f!important}
 /* Share dialog: other networks as one wrapping row of chips. */
 .post-share-socials-label{margin:12px 0 6px;font:600 11px/1.3 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#626b78}
