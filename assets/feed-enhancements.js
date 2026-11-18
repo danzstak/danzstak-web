@@ -920,6 +920,10 @@ function renderWorkspace(name) {
     standardsError.hidden = true;
     standardsCheckbox.addEventListener("change", () => { standardsError.hidden = standardsCheckbox.checked; });
     createBox.append(groupName.wrap, categoryLabel, standardsLabel, standardsError, createButton);
+    // Design 29a step 1 (owner 2026-11-18): a full-screen create screen with a live preview and category chips.
+    const createUi = window.danzstakTribeCreate?.enhance({ box: createBox, nameInput: groupName.input, categorySelect, standardsLabel, createButton, categoryName: groupCategoryName }) || null;
+    const closeCreate = () => { createBox.hidden = true; createToggle.setAttribute("aria-expanded", "false"); createToggle.focus?.(); };
+    createBox.addEventListener("tribe-create-close", closeCreate);
     const grid = document.createElement("div");
     grid.className = "groups-grid";
     grid.setAttribute("aria-live", "polite");
@@ -1322,8 +1326,9 @@ function renderWorkspace(name) {
 
     createButton.addEventListener("click", async () => {
       if (createButton.dataset.mode === "retry") { renderWorkspace("Groups"); return; }
-      const value = groupName.input.value.trim();
-      if (!value) return groupName.input.focus();
+      const check = window.danzstakTribeCreate?.checkName(groupName.input.value) || { ok: Boolean(groupName.input.value.trim()), name: groupName.input.value.trim(), reason: "" };
+      const value = check.name;
+      if (!check.ok) { if (check.reason) showAppFeedback(check.reason, { urgent: true }); return groupName.input.focus(); }
       if (!standardsCheckbox.checked) {
         standardsError.hidden = false;
         standardsCheckbox.focus();
@@ -1331,7 +1336,7 @@ function renderWorkspace(name) {
       }
       createButton.disabled = true;
       try {
-        const response = await groupFetch("/groups", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: value, category: categorySelect.value, description: "A new DanzStak Tribe.", communityStandards: true }) });
+        const response = await groupFetch("/groups", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: value, category: categorySelect.value, description: createUi?.description() || "A new DanzStak Tribe.", communityStandards: true }) });
         const result = await response.json().catch(() => ({}));
         if (!response.ok || !result.group) throw new Error(result.error || "Tribe could not be created");
         customGroups.unshift({ ...result.group, custom: true, cloud: true });
@@ -1343,8 +1348,11 @@ function renderWorkspace(name) {
       } catch (error) { showAppFeedback(error.message, { urgent: true }); createButton.disabled = false; return; }
       groupName.input.value = "";
       standardsCheckbox.checked = false;
-      renderGroups();
+      createUi?.reset();
       createButton.disabled = false;
+      // Created: the new Tribe opens, like Facebook Groups (design 29a step 2 adds the setup checklist there).
+      if (createUi) { closeCreate(); const made = customGroups[0]; if (made) { openTribe(made); return; } }
+      renderGroups();
     });
     groupSearch.addEventListener("input", renderGroups);
     categoryFilter.addEventListener("change", renderGroups);
