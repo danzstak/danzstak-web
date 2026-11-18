@@ -143,3 +143,12 @@ body:has(#feed){background:var(--mix-surface)!important}
   }
 }
 body.danzstak-original #storiesRail .daily-clapper small[hidden]{display:none!important}
+
+/* Fix-it 18 (owner 2026-11-17): no gradient placeholder avatars. A member without a photo shows their initial on the
+   DanzStak colours (orange on near-black, as on profiles); a real photo always covers it. */
+.post-avatar,.feed-online-avatar,.friend-avatar,.comment-avatar,.comment-composer-avatar{background:#121418!important;color:#ff5a1f!important;font-weight:900}
+img.post-avatar,img.feed-online-avatar,img.friend-avatar,img.comment-avatar,img.comment-composer-avatar{background:#121418!important}
+/* Views ride in the post header line: "1D · Public · 42 views". */
+.post-view-count.is-inline{display:inline!important;margin:0!important;font-size:11.52px!important;font-weight:400!important;line-height:1.3!important;color:#626b78!important;text-align:left!important;white-space:nowrap}
+.post-view-count.is-inline::before{content:"·";margin:0 5px}
+.post-meta-line{display:inline-flex;align-items:center;flex-wrap:wrap;gap:0;min-width:0}

@@ -8,3 +8,9 @@
 .link-preview-title{font-weight:700;font-size:14px;line-height:1.3;color:#121418;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .link-preview-url{display:block;padding:0;font:600 12px/1.35 "JetBrains Mono",ui-monospace,monospace;color:#d9480f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .post-content.link-only{display:none!important}
+/* Fix-it 18 (owner 2026-11-17): the card holds its place while the source preview loads, so the post never jumps. */
+.link-preview-skeleton{background:linear-gradient(100deg,#eef0f3 30%,#f7f8fa 50%,#eef0f3 70%) 0 0/200% 100%;animation:link-preview-shimmer 1.2s linear infinite}
+@keyframes link-preview-shimmer{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.link-preview-skeleton{animation:none}}
+/* One-line title so the card keeps the placeholder's size when the preview lands. */
+.link-preview-title{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
