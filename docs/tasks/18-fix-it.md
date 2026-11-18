@@ -157,3 +157,11 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
   - **Their story on DanzStak**: counts that open the thing — shows played/booked, Tribes, friends, photos, videos, shop items — and, for artists, the EPK as a backstage-laminate card ("View EPK").
   - Work/role and any other details as plain lines with small icons, no boxes. Visibility per field follows Privacy and tagging.
 - [ ] Edge to edge on phones, hairline dividers, no bordered cards, no empty sections for visitors.
+
+## Friends row under the profile header + "things in common" (owner 2026-11-18, Facebook screenshots)
+- [ ] Under the name/bio on every profile: a row of **small overlapping friend avatars** (3–6 round photos, real photos first, initials fallback, never empty circles) with one short line — on your own profile "**128 friends**"; on someone else's "**Friends with things in common**" or "**12 mutual friends**". The whole row is one tap target.
+- [ ] Tapping it opens a full screen (own top bar: ← back, the member's name, search) with tabs **Friends · Following · Things in common**:
+  - **Friends** — the member's friends (mutual first when you're a visitor), each row: avatar → their profile, name, a line about what they have going on now (next show, new release, a Daily, "playing Fri at …", their shop's newest item) and Message.
+  - **Following** — artists/venues/shops they follow (once Follow ships, queue item 15).
+  - **Things in common** — what the viewer shares with this member and which friends share it too: hometown, current city, scenes/genres, Tribes, shows both attended, record shops both buy from. Each item lists a few friend avatars and "Danny, Kemal and 47 others also have this". Only fields both members made visible to each other; birthday never appears unless the member chose to show it.
+- [ ] Ends with a small "Add more about you to find people who share it" → Edit profile (owner only). No nagging.
