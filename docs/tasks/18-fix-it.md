@@ -145,5 +145,6 @@ Release #494 shipped the call screen, button system, SYNC list polish, profile w
   - **Offered dates / replied** — "Doug Fir, Portland replied · offered Sun 15"
   - **Opened** — "Opened your EPK · 2h ago" (from the per-venue EPK link)
   - **Not opened yet** — sent pitches still unopened, with days since sent
-- [ ] Tapping a tile filters the list (Next gigs → confirmed; Booking replies → replied/offered; EPK opens → opened). Empty states are one short line, e.g. "No clubs have opened your EPK yet."
+- [ ] **The tiles are exactly (owner 2026-11-18): EPKs sent · Opened · Replied · Confirmed · Credits** — in that order, as one compact row/grid on phones (Credits is the small last tile showing the remaining booking-email credits; it never shows a price). Replace today's Next gigs / Booking replies / EPK opens / Email credits tiles.
+- [ ] Tapping a tile filters the list (EPKs sent → every pitch with its status; Opened → opens; Replied → replies/offered dates; Confirmed → confirmed shows; Credits → credits used and returned, e.g. unopened-pitch refunds). Empty states are one short line, e.g. "No clubs have opened your EPK yet."
 - [ ] Tiles that show 0 before anything exists collapse into the start card (no wall of zeros for a new artist).
