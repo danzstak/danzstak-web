@@ -134,7 +134,10 @@ function conversationVisualState(conversation) {
     unread: Math.max(0, Number(conversation?.unread || 0)),
     hasConversation: conversation?.hasConversation === true,
     sharedGroup: conversation?.sharedGroup === true,
-    typing: conversation?.typing === true
+    typing: conversation?.typing === true,
+    pinned: conversation?.pinned === true,
+    muted: conversation?.muted === true,
+    archived: conversation?.archived === true
   };
 }
 
@@ -331,6 +334,7 @@ async function directFetch(path, options = {}, timeoutMs = 10000) {
   finally { clearTimeout(timer); }
 }
 let activeFilter = "chats";
+let showArchivedChats = false; // task 16-A: archived chats live behind one "Archived" row, like the phone's messenger
 const chatReadKey = "danzstak_chat_read";
 const chatDraftKey = "danzstak_chat_drafts";
 let memoryChatDrafts = {};
@@ -829,6 +833,7 @@ function directMessageItem(message) {
   item.className = "message" + (mine ? " mine" : "");
   item.tabIndex = 0;
   item.dataset.messageId = message.messageId;
+  if (message.createdAt) item.dataset.createdAt = message.createdAt; // date chips (task 16-A)
   if (message.content) {
     const text = document.createElement("span");
     text.className = "message-text";
@@ -842,7 +847,9 @@ function directMessageItem(message) {
   item.dataset.baseAriaLabel = item.getAttribute("aria-label");
   const meta = document.createElement("span");
   meta.className = "message-meta";
-  meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · " + messageTranslate("edited") : "");
+  // Like familiar messengers: time (and "edited") inside the bubble; the sender is clear from the side and stays in
+  // the message's accessible label.
+  meta.textContent = (message.editedAt ? messageTranslate("edited") + " · " : "") + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   if (mine) {
     const receipt = document.createElement("span");
     receipt.className = "message-receipt";
@@ -852,9 +859,10 @@ function directMessageItem(message) {
   item.appendChild(meta);
   globalThis.danzstakSyncReply?.decorate?.(item, message, { me: currentEmail, contactName: activeContactName }); // 16-E
   updateMessageReactionBadge(item, message);
-  item.addEventListener("pointerdown", event => { if (event.target.closest?.(".message-text")) return; reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
+  // Long-press anywhere on the bubble opens its actions (Copy included), like the phone's messenger (task 16-A).
+  item.addEventListener("pointerdown", event => { if (event.target.closest?.("a,button,video,input,textarea")) return; reactionTimer = setTimeout(() => { window.danzstakSyncBuzz?.(15); openMessageReactions(item, message, event.clientX, event.clientY); }, 500); });
   for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
-  item.addEventListener("contextmenu", event => { if (event.target.closest?.(".message-text")) return; event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
+  item.addEventListener("contextmenu", event => { if (event.target.closest?.("a,video")) return; event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
   item.addEventListener("click", event => {
     if (!selectedMessages.size || event.target.closest?.("a,button,input,textarea,video")) return;
     event.preventDefault();
@@ -1158,6 +1166,94 @@ function appendConversationAvailabilityWarning() {
   panel.append(status, retry);
   conversationUsers.appendChild(panel);
 }
+// ---- Chat list like the phone's messenger (task 16-A, owner 2026-11-17) ----
+// Time: "14:32" today, "Yesterday", weekday this week, then a short date.
+function chatListTime(value) {
+  const date = new Date(value);
+  if (!value || !Number.isFinite(date.valueOf())) return "";
+  const now = new Date(), day = 86400000, startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).valueOf();
+  if (date.valueOf() >= startOfToday) return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (date.valueOf() >= startOfToday - day) return messageTranslate("Yesterday");
+  if (date.valueOf() >= startOfToday - 6 * day) return date.toLocaleDateString([], { weekday: "short" });
+  return date.toLocaleDateString([], { day: "numeric", month: "short", ...(date.getFullYear() === now.getFullYear() ? {} : { year: "2-digit" }) });
+}
+const chatIcons = {
+  pinned: '<path fill="currentColor" d="M16 3v2h-1v6l2 3v2h-4v5l-1 1-1-1v-5H7v-2l2-3V5H8V3h8Z"/>',
+  muted: '<path fill="currentColor" d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.4 2.4c.1-.2.1-.4.1-.6ZM19 12c0 .9-.2 1.8-.5 2.6l1.5 1.5A8.9 8.9 0 0 0 21 12c0-4.3-3-7.9-7-8.8v2.1c2.9.9 5 3.5 5 6.7ZM4.3 3 3 4.3 7.7 9H3v6h4l5 5v-6.7l4.3 4.3c-.7.5-1.4.9-2.3 1.2v2.1c1.4-.3 2.6-1 3.7-1.8l2 2 1.3-1.3-9-9L4.3 3ZM12 4 9.9 6.1 12 8.2V4Z"/>',
+  archived: '<path fill="currentColor" d="M20.5 5.2 19.1 3.5A1.5 1.5 0 0 0 18 3H6c-.5 0-.9.2-1.2.5L3.5 5.2C3.2 5.6 3 6 3 6.5V19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.5c0-.5-.2-.9-.5-1.3ZM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5ZM5.1 5l.8-1h12l.9 1H5.1Z"/>'
+};
+function chatSvg(kind) { return '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' + chatIcons[kind] + "</svg>"; }
+function chatMark(kind, label) { const mark = document.createElement("span"); mark.className = "conversation-mark is-" + kind; mark.setAttribute("role", "img"); mark.setAttribute("aria-label", label); mark.innerHTML = chatSvg(kind); return mark; }
+function archivedChatsRow(count) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "conversation-archived-row";
+  button.innerHTML = showArchivedChats ? '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2Z"/></svg>' : chatSvg("archived");
+  const label = document.createElement("span");
+  label.textContent = showArchivedChats ? messageTranslate("Back to chats") : messageTranslate("Archived");
+  button.appendChild(label);
+  if (!showArchivedChats) { const total = document.createElement("span"); total.className = "conversation-archived-count"; total.textContent = String(count); button.appendChild(total); }
+  button.addEventListener("click", () => { showArchivedChats = !showArchivedChats; lastConversationListSignature = ""; loadConversations(); });
+  return button;
+}
+async function setChatPreference(conversation, changes) {
+  try {
+    const response = await directFetch("/conversations/prefs", { method: "POST", credentials: "include", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contactEmail: conversation.contactEmail, ...changes }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "That chat could not be changed.");
+    const cached = cachedConversations.find(item => item.contactEmail === conversation.contactEmail);
+    if (cached) Object.assign(cached, "pinned" in changes ? { pinned: changes.pinned, pinnedAt: changes.pinned ? new Date().toISOString() : "" } : {}, "muted" in changes ? { muted: changes.muted } : {}, "archived" in changes ? { archived: changes.archived, ...(changes.archived ? { pinned: false, pinnedAt: "" } : {}) } : {});
+    window.danzstakSyncBuzz?.(8);
+  } catch (error) { callStatus.textContent = messageTranslate(error.message); }
+  lastConversationListSignature = "";
+  loadConversations();
+}
+function closeChatRowActions(row) { row.dataset.swiped = "false"; row.style.removeProperty("--swipe"); }
+function attachChatRowActions(row, button, conversation) {
+  const actions = document.createElement("div");
+  actions.className = "conversation-swipe-actions";
+  for (const [kind, label, changes] of [
+    ["pinned", messageTranslate(conversation.pinned ? "Unpin" : "Pin"), { pinned: !conversation.pinned }],
+    ["muted", messageTranslate(conversation.muted ? "Unmute chat" : "Mute chat"), { muted: !conversation.muted }],
+    ["archived", messageTranslate(conversation.archived ? "Unarchive" : "Archive"), { archived: !conversation.archived }]
+  ]) {
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "conversation-swipe-action is-" + kind;
+    action.innerHTML = chatSvg(kind);
+    const text = document.createElement("span"); text.textContent = label; action.appendChild(text);
+    action.setAttribute("aria-label", label + " · " + (conversation.name || ""));
+    action.tabIndex = -1;
+    action.addEventListener("click", event => { event.stopPropagation(); closeChatRowActions(row); setChatPreference(conversation, changes); });
+    actions.appendChild(action);
+  }
+  row.classList.add("has-swipe-actions");
+  row.prepend(actions);
+  const open = () => { row.dataset.swiped = "true"; row.style.setProperty("--swipe", "-" + actions.offsetWidth + "px"); actions.querySelectorAll("button").forEach(item => { item.tabIndex = 0; }); };
+  // Swipe left to reveal Pin / Mute / Archive; tap the row or swipe right to close.
+  let startX = 0, startY = 0, dragging = false, pointer = null;
+  button.addEventListener("pointerdown", event => { if (event.pointerType === "mouse") return; startX = event.clientX; startY = event.clientY; dragging = false; pointer = event.pointerId; });
+  button.addEventListener("pointermove", event => {
+    if (pointer !== event.pointerId) return;
+    const dx = event.clientX - startX, dy = event.clientY - startY;
+    if (!dragging && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5) { dragging = true; row.classList.add("is-dragging"); }
+    if (dragging) { const base = row.dataset.swiped === "true" ? -actions.offsetWidth : 0; row.style.setProperty("--swipe", Math.max(-actions.offsetWidth, Math.min(0, base + dx)) + "px"); }
+  });
+  const end = event => {
+    if (pointer !== event.pointerId) return;
+    pointer = null; row.classList.remove("is-dragging");
+    if (!dragging) return;
+    const dx = event.clientX - startX;
+    if (dx < -40) open(); else closeChatRowActions(row);
+    row.dataset.justSwiped = "1"; setTimeout(() => { delete row.dataset.justSwiped; }, 0);
+  };
+  button.addEventListener("pointerup", end);
+  button.addEventListener("pointercancel", end);
+  button.addEventListener("click", event => { if (row.dataset.justSwiped) { event.stopImmediatePropagation(); event.preventDefault(); } }, true);
+  // Without a swipe (mouse, keyboard): right-click / long-press opens the same actions.
+  button.addEventListener("contextmenu", event => { event.preventDefault(); row.dataset.swiped === "true" ? closeChatRowActions(row) : open(); });
+}
+
 async function loadConversations() {
   if (document.hidden || loadingConversations) return;
   loadingConversations = true;
@@ -1264,14 +1360,18 @@ async function loadConversations() {
     const visible = cachedConversations.filter(item => {
       const matchesSearch = !query || (item.name + " " + item.contactEmail + " " + item.preview).toLowerCase().includes(query);
       const matchesFilter = activeFilter === "chats"
-        ? item.hasConversation === true
+        ? item.hasConversation === true && (query ? true : item.archived === true ? showArchivedChats : !showArchivedChats)
         : activeFilter === "calls"
           ? item.canContact !== false
           : activeFilter === "contacts";
       return matchesSearch && matchesFilter;
     });
+    if (activeFilter === "chats") visible.sort((a, b) => Number(b.pinned === true) - Number(a.pinned === true) || String(b.pinnedAt || "").localeCompare(String(a.pinnedAt || "")) || String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+    const archivedCount = cachedConversations.filter(item => item.hasConversation === true && item.archived === true).length;
     const listSignature = JSON.stringify({
       activeFilter,
+      showArchivedChats,
+      archivedCount,
       query,
       activeContact,
       sourcesComplete,
@@ -1280,6 +1380,7 @@ async function loadConversations() {
     if (listSignature === lastConversationListSignature) return;
     lastConversationListSignature = listSignature;
     conversationUsers.replaceChildren();
+    if (activeFilter === "chats" && !query && (archivedCount || showArchivedChats)) conversationUsers.appendChild(archivedChatsRow(archivedCount));
     if (!visible.length) {
       const empty = document.createElement("p");
       empty.className = "chat-note";
@@ -1318,8 +1419,12 @@ async function loadConversations() {
       const unread = Number(conversation.unread || 0) > 0;
       button.classList.toggle("is-unread", Boolean(unread));
       const meta = document.createElement("span"); meta.className = "conversation-list-meta";
-      const time = document.createElement("time"); time.textContent = conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
+      const time = document.createElement("time"); time.textContent = chatListTime(conversation.updatedAt); if (conversation.updatedAt) time.dateTime = conversation.updatedAt;
       meta.appendChild(time);
+      const marks = document.createElement("span"); marks.className = "conversation-marks";
+      if (conversation.muted) marks.appendChild(chatMark("muted", messageTranslate("Muted")));
+      if (conversation.pinned) marks.appendChild(chatMark("pinned", messageTranslate("Pinned")));
+      if (marks.childElementCount) meta.appendChild(marks);
       if (unread) {
         const badge = document.createElement("span");
         badge.className = "conversation-unread";
@@ -1328,9 +1433,10 @@ async function loadConversations() {
         meta.appendChild(badge);
       }
       copy.append(name, preview); button.append(avatarWrap, copy, meta);
-      button.addEventListener("click", () => openConversationFromInbox(
+      button.addEventListener("click", () => { if (row.dataset.swiped === "true") { closeChatRowActions(row); return; } openConversationFromInbox(
         cachedConversations.find(item => item.contactEmail === conversation.contactEmail) || conversation
-      ));
+      ); });
+      if (activeFilter === "chats" && conversation.hasConversation === true) attachChatRowActions(row, button, conversation);
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [kind, targetId] of [["phone", "startPhone"], ["video", "startVideo"]]) {
         const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.dataset.callKind = kind; call.appendChild(createCallActionIcon(kind)); call.title = `${messageTranslate(targetId === "startPhone" ? "Phone call" : "Video call")}: ${publicName}`; call.setAttribute("aria-label", call.title);

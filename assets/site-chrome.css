@@ -1,0 +1,6 @@
+/* Whole-site fixes (fix-it 18, owner 2026-11-17). */
+/* The © / ownership footer leaves signed-in pages; it lives in Menu → Settings (with Privacy and Terms). */
+body:not(.signed-out) footer.site-ownership{display:none!important}
+/* Workspace titles carry no explanatory sub-line; the line only shows for real status or error messages. */
+#featureDescription:empty{display:none!important}
+.settings-ownership{display:block;margin-top:6px;color:#5b6472;font-size:12px}

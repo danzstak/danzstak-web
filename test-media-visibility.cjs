@@ -15,7 +15,7 @@ function media(tag = "VIDEO", call = false, post = false) {
     tagName: tag, src: "https://example.com/video", isConnected: true, handlers: {}, dataset: {},
     style: { setProperty(name, value) { this[name] = value; } }, videoWidth: 1280, videoHeight: 720,
     pauses: 0, plays: 0, loads: 0, readyState: 0, paused: true, muted: true,
-    getAttribute: () => "", matches: selector => selector === "video.post-media" ? post : true,
+    getAttribute: () => "", matches: selector => selector.split(",").some(part => part === "video.post-media" || part === "video.profile-post-media") ? post : true, // feed selector now also covers profile videos (fix-it 18)
     closest: () => call ? {} : null,
     addEventListener(name, handler) { (this.handlers[name] ||= []).push(handler); },
     emit(name) { for (const handler of this.handlers[name] || []) handler({ target: this }); },

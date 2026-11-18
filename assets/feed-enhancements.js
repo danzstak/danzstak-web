@@ -757,7 +757,7 @@ function renderWorkspace(name) {
   const saved = readSections();
 
   if (name === "Saved") {
-    featureText.textContent = "Posts, photos and videos you saved. Choose Saved again on a post to remove it.";
+    featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
     const list = document.createElement("div"); list.className = "published-events saved-posts";
     workspace.appendChild(list);
     renderSavedPosts(list);
@@ -790,7 +790,7 @@ function renderWorkspace(name) {
     workspace.classList.add("groups-workspace");
     const requestedTribeId = new URLSearchParams(location.search).get("tribe") || "";
     if (/^[a-f0-9-]{36}$/i.test(requestedTribeId)) window.danzstakPendingTribeId = requestedTribeId;
-    featureText.textContent = "Discover Tribes, keep up with communities you joined, and meet people who share your interests.";
+    featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
     const groupCategoryName = category => ({Artists:"Visual Artist", Creators:"Bands", "Venues & Promoters":"Venues", "Local Scenes":"Scenes", "Industry Networking":"Industry"})[category] || category;
     const legacyCategoryOrder = ["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"];
     const categories = ["Artists", "Creators", "DJs & Producers", "Fans", "Venues & Promoters", "Local Scenes", "Industry Networking", "Events", "Politics", "Religion"];
@@ -906,7 +906,7 @@ function renderWorkspace(name) {
       detail.hidden = true;
       toolbar.hidden = false;
       grid.hidden = false;
-      featureText.textContent = "Discover Tribes, keep up with communities you joined, and meet people who share your interests.";
+      featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
       const directoryUrl = new URL(location.href);
       if (directoryUrl.searchParams.has("tribe")) {
         directoryUrl.searchParams.delete("tribe");
@@ -1327,7 +1327,7 @@ function renderWorkspace(name) {
   }
 
   if (name === "Notifications") {
-    featureText.textContent = "Friend requests and account activity appear here.";
+    featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
     const list = document.createElement("div");
     list.className = "notification-list";
     list.setAttribute("role", "region");
@@ -1560,7 +1560,7 @@ function renderWorkspace(name) {
   }
 
   if (name === "Friends") {
-    featureText.textContent = feedTranslate("Find friends, answer requests and open SYNC from one place.");
+    featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
     workspace.classList.add("friends-directory-workspace");
     const toolbar = document.createElement("div");
     toolbar.className = "friends-directory-toolbar";
@@ -1825,7 +1825,7 @@ function renderWorkspace(name) {
   }
 
   if (["Photos", "Videos"].includes(name)) {
-    featureText.textContent = name === "Photos" ? "Photos shared in Your Mix." : "Videos shared in Your Mix.";
+    featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
     const wantedTag = name === "Photos" ? "IMG" : "VIDEO";
     const media = [...document.querySelectorAll("#feed .post .post-media")].filter(item => item.tagName === wantedTag);
     if (!media.length) {
@@ -1860,7 +1860,7 @@ function renderWorkspace(name) {
 
   if (name === "Events") {
     // Task 14-D (owner 2026-11-17): search, My tickets, tonight, and the flyer-first creator live in events-page.js.
-    featureText.textContent = "Find a night, show your tickets, or sell tickets to your own.";
+    featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
     workspace.classList.add("events-workspace");
     if (typeof window.danzstakEvents?.render !== "function") { featureText.textContent = "Events could not load. Reload and try again."; return; }
     window.danzstakEvents.render(workspace, { isCurrent: isCurrentWorkspace, postActionFetch });
@@ -1868,7 +1868,7 @@ function renderWorkspace(name) {
   }
 
   if (name === "Settings") {
-    featureText.textContent = "Manage account privacy, device preferences, and notifications.";
+    featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
     workspace.classList.add("settings-workspace");
     async function settingsFetch(options = {}, retryColdStart = false) {
       const attempts = retryColdStart ? 2 : 1;
@@ -2004,7 +2004,9 @@ function renderWorkspace(name) {
     legalLinks.className = "settings-links";
     const privacyLink = document.createElement("a"); privacyLink.href = "privacy.html"; privacyLink.textContent = "Privacy";
     const termsLink = document.createElement("a"); termsLink.href = "terms.html"; termsLink.textContent = "Terms";
-    legalLinks.append(privacyLink, termsLink);
+    // Fix-it 18: the © line left the bottom of every signed-in page; it lives here with Privacy and Terms.
+    const ownership = document.createElement("span"); ownership.className = "settings-ownership"; ownership.textContent = "© 2026 DanzStak LLC. User content belongs to its creators.";
+    legalLinks.append(privacyLink, termsLink, ownership);
     const sessionInfo = document.createElement("span");
     sessionInfo.className = "settings-detail";
     sessionInfo.textContent = feedTranslate("Sessions expire 30 days after sign-in");
@@ -2247,11 +2249,16 @@ function syncMobileMenuCurrent(menuOpen = document.body.classList.contains("mobi
   mobileMenuControl?.setAttribute("aria-pressed", String(representsCurrentScreen));
 }
 globalThis.danzstakSyncMobileMenuCurrent = syncMobileMenuCurrent;
+// Fix-it 18 (owner 2026-11-17): every screen inside feed.html gets its own browser title, like a real screen change.
+const screenTitles = { HQ: "Music HQ", Groups: "Tribes" };
+let titleBeforeMenu = "";
+function setScreenTitle(name) { const label = screenTitles[name] || name || "Your Mix"; document.title = "DanzStak | " + (window.danzstakTranslate?.(label) || label); }
 function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {}) {
   const shouldOpen = Boolean(open && matchMedia("(max-width: 700px)").matches);
   if (shouldOpen) globalThis.danzstakActivateMobileScreen?.("menu", { preserveMenu: true });
   const wasOpen = document.body.classList.contains("mobile-menu-open");
   document.body.classList.toggle("mobile-menu-open", shouldOpen);
+  if (shouldOpen && !wasOpen) { titleBeforeMenu = document.title; setScreenTitle("Menu"); } else if (!shouldOpen && wasOpen && titleBeforeMenu) { document.title = titleBeforeMenu; titleBeforeMenu = ""; }
   mobileMenuControl?.setAttribute("aria-expanded", String(shouldOpen));
   globalThis.danzstakSyncMobileMenuCurrent?.(shouldOpen);
   if (shouldOpen && updateHistory && history.state?.danzstakMenuOpen !== true) {
@@ -2324,6 +2331,7 @@ function closeNotificationDrawer(restoreFocus = true, { fromHistory = false } = 
   else {
     featurePanel.hidden = true;
     notificationFeedView.hidden = false;
+    setScreenTitle("");
   }
   notificationControls.forEach(control => {
     control.setAttribute("aria-expanded", "false");
@@ -2341,6 +2349,7 @@ function closeNotificationDrawer(restoreFocus = true, { fromHistory = false } = 
 }
 
 function openNotificationDrawer(opener, { updateHistory = true } = {}) {
+  setScreenTitle("Notifications");
   document.getElementById("messageDrawer")?.querySelector(".message-drawer-close")?.click();
   setMobileMenu(false);
   document.body.classList.remove("content-only");
@@ -2452,6 +2461,7 @@ function openWorkspaceRoute(name, pushHistory = true) {
   document.getElementById("newsFeedView").hidden = true;
   featurePanel.hidden = false;
   const visibleName = canonicalName === "Groups" ? "Tribes" : canonicalName;
+  setScreenTitle(canonicalName);
   featureHeading.textContent = visibleName;
   const pageHeading = document.getElementById("pageHeading");
   if (pageHeading) pageHeading.textContent = visibleName;
@@ -2507,6 +2517,7 @@ function restoreWorkspaceRoute() {
   if (name) openWorkspaceRoute(name, false);
   else if (!location.hash || location.hash === "#feed" || location.hash.startsWith("#post-")) {
     activateMobileScreen("home");
+    setScreenTitle("");
     // The regular Home URL must keep the familiar desktop rails visible.
     // Focused deep links may still remove the rails so a specific post can
     // use the available width, but `?view=feed` is the ordinary Home route.
