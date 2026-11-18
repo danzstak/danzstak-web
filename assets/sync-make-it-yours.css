@@ -1,0 +1,31 @@
+/* SYNC "Make it yours" (16-H): accent, bubble shape and text size on the thread; the settings sheet. */
+html[data-sync-accent] .message.mine{background:var(--sync-mine-bg)!important;color:var(--sync-mine-ink)!important;border-color:transparent!important}
+html[data-sync-accent] .message.mine .message-meta,html[data-sync-accent] .message.mine .message-receipt:not(.is-read){color:var(--sync-mine-ink)!important;opacity:.78}
+html[data-sync-accent] #messageForm .message-send{background:var(--sync-accent)!important;color:var(--sync-on-accent)!important}
+html[data-sync-bubbles=square] .message{border-radius:3px!important}
+html[data-sync-text="0"] .message{font-size:14px!important;line-height:19px!important}
+html[data-sync-text="2"] .message{font-size:17px!important;line-height:23px!important}
+html[data-sync-text="3"] .message{font-size:19px!important;line-height:26px!important}
+.myo-body{display:grid;gap:4px;padding:0 0 8px}
+.myo-preview{display:flex;flex-direction:column;gap:4px;min-height:0!important;max-height:none!important;margin:12px 20px 4px;padding:12px!important;border-radius:14px;overflow:hidden!important}
+.myo-preview .message{max-width:80%}
+.myo-line{margin:6px 20px 0!important;padding-top:8px;border-top:1px solid #eceef2}
+.myo-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.myo-head h3{margin:0;color:#5b6472;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.myo-reset{min-height:44px;padding:0 12px!important;border:0!important;border-radius:999px!important;background:transparent!important;color:#9a3412!important;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.myo-seg{display:flex;gap:6px;flex-wrap:wrap}
+.myo-seg button{flex:1 1 0;min-width:56px;min-height:44px;padding:0 10px!important;border:0!important;border-radius:999px!important;background:rgba(15,23,42,.06)!important;color:#172033!important;font:inherit;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.myo-seg button[aria-checked=true]{background:#c2410c!important;color:#fff!important}
+.myo-accents{display:flex;gap:10px;flex-wrap:wrap}
+.myo-accent{width:44px;height:44px;padding:0!important;border:2px solid rgba(0,0,0,.12)!important;border-radius:50%!important;cursor:pointer}
+.myo-accent[aria-checked=true]{box-shadow:0 0 0 3px #fff,0 0 0 5px #172033}
+.myo-quiet .myo-switch,.myo-line>.myo-switch{padding:0!important;border-top:0!important}
+.myo-times{display:flex;gap:10px}
+.myo-times label{display:grid;gap:4px;flex:1;font-size:13px;font-weight:600}
+.myo-times input{min-height:44px;padding:0 10px;border:1px solid #cfd5dd;border-radius:10px;font:inherit}
+.myo-reactions{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.myo-reactions input{width:100%;min-width:0;min-height:44px;padding:0;border:1px solid #cfd5dd;border-radius:12px;font-size:22px;text-align:center}
+.myo-more{display:flex;gap:8px;flex-wrap:wrap;margin:12px 20px 0}
+.myo-more .secondary{flex:1 1 auto}
+.myo-dialog{color-scheme:light}
+@media(max-width:360px){.myo-line,.myo-preview,.myo-more{margin-left:14px!important;margin-right:14px!important}.myo-reactions input{font-size:19px}}
