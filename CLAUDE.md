@@ -323,6 +323,18 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 - **SYNC signup = DanzStak membership (owner, 2026-11-18).** Signing up for SYNC makes the person a DanzStak member: one account, one identity, no separate SYNC account. A member who joins through SYNC lands in SYNC after signup (the conversation they were invited to, or the chat list), with Mix one tap away. Someone invited to a call just wants to answer it: the invite link shows who is calling and **Answer**; answering creates the account, asks for name/@username and the SMS code, then connects the call. The caller sees "Waiting for … to join" instead of a ring timeout; if the call is gone, the new member lands on a missed call with **Call back**. Spec: `docs/tasks/24-answer-to-join.md`.
 - **No ChatGPT/Codex references.** Remove ChatGPT, OpenAI and Codex references and dependencies from the repository, scripts and branch/deploy names; DanzStak is built with Claude.
 
+## Owner directives 2026-11-18 (evening, from the owner's phone)
+
+Claude Code builds these in this order (queue items in `docs/tasks/QUEUE.md`; details in `docs/tasks/18-fix-it.md`):
+
+1. **Tap a video or photo → full screen, media only.** On profiles, Mix and everywhere: tapping a video opens it full screen and plays; swipe **horizontally** through **that member's** videos (or photos) full screen, **without the post text** (not post by post). Back returns to the exact spot in Mix or the profile.
+2. **Photos and Videos tabs are media, with albums.** Grids of the member's photos / videos only. Members create **named albums** ("Hellfest 2026", "Mike & Ana's wedding", a concert date…), upload many at once and choose which also get posted.
+3. **Friends like Facebook.** Under the profile name: a row of small overlapping friend photos with "N friends" / "Friends with things in common"; tapping it opens Friends · Following · Things in common (things in common = shared hometown, location, birthday month, genres… with the friends' small photos). Tapping a friend's photo opens what that friend has going on (their profile).
+4. **Bazaar item every 4th post in Mix, after The Roll**, a different item each time (queue 6e / task 23b). Never paid, never an ad.
+5. **Shops need a real skin, not "straight HTML".** The profile Shop tab is the shop itself (done, PR #569); next: task 23 extras (chips, featured bundle, shipping table, all-in prices) and the product page.
+6. **Your own photo everywhere you post from.** Composer avatars (Mix and profile) show the member's profile photo, never the DanzStak "D" or an empty circle.
+7. **Done today:** Log out goes straight to the landing page; Tribe initials centred and Tribes can show their own picture; "+ bio" is the 5th profile icon; profile Shop tab; Bazaar has the Eroticon shop live; AI EPK builder ready as PR #567 (needs the Auth API deploy, then merge).
+
 ## StakGuard (ON HOLD — owner 2026-11-18)
 
 **On hold until the owner has worked out the legal side.** Do not build, ship, advertise, price or create Stripe products for StakGuard; leave existing StakGuard PRs unmerged and any StakGuard screens hidden. **DanzStak gives no advice at all on data brokers, people-search sites or removing personal data (owner 2026-11-18: "DanzStak can't even give advice to users until I dig deeper")** — no help pages, tips, templates, broker lists or links, and the AI helpers and support replies must not offer it either. DanzStak's own privacy policy statement ("DanzStak is not a data broker") stays.
