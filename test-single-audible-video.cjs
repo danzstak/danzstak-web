@@ -122,12 +122,13 @@ intersect([
 first.emit("pointerdown");
 first.play();
 assert.equal(second.paused, true, "a direct user play pauses the previous active video");
-assert.equal(first.muted, true, "manual playback transfers playback ownership but remains muted until explicitly unmuted");
+// Owner 2026-11-17: the member's last sound choice (on) carries to the next video they start.
+assert.equal(first.muted, false, "manual playback inherits the member's current sound-on choice");
 assert.equal(second.muted, true, "manual playback leaves every other video muted");
 
-first.muted = false;
+first.muted = true;
 documentEvents.volumechange({ target: first });
-assert.equal(first.muted, false, "the selected video can be explicitly unmuted again");
+assert.equal(first.muted, true, "the selected video can be explicitly muted again");
 
 document.hidden = true;
 documentEvents.visibilitychange();
