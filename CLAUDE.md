@@ -351,6 +351,7 @@ Owner-session only (not Claude Code): deploy the Auth API for AI EPK (#567) and 
 Build order for Claude Code right now: **5a0 → 5a01 → 5a02 → 5a2 albums (finish #575) → 5a3 friends row (#572) → 5a1 viewer (#577) review fixes → 5a5 Bazaar in Mix → 5a6 shop skin → 5a7 Dailies carousel → 5a8 share sheet → 5a9 Tribes.**
 
 ### Builder log (newest first)
+- 2026-11-18 23:15 UTC · Claude Code · 5a00 part 2 · PR #580 (on top of #578) · <audio> ringtone first, touch-safe unlock, lock-screen re-ring 8 s/45 s, caller-cancel + test-call pushes, push re-link, call-alerts prompt; left: call-signaling deploy, owner two-phone test (open / background / locked) · Next: 5a0
 - 2026-11-18 23:55 UTC · Claude (planning chat) · PR #578: ringer + louder rings + Call alerts fixed; owner: "Get SYNC as its own app" doesn't install → spec 34 queued as 5a03 · Next: 5a0
 - 2026-11-18 23:35 UTC · Claude (planning chat) · owner: real-time translation + SYNC auto-translate; spec 33 queued as 5a02, call captions stay task 21 / 9b · Next: 5a0
 - 2026-11-18 23:15 UTC · Claude (planning chat) · 5a00 ringer PR #578; owner: shared/posted photos go into albums ("Uploads", "Phone photos", renameable) + named albums with bulk upload; spec 32 share-to-DanzStak queued as 5a01 · Next: 5a0
