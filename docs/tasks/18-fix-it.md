@@ -40,7 +40,7 @@ Goal in the owner's words: a profile should feel "like looking in the mirror". T
 - [ ] An empty profile wall shows nothing under the composer; show a friendly one-line empty state ("No posts yet") and the member's Dailies/photos if any.
 
 **Mix**
-- [ ] The Dailies tile is a single half-width tile with empty space beside it; it should be a horizontal strip filling the full width (own tile first, then friends'), and "TAKE 0" should read TAKE 1 at minimum once a member has uploaded, or hide the take until the first upload.
+- [x] (PR #NN) The Dailies tile is a single half-width tile with empty space beside it; it should be a horizontal strip filling the full width (own tile first, then friends'), and "TAKE 0" should read TAKE 1 at minimum once a member has uploaded, or hide the take until the first upload.
 - [ ] Link posts first render as long raw URLs (Mixcloud with utm junk), then jump when the preview card loads. Show the preview card (or the authorized embed) straight away with a fixed-height placeholder, strip tracking parameters from displayed links, and never print the raw URL under the card.
 - [ ] "N views" sits on its own line and wastes a row; put it in the reaction row or the post header.
 - [ ] Official/older accounts (SFScoop, DanzStak) show gradient placeholder avatars; use the real avatar or the member's initial on brand colour.
