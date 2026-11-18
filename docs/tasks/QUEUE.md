@@ -14,7 +14,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 |---|------|------|--------|
 | 1 | SYNC texts via Twilio Verify | CLAUDE.md "SYNC SMS provider decision" | DONE (2026-11-17, #402 + ttl fix) |
 | 2 | People search: name + @username, placeholder accounts named first, search on every page | CLAUDE.md signup rule | DONE (2026-11-17, #409, call-signaling deployed) |
-| 3 | One phone verification across the same person's accounts (up to 10) | owner 2026-11-17 | PR #405, **needs rebase** |
+| 3 | One phone verification across the same person's accounts (up to 10) | owner 2026-11-17 | PR #405 (main merged in 2026-11-17) |
 | 4 | (Owner 2026-11-17: a two-device **video call worked well** — Chrome/computer ↔ phone. Keep it working.) SYNC 16-A: native shell + layout (messages scroll under the header, nothing cut off, keyboard) | 16 | TODO |
 | 5 | SYNC 16-C: button system, SYNC first, then site-wide (no "HTML-looking" buttons) | 16 | TODO |
 | 6 | **Fix-it pass:** work through `docs/tasks/18-fix-it.md` top to bottom (broken or unfinished-looking screens found by the owner's Claude in phone-size walkthroughs). One PR per screen or small group; tick each item with its PR number. The owner's Claude keeps adding to that file. | 18 | TODO |

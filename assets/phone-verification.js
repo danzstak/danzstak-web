@@ -20,6 +20,7 @@
     invalid: "That code is incorrect. Request a new code.",
     used: "This verification request is no longer active.",
     resend_window: "You can resend once. Try again in 10 minutes.",
+    number_limit: "This number is already linked to 10 DanzStak accounts.",
     provider_unavailable: "SYNC verification texts aren't available yet. No text was sent.",
     send_failed: "The verification text could not be sent. No number was verified."
   };

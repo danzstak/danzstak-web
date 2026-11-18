@@ -1,5 +1,23 @@
 const accountKey = userId => ({ recordKey: { S: `ACCOUNT#${userId}` } });
 const claimKey = phoneHash => ({ recordKey: { S: `PHONE#${phoneHash}` } });
+// One verified number may be linked to up to 10 DanzStak accounts (owner 2026-11-17: one person, several artist accounts).
+// PHONE#<hash> holds the linked account ids as a string set; each account keeps its own ACCOUNT#<id> record with the
+// owner-only masked last four. Legacy claims (before 2026-11-17) hold one userId and convert on their next change.
+export const MAX_ACCOUNTS_PER_NUMBER = 10;
+const claimRoom = "attribute_not_exists(accounts) OR contains(accounts, :me) OR size(accounts) < :maximum";
+function claimMembers(item) {
+  if (item?.accounts?.SS?.length) return item.accounts.SS;
+  return item?.userId?.S && item?.status?.S === "verified" ? [item.userId.S] : [];
+}
+export function linkClaimOperation(tableName, phoneHash, userId, item) {
+  const add = [...new Set([userId, ...(item?.accounts ? [] : claimMembers(item))])];
+  return { Update: { TableName:tableName, Key:claimKey(phoneHash), UpdateExpression:"SET recordType = :claim ADD accounts :add REMOVE #ttl, challengeId, #status, userId", ConditionExpression:claimRoom, ExpressionAttributeNames:{"#ttl":"ttl","#status":"status"}, ExpressionAttributeValues:{":claim":{S:"phone_claim"},":add":{SS:add},":me":{S:userId},":maximum":{N:String(MAX_ACCOUNTS_PER_NUMBER)}} } };
+}
+export function unlinkClaimOperation(tableName, phoneHash, userId, item) {
+  if (item?.accounts?.SS?.includes(userId)) return { Update: { TableName:tableName, Key:claimKey(phoneHash), UpdateExpression:"DELETE accounts :me", ExpressionAttributeValues:{":me":{SS:[userId]}} } };
+  if (!item?.accounts && item?.userId?.S === userId) return { Delete: { TableName:tableName, Key:claimKey(phoneHash), ConditionExpression:"userId = :me AND attribute_not_exists(accounts)", ExpressionAttributeValues:{":me":{S:userId}} } };
+  return null;
+}
 const value = (item, name, fallback = "") => item?.[name]?.S ?? (item?.[name]?.N !== undefined ? Number(item[name].N) : fallback);
 
 function recordFromItem(item) {
@@ -34,6 +52,9 @@ function rateUpdate(key, maximum, expiresAt, tableName) {
 
 export function createPersonalPhoneDynamoAdapter({ db, tableName, commands, now = () => Date.now() }) {
   const { GetItemCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
+  async function getClaim(phoneHash) { return (await db.send(new GetItemCommand({ TableName:tableName, Key:claimKey(phoneHash), ConsistentRead:true }))).Item || null; }
+  // Room for this account on the number: already linked, or fewer than 10 accounts.
+  async function linkCapacity(phoneHash, userId) { const members = claimMembers(await getClaim(phoneHash)); return members.includes(userId) || members.length < MAX_ACCOUNTS_PER_NUMBER; }
   async function getByUser(userId) { return recordFromItem((await db.send(new GetItemCommand({ TableName:tableName, Key:accountKey(userId), ConsistentRead:true }))).Item); }
   async function reserveChallenge(record) {
     const seconds = Math.floor(now()/1000), hour = Math.floor(now()/3600000), day = Math.floor(now()/86400000);
@@ -49,7 +70,8 @@ export function createPersonalPhoneDynamoAdapter({ db, tableName, commands, now 
     transactions.push(rateUpdate(`RATE#PHONE10#${record.phoneHash}#${tenMinutes}`,2,seconds+1800,tableName));
     if (record.deviceChallengeHash) transactions.push(rateUpdate(`RATE#DEVICE10#${record.deviceChallengeHash}#${tenMinutes}`,2,seconds+1800,tableName));
     transactions.push(
-      { Put:{TableName:tableName,Item:{...claimKey(record.phoneHash),recordType:{S:"phone_claim"},userId:{S:record.userId},challengeId:{S:record.challengeId},status:{S:"pending"},ttl:{N:String(record.expiresAt+86400)}},ConditionExpression:"attribute_not_exists(recordKey) OR userId = :userId",ExpressionAttributeValues:{":userId":{S:record.userId}}}},
+      // The number must have room for this account (10 max). The account joins the number only when its code is confirmed.
+      { ConditionCheck:{TableName:tableName,Key:claimKey(record.phoneHash),ConditionExpression:claimRoom,ExpressionAttributeValues:{":me":{S:record.userId},":maximum":{N:String(MAX_ACCOUNTS_PER_NUMBER)}}} },
       // One text per tap: a second tap while the first code is still in its resend cooldown fails here, atomically.
       { Put:{TableName:tableName,Item:accountItem(record),ConditionExpression:"attribute_not_exists(recordKey) OR #status <> :pending OR resendAfter <= :nowSeconds",ExpressionAttributeNames:{"#status":"status"},ExpressionAttributeValues:{":pending":{S:"pending"},":nowSeconds":{N:String(seconds)}}} }
     );
@@ -63,7 +85,7 @@ export function createPersonalPhoneDynamoAdapter({ db, tableName, commands, now 
   }
   async function cancelChallenge(record) {
     const existing = await getByUser(record.userId); if (!existing || existing.challengeId !== record.challengeId) return;
-    const operations = [{Delete:{TableName:tableName,Key:claimKey(record.phoneHash),ConditionExpression:"userId = :userId AND challengeId = :challenge",ExpressionAttributeValues:{":userId":{S:record.userId},":challenge":{S:record.challengeId}}}}];
+    const operations = [];
     if (existing.previousPhoneHash) operations.push({Put:{TableName:tableName,Item:{...accountKey(record.userId),recordType:{S:"account"},userId:{S:record.userId},phoneHash:{S:existing.previousPhoneHash},maskedNumber:{S:existing.previousMaskedNumber},status:{S:"verified"},verifiedAt:{S:existing.previousVerifiedAt||new Date(now()).toISOString()}}}});
     else operations.push({Delete:{TableName:tableName,Key:accountKey(record.userId),ConditionExpression:"challengeId = :challenge",ExpressionAttributeValues:{":challenge":{S:record.challengeId}}}});
     await db.send(new TransactWriteItemsCommand({TransactItems:operations}));
@@ -72,15 +94,17 @@ export function createPersonalPhoneDynamoAdapter({ db, tableName, commands, now 
   async function markVerified(record, grant = null) {
     const operations = [
       {Update:{TableName:tableName,Key:accountKey(record.userId),UpdateExpression:"SET #status = :verified, verifiedAt = :verifiedAt REMOVE challengeHash, expiresAt, resendAfter, attempts, previousPhoneHash, previousMaskedNumber, previousVerifiedAt, #ttl",ConditionExpression:"challengeId = :challenge AND #status = :pending",ExpressionAttributeNames:{"#status":"status","#ttl":"ttl"},ExpressionAttributeValues:{":challenge":{S:record.challengeId},":pending":{S:"pending"},":verified":{S:"verified"},":verifiedAt":{S:new Date(now()).toISOString()}}}},
-      {Update:{TableName:tableName,Key:claimKey(record.phoneHash),UpdateExpression:"SET #status = :verified REMOVE #ttl",ConditionExpression:"userId = :userId AND challengeId = :challenge",ExpressionAttributeNames:{"#status":"status","#ttl":"ttl"},ExpressionAttributeValues:{":userId":{S:record.userId},":challenge":{S:record.challengeId},":verified":{S:"verified"}}}}
+      linkClaimOperation(tableName, record.phoneHash, record.userId, await getClaim(record.phoneHash))
     ];
-    if (grant) operations.push({Put:{TableName:tableName,Item:{recordKey:{S:`DEVICE_GRANT#${grant.grantId}`},recordType:{S:"device_enrollment_grant"},userId:{S:record.userId},grantTokenHash:{S:grant.grantTokenHash},deviceChallengeId:{S:record.deviceChallengeId},deviceChallengeHash:{S:record.deviceChallengeHash},maskedNumber:{S:record.maskedNumber},verifiedAt:{S:grant.verifiedAt},expiresAt:{N:String(grant.expiresAt)},ttl:{N:String(grant.expiresAt+86400)}},ConditionExpression:"attribute_not_exists(recordKey)"}});
-    if (record.previousPhoneHash && record.previousPhoneHash !== record.phoneHash) operations.push({Delete:{TableName:tableName,Key:claimKey(record.previousPhoneHash),ConditionExpression:"userId = :userId",ExpressionAttributeValues:{":userId":{S:record.userId}}}});
+    if (grant) operations.push({Put:{TableName:tableName,Item:{recordKey:{S:`DEVICE_GRANT#${grant.grantId}`},recordType:{S:"device_enrollment_grant"},userId:{S:record.userId},grantTokenHash:{S:grant.grantTokenHash},phoneHash:{S:record.phoneHash},deviceChallengeId:{S:record.deviceChallengeId},deviceChallengeHash:{S:record.deviceChallengeHash},maskedNumber:{S:record.maskedNumber},verifiedAt:{S:grant.verifiedAt},expiresAt:{N:String(grant.expiresAt)},ttl:{N:String(grant.expiresAt+86400)}},ConditionExpression:"attribute_not_exists(recordKey)"}});
+    if (record.previousPhoneHash && record.previousPhoneHash !== record.phoneHash) { const unlink = unlinkClaimOperation(tableName, record.previousPhoneHash, record.userId, await getClaim(record.previousPhoneHash)); if (unlink) operations.push(unlink); }
     try { await db.send(new TransactWriteItemsCommand({TransactItems:operations})); return true; } catch(error) { if (["TransactionCanceledException","ConditionalCheckFailedException"].includes(error?.name)) return false; throw error; }
   }
   async function remove(userId) {
     const record=await getByUser(userId); if(!record)return;
-    await db.send(new TransactWriteItemsCommand({TransactItems:[{Delete:{TableName:tableName,Key:accountKey(userId),ConditionExpression:"userId = :userId",ExpressionAttributeValues:{":userId":{S:userId}}}},{Delete:{TableName:tableName,Key:claimKey(record.phoneHash),ConditionExpression:"userId = :userId",ExpressionAttributeValues:{":userId":{S:userId}}}}]}));
+    // Removes the number from this account only; the other linked accounts keep it.
+    const unlink = record.phoneHash ? unlinkClaimOperation(tableName, record.phoneHash, userId, await getClaim(record.phoneHash)) : null;
+    await db.send(new TransactWriteItemsCommand({TransactItems:[{Delete:{TableName:tableName,Key:accountKey(userId),ConditionExpression:"userId = :userId",ExpressionAttributeValues:{":userId":{S:userId}}}},...(unlink?[unlink]:[])]}));
   }
   // Rule 11: one wrong code ends the challenge. The record stays (status "canceled") so the resend window still counts.
   async function cancelAfterWrongCode(record) {
@@ -96,5 +120,5 @@ export function createPersonalPhoneDynamoAdapter({ db, tableName, commands, now 
     try { await db.send(new TransactWriteItemsCommand({TransactItems:transactions})); return true; }
     catch (error) { if (["TransactionCanceledException","ConditionalCheckFailedException"].includes(error?.name)) return false; throw error; }
   }
-  return { getByUser, reserveChallenge, markSent, cancelChallenge, recordFailedAttempt, markVerified, remove, limitCheck, cancelAfterWrongCode };
+  return { getByUser, reserveChallenge, markSent, cancelChallenge, recordFailedAttempt, markVerified, remove, limitCheck, cancelAfterWrongCode, linkCapacity };
 }
