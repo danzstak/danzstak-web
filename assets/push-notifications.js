@@ -61,32 +61,39 @@
       applicationServerKey: applicationServerKey(key.publicKey)
     }), 15000, "Notification permission setup took too long. Try again.");
     const serialized = subscription.toJSON();
-    await api("/push/subscribe", {
+    const saved = await api("/push/subscribe", {
       method: "POST",
       body: JSON.stringify({ endpoint: serialized.endpoint, keys: serialized.keys })
     });
+    rememberLink(saved);
     try { sessionStorage.setItem("danzstak_push_synced", "1"); } catch (_) {}
     dispatchEvent(new CustomEvent("danzstak:push-enabled"));
     return subscription;
   }
 
+  // 5a00: calls only ring devices whose push subscription is tied to the registered calling device. A subscription saved
+  // before SMS registration had no device, so the phone never rang; re-link the moment the device registers.
+  function rememberLink(saved) { try { sessionStorage.setItem("danzstak_push_linked", saved?.callingDeviceLinked ? "1" : "0"); } catch (_) {} }
+  const linked = () => { try { return sessionStorage.getItem("danzstak_push_linked") === "1"; } catch (_) { return false; } };
+
   window.danzstakPushState = state;
   window.danzstakEnablePush = enable;
 
-  async function renewExistingSubscription() {
+  async function renewExistingSubscription(force = false) {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window) || Notification.permission !== "granted") return;
     try {
-      if (sessionStorage.getItem("danzstak_push_synced") === "1") return;
+      if (!force && sessionStorage.getItem("danzstak_push_synced") === "1") return;
     } catch (_) {}
     try {
       const registration = await withDeadline(navigator.serviceWorker.ready, 10000, "Notification service is not ready.");
       const subscription = await withDeadline(registration.pushManager.getSubscription(), 10000, "Notification status took too long.");
       if (!subscription) return;
       const serialized = subscription.toJSON();
-      await api("/push/subscribe", {
+      const saved = await api("/push/subscribe", {
         method: "POST",
         body: JSON.stringify({ endpoint: serialized.endpoint, keys: serialized.keys })
       });
+      rememberLink(saved);
       try { sessionStorage.setItem("danzstak_push_synced", "1"); } catch (_) {}
       dispatchEvent(new CustomEvent("danzstak:push-enabled"));
     } catch (_) { /* Retry on the next page load without disturbing the signed-in experience. */ }
@@ -148,6 +155,9 @@
   addEventListener('danzstak:message-drawer', syncPromptDrawerVisibility);
   addEventListener('danzstak:notification-drawer', syncPromptDrawerVisibility);
   setTimeout(renewExistingSubscription, 2000);
+  addEventListener("danzstak:call-device-registered", () => renewExistingSubscription(true));
+  addEventListener("danzstak:call-device-ready", event => { if (event.detail?.registered === true && !linked()) renewExistingSubscription(true); });
+  window.danzstakPushLinked = linked;
   setTimeout(showPermissionPrompt, 12000);
 
   // Owner 2026-11-17: let members check that SYNC can reach their devices when the app is closed.

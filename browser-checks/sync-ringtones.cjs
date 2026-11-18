@@ -103,11 +103,12 @@ const instrument = () => {
       const rang = await page.waitForFunction(() => { const s = document.getElementById("incomingCall"); return s && !s.hidden; }, null, { timeout: 8000 }).then(() => true).catch(() => false);
       if (!rang) failures.push(`${label}: incoming call did not ring`);
       await page.waitForTimeout(900);
-      const ringing = await page.evaluate(() => ({ live: window.danzstakSyncTones.isPlaying(), freqs: [...new Set(window.__osc.map(o => Math.round(o.f)))] }));
+      const ringing = await page.evaluate(() => ({ live: window.danzstakSyncTones.isPlaying(), tone: window.danzstakCallRinger?.tone?.() || "", freqs: [...new Set(window.__osc.map(o => Math.round(o.f)))] }));
       if (!ringing.live) failures.push(`${label}: no ringtone while ringing`);
       if (process.env.DEBUG) console.log(label, await page.evaluate(f => ({ url: location.href, tone: window.danzstakSyncTones.toneFor("ring", f), raw: localStorage.getItem("danzstak_sync_tones"), osc: window.__osc.slice(0, 12) }), FRIEND));
-      if (!ringing.freqs.includes(150)) failures.push(`${label}: SFScoop's Techno override did not ring (${ringing.freqs.join(",")})`);
-      if (ringing.freqs.includes(82)) failures.push(`${label}: the global ringtone played instead of the contact override`);
+      // 5a00: the ring plays through the call ringer's <audio> first (its tone id), Web Audio only as the fallback (150 Hz kick).
+      if (!ringing.freqs.includes(150) && ringing.tone !== "techno-pulse") failures.push(`${label}: SFScoop's Techno override did not ring (${ringing.freqs.join(",")})`);
+      if (ringing.freqs.includes(82) || ringing.tone === "metal-gallop") failures.push(`${label}: the global ringtone played instead of the contact override`);
       // A message tone must not play over the ring.
       const overlaid = await page.evaluate(friend => window.danzstakSyncTones.messageArrived(friend), FRIEND);
       if (overlaid) failures.push(`${label}: a message tone played on top of a ringing call`);

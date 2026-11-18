@@ -12,6 +12,8 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR
   : path.resolve(__dirname, "..", "docs", "screenshots", "foreground-call-ringtone");
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const postId = "33333333-3333-4333-8333-333333333333";
+// call-devices.js only accepts a UUID device id and a 43-character token (fixed with 5a00; the old placeholders were dropped).
+const deviceId = "44444444-4444-4444-8444-444444444444", deviceToken = "T".repeat(43);
 
 (async () => {
   const browser = await chromium.launch({ channel: "msedge", headless: true });
@@ -48,11 +50,11 @@ const postId = "33333333-3333-4333-8333-333333333333";
         else if (url.pathname === "/profiles") body = { profile: { memberId: ownerId, name: "Callee Artist", handle: "callee", username: "callee", bio: "Independent artist testing a populated DanzStak feed.", picture: `${baseUrl}/assets/danzstak-d-icon.png` } };
         else if (url.pathname.startsWith("/calls/")) {
           const headers = await request.allHeaders();
-          const authenticated = headers["x-danzstak-device-id"] === "device-browser-test" && headers["x-danzstak-device-token"] === "token-browser-test";
+          const authenticated = headers["x-danzstak-device-id"] === deviceId && headers["x-danzstak-device-token"] === deviceToken;
           authenticatedCallRequests.push({ path: url.pathname, authenticated });
-          if (!authenticated) return route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ code: "CALL_DEVICE_REGISTRATION_REQUIRED" }) });
+          if (!authenticated && url.pathname !== "/calls/devices") return route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ code: "CALL_DEVICE_REGISTRATION_REQUIRED" }) });
           if (url.pathname === "/calls/inbox") body = { events: offerActive ? [{ eventId: "offer-event", callId: "22222222-2222-4222-8222-222222222222", signalType: "offer", senderEmail: "caller@danzstak.invalid", senderName: "Tour Friend", mode: "phone" }] : [] };
-          else if (url.pathname === "/calls/devices") body = { devices: [{ deviceId: "device-browser-test", name: "Browser test phone", allowCalls: true, lastUsedAt: "2026-11-09T10:00:00.000Z" }] };
+          else if (url.pathname === "/calls/devices") body = { currentDeviceRegistered: authenticated, devices: authenticated ? [{ deviceId, current: true, name: "Browser test phone", allowCalls: true, lastUsedAt: "2026-11-09T10:00:00.000Z" }] : [] };
         }
         else if (url.pathname === "/secure-posts") body = { posts: [{ postId, userId: ownerId, authorName: "Callee Artist", content: "West Coast dates are coming together. Rehearsal tonight, then the van heads north.", createdAt: "2026-11-07T18:30:00.000Z", audience: "public", isOwner: true, mediaType: "image", mediaUrl: `${baseUrl}/assets/danzstak-share-fb-v2.jpg`, viewCount: 42, commentPolicy: "everyone" }] };
         else if (url.pathname === "/engagement") body = { myReaction: "", reactionCounts: { Like: 8, Love: 4 }, comments: [] };
@@ -67,21 +69,18 @@ const postId = "33333333-3333-4333-8333-333333333333";
       });
 
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
-      await page.evaluate(() => new Promise((resolve, reject) => {
+      await page.evaluate(([deviceId, deviceToken]) => new Promise((resolve, reject) => {
         const request = indexedDB.open("danzstak-call-device", 1);
         request.onupgradeneeded = () => request.result.createObjectStore("credentials");
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
           const db = request.result;
           const transaction = db.transaction("credentials", "readwrite");
-          transaction.objectStore("credentials").put({
-            deviceId: "device-browser-test",
-            deviceToken: "token-browser-test"
-          }, "current");
+          transaction.objectStore("credentials").put({ deviceId, deviceToken }, "current");
           transaction.oncomplete = () => { db.close(); resolve(); };
           transaction.onerror = () => reject(transaction.error);
         };
-      }));
+      }), [deviceId, deviceToken]);
       const registeredInbox = page.waitForResponse(response => (
         new URL(response.url()).pathname === "/calls/inbox" && response.status() === 200
       ), { timeout: 5000 });
@@ -97,7 +96,8 @@ const postId = "33333333-3333-4333-8333-333333333333";
       await authenticatedInbox;
       const popup = page.locator(".global-incoming-call");
       await popup.waitFor({ state: "visible", timeout: 5000 });
-      await page.waitForFunction(() => window.__toneStarts > 0, null, { timeout: 2000 });
+      // 5a00: the shared ringer plays an <audio> ringtone first and falls back to Web Audio.
+      await page.waitForFunction(() => window.__toneStarts > 0 || ["audio", "webaudio"].includes(window.danzstakCallRinger?.state?.()), null, { timeout: 2000 });
 
       const geometry = await popup.evaluate(element => {
         const rect = element.getBoundingClientRect();
