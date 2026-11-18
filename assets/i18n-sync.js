@@ -5,6 +5,8 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"No chats yet.": "Nessuna chat per ora.",
+"Start a chat": "Inizia una chat",
 "Your DanzStak chats, calls and booking replies as their own app. Same account, no second login.": "Chat, chiamate e risposte di booking di DanzStak in un'app tutta loro. Stesso account, nessun secondo accesso.",
 "Install SYNC": "Installa SYNC",
 "On iPhone: tap Share, then Add to Home Screen.": "Su iPhone: tocca Condividi, poi Aggiungi a Home.",
@@ -245,6 +247,8 @@
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
 },
 "fr": {
+"No chats yet.": "Aucune discussion pour l'instant.",
+"Start a chat": "Démarrer une discussion",
 "Your DanzStak chats, calls and booking replies as their own app. Same account, no second login.": "Tes discussions, appels et réponses de booking DanzStak dans leur propre app. Même compte, pas de deuxième connexion.",
 "Install SYNC": "Installer SYNC",
 "On iPhone: tap Share, then Add to Home Screen.": "Sur iPhone : touche Partager, puis Sur l'écran d'accueil.",
@@ -486,6 +490,8 @@
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
 },
 "es": {
+"No chats yet.": "Aún no hay chats.",
+"Start a chat": "Empezar un chat",
 "Your DanzStak chats, calls and booking replies as their own app. Same account, no second login.": "Tus chats, llamadas y respuestas de booking de DanzStak en su propia app. Misma cuenta, sin segundo inicio de sesión.",
 "Install SYNC": "Instalar SYNC",
 "On iPhone: tap Share, then Add to Home Screen.": "En iPhone: toca Compartir y luego Añadir a pantalla de inicio.",
@@ -726,6 +732,8 @@
 "You can resend once. Try again in 10 minutes.": "Solo puedes reenviar una vez. Inténtalo de nuevo en 10 minutos."
 },
 "de": {
+"No chats yet.": "Noch keine Chats.",
+"Start a chat": "Chat starten",
 "Use this phone for this account?": "Dieses Telefon für dieses Konto verwenden?",
 "This phone is already registered (number ending {NN}). Use it for this account too?": "Dieses Telefon ist bereits registriert (Nummer endet auf {NN}). Auch für dieses Konto verwenden?",
 "No new text is needed. Another phone or computer still needs its own code.": "Keine neue SMS nötig. Ein anderes Telefon oder ein anderer Computer braucht weiterhin einen eigenen Code.",
@@ -778,6 +786,8 @@
 "You can resend once. Try again in 10 minutes.": "Du kannst nur einmal erneut senden. Versuche es in 10 Minuten erneut."
 },
 "pt": {
+"No chats yet.": "Ainda não há conversas.",
+"Start a chat": "Começar uma conversa",
 "Use this phone for this account?": "Usar este telefone nesta conta?",
 "This phone is already registered (number ending {NN}). Use it for this account too?": "Este telefone já está registrado (número terminado em {NN}). Usar também nesta conta?",
 "No new text is needed. Another phone or computer still needs its own code.": "Não é preciso novo SMS. Outro telefone ou computador ainda precisa do próprio código.",
