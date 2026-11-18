@@ -15,7 +15,7 @@ assert.match(feed, /href="#hq" data-feature="HQ"/);
 assert.match(feed, /Music HQ/);
 assert.match(feed, /booking-selections\.html#tourManagerTitle/);
 assert.match(feed, /assets\/artist-hq\.css\?v=5/);
-assert.match(feed, /assets\/artist-hq\.js\?v=5/);
+assert.match(feed, /assets\/artist-hq\.js\?v=6/);
 assert.match(enhancements, /\["HQ", "Friends"/);
 assert.match(enhancements, /danzstakArtistHq\?\.render/);
 assert.match(hq, /get\("\/epk"\)/);
@@ -27,7 +27,7 @@ assert.doesNotMatch(hq, /Your EPK and booking work in one place/, "fix-it 18: no
 // Fix-it 18 (owner 2026-11-17): compact dashboard: one primary action, 2-column tiles, Pivot card, Music HQ tools.
 assert.match(hq, /primary\.replaceChildren\(published \? action\(tr\("Send a pitch"\), "booking\.html", true\) : action\(tr\(ready \? "Publish EPK" : "Build EPK"\), "epk\.html", true\)\);/, "exactly one primary action");
 for (const label of ["Next gigs", "Booking replies", "EPK opens", "Email credits"]) assert.ok(hq.includes(`tile("${label}"`), `tile: ${label}`);
-assert.match(hq, /go\.setAttribute\("data-pivot-trigger", ""\);/, "HQ carries the Pivot card");
+assert.doesNotMatch(hq, /pivotCard|data-pivot-trigger/, "owner 2026-11-18: no Pivot card on Music HQ");
 assert.match(hq, /\["Record shops", "record-stores\.html"\]/, "Record shops are part of Music HQ");
 assert.match(css, /\.artist-hq-tiles\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/, "2-column tiles on phones");
 assert.match(css, /\.artist-hq-label\{[^}]*white-space:nowrap/, "tile labels stay on one line");
