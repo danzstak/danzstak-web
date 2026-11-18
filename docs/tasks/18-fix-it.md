@@ -186,6 +186,7 @@ Seen live: the ⋮ menu in a chat opened as a dark box of red icons with no word
   - **Add to phone contacts**, which downloads a vCard with their name, @username and DanzStak profile link, **never a phone number**.
   - **Block** (red), using the existing friend-block API, so a block stops messages, calls and profile contact both ways. It asks for one confirm and says plainly what blocking does. **Unblock** appears when the person is already blocked.
   - **Delete chat** (red, Remove from here / Delete everywhere rules).
+- [ ] **Notification bell in the chat header (owner 2026-11-18)**: a bell icon sits in the header next to phone and video (44px, accessible name "Mute notifications" / "Unmute notifications"). One tap opens the mute choices (8 hours · 1 week · Always). When muted it shows a slashed bell. Mute notifications therefore leaves the ⋮ menu.
 - [ ] Make plans no longer renders as an oval. Every row uses the 16-C button tokens.
 - [ ] Tests: the menu has every row with an accessible name and visible text; Block calls the block API and the thread then refuses new messages and calls; the vCard contains no phone number; at 360px the menu fits on screen and doesn't cover the composer.
 
