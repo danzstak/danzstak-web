@@ -55,6 +55,30 @@ Read first: `CLAUDE.md` ("Plan (Claude, 2026-11-18 night)" step 8), `infrastruct
 - Categories are only a **filter in Discover** and a label on each Tribe card. A category never appears as a Tribe of its own.
 - With no Tribes yet, the empty state is one line ("No Tribes yet. Start one for your scene.") and **+ Create Tribe**.
 
+### Creating a Tribe, step by step (owner 2026-11-18, modelled on Facebook's group creation)
+**1. Core setup (one screen, from + in the Tribes top bar or "+ Create Tribe")**
+- **Name** (required). A live preview card of the Tribe (cover, name, privacy, category) updates as the member types; on phones the preview sits above the form.
+- **Category** (Bands, DJs & Producers, Promoters & Events, Fans, Industry & Crew, Record shops, Radio, Local scene…) and **city** (optional).
+- **Privacy:** **Public** (anyone can see members and posts) or **Private** (only members can see members and posts).
+- **Private only — visibility:** **Visible** (anyone can find it in search and ask to join) or **Hidden** (only members and invited people can find it).
+- Privacy can go from Public to Private any time. Going from Private to Public is locked, to protect members' trust: Elders see "Private Tribes can't become public".
+- **Invite friends** (optional): pick from your friends before creating.
+- **Create.**
+
+**2. Provisioning.** The server creates the Tribe, makes the creator its **Elder** (approved), sends the invites, and opens the new Tribe's Discussion tab.
+
+**3. "Finish setting up your Tribe" checklist** (Elders only, at the top of Discussion, with a progress bar; each card disappears when done; the whole list can be dismissed):
+- **Invite people:** friends, or copy and share an invite link or QR. These use the share sheet; phone numbers are never used.
+- **Add a cover:** upload a photo, or pick one of DanzStak's genre covers (punk, metal, electronic, house). These are DanzStak's own art, never stock or third-party images.
+- **Add a description:** what the Tribe is for.
+- **Write a welcome post:** opens the composer with a prompt, so the first visitors don't land on an empty feed.
+
+**4. Elder tools (Tribe ⋮ → Settings)**
+- **Rules:** pick from templates ("Be kind and courteous", "No hate speech or bullying", "No spam or self-promotion without asking", "Respect the scene and the crews", "No selling bootlegs or copied music") or write your own; up to 10 rules.
+- **Join questions:** up to 3 (multiple choice, checkboxes or written), shown to people asking to join a private Tribe. Answers are visible to Elders and Moderators only and are deleted when the request is decided.
+- **Elder assist (optional, off by default):** simple rules, such as auto-approving join requests from friends of members or from accounts older than N days, or holding posts with links from new members for approval. These are plain rules the Elder sets; there is no algorithmic scoring.
+- **Post approval**, anonymous posts on/off, and roles (Moderators) as above.
+
 ### Tribes home (owner 2026-11-18 screenshot of Facebook Groups: "Groups should look like this")
 - **Top bar:** ← back, title **Tribes**, then three icons: **+** (create a Tribe), **search**, and **⋮** (with an unread badge for Tribe activity).
 - **Tabs (pills):** **For you · Your Tribes · Your activity · Discover**.
