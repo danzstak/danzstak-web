@@ -30,7 +30,8 @@
     row.innerHTML = `${SPARKLE}<span class="profile-ai-label"></span><span class="profile-ai-price"></span>`;
     row.addEventListener("click", () => openSheet(state?.owned ? "ask" : "start"));
     const status = el("p", "profile-ai-status"); status.id = "profileAiStatus"; status.setAttribute("role", "status"); status.hidden = true;
-    form.querySelector("h2")?.after(row, status);
+    // Right under the title: below the Edit profile screen's top bar when it has one (#547), else below the heading.
+    (form.querySelector(".edit-screen-bar") || form.querySelector("h2"))?.after(row, status);
     renderRow();
   }
   function renderRow() {

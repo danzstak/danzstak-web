@@ -8,7 +8,7 @@ assert.ok(html.indexOf("assets/profile-editor.js?v=") < html.indexOf("assets/pro
 assert.match(html, /assets\/epk-ai\.css\?v=\d+/, "shares the AI sheet styles");
 assert.ok(sw.includes('"/assets/profile-ai.js"'));
 // One row right under the title; the price only until bought; "AI coming soon" without the key.
-assert.match(js, /form\.querySelector\("h2"\)\?\.after\(row, status\)/);
+assert.match(js, /\(form\.querySelector\("\.edit-screen-bar"\) \|\| form\.querySelector\("h2"\)\)\?\.after\(row, status\)/);
 assert.match(js, /price\.textContent = state\.available && !state\.owned \? money\(state\.totalCents\) : ""/);
 assert.ok(js.includes('"AI coming soon"'));
 // Purchase: refund rule + disclaimer, Stripe Checkout only, kind=profile.
