@@ -12,7 +12,7 @@
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
   <link rel="stylesheet" href="assets/mobile-design-system.css?v=21">
   <link rel="stylesheet" href="assets/icon-buttons.css?v=5">
-  <link rel="stylesheet" href="assets/bazaar.css?v=3">
+  <link rel="stylesheet" href="assets/bazaar.css?v=4">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
 <script src="assets/i18n-music.js?v=13" defer></script>
@@ -30,15 +30,9 @@
     <nav aria-label="Marketplace navigation"><a aria-current="page" href="bazaar.html">Bazaar</a><a href="store.html?manage=1">My Shop</a></nav>
   </header>
   <main id="bazaarMain" class="bazaar-main" tabindex="-1">
-    <section class="bazaar-intro" aria-labelledby="bazaarTitle">
-      <p class="market-eyebrow">Fixed price · member shops</p>
-      <h1 id="bazaarTitle">DanzStak Bazaar</h1>
-      <p>Physical releases, art, gear and tour merchandise sold by the DanzStak community. No bidding.</p>
-    </section>
-    <form class="bazaar-search" role="search">
-      <label for="bazaarQuery">Search the Bazaar</label>
-      <div><input id="bazaarQuery" type="search" autocomplete="off" placeholder="Search products or shops"><button type="submit">Search</button></div>
-    </form>
+    <h1 id="bazaarTitle" class="sr-only">DanzStak Bazaar</h1>
+    <!-- Fix-it 18: one search. The top bar's search finds Bazaar products and people; an active search shows here as a chip. -->
+    <p id="bazaarFilter" class="bazaar-filter" hidden></p>
     <p id="bazaarStatus" class="market-status" role="status" aria-live="polite">Loading Bazaar…</p>
     <section id="bazaarProducts" class="bazaar-grid" aria-label="Bazaar products"></section>
   </main>
@@ -51,9 +45,9 @@
     <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1"></a>
   </nav>
   <script src="assets/icon-buttons.js?v=14" defer></script>
-  <script src="assets/bazaar.js?v=2" defer></script>
+  <script src="assets/bazaar.js?v=3" defer></script>
 <script src="assets/people-search.js?v=424" defer></script>
-<script src="assets/top-search.js?v=1" defer></script>
+<script src="assets/top-search.js?v=2" defer></script>
 <script src="assets/signup-onboarding.js?v=3" defer></script>
 <script src="assets/app-bar.js?v=1" defer></script>
 <script src="assets/site-chrome.js?v=1" defer></script>
