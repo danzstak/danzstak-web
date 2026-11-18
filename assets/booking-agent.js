@@ -563,7 +563,9 @@
       projectedShowPay = shows * number("averageShowPay"),
       projectedMerch = shows * number("averageMerchPerShow"),
       projectedIncome = projectedShowPay + projectedMerch,
-      projectedNet = projectedIncome - finishBudget;
+      // Owner 2026-11-18 ("expensive trip to Sacramento from San Francisco, 3 days"): the emergency reserve is cash to
+      // carry, not money spent, so profit/loss and break-even use the real costs only.
+      projectedNet = projectedIncome - total;
     $("fuelCost").textContent = money.format(fuel);
     $("lodgingCost").textContent = money.format(lodging);
     $("mealCost").textContent = money.format(meals);
@@ -579,16 +581,16 @@
       meals,
       road: vehicle + extras,
       total,
-      finish: finishBudget,
+      finish: reserve,
       income: projectedIncome,
       net: projectedNet,
-      breakEven: finishBudget / shows,
+      breakEven: total / shows,
     };
     for (const [name, value] of Object.entries(routeCosts)) {
       const output = document.querySelector(`[data-route-cost="${name}"]`);
       if (output) output.textContent = money.format(value);
     }
-    $("perShowCost").textContent = money.format(finishBudget / shows);
+    $("perShowCost").textContent = money.format(total / shows);
     $("projectedShowPay").textContent = money.format(projectedShowPay);
     $("projectedMerch").textContent = money.format(projectedMerch);
     $("projectedTourNet").textContent = `${projectedNet >= 0 ? "Profit " : "Loss "}${money.format(Math.abs(projectedNet))}`;
@@ -602,7 +604,7 @@
       if (netOutput) netOutput.textContent = money.format(Math.abs(projectedNet));
     }
     $("merchBreakEven").textContent = merchProfit
-      ? Math.ceil(finishBudget / merchProfit).toLocaleString() + " items"
+      ? Math.ceil(total / merchProfit).toLocaleString() + " items"
       : "Set item profit";
     const manager = $("tourManagerName").value.trim();
     $("tourManagerSummary").textContent = manager || "Not assigned";
@@ -1256,7 +1258,7 @@
     summary.className = "route-summary";
     summary.append(title, details, status);
     budget.className = "route-cost-summary";
-    budget.innerHTML = '<h3>Working tour money</h3><p>Change the expected show pay or merch profit here. Costs still use your crew and van settings.</p><div class="route-income-controls"><label>Pay per show<input type="number" min="0" max="1000000" step="1" data-route-budget-input="averageShowPay"></label><label>Merch profit/show<input type="number" min="0" max="1000000" step="1" data-route-budget-input="averageMerchPerShow"></label></div><dl><div><dt>Fuel</dt><dd data-route-cost="fuel">—</dd></div><div><dt>Lodging</dt><dd data-route-cost="lodging">—</dd></div><div><dt>Crew per diem</dt><dd data-route-cost="meals">—</dd></div><div><dt>Vehicle + road costs</dt><dd data-route-cost="road">—</dd></div><div class="total"><dt>Estimated tour</dt><dd data-route-cost="total">—</dd></div><div><dt>Finish-line reserve</dt><dd data-route-cost="finish">—</dd></div><div><dt>Projected money in</dt><dd data-route-cost="income">—</dd></div><div><dt>Break-even per show</dt><dd data-route-cost="breakEven">—</dd></div><div class="route-net"><dt data-route-cost-label="net">Projected result</dt><dd data-route-cost="net">—</dd></div></dl>';
+    budget.innerHTML = '<h3>Working tour money</h3><p>Change the expected show pay or merch profit here. Costs still use your crew and van settings.</p><div class="route-income-controls"><label>Pay per show<input type="number" min="0" max="1000000" step="1" data-route-budget-input="averageShowPay"></label><label>Merch profit/show<input type="number" min="0" max="1000000" step="1" data-route-budget-input="averageMerchPerShow"></label></div><dl><div><dt>Fuel</dt><dd data-route-cost="fuel">—</dd></div><div><dt>Lodging</dt><dd data-route-cost="lodging">—</dd></div><div><dt>Crew per diem</dt><dd data-route-cost="meals">—</dd></div><div><dt>Vehicle + road costs</dt><dd data-route-cost="road">—</dd></div><div class="total"><dt>Estimated tour</dt><dd data-route-cost="total">—</dd></div><div><dt>Emergency cash (not spent)</dt><dd data-route-cost="finish">—</dd></div><div><dt>Projected money in</dt><dd data-route-cost="income">—</dd></div><div><dt>Break-even per show</dt><dd data-route-cost="breakEven">—</dd></div><div class="route-net"><dt data-route-cost-label="net">Projected result</dt><dd data-route-cost="net">—</dd></div></dl>';
     budget.querySelectorAll("[data-route-budget-input]").forEach(input => {
       const source = $(input.dataset.routeBudgetInput);
       input.value = source.value;
