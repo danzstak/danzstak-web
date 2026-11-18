@@ -142,6 +142,33 @@ function setProfileDetail(id, value) {
   target.closest(".detail").hidden = viewingOtherProfile && !text;
 }
 
+// About = the member's vanity wall (owner 2026-11-18): their long-form story first, big, then the details.
+const storyBlock = document.createElement("section");
+storyBlock.className = "profile-story";
+storyBlock.hidden = true;
+const storyText = document.createElement("blockquote");
+storyText.className = "profile-story-text";
+storyText.setAttribute("data-no-translate", "");
+const storyEdit = document.createElement("button");
+storyEdit.type = "button"; storyEdit.className = "profile-story-edit"; storyEdit.dataset.icon = "edit";
+storyEdit.setAttribute("aria-label", profileTranslate("Edit your story")); storyEdit.title = storyEdit.getAttribute("aria-label");
+const storyAdd = document.createElement("button");
+storyAdd.type = "button"; storyAdd.className = "profile-story-add"; storyAdd.textContent = profileTranslate("Tell people who you are");
+storyBlock.append(storyText, storyEdit, storyAdd);
+details.appendChild(storyBlock);
+function renderProfileStory(profile = {}) {
+  const story = String(profile.story || "").trim(), owner = profile.isOwner === true && !viewingOtherProfile;
+  storyText.textContent = story;
+  storyText.hidden = !story;
+  storyEdit.hidden = !story || !owner;
+  storyAdd.hidden = Boolean(story) || !owner;
+  storyBlock.hidden = !story && !owner;
+  if (story) window.danzstakLinkifyUserText?.(storyText);
+}
+const openStoryEditor = () => { editButton.click(); setTimeout(() => { const field = document.querySelector(".edit-profile-panel [name='story']"); const section = field?.closest("details"); if (section) section.open = true; field?.focus(); field?.scrollIntoView({ block: "center" }); }, 200); };
+storyEdit.addEventListener("click", openStoryEditor);
+storyAdd.addEventListener("click", openStoryEditor);
+
 detail("Location", "profileLocation");
 detail("Work", "profileWork");
 detail("Website", "profileWebsite");
@@ -1138,6 +1165,7 @@ panel.innerHTML = '<h2>' + profileEditorWords.heading + '</h2>' +
   '<details class="profile-edit-section profile-username"><summary>' + profileEditorWords.advanced + '</summary><div class="profile-edit-section-body"><label>' + profileEditorWords.handle + '<input name="handle" minlength="3" maxlength="24" pattern="[A-Za-z0-9._]+"><small>' + profileEditorWords.handleHelp + '</small></label></div></details>' +
   '<details class="profile-edit-section"><summary>More profile details</summary><div class="profile-edit-section-body">' +
   '<label>Bio<textarea name="bio" maxlength="160"></textarea></label>' +
+  '<label>Your story<textarea name="story" maxlength="2000" rows="8" placeholder="Where you came from, what you make, the shows that mattered. This is your About page."></textarea><small>Up to 2000 characters. Shown big on your About tab.</small></label>' +
   '<label>Location<input name="location" maxlength="80"></label>' +
   '<label>Work<input name="work" maxlength="100"></label>' +
   '<label>Website<input name="website" type="text" inputmode="url" maxlength="200" placeholder="yourband.com"></label></div></details>' +
@@ -1206,11 +1234,12 @@ function applyProfile(profile) {
   bioElement.hidden = !profile.bio;
   addBioButton.hidden = Boolean(profile.bio) || profile.isOwner !== true || viewingOtherProfile;
   window.danzstakLinkifyUserText?.(bioElement);
+  renderProfileStory(profile);
   setProfileDetail("profileLocation", profile.location);
   setProfileDetail("profileWork", profile.work);
   renderProfileWebsite(profile.website);
   document.getElementById("profileWebsite").closest(".detail").hidden = viewingOtherProfile && !String(profile.website || "").trim();
-  details.hidden = viewingOtherProfile && ![...details.querySelectorAll(".detail")].some(box => !box.hidden);
+  details.hidden = viewingOtherProfile && storyBlock.hidden && ![...details.querySelectorAll(".detail")].some(box => !box.hidden);
   const name = document.getElementById("profileName").textContent.trim();
   const avatar = document.getElementById("profileInitial");
   if (profile.picture) { avatar.style.backgroundImage = `url("${profile.picture}")`; avatar.classList.add("has-photo"); avatar.textContent = ""; }
@@ -1234,6 +1263,7 @@ editButton.addEventListener("click", () => {
   panel.elements.name.value = profile.name || document.getElementById("profileName").textContent;
   panel.elements.handle.value = profile.handle || handleElement.textContent.replace(/^@/, "");
   panel.elements.bio.value = profile.bio || "";
+  panel.elements.story.value = profile.story || "";
   panel.elements.location.value = profile.location || "";
   panel.elements.work.value = profile.work || "";
   panel.elements.website.value = profile.website || "";
