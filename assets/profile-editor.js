@@ -923,10 +923,14 @@ async function loadProfileFriends() {
   if (viewingOtherProfile) { tabMessage.textContent = "This member’s friend list is private."; return; }
   tabMessage.textContent = "Loading friends…";
   try {
-    const [friendsResult, directoryResult] = await Promise.allSettled([
+    const [friendsResult, directoryResult, everyoneResult] = await Promise.allSettled([
       profileFetch(profileApi + "/friends", { credentials: "include", cache: "no-store" }),
-      profileFetch(profileApi + "/calls/directory", { credentials: "include", cache: "no-store" })
+      profileFetch(profileApi + "/calls/directory", { credentials: "include", cache: "no-store" }),
+      // Owner 2026-11-18: "I'm still not able to see all the users that have signed up." Everyone on DanzStak, online first.
+      profileFetch(profileApi + "/people?all=1", { credentials: "include", cache: "no-store" })
     ]);
+    const everyoneResponse = everyoneResult.status === "fulfilled" ? everyoneResult.value : null;
+    const everyoneData = everyoneResponse?.ok ? await everyoneResponse.json().catch(() => null) : null;
     const response = friendsResult.status === "fulfilled" ? friendsResult.value : null;
     if (!response?.ok) throw new Error("Friends could not be loaded");
     const data = await response.json();
@@ -960,10 +964,12 @@ async function loadProfileFriends() {
     // Owner 2026-11-17: pending requests live on the Friends tab too — incoming to answer, sent ones marked "Request sent".
     appendProfileFriendRequests(data.incoming, "incoming");
     appendProfileFriendRequests(data.outgoing, "outgoing");
-    // Members online now (not already friends), like a familiar "active now" list.
-    const onlineMembers = onlineDirectory.filter(user => !friendEmails.has(String(user.email || "").toLowerCase()) && /^[a-f0-9-]{36}$/.test(String(user.memberId || "")));
+    // Everyone else on DanzStak (not already friends), online first. Falls back to "Online now" if the member list is unavailable.
+    const friendIds = new Set((data.friends || []).map(friend => String(friend.memberId || "")));
+    const everyone = Array.isArray(everyoneData?.users) ? everyoneData.users.filter(user => user.friendStatus !== "friends" && !friendIds.has(String(user.memberId || "")) && /^[a-f0-9-]{36}$/.test(String(user.memberId || ""))) : null;
+    const onlineMembers = everyone || onlineDirectory.filter(user => !friendEmails.has(String(user.email || "").toLowerCase()) && /^[a-f0-9-]{36}$/.test(String(user.memberId || "")));
     if (onlineMembers.length) {
-      const onlineHeading = document.createElement("h3"); onlineHeading.className = "profile-friends-heading"; onlineHeading.textContent = `Online now · ${onlineMembers.length}`;
+      const onlineHeading = document.createElement("h3"); onlineHeading.className = "profile-friends-heading"; onlineHeading.textContent = everyone ? `Everyone on DanzStak · ${onlineMembers.length}` : `Online now · ${onlineMembers.length}`;
       const onlineGrid = document.createElement("div"); onlineGrid.className = "profile-friend-grid";
       for (const member of onlineMembers) {
         const link = document.createElement("a"); link.className = "profile-friend-card"; link.href = "profile.html?member=" + encodeURIComponent(member.memberId);
@@ -971,8 +977,9 @@ async function loadProfileFriends() {
         if (member.picture) { avatar.src = member.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
         else { avatar.textContent = (member.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
         const copy = document.createElement("span"); const name = document.createElement("strong"); name.textContent = member.name || "DanzStak member";
-        const availability = document.createElement("small"); availability.textContent = "Online";
-        const status = document.createElement("span"); status.className = "profile-friend-presence online"; status.title = "Online"; status.setAttribute("aria-hidden", "true");
+        const isOnline = everyone ? member.online === true : true;
+        const availability = document.createElement("small"); availability.textContent = isOnline ? "Online" : (member.handle ? "@" + member.handle : "");
+        const status = document.createElement("span"); status.className = isOnline ? "profile-friend-presence online" : "profile-friend-presence"; status.title = isOnline ? "Online" : "Offline"; status.setAttribute("aria-hidden", "true");
         copy.append(name, availability); link.append(avatar, copy, status); onlineGrid.appendChild(link);
       }
       tabMessage.append(onlineHeading, onlineGrid);
