@@ -4,6 +4,8 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Verify this device for SYNC calls": "Verifica questo dispositivo per le chiamate SYNC",
+"Calls and voice messages need it. Texting already works.": "Serve per chiamate e messaggi vocali. I messaggi di testo funzionano già.",
 // Directive F4c: profile picture history (profile-editor.js)
 "Past profile pictures": "Immagini del profilo precedenti",
 "No past profile pictures yet.": "Ancora nessuna immagine del profilo precedente.",
@@ -122,6 +124,8 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"Verify this device for SYNC calls": "Vérifie cet appareil pour les appels SYNC",
+"Calls and voice messages need it. Texting already works.": "Il le faut pour les appels et messages vocaux. Les messages texte marchent déjà.",
 // Directive F4c: profile picture history (profile-editor.js)
 "Past profile pictures": "Anciennes photos de profil",
 "No past profile pictures yet.": "Pas encore d'anciennes photos de profil.",
@@ -240,6 +244,8 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"Verify this device for SYNC calls": "Verifica este dispositivo para las llamadas de SYNC",
+"Calls and voice messages need it. Texting already works.": "Hace falta para llamadas y mensajes de voz. Los mensajes de texto ya funcionan.",
 // Directive F4c: profile picture history (profile-editor.js)
 "Past profile pictures": "Fotos de perfil anteriores",
 "No past profile pictures yet.": "Aún no hay fotos de perfil anteriores.",
