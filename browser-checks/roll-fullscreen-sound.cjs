@@ -13,7 +13,7 @@ const base = String(process.env.DANZSTAK_LOCAL_URL || process.env.DANZSTAK_FEED_
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
 const viewports = [[320, 568], [360, 780], [390, 844], [414, 896], [430, 932], [1366, 900]];
 const me = "11111111-1111-4111-8111-111111111111";
-const posts = ["a", "b"].map((name, index) => ({
+const posts = ["a", "b", "c"].map((name, index) => ({ // three: the owner's rule is checked over three videos in a row
   postId: `roll-sound-${name}`, userId: me, authorName: "Roll Sound Test", content: `Roll video ${name}`,
   createdAt: `2026-11-1${8 - index}T18:00:00.000Z`, audience: "public", isOwner: true, mediaType: "video",
   mediaKey: `uploads/roll-sound-${name}.webm`, mediaUrl: `https://media.example.invalid/roll-sound-${name}.webm`,
@@ -167,6 +167,27 @@ async function openFeed(browser, clip, width, height) {
         assert.equal(advanced.toggle, "Mute video", `${label}: the speaker on the auto-advanced video shows sound on`);
         await page.locator(".reels-rail.roll-fullscreen .reels-list").evaluate(list => list.scrollTo({ top: 0 }));
         await page.waitForFunction(src => [...document.querySelectorAll("video.reel-player")].some(video => !video.paused && video.currentSrc.endsWith(src)), first, { timeout: 5000 });
+        // Owner, 2026-11-19 6:32 pm: "In The Roll when sound is on the next video should have sound on; when the sound is
+        // off the next video should have sound off." Three videos in a row: sound on carries to the second and the third;
+        // turning it off on the third carries back to the second.
+        const goTo = async index => {
+          await page.locator(".reels-rail.roll-fullscreen .reels-list").evaluate((list, at) => list.scrollTo({ top: list.querySelectorAll(".reel-card")[at].offsetTop }), index);
+          await page.waitForFunction(at => { const video = document.querySelectorAll(".reels-rail.roll-fullscreen .reel-card")[at]?.querySelector("video.reel-player"); return video && !video.paused; }, index, { timeout: 5000 });
+          await page.waitForTimeout(400);
+          return rollState(page);
+        };
+        for (const index of [1, 2]) {
+          const at = await goTo(index);
+          assert.deepEqual([at.playing.length, at.playing[0]?.muted, at.audible], [1, false, 1], `${label}: video ${index + 1} of 3 follows sound on: ${JSON.stringify(at)}`);
+        }
+        await tapSpeaker(page, touch, `${label} third video`);
+        await page.waitForFunction(() => [...document.querySelectorAll("video.reel-player")].every(video => video.paused || video.muted));
+        const back = await goTo(1);
+        assert.deepEqual([back.playing.length, back.playing[0]?.muted, back.audible, back.toggle], [1, true, 0, "Unmute video"], `${label}: sound off on the third video carries to the next one played: ${JSON.stringify(back)}`);
+        // Sound back on for the rest of this run (the next step mutes in full screen and checks the strip).
+        await goTo(0);
+        await tapSpeaker(page, touch, `${label} first video again`);
+        await page.waitForFunction(() => [...document.querySelectorAll("video.reel-player")].some(video => !video.paused && !video.muted));
       }
 
       // 2. Muting in full screen carries back to Mix.
