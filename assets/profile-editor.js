@@ -1237,10 +1237,12 @@ function applyProfile(profile) {
   if (profile.handle) handleElement.textContent = "@" + profile.handle;
   bioElement.textContent = profile.bio || "";
   bioElement.hidden = !profile.bio;
-  // Owner 2026-11-18 (later): "+ bio" did the same as Edit profile (redundant) and showed on other members' profiles,
-  // where it opened the editor. Removed: the bio is edited in Edit profile, which only the account holder sees.
-  addBioButton.hidden = true;
-  addBioButton.remove();
+  // Owner 2026-11-19: "+ bio" is the account holder's shortcut to the long-form bio that shows on About ("Your story");
+  // never shown on someone else's profile (it used to leak there and open the editor). Hidden once the story is written.
+  const ownProfile = profile.isOwner === true && !viewingOtherProfile;
+  addBioButton.hidden = !ownProfile || Boolean(String(profile.story || "").trim());
+  const profileActionRow = document.querySelector(".profile-actions");
+  if (ownProfile && profileActionRow && addBioButton.parentElement !== profileActionRow) { addBioButton.classList.add("ds-icon-button", "profile-add-bio--icon"); profileActionRow.appendChild(addBioButton); }
   window.danzstakLinkifyUserText?.(bioElement);
   setProfileDetail("profileLocation", profile.location);
   setProfileDetail("profileWork", profile.work);
@@ -1264,7 +1266,7 @@ function applyProfile(profile) {
   }
 }
 
-addBioButton.addEventListener("click", () => { editButton.click(); setTimeout(() => { const field = document.querySelector(".edit-profile-panel [name='bio']"); const section = field?.closest("details"); if (section) section.open = true; field?.focus(); field?.scrollIntoView({ block: "center" }); }, 200); });
+addBioButton.addEventListener("click", () => { if (!canEditThisProfile()) return; editButton.click(); setTimeout(() => { const field = document.querySelector(".edit-profile-panel [name='story']") || document.querySelector(".edit-profile-panel [name='bio']"); const section = field?.closest("details"); if (section) section.open = true; field?.focus(); field?.scrollIntoView({ block: "center" }); }, 200); });
 // Only the account holder can open or save the editor (owner 2026-11-18: "when I click on it I can edit a profile
 // that is not mine" — the form filled with the other member's details and Save would have written them to your own).
 const canEditThisProfile = () => !viewingOtherProfile && window.danzstakCurrentProfile?.isOwner !== false;
