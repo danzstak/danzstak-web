@@ -174,6 +174,9 @@ body.messages-page .contact-details-block:active{transform:scale(.97)}
 .push-alert-prompt button.primary{min-height:var(--ds-btn-size)!important;padding:0 18px!important;border:0!important;border-radius:var(--ds-btn-radius)!important;background:var(--ds-btn-primary)!important;color:var(--ds-btn-on-primary)!important;font-weight:600!important;white-space:nowrap}
 .push-alert-prompt .push-alert-dismiss{min-height:var(--ds-btn-size)!important;padding:0 12px!important;border:0!important;border-radius:var(--ds-btn-radius)!important;background:transparent!important;color:var(--ds-btn-muted)!important;font-weight:600!important;white-space:nowrap}
 .push-alert-prompt .push-alert-dismiss:active{background:var(--ds-btn-press)!important}
+/* Phones: keep the banner one compact row above the tab bar (owner 2026-11-16: no wasted pixels). The 18px/12px
+   desktop padding left the title ~75px at 320px, so it wrapped to four lines and the banner grew to 88px. */
+@media(max-width:560px){.push-alert-prompt button.primary{padding:0 10px!important}.push-alert-prompt .push-alert-dismiss{padding:0 6px!important}}
 /* Post "⋯": a 44px icon button with a round press state. */
 #feed .post .post-menu-toggle{width:var(--ds-btn-size)!important;min-width:var(--ds-btn-size)!important;height:var(--ds-btn-size)!important;min-height:var(--ds-btn-size)!important;top:2px!important;right:2px!important;padding:0!important;border-radius:50%!important;-webkit-tap-highlight-color:transparent}
 #feed .post .post-menu-toggle:active{background:var(--ds-btn-press)!important}
