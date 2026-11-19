@@ -2,6 +2,147 @@
 
 Read this first, every session. **Claude Code: your work list is `docs/tasks/QUEUE.md`. Take the first `TODO` item, open a PR, mark it, and move on (see the instructions at the top of that file).** Then read `docs/SESSION-HANDOFF.md` (latest progress and open items), then `docs/OWNER-DIRECTIVES.md` (priorities and task specs) and `instructions/` (the full product spec the owner wants built). Then read `README.md` (mission, independence rules, product boundary), `docs/DANZSTAK-DESIGN-SYSTEM.md`, and `docs/QUALITY-ASSURANCE-POLICY.md`. Those rules still apply.
 
+## ★ THE DIRECTIVE (owner 2026-11-19, supersedes every other order in this file and in QUEUE.md until it is done)
+
+Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these things — the UX is not good and users will not use the site. Main keeps moving. Make one big directive for Code, then test it all, and test it again. When two agents are coding, things get messed up."
+
+### Rules
+**Motto: test, test, test, deploy.** The owner is seeing too many mistakes in the PWA.
+
+1. **Roles.**
+   - **Claude Code** (the builder) is the only one who writes code. It builds each fix and **tests it once**: `node scripts/run-all-tests.cjs` plus every browser check the change touches, at 320/360/390/430px, **tapping the centre of icons**, not the button box. Then it opens the PR (or the release train) and stops.
+   - **Claude** (the owner's review/deploy session) **tests it twice more**. First the PR branch: full suite plus browser checks plus a walk through the changed screens at phone width. Then, after merge and the Amplify publish, the live site: the same checks against `https://danzstak.com` and the T2 walk, confirming the published service worker version.
+   - Only then does it **deploy** the backend pieces (Auth API, call-signaling) and test those live.
+   - Planning goes into this file, which is the only channel between sessions. Nobody pushes to a branch another session is working on.
+2. **One release train at a time.** Bring the listed PRs and fixes into one branch `train/<date>`, in the order below. Fix conflicts once, bump versions once (`scripts/bump-versions.cjs`, one shell number), open one PR to main. Nothing else merges while a train is open.
+3. **A failed live test stops everything** until it's fixed, and the fix gets the check that would have caught it.
+4. **No new features** until the fix list below is done. Each fix gets a check that would have caught it.
+5. **Message the owner only** for something he must do (a deploy he must run, a decision), with numbered steps and the shell named (**CloudShell** or **PowerShell**) on every command.
+
+### Fix list (in this order)
+- **F0. CI green on main first.** Since #625 every check counts. `browser-checks/call-audio-output.cjs` and `browser-checks/original-feed-art-direction.cjs` time out in CI (seen on #632, a docs-only PR). Fix the root cause or the stale check; never skip one.
+- **F1. Tap a photo or video → full screen.** The owner says it still doesn't work, because the viewer never merged. **#594 is green and ready.** Bring it up to date with main and merge it first, then check on the live app: Mix, Tribes, profile Posts, and the Photos/Videos tabs.
+- **F2. The Roll keeps the sound choice.** Owner: "each video I have to turn the audio on." Once sound is on, the next Roll video stays audible, whether reached by scroll or auto-advance; mute carries over the same way; never two audible players. Browser check with real playback. Root cause is likely `media-visibility.js` session sound (`sessionSound`) reset or not applied on the next card.
+- **F3. Dailies scrolling doesn't work** (owner's phone). Reproduce with touch at 360/390px, fix the root cause, and add a check that swipes both the strip and the full-screen Dailies. Land #605 (tile never opens the picker), #609 and #587 in the same train.
+- **F4. Profile header: name beside the avatar, picture box below it.** Owner 2026-11-19, replacing the earlier "box beside the avatar" layout: "put the name to the right of the profile image and move the image box below the name… make the font size smaller to fit the space if needed… this also gives room for a bigger image. Think like a Marvell chip designer."
+  - Pack every pixel deliberately. Everything is measured and placed with no overlaps and no dead space.
+  - **Name** sits in the white space **to the right of the avatar**, under the cover. Its font scales down (`clamp` plus a fit-to-width step, minimum about 18px, then two lines) so the whole name always shows. Handle, friends count and the facepile go under it in that same column when they fit.
+  - **The showcase/shop picture box moves below the name row**: full content width, a bigger image (about 16:7, tall enough to read logos), `object-fit: cover` with the owner's saved focal point (F12). Shop preview thumbnails sit in the same band.
+  - Action buttons stay in one row under the band.
+  - This **replaces** the centred-avatar idea in F9 for the header. F9's tabs, Friends page and details rows still apply.
+  - Rewrite `browser-checks/profile-showcase-fit.cjs` so it checks:
+    - the name sits right of the avatar, never clipped or overlapped, across short and very long names;
+    - the box is below the name at full width;
+    - there is no gap of more than 12px anywhere in the header, at 320/360/390/430px.
+- **F5. Every profile picture opens that member's profile** (#598).
+- **F6. The rest of the audit**, `docs/tasks/36-site-audit-2026-11-19.md`, in its order: A4–A10, E8–E10, B1–B10 (one app bar, one tab bar, one font set, one post component, one button system), C1–C5, D.
+- **F7. Finish the open feature PRs**, one per train after F1–F6:
+  - #575 albums;
+  - #572 friends row (needs the call-signaling `/friends/of` deploy);
+  - #593 share a phone photo;
+  - #591 SYNC as its own app;
+  - #580 ringer part 2.
+- **F8. Modern look, every page.** Owner 2026-11-19: "This is janky… kids these days know what a dope site looks like… if it looks like something an 8th grader could build they won't use it."
+  - **Example, Notifications.** Today: a big black "View post" button under every row, full dates, heavy cards (`docs/screenshots/owner-reference/notifications-danzstak-2026-11-19.png`). Target, the familiar pattern (`notifications-familiar-reference-2026-11-19.png`, layout only, DanzStak colours and brand):
+    - big title with search in the header;
+    - **New** / **Earlier** sections;
+    - unread rows on a soft tinted background;
+    - a 56px avatar with a small round **type badge** (like, comment, friend, Tribe, shop, ticket) in DanzStak colours;
+    - **bold names** in one running sentence, then a relative time ("12h", "3d");
+    - a ⋯ menu per row (mark read, turn off, delete);
+    - the **whole row is tappable** (no "View post" buttons);
+    - no boxes, hairlines only, phone-width spacing.
+  - **Then the same pass on every screen a tester touches**, in T2-walk order (Mix, profile, Tribes, Bazaar, Events, Music HQ/EPK, SYNC, Menu, Settings):
+    - no default browser controls, no big black text buttons where an icon or a tappable row is the norm;
+    - one type scale, relative times, consistent 44px targets;
+    - subtle motion (≤150 ms press/fade), skeletons instead of "Loading…" text.
+  - Screenshot before and after at 360/390px for each screen. Spec to write first: `docs/tasks/39-modern-look.md` (tokens, components, the per-screen list).
+- **F9. Profile and Friends pages look like a finished app.** Owner 2026-11-19: "See the difference. Each profile page and each friends page… still Friends is a button on DanzStak."
+  - Reference screenshots, layout only, DanzStak colours and brand, in `docs/screenshots/owner-reference/`: `profile-familiar-reference`, `profile-familiar-reference-2` (Events tab, "Share a note…" bubble on the avatar), `friends-things-in-common-reference`, `profile-danzstak`, `friends-danzstak`.
+  - **Profile:**
+    - big avatar centred over the cover, with a small camera badge (owner only);
+    - name with an optional check, then one line "N friends · N following";
+    - bio line, then an icon line: work · city · shop;
+    - the **friends facepile** "Friends with things in common" (#572);
+    - one primary action plus secondary actions (owner: Dashboard / + Create / edit; visitor: Add friend / Message / ⋯);
+    - pill tabs (All · Photos · Videos · Events · Shop);
+    - "Personal details" as icon rows.
+    - No floating edit/delete circles over the showcase photo; that becomes one ⋯ on the photo.
+  - **Friends:**
+    - remove the "Invite a friend" text button (invite goes in the ⋯ / header icon);
+    - pills **Friends · Following · Things in common** (spec 5a3);
+    - rows of 56px avatar + name + one grey sub-line ("12 mutual friends", "Online now", a city), whole row tappable;
+    - no big round message buttons on every row (message sits behind ⋯);
+    - "Things in common" grouped by birthday month, hometown, location and genres, each with a small facepile and "X, Y and N others also added this".
+- **F10. Event creation like a modern app.** Owner 2026-11-19: "See the difference. Nobody is going to put in an event on DanzStak."
+  - References in `docs/screenshots/owner-reference/`: `event-create-familiar-reference` and `event-create-danzstak`.
+  - **Today:** a raw "Choose File / No file chosen" picker, an empty grey select for the start time, and a long form under the event list.
+  - **Target, a full-screen "Create event" screen** (from + in the Events header):
+    - big cover/flyer area at the top with **Upload / Gallery** buttons over it (flyer or ≤15 s video);
+    - host row (your avatar + "Event host");
+    - floating-label fields: Event name, **Start date and time** prefilled to the next hour (native date/time picker, locale format), chips "+ End time" · "Repeat" · time zone;
+    - "In person or online?" and "Who can see it?" as tap-to-pick sheets;
+    - venue picker;
+    - tickets (DanzStak sales or outside link) as a sheet with the fee note;
+    - a sticky **Create event** button, disabled until the name, time and flyer are set.
+  - Events home shows the poster wall (spec 26), not the form.
+- **F11. Music HQ = a real creator dashboard.** Owner 2026-11-19: "See the difference."
+  - References in `docs/screenshots/owner-reference/`: `creator-dashboard-familiar-reference`, `creator-dashboard-welcome-familiar-reference` and `music-hq-danzstak`.
+  - **Today:** a huge orange "Publish EPK" bar, four grey boxes all showing "0", and pills that cut off.
+  - **Target:**
+    - header "Music HQ" with search and your avatar;
+    - scrollable pill tabs **Overview · Gigs · EPK · Booking · Sales · Fans** (no cut-off text: scroll with a fade);
+    - a dismissible **welcome card** the first time ("Your HQ shows how your band is doing… Learn more");
+    - an artist row (avatar with a check, name, "Set up your EPK" progress ring);
+    - **three progress rings**: EPK (sections done / total), Pitches (sent / planned), Shows (booked / asked);
+    - **"Analytics ›"** with 30 / 14 / 7-day pills and a 2-column stat grid (EPK opens, booking replies, ticket sales, merch sales, new followers, Mix views), each showing a ▲/▼ % change versus the previous period, or "--" when there's no data;
+    - **"Next gigs ›"** as ticket-stub rows;
+    - **"Content ›"** with the latest post;
+    - one primary action in context (Publish EPK only while the EPK is unpublished, as a slim button inside the EPK ring row).
+  - Zeroes never look broken: empty states say what to do next ("Send your first pitch →").
+  - Numbers come from the existing APIs (EPK views, booking pipeline, marketplace, follows). Never fake data.
+- **F12. Every picture can be moved to fit its box.** Owner 2026-11-19: "on all pictures I should be able to move them around to fit them in the box."
+  - Applies to the profile cover, avatar, showcase photo, Tribe cover and Tribe picture, shop cover and event flyer. When the owner sets or edits one: **drag to reposition** (and pinch or slider to zoom) inside a preview of the exact box, then Save.
+  - Store the focal point and zoom (`objectPosition` x/y %, scale) with the image, and render everywhere with `object-fit: cover` plus that position.
+  - Example: the "DACHSHUND" showcase logo is cut off today (`docs/screenshots/owner-reference/profile-duplicate-name-danzstak-2026-11-19.png`).
+  - Reuse one shared component. The cover already has a position (`test-cover-position.cjs`); extend that, don't add a second system.
+- **F13. Tribe page.** Reference: `docs/screenshots/owner-reference/tribe-page-danzstak-2026-11-19.png`.
+  - **Changing the cover also changes the Tribe's picture** in the top-left header and in the Tribes list, unless a separate Tribe picture was set.
+  - **Only Elders see Tribe controls:** Change cover, edit, members tools, pin. Everyone else sees none of them. Enforce on the server too, and add a check as a non-Elder member and a visitor.
+  - Modern look per F8:
+    - no "← Back to Tribes" text button (the app bar back arrow does it);
+    - no huge "✓ Joined" bar (a small "Joined ▾" chip with Leave/Notifications);
+    - pill tabs instead of boxed tabs;
+    - no box inside a box.
+- **F14. The name shows twice on a profile.** "Dachshund Records" appears as the name and again as the bio line under it. Hide a bio or handle line that repeats the name, ignoring case and spacing. Check: a profile whose bio equals its name shows the name once.
+- **F15. Dailies rotate on every return and "bounce and settle".** Owner 2026-11-19: "Dailies should rotate each time the user comes back to the site. They should just bounce and settle."
+  - Each new visit (app open, sign-in, return after more than 30 min) shows friends' Dailies in a new fair order, never the same first tile twice in a row. The member's own tile stays pinned left.
+  - On load the tiles slide in with a short spring: overshoot about 6px, settle within 400ms, staggered 40ms. No motion with `prefers-reduced-motion`.
+  - Check: two visits give different orders and the own tile stays first.
+- **The owner could do this on every page:** F8–F15 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
+- Then the **T2 sweep**, T3 and T4 (test-ready plan below).
+
+### CDN plan (task 38)
+- **Done (2026-11-19):**
+  - CloudFront `dk7kawr758jtd.cloudfront.net` (distribution `E1IHQF8SMWIYPH`, private bucket via Origin Access Control, trusted key group).
+  - Signing key in Secrets Manager `danzstak/cloudfront/media-signing-key`.
+  - Pages allow the CDN host.
+  - The app keeps CDN photos and clears them on log out.
+  - **Call-signaling serves CDN URLs** (`MediaCdnServe=true`): Dailies, avatars, SYNC media.
+  - Verified: signed links return 200, a second load is faster (edge cache), and an unsigned link returns 403.
+- **Owner: "keep making the CDN so it's fast"**: C1–C4 run alongside F1–F8 in the same trains.
+- **C1. Mix posts and The Roll through the CDN.**
+  - Land #631: the Auth API deploy script runs in CloudShell, attaches the `DanzStakMediaCdn` policy and sets `MEDIA_CDN_DOMAIN`.
+  - Then the owner runs, in **CloudShell**: `cd ~/danzstak-web && git pull -q && pwsh ./aws-deploy-auth-api.ps1`. This also ships the server half of the Bazaar scramble (#618).
+  - Verify: Mix image URLs are on the CDN host and identical across two loads; deleting a post invalidates its media.
+- **C2. Faster API.**
+  - `GET /stories` without a full-table Scan (GSI or per-member query).
+  - Author names from `DanzStak-ProfileNames` instead of Cognito per author.
+  - Lambdas at 1024 MB (call-signaling template plus `aws-deploy-auth-api.ps1`).
+- **C3. Videos at 720p** (task 37 part 2). This needs the owner's go-ahead for the MediaConvert cost.
+- **C4. Measure.** After the first visit, Mix's first screen should load in under 2 s on 4G, from Italy and San Francisco. Record the numbers in the PR.
+- Full spec: `docs/tasks/38-media-cdn.md`.
+
 ## What DanzStak is
 
 **Above all, DanzStak is an EPK and booking agent. An artist builds an EPK, sends it to clubs and venues, and gets booked. Everything else (Pivot, Mix, SYNC, Tribes, Record Stores) supports that or brings people to it. When priorities conflict, EPK and booking win.**
@@ -203,13 +344,11 @@ This section preserves the durable product decisions from the owner's long-form 
 - Approved paid products and exact owner-set prices live in `docs/OWNER-DIRECTIVES.md`. Audit and reuse valid DanzStak products before creating anything. Access/entitlements come only from signature-verified, idempotent webhook processing.
 - SFS Token through Phantom is an optional checkout method only. Verify the mint, recipient, amount, price source and transaction on the server. DanzStak does not custody SFS, award it or bypass marketplace safety, taxes, delivery, refunds or records merely because the buyer chose token payment.
 
-### Pivot, creator control and StakGuard
+### Pivot and creator control
 
 - Pivot is the guided exit from billionaire-owned platforms. The member downloads their own export—no platform login or API—previews it, chooses exactly what moves, sets privacy in batches, invites people and can share an “I pivoted” card. Imported timelines retain original dates and default private; audio files are never imported.
 - DanzStak can track in-service content identity and outbound share-link engagement, not people across the internet. Do not promise to detect screenshots, copied downloads, reposts without the link or deletion from third-party systems DanzStak does not control. Make casual downloading harder where lawful, while keeping accessibility and authorized downloads functional.
 - **Delete everywhere** removes the original, every DanzStak reshare/reference, active media and caches, and makes DanzStak-served links stop working. It cannot recall a screenshot, prior download or independent third-party copy; the confirmation must say that plainly.
-- StakGuard provides a broker directory, verified source/date information, member-reviewed request templates and a progress ledger. The member—not DanzStak—reviews and transmits requests using official broker/state tools. Never claim zero legal risk, guaranteed removal, a real scan when none occurred or “all of the dark web.” Legal, vendor, security and feasibility review precede launch.
-- StakGuard removal help is free. Monitoring is $4 per month as a one-time charge: no automatic renewal, no subscriptions and no prepaid bundles (owner, 2026-11-16: strictly one-off charges across DanzStak). One reminder before the month ends. No product or charge is created before owner approval.
 
 ### Infrastructure boundaries
 
@@ -340,7 +479,7 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 1. **Land what's ready.** For every open PR from Claude Code:
    - If it's behind main, merge main into it (bump versions with `scripts/bump-versions.cjs`; take the higher number).
    - If CI is green and its browser check passes, **merge it**. The owner gave permission on 2026-11-19.
-   - Never merge StakGuard work or anything marked "needs owner".
+   - Never merge anything marked "needs owner".
    - Close a PR that another merged PR supersedes, with one line saying which.
 2. **Build the first `TODO` row in QUEUE.md.**
    - Reproduce the bug in a real browser at phone width first, and fix the root cause.
@@ -480,6 +619,9 @@ Overlaps: A2 = T2a/T2b, A10 is part of 5a2, B10 includes T2g, C4 = T2h/T2i, D1 =
 Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, translate), Twilio upgrade, Stripe test keys, live testing on two real phones.
 
 ### Builder log (newest first)
+- 2026-11-19 13:10 UTC · Claude Code · T0-A3 · PR #633 · The Roll full screen keeps the member's sound (one shared in-memory choice; moving The Roll to <body> no longer re-mutes it) and fills the screen (no strip padding/white card, caption edge to edge). Merged #625 (CI enforces every check). New checks `roll-fullscreen-sound` (CI call-media) + `test-roll-sound-session`. Not in CI and failing on main too: `video-playback-coordinator`, `core-social-mobile`, `feed-mobile-density`, `pivot` · Next: T0-A10 (Menu → Photos/Videos show only your media, with 5a2)
+- 2026-11-19 13:05 UTC · Claude Code (owner live) · owner: "stop coding, plan" → **★ THE DIRECTIVE** at the top of this file (one coder, one release train, test twice; fix list F1–F7; CDN C1–C4). Call-signaling now serves the CDN; #594 viewer green but blocked by main moving · Next: F1 (#594)
+- 2026-11-19 12:20 UTC · Claude Code · CI enforcement · merged #617, #623 (6 stale checks + 3 flakes), #624 (alerts banner on phones, Mix media bleed above 700px); PR #625: review.yml and the regression suite run every check through `scripts/run-checks.ps1` (keeps going, then fails and names each failed check; covered by `test-run-checks.ps1` and `test-review-workflow.cjs`). **Rule for everyone: add new checks to a `run-checks.ps1 -Checks @(...)` list, never as bare `node` lines.** Owner decisions open: purchase pop-up totals leave out the buyer fee ($0.75 unlock, $1.50 email vs the 2026-11-16 all-in prices); `call-devices.js` startup can overwrite a credential another tab just saved · Next: T0-A3 (The Roll full screen: sound + fill; #617 found the full-screen Roll shifted 10px with its bottom cut off)
 - 2026-11-19 12:20 UTC · Claude Code (owner live, CloudShell) · CDN deployed (dk7kawr758jtd.cloudfront.net) + backfill run; #627 backfill arg fix; CDN step 3 PR (CSP + app photo cache + log-out clear) · Next: switch the CDN on (CloudShell: verify a signed URL, MediaCdnServe=true, Auth API env + policy)
 - 2026-11-19 11:55 UTC · Claude Code (owner live session, owner said "handle everything" before a flight) · merged #622 (CDN steps 1–2); release train #626 = #616 + #620 + #618 + #619; CDN signing key created by the owner in CloudShell; call-signaling CDN deploy + backfill left in the Owner-session box (the cloud session can't upload the template to S3 or read member data) · Next: CDN step 3 once the MediaCdnDomain exists
 - 2026-11-19 11:20 UTC · Claude Code (owner live session) · owner: "build the CDN" → spec `docs/tasks/38-media-cdn.md`, queue row CDN first; also opened #616 About one line, #618 Bazaar scrambled, #619 TAKE count + Dailies/Roll backfill script, #620 photos 720p · Next: CDN step 1
@@ -519,11 +661,4 @@ Claude Code builds these in this order (queue items in `docs/tasks/QUEUE.md`; de
 5. **Shops need a real skin, not "straight HTML".** The profile Shop tab is the shop itself (done, PR #569); next: task 23 extras (chips, featured bundle, shipping table, all-in prices) and the product page.
 6. **Your own photo everywhere you post from.** Composer avatars (Mix and profile) show the member's profile photo, never the DanzStak "D" or an empty circle.
 7. **Done today:** Log out goes straight to the landing page; Tribe initials centred and Tribes can show their own picture; "+ bio" is the 5th profile icon; profile Shop tab; Bazaar has the Eroticon shop live; AI EPK builder ready as PR #567 (needs the Auth API deploy, then merge).
-
-## StakGuard (ON HOLD — owner 2026-11-18)
-
-**On hold until the owner has worked out the legal side.** Do not build, ship, advertise, price or create Stripe products for StakGuard; leave existing StakGuard PRs unmerged and any StakGuard screens hidden. **DanzStak gives no advice at all on data brokers, people-search sites or removing personal data (owner 2026-11-18: "DanzStak can't even give advice to users until I dig deeper")** — no help pages, tips, templates, broker lists or links, and the AI helpers and support replies must not offer it either. DanzStak's own privacy policy statement ("DanzStak is not a data broker") stays.
-
-
-StakGuard is DanzStak's data-broker protection product for every member under Settings -> Your data. It is separate from creator-content provenance and share-link tracking. Finding supported data-broker and people-search exposure, showing its source/date, preparing member-approved opt-outs and linking free official tools are free. Monitoring is $4 per month as a one-time charge with no auto-renewal ever and no prepaid bundles (owner, 2026-11-16); one reminder before the paid month expires. Broker removal comes first; dark-web checks are later and never claim "all of the dark web." Phase A is research with synthetic data only—no vendors, Stripe products or charging without owner approval. Full spec: `instructions/pages/17-privacy-shield`.
 
