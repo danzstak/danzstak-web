@@ -145,7 +145,11 @@ body:has(#feed){background:var(--mix-surface)!important}
     flex:0 0 calc((100% - 4px) / 3)!important;width:calc((100% - 4px) / 3)!important;max-width:calc((100% - 4px) / 3)!important;min-width:calc((100% - 4px) / 3)!important;
     height:196px!important;min-height:196px!important;margin:0!important;border-radius:0!important;scroll-snap-align:start;aspect-ratio:auto!important;overflow:hidden
   }
-  body.danzstak-original #storiesRail .story-create{position:sticky!important;left:0;z-index:3;scroll-snap-align:none;box-shadow:2px 0 0 #fff}
+  /* F15a (owner 2026-11-19, again 21:40 UTC): friends' tiles slide fully BEHIND your own tile. Each scrolling tile is its own
+     stacking context, so its name/label (z-index 3 inside) can no longer paint over the pinned tile, and the pinned tile is
+     opaque, so nothing shows through its rounded corners or gaps. */
+  body.danzstak-original #storiesRail .story:not(.story-create){isolation:isolate}
+  body.danzstak-original #storiesRail .story-create{position:sticky!important;left:0;z-index:10;isolation:isolate;scroll-snap-align:none;background-color:#fff!important;box-shadow:2px 0 0 #fff}
   body.danzstak-original #storiesRail .story > img,
   body.danzstak-original #storiesRail .story > video,
   body.danzstak-original #storiesRail .story .story-open img,
@@ -184,9 +188,7 @@ img.post-avatar,img.feed-online-avatar,img.friend-avatar,img.comment-avatar,img.
 @keyframes danzstak-daily-settle{0%{opacity:0;transform:translateX(28px)}60%{opacity:1;transform:translateX(-6px)}82%{transform:translateX(2px)}100%{opacity:1;transform:none}}
 #storiesRail .story.story-enter{animation:danzstak-daily-settle 400ms cubic-bezier(.2,.8,.3,1) both;animation-delay:calc(var(--enter-index,0) * 40ms)}
 @media (prefers-reduced-motion:reduce){#storiesRail .story.story-enter{animation:none}}
-/* F15a (owner 2026-11-19): every strip tile is its own stacking layer, so nothing in it (name, time, video) can paint
-   over your pinned tile while the strip scrolls; photos and video posters fill the tile; a small time label instead
-   of icons and slates. */
-#storiesRail .story[data-story-id]{isolation:isolate}
+/* F15a (owner 2026-11-19): photos and video posters fill the tile, and a small time label replaces the icons and slates
+   (each tile's own stacking layer is set with the pinned tile's rules above). */
 #storiesRail .story video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #storiesRail .story-time{position:absolute;top:7px;left:7px;z-index:1;padding:2px 6px;border-radius:4px;background:rgba(11,11,12,.72);color:#fff;font:600 11px/1.3 var(--ds-mono,"JetBrains Mono",ui-monospace,monospace);letter-spacing:.04em;text-transform:uppercase;pointer-events:none}
