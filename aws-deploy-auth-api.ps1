@@ -252,6 +252,28 @@ try {
     --policy-document "file://$Policy"
   if ($LASTEXITCODE -ne 0) { throw "Auth API authorization policy update failed." }
 
+  # T0-A1 (owner 2026-11-18): a post with a photo or video also adds the member's 24-hour Daily (DANZSTAK-Stories PutItem).
+  # The role's inline policy is at its 10 KB limit, so this one permission is a separate managed policy attached once.
+  $dailiesPolicyName = "DanzStakPostDailies"
+  $dailiesPolicyArn = "arn:aws:iam::$($identity.Account):policy/$dailiesPolicyName"
+  $dailiesPolicy = Join-Path $env:TEMP "danzstak-post-dailies-policy.json"
+  @{
+    Version = "2012-10-17"
+    Statement = @(@{
+      Sid = "PostDailies"
+      Effect = "Allow"
+      Action = @("dynamodb:PutItem")
+      Resource = "arn:aws:dynamodb:us-west-1:$($identity.Account):table/DANZSTAK-Stories"
+    })
+  } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $dailiesPolicy -Encoding ascii
+  aws iam get-policy --policy-arn $dailiesPolicyArn --output json 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    aws iam create-policy --policy-name $dailiesPolicyName --policy-document "file://$dailiesPolicy" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Post Dailies policy could not be created." }
+  }
+  aws iam attach-role-policy --role-name $RoleName --policy-arn $dailiesPolicyArn
+  if ($LASTEXITCODE -ne 0) { throw "Post Dailies policy could not be attached to the Auth API role." }
+
   $mediaBucket = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query 'StackResourceDetail.PhysicalResourceId' --output text
   if ($LASTEXITCODE -ne 0 -or -not $mediaBucket) { throw "DanzStak media bucket could not be resolved." }
   $activityPushOutboxTable = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id ActivityPushOutboxTable --query 'StackResourceDetail.PhysicalResourceId' --output text

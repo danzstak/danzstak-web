@@ -1584,15 +1584,15 @@ async function cleanupProfileMediaObjects(accountEmail, keys) {
         TableName: settingsTable,
         Key: { userEmail: { S: accountEmail } },
         UpdateExpression: "SET profileMediaCleanupClaim = :claim, profileMediaCleanupClaimKey = :candidate, profileMediaCleanupClaimExpiresAt = :expires",
-        ConditionExpression: "contains(profileMediaCleanup, :candidate) AND (attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now) AND (attribute_not_exists(profileAvatarKey) OR profileAvatarKey <> :candidate) AND (attribute_not_exists(profileCoverKey) OR profileCoverKey <> :candidate) AND (attribute_not_exists(profileVideoKey) OR profileVideoKey <> :candidate)",
+        ConditionExpression: "contains(profileMediaCleanup, :candidate) AND (attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now) AND (attribute_not_exists(profileAvatarKey) OR profileAvatarKey <> :candidate) AND (attribute_not_exists(profileCoverKey) OR profileCoverKey <> :candidate) AND (attribute_not_exists(profileVideoKey) OR profileVideoKey <> :candidate) AND (attribute_not_exists(profileShowcaseKey) OR profileShowcaseKey <> :candidate)",
         ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key }, ":expires": { N: String(claimExpiresAt) }, ":now": { N: String(now()) } }
       }));
     } catch (error) {
       if (error.name === "ConditionalCheckFailedException") {
-        const current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: accountEmail } }, ConsistentRead: true, ProjectionExpression: "profileAvatarKey, profileCoverKey, profileVideoKey, profileMediaCleanup" }));
-        const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileVideoKey?.S].filter(Boolean));
+        const current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: accountEmail } }, ConsistentRead: true, ProjectionExpression: "profileAvatarKey, profileCoverKey, profileVideoKey, profileShowcaseKey, profileMediaCleanup" }));
+        const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileVideoKey?.S, current.Item?.profileShowcaseKey?.S].filter(Boolean));
         if (active.has(key)) {
-          const activeConditions = ["profileAvatarKey = :candidate", "profileCoverKey = :candidate", "profileVideoKey = :candidate"].join(" OR ");
+          const activeConditions = ["profileAvatarKey = :candidate", "profileCoverKey = :candidate", "profileVideoKey = :candidate", "profileShowcaseKey = :candidate"].join(" OR ");
           try {
             await db.send(new UpdateItemCommand({
               TableName: settingsTable,
@@ -1682,11 +1682,11 @@ async function setProfileVideo(event) {
     try { await s3.send(new HeadObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey })); }
     catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded profile video was not found." }) }; }
   }
-  const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, mediaKey].filter(Boolean));
+  const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileShowcaseKey?.S, mediaKey].filter(Boolean));
   const pendingProfileMedia = [...new Set([...(current.Item?.profileMediaCleanup?.SS || []), replacedKey].filter(candidate => candidate && !active.has(candidate)))];
   const expressionValues = { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
   const conditions = ["attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now"];
-  for (const [field, token] of [["profileAvatarKey", "avatar"], ["profileCoverKey", "cover"], ["profileVideoKey", "oldVideo"]]) {
+  for (const [field, token] of [["profileAvatarKey", "avatar"], ["profileCoverKey", "cover"], ["profileVideoKey", "oldVideo"], ["profileShowcaseKey", "showcase"]]) {
     const value = current.Item?.[field]?.S || "";
     if (value) { expressionValues[`:${token}`] = { S: value }; conditions.push(`${field} = :${token}`); }
     else conditions.push(`attribute_not_exists(${field})`);
@@ -2354,7 +2354,9 @@ async function createSecurePost(event) {
   const audience = requestedGroupId ? "group" : requestedAudience;
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
-  const reel = mediaType === "video" && data.reel === true;
+  // T0-A1 (owner 2026-11-18): every posted video goes into The Roll and stays there, from ANY composer — not only when a
+  // client ticked a box. Facebook imports keep their history out of The Roll unless the member asks.
+  const reel = mediaType === "video" && (!facebookImport || data.reel === true);
   if (sharedSource && (mediaKey || mediaType || reel)) return {statusCode:400,headers,body:JSON.stringify({error:"Shared posts reference the original media."})};
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
@@ -2424,6 +2426,27 @@ async function createSecurePost(event) {
     return { statusCode: 200, headers, body: JSON.stringify({ postId, deduplicated: true, createdAt: existing.Item.createdAt.S }) };
   }
 
+  // T0-A1: every posted photo or video also goes into the member's Dailies for 24 hours, automatically. The Daily points at
+  // the post's own media (no second upload); the Stories cleanup only deletes files under stories/, so the post's photo is
+  // never removed with it, and deleting the post removes this Daily (linked by mediaKey). Tribe posts keep their Tribe
+  // privacy: their Daily is visible only to the poster. A Daily that cannot be written never fails the post itself.
+  let daily = null;
+  if (mediaKey && !facebookImport && !sharedSource) {
+    const storyId = randomUUID(), expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
+    try {
+      await db.send(new PutItemCommand({
+        TableName: storiesTable,
+        Item: { storyId: { S: storyId }, userEmail: { S: userEmail }, content: { S: content.slice(0, 5000) || "Story" }, audience: { S: audience === "group" ? "private" : audience }, mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, postId: { S: postId }, fromPost: { BOOL: true }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } },
+        ConditionExpression: "attribute_not_exists(storyId)"
+      }));
+      daily = { storyId, expiresAt };
+      // The clapper's TAKE N counts the member's lifetime Dailies videos (same rule as a Daily added directly).
+      if (mediaType === "video") await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :one", ExpressionAttributeValues: { ":one": { N: "1" }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count not updated", { postId, error: error.name }));
+    } catch (error) {
+      console.error("Post Daily could not be created", { postId, error: error.name });
+    }
+  }
+
   return {
     statusCode: 201,
     headers,
@@ -2431,6 +2454,8 @@ async function createSecurePost(event) {
       postId,
       userId,
       userEmail,
+      dailyCreated: Boolean(daily),
+      ...(daily ? { daily } : {}),
       profileOwnerMemberId: profileOwnerId,
       content,
       audience,
