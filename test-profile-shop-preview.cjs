@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const editor = fs.readFileSync("assets/profile-editor.js", "utf8"), css = fs.readFileSync("assets/profile-shop.css", "utf8");
-const body = editor.match(/function renderProfileShopPreview[\s\S]*?\n}\n/)[0];
+const body = editor.match(/function renderProfileShopPreview[\s\S]*?\r?\n}\r?\n/)[0];
 assert.match(editor, /renderProfileShopPreview\(profileShop, profile, moreTab\);/, "shown as soon as the member's shop loads");
 assert.match(body, /\(shop\?\.products \|\| \[\]\)\.filter\(item => item\.available && item\.imageUrl\)\.slice\(0, 3\)/, "up to 3 items for sale, with photos");
 assert.match(body, /preview\.type = "button"/);
@@ -16,7 +16,7 @@ assert.match(css, /\.profile-shop-preview-items img\{width:56px;height:56px/);
 console.log("profile shop preview ok");
 {
   // No shop items: the member fills the space with a photo they pick ("a picture of their dog or something").
-  const showcase = editor.match(/function renderProfileShowcase[\s\S]*?\n}\n/)[0];
+  const showcase = editor.match(/function renderProfileShowcase[\s\S]*?\r?\n}\r?\n/)[0];
   assert.match(body, /if \(!items\.length\) return renderProfileShowcase\(shop, profile\);/);
   assert.match(showcase, /if \(!avatar \|\| \(!photo && !owner\)\) return null;/, "visitors see the photo or nothing");
   assert.match(showcase, /const owner = profile\.isOwner === true && !viewingOtherProfile;/);
