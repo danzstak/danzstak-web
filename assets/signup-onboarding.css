@@ -9,7 +9,7 @@
 .ds-onboard .ds-at{display:flex;align-items:center;gap:0}.ds-onboard .ds-at span{padding:0 10px;color:#8b8f99}
 .ds-onboard .ds-row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
 .ds-onboard button{min-height:46px;padding:0 18px;border-radius:10px;border:1px solid #2e2f34;background:transparent;color:#ededea;font:inherit;font-weight:800;cursor:pointer}
-.ds-onboard button.ds-go{background:#ff5a1f;border-color:#ff5a1f;color:#0b0b0c}
+.ds-onboard button.ds-go{background:var(--ds-btn-go,#15803d);border-color:var(--ds-btn-go,#15803d);color:#fff}
 .ds-onboard button:disabled{opacity:.5;cursor:wait}
 .ds-onboard .ds-err{min-height:1.2em;margin:0 0 6px;color:#ff8a6b;font-size:.88rem}
 .ds-onboard .ds-kicker{font:700 .72rem/1 ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:#ff5a1f;margin:0 0 10px}
