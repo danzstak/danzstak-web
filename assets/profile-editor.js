@@ -116,7 +116,7 @@ bioElement.className = "profile-bio";
 bioElement.hidden = true;
 handleElement.insertAdjacentElement("afterend", bioElement);
 
-function detail(label, id) {
+function detail(label, id, parent = details) {
   const box = document.createElement("div");
   box.className = "detail";
   const title = document.createElement("span");
@@ -127,7 +127,7 @@ function detail(label, id) {
   value.id = id;
   value.textContent = "Not added";
   box.append(title, value);
-  details.appendChild(box);
+  parent.appendChild(box);
 }
 
 function setProfileDetail(id, value) {
@@ -144,28 +144,24 @@ storyBlock.hidden = true;
 const storyText = document.createElement("blockquote");
 storyText.className = "profile-story-text";
 storyText.setAttribute("data-no-translate", "");
-const storyEdit = document.createElement("button");
-storyEdit.type = "button"; storyEdit.className = "profile-story-edit"; storyEdit.dataset.icon = "edit";
-storyEdit.setAttribute("aria-label", profileTranslate("Edit your story")); storyEdit.title = storyEdit.getAttribute("aria-label");
-const storyAdd = document.createElement("button");
-storyAdd.type = "button"; storyAdd.className = "profile-story-add"; storyAdd.textContent = "+ bio"; storyAdd.setAttribute("aria-label", profileTranslate("Add your long bio")); storyAdd.title = storyAdd.getAttribute("aria-label"); // owner 2026-11-19: "+ bio" lives in About and opens the long bio
-storyBlock.append(storyText, storyEdit, storyAdd);
+storyBlock.append(storyText);
+// Owner 2026-11-19: "get rid of the bio button" — "+ bio" and the story pencil only opened Edit profile again.
+// The long bio is written in Edit profile ("Your story") and shows here.
 details.appendChild(storyBlock);
 function renderProfileStory(profile = {}) {
   const story = String(profile.story || "").trim(), owner = profile.isOwner === true && !viewingOtherProfile;
   storyText.textContent = story;
   storyText.hidden = !story;
-  storyEdit.hidden = !story || !owner;
-  storyAdd.hidden = Boolean(story) || !owner;
-  storyBlock.hidden = !story && !owner;
+  storyBlock.hidden = !story;
   if (story) window.danzstakLinkifyUserText?.(storyText);
 }
-const openStoryEditor = () => { editButton.click(); setTimeout(() => { const field = document.querySelector(".edit-profile-panel [name='story']"); const section = field?.closest("details"); if (section) section.open = true; field?.focus(); field?.scrollIntoView({ block: "center" }); }, 200); };
-storyEdit.addEventListener("click", openStoryEditor);
-storyAdd.addEventListener("click", openStoryEditor);
 
-detail("Location", "profileLocation");
-detail("Work", "profileWork");
+// Owner 2026-11-19: Location and Work share one line (two columns), then Website.
+const locationWork = document.createElement("div");
+locationWork.className = "detail-pair";
+details.appendChild(locationWork);
+detail("Location", "profileLocation", locationWork);
+detail("Work", "profileWork", locationWork);
 detail("Website", "profileWebsite");
 
 const actions = document.createElement("div");
@@ -1315,7 +1311,19 @@ function renderProfileShowcase(shop, profile = {}) {
 
 // Sit in the white space under the cover, never on top of the cover photo.
 function placeProfileShopPreview(preview) {
-  const place = () => { const cover = document.querySelector(".cover"), box = preview.offsetParent; if (!cover || !box) return; preview.style.top = Math.max(8, Math.round(cover.getBoundingClientRect().bottom - box.getBoundingClientRect().top) + 10) + "px"; };
+  // Owner 2026-11-19 (screenshot): the box sat on top of the member's name. It now starts right where the cover photo
+  // ends and is sized to the space between the cover and the name, so the name always shows in full.
+  const place = () => {
+    const cover = document.querySelector(".cover"), box = preview.offsetParent, name = document.getElementById("profileName");
+    if (!cover || !box) return;
+    const coverBottom = cover.getBoundingClientRect().bottom, boxTop = box.getBoundingClientRect().top;
+    preview.style.top = Math.max(0, Math.round(coverBottom - boxTop) + 4) + "px";
+    const avatar = document.getElementById("profileInitial");
+    if (avatar) preview.style.left = Math.round(avatar.getBoundingClientRect().right - box.getBoundingClientRect().left + 12) + "px"; // clear of the round photo and its ring
+    const room = name ? Math.floor(name.getBoundingClientRect().top - coverBottom - 4 - 8) : 84;
+    preview.style.setProperty("--showcase-room", Math.max(40, Math.min(room, 96)) + "px");
+    preview.classList.toggle("is-tight", room < 72);
+  };
   place(); requestAnimationFrame(place);
   if (!window.__danzstakShopPreviewResize) { window.__danzstakShopPreviewResize = true; window.addEventListener("resize", () => { const current = document.querySelector(".profile-shop-preview"); if (current) current.dispatchEvent(new Event("danzstak:place")); }); }
   preview.addEventListener("danzstak:place", place);

@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8016").replace(/\/$/, "");
 const captureDir = path.resolve(process.env.DANZSTAK_CAPTURE_DIR || "docs/screenshots/friends-directory");
-const widths = process.env.DANZSTAK_TEST_WIDTHS ? process.env.DANZSTAK_TEST_WIDTHS.split(",").map(Number) : [320, 360, 390, 430, 768, 1366];
+const widths = process.env.DANZSTAK_TEST_WIDTHS ? process.env.DANZSTAK_TEST_WIDTHS.split(",").map(Number) : [320, 360, 390, 414, 430, 768, 1366];
 const friendCount = Math.max(1, Number(process.env.DANZSTAK_FRIEND_COUNT) || 10);
 const uuid = number => `${String(number).padStart(8, "0")}-1111-4111-8111-${String(number).padStart(12, "0")}`;
 const friends = Array.from({ length: friendCount }, (_, index) => ({
@@ -139,8 +139,11 @@ function payload(url) {
       await page.getByRole("searchbox", { name: "Search people" }).fill("Sig");
       console.log("  discovery search");
       await page.getByText("Sigmund", { exact: true }).waitFor({ timeout: 5000 });
-      const requestButton = page.getByRole("button", { name: /Send friend request to Sigmund/ });
+      // Find friends uses the shared people-search row (owner 2026-11-16: an obvious "Add friend" in people search).
+      const requestButton = page.getByRole("button", { name: "Add Sigmund as a friend", exact: true });
       assert.equal(await requestButton.count(), 1, `${width}px member discovery`);
+      assert.equal((await requestButton.textContent()).trim(), "Add friend", `${width}px discovery action reads Add friend`);
+      assert.ok(await requestButton.evaluate(element => element.getBoundingClientRect().height >= 44), `${width}px discovery Add friend is below 44px`);
       await requestButton.click();
       await page.waitForFunction(() => document.querySelector('.danzstak-app-feedback')?.textContent?.includes("Friend request sent"));
       assert.deepEqual(friendActions.at(-1), { route: "/friends/request", body: { memberId: discovery[0].memberId } }, `${width}px discovery request must call the request API with the selected member`);

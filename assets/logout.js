@@ -29,6 +29,8 @@ document.addEventListener("click", async event => {
       if (!response.ok) throw new Error("Logout failed");
       await pushOff;
       window.danzstakClearAccountData?.();
+      // Task 38: photos kept on this phone from the media CDN belong to this account; drop them on log out.
+      try { navigator.serviceWorker?.controller?.postMessage({ type: "CLEAR_MEDIA_CACHE" }); } catch {}
       location.replace("./?signedout=1");
     } catch (error) {
       button.disabled = false;
