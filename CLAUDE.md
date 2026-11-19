@@ -7,12 +7,15 @@ Read this first, every session. **Claude Code: your work list is `docs/tasks/QUE
 Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these things — the UX is not good and users will not use the site. Main keeps moving. Make one big directive for Code, then test it all, and test it again. When two agents are coding, things get messed up."
 
 ### Rules
-1. **One coder.** Only Claude Code (the builder session) writes code, merges and runs deploy steps. The planning chat and any live owner session **plan only** and write here. Never push to a branch another session is working on.
-2. **One release train at a time.** Work on one branch `train/<date>`. Bring the listed PRs and fixes into it in the order below, fix conflicts once, bump versions once (`scripts/bump-versions.cjs`, one shell number). Open one PR to main. Merge only when CI is green. Nothing else merges while a train is open.
-3. **Test it all, then test it again.**
-   - (a) Before merging: `node scripts/run-all-tests.cjs` plus every browser check the train touches, at 320/360/390/430px, **tapping the centre of icons**, not the button box.
-   - (b) After Amplify publishes: re-run the same browser checks against the live site (`DANZSTAK_BASE_URL=https://danzstak.com`) and walk the T2 flow. Check the published service worker version.
-   - If (b) fails, fixing it comes before anything else.
+**Motto: test, test, test, deploy.** The owner is seeing too many mistakes in the PWA.
+
+1. **Roles.**
+   - **Claude Code** (the builder) is the only one who writes code. It builds each fix and **tests it once**: `node scripts/run-all-tests.cjs` plus every browser check the change touches, at 320/360/390/430px, **tapping the centre of icons**, not the button box. Then it opens the PR (or the release train) and stops.
+   - **Claude** (the owner's review/deploy session) **tests it twice more**. First the PR branch: full suite plus browser checks plus a walk through the changed screens at phone width. Then, after merge and the Amplify publish, the live site: the same checks against `https://danzstak.com` and the T2 walk, confirming the published service worker version.
+   - Only then does it **deploy** the backend pieces (Auth API, call-signaling) and test those live.
+   - Planning goes into this file, which is the only channel between sessions. Nobody pushes to a branch another session is working on.
+2. **One release train at a time.** Bring the listed PRs and fixes into one branch `train/<date>`, in the order below. Fix conflicts once, bump versions once (`scripts/bump-versions.cjs`, one shell number), open one PR to main. Nothing else merges while a train is open.
+3. **A failed live test stops everything** until it's fixed, and the fix gets the check that would have caught it.
 4. **No new features** until the fix list below is done. Each fix gets a check that would have caught it.
 5. **Message the owner only** for something he must do (a deploy he must run, a decision), with numbered steps and the shell named (**CloudShell** or **PowerShell**) on every command.
 
