@@ -1,5 +1,7 @@
 # DanzStak build queue
 
+**Claude Code: CLAUDE.md "★ THE DIRECTIVE" (owner 2026-11-19) comes first — its fix list F1–F7 and CDN plan C1–C4 replace the order below until done.**
+
 **Claude Code:** read this file at the start of every session and after every PR you open.
 1. Take the **first** item whose status is `TODO`, set it to `IN PROGRESS (Claude Code)`, and commit that change on your branch.
 2. Build it as described in its spec, open the PR against main, and set the status to `PR #<n>`. **Don't merge or deploy.**
@@ -11,7 +13,6 @@
 The owner should never have to paste prompts: everything Claude Code needs is in this file and the specs it links.
 
 
-> **StakGuard is ON HOLD (owner 2026-11-18)** until the owner works out the legal side. Skip any StakGuard work; don't merge StakGuard PRs; keep StakGuard screens hidden.
 
 | # | Item | Spec | Status |
 |---|------|------|--------|
@@ -26,7 +27,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-SHOP | **Owner 2026-11-19:** shop cover photo uploaded from the phone (not only an http link), a shop album every shop gets, product photos from the phone | owner | PR (build/shop-photos); needs the Auth API deploy |
 | T0-A1 | **Owner bug:** posted video not in Dailies/The Roll → automatic from every composer (server-side), remove opt-in checkboxes, backfill | 36 | MERGED #602 (owner: deploy Auth API) |
 | T0-A2 | **Owner bug:** Dailies tile opens the photo picker; only your own big profile picture edits; every other avatar opens that profile | 36 | Dailies tile: PR #606; avatars: PR #598 |
-| T0-A3 | **Owner bug:** The Roll full screen loses sound (carry the sound choice over) + fill the screen | 36 | TODO |
+| T0-A3 | **Owner bug:** The Roll full screen loses sound (carry the sound choice over) + fill the screen | 36 | PR #633 |
 | T0-A11 | ~~+ bio opens the long-bio editor~~ Owner (later 2026-11-19): no + bio button at all; Edit profile owner-only; Edit · Shop · Share row | 36 | MERGED #600 |
 | T0-A12 | **Owner:** remove @username under the profile name; friends row there; tap a friend's photo → their posts | 36, 5a3 | PR #600 (@username hidden) + PR #572 (facepile, needs `/friends/of` deploy) |
 | T0-A13 | **Owner:** shop storefront beside the profile picture (shop name + item preview + price → Shop tab), replaces the shop icon button | 36 | MERGED #599 |
@@ -114,7 +115,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 
 **Payments are in TEST mode (owner, 2026-11-17).** The Auth API and Tour Manager Lambdas were found on the LIVE Stripe key with live payments on; on the owner's word they were switched to the test secrets (`danzstak/stripe/secret-key`, `webhook-secret`, `sync-network-webhook-secret`) and `TOUR_MANAGER_LIVE_PAYMENTS=false`. Open issue: that test key belongs to the separate sandbox "DanzStak Test" (a different account id), while the code's test price IDs and `STRIPE_EXPECTED_ACCOUNT_ID` belong to the main account's test mode, so checkouts answer 503 "not connected to the approved Stripe account" (safe: nothing can be charged). Fix: the owner puts the **main DanzStak account's test-mode secret key** (and its test webhook secrets) into those secrets, or the products are recreated in the sandbox and the expected account id points there. Owner's Claude decides with the owner.
 
-**Before going live (owner, 2026-11-17): test every paid product end to end in test mode** — single email, Starter/Club/Tour packs, AI EPK, AI redesign, AI profile, AI shop, Tour Itinerary, contact unlock, translation packs (30/180 min), DS number, StakGuard month, shop items and event tickets (buyer, seller payout hold, refund, dispute), refunds under Terms 8A, unopened-pitch credit returns, and the all-in price shown before every checkout. Only after a clean pass does the owner approve live keys.
+**Before going live (owner, 2026-11-17): test every paid product end to end in test mode** — single email, Starter/Club/Tour packs, AI EPK, AI redesign, AI profile, AI shop, Tour Itinerary, contact unlock, translation packs (30/180 min), DS number, shop items and event tickets (buyer, seller payout hold, refund, dispute), refunds under Terms 8A, unopened-pitch credit returns, and the all-in price shown before every checkout. Only after a clean pass does the owner approve live keys.
 
 **Blocked on the owner:**
 - AWS support case: Bedrock quotas at 0, and SMS sandbox / Notify rejected.
