@@ -1915,30 +1915,10 @@ function renderWorkspace(name) {
   }
 
   if (["Photos", "Videos"].includes(name)) {
-    featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
-    const wantedTag = name === "Photos" ? "IMG" : "VIDEO";
-    const media = [...document.querySelectorAll("#feed .post .post-media")].filter(item => item.tagName === wantedTag);
-    if (!media.length) {
-      const message = document.createElement("p");
-      message.className = "muted";
-      message.textContent = `No ${name.toLowerCase()} are available in Your Mix yet.`;
-      workspace.appendChild(message);
-      return;
-    }
-    const gallery = document.createElement("div");
-    gallery.className = "feed-media-gallery";
-    for (const source of media) {
-      const card = document.createElement("article");
-      card.className = "feed-media-card";
-      const copy = source.cloneNode();
-      copy.removeAttribute("loading");
-      if (copy.tagName === "VIDEO") { copy.controls = true; copy.autoplay = false; copy.muted = true; }
-      const caption = document.createElement("p");
-      caption.textContent = source.closest(".post")?.querySelector(".post-content")?.textContent || "Shared on DanzStak";
-      card.append(copy, caption);
-      gallery.appendChild(card);
-    }
-    workspace.appendChild(gallery);
+    // Audit A10 (2026-11-19): Photos and Videos are YOUR media, never other members' posts copied out of Mix. They live
+    // on your profile as the 3-column grids with the full-screen viewer (and albums, 5a2). Replace this history entry so
+    // Back returns to where the member came from, not to an empty workspace.
+    location.replace(`profile.html#${name.toLowerCase()}`);
     return;
   }
 
@@ -4918,7 +4898,7 @@ new MutationObserver(records => {
 
 function refreshFeedMediaWorkspace(records) {
   const workspaceName = featurePanel.dataset?.workspaceName || featureHeading.textContent;
-  if (featurePanel.hidden || !["Photos", "Videos", "Events", "Saved"].includes(workspaceName)) return;
+  if (featurePanel.hidden || !["Events", "Saved"].includes(workspaceName)) return;
   const feed = document.getElementById("feed");
   if (records.some(record => record.target === feed && (record.addedNodes.length || record.removedNodes.length))) {
     if (workspaceName === "Saved") {
