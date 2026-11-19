@@ -124,13 +124,9 @@ async function makeVideos(browser) {
       const w = await wall(page);
       const edge = (name, r) => { if (!r) failures.push(`${label}: ${name} missing`); else if (Math.abs(r.left) > 0.5 || Math.abs(r.right - w.width) > 0.5) failures.push(`${label}: ${name} does not reach both edges (${Math.round(r.left)}–${Math.round(r.right)} of ${w.width})`); };
       if (width <= 560) { edge("cover", w.cover); edge("tab row", w.tabs); edge("first post", w.post); if (owner) edge("composer", w.composer); }
-      if (width === 430) { if (w.strip) failures.push(`${label}: an empty Dailies strip is shown`); }
-      else {
-        edge("Dailies strip", w.strip);
-        if (w.tileCount !== 3) failures.push(`${label}: Dailies strip shows ${w.tileCount} tiles, expected the member's 3 (no one else's)`);
-        if (w.strip && w.post && Math.abs(w.post.top - w.strip.bottom) > 1.5) failures.push(`${label}: gap between Dailies and posts (${Math.round(w.post.top - w.strip.bottom)}px)`);
-        if (owner && w.strip && w.composer && Math.abs(w.strip.top - w.composer.bottom) > 1.5) failures.push(`${label}: gap between composer and Dailies (${Math.round(w.strip.top - w.composer.bottom)}px)`);
-      }
+      // Owner 2026-11-19: no Dailies strip above the posts ("make it just like the other posts … Remove this").
+      if (w.strip || w.tileCount) failures.push(`${label}: a Dailies strip is shown above the posts`);
+      if (owner && w.composer && w.post && w.post.top - w.composer.bottom > 1.5) failures.push(`${label}: gap between the composer and the first post (${Math.round(w.post.top - w.composer.bottom)}px)`);
       // Familiar navigation: action row, top bar, tab row.
       const nav = await page.evaluate(() => {
         const visible = node => { if (!node) return false; const r = node.getBoundingClientRect(), cs = getComputedStyle(node); return r.width > 0 && r.height > 0 && cs.display !== "none" && cs.visibility !== "hidden"; };
@@ -235,27 +231,6 @@ async function makeVideos(browser) {
         if (!searching.focused || searching.w < 150) failures.push(`${label}: search toggle does not open a usable search field ${JSON.stringify(searching)}`);
         await page.screenshot({ path: path.join(output, `${prefix}-${who}-search-${width}.png`) });
         await page.locator("#profileHeaderSearch").press("Escape");
-        if (w.strip) {
-          await page.evaluate(() => { const r = document.querySelector(".profile-dailies").getBoundingClientRect(); scrollBy(0, r.top - 180); });
-          await page.waitForTimeout(250);
-          await page.screenshot({ path: path.join(output, `${prefix}-${who}-dailies-${width}.png`) });
-          const before = await page.evaluate(() => scrollY);
-          // Tap a Daily: full screen; next; Back returns to the same place on the profile.
-          await page.locator(".profile-daily").nth(1).click();
-          await page.waitForTimeout(300);
-          const open = await page.evaluate(() => { const v = document.querySelector(".profile-daily-viewer"); const m = v?.querySelector(".profile-daily-full"); const r = v?.getBoundingClientRect(); return { open: v?.open === true, w: r?.width, h: r?.height, src: m?.getAttribute("src") || "", next: !v?.querySelector(".profile-daily-next").hidden, prev: !v?.querySelector(".profile-daily-prev").hidden, labels: [...v.querySelectorAll("button:not([hidden])")].every(b => b.getAttribute("aria-label")) }; });
-          if (!open.open || Math.abs(open.w - width) > 1 || Math.abs(open.h - 844) > 1) failures.push(`${label}: Daily viewer is not full screen ${JSON.stringify(open)}`);
-          if (!/portrait\.svg/.test(open.src) || !open.next || !open.prev || !open.labels) failures.push(`${label}: viewer opened the wrong Daily or lacks named prev/next ${JSON.stringify(open)}`);
-          await page.screenshot({ path: path.join(output, `${prefix}-${who}-viewer-${width}.png`) });
-          await page.locator(".profile-daily-next").click();
-          await page.waitForTimeout(200);
-          if (!/landscape\.svg/.test(await page.locator(".profile-daily-full").getAttribute("src"))) failures.push(`${label}: next did not advance`);
-          await page.goBack();
-          await page.waitForTimeout(400);
-          const after = await page.evaluate(() => ({ open: document.querySelector(".profile-daily-viewer")?.open === true, y: scrollY, url: location.href }));
-          if (after.open) failures.push(`${label}: Back did not close the Daily viewer`);
-          if (!/profile\.html/.test(after.url) || Math.abs(after.y - before) > 2) failures.push(`${label}: Back did not return to the same place (${before} → ${after.y}, ${after.url})`);
-        }
         await page.locator(".profile-post-card").first().scrollIntoViewIfNeeded().catch(() => {});
         await page.evaluate(() => scrollBy(0, -60));
         await page.waitForTimeout(250);
@@ -275,5 +250,5 @@ async function makeVideos(browser) {
     if (!process.env.AUDIT_ONLY) process.exitCode = 1;
     return;
   }
-  console.log(`Profile mirror checks passed at ${widths.join(", ")}px (owner and visitor): no big text buttons, back / name / search top bar, Add friend / Message / More row, tidy tabs, one edge-to-edge wall, Dailies strip directly above the posts with a full-screen viewer and Back.`);
+  console.log(`Profile mirror checks passed at ${widths.join(", ")}px (owner and visitor): no big text buttons, back / name / search top bar, Add friend / Message / More row, tidy tabs, one edge-to-edge wall, no Dailies strip above the posts (owner 2026-11-19), with a full-screen viewer and Back.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });
