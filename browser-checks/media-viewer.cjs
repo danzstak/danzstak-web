@@ -70,19 +70,24 @@ function pagePosts() {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
       assert.equal(overflow, false, "no horizontal page overflow");
 
-      const swipe = async (dx) => {
-        const y = 380, x0 = width / 2 + (dx < 0 ? 80 : -80);
-        await page.mouse.move(x0, y); await page.mouse.down();
-        for (let i = 1; i <= 8; i++) await page.mouse.move(x0 + dx * i / 8, y);
+      // Owner 2026-11-19: vertical swipes, like Reels. Up = next, down = previous; sideways does nothing.
+      const swipe = async (dy, dx = 0) => {
+        const x = width / 2, y0 = 380 + (dy < 0 ? 120 : -120);
+        await page.mouse.move(x, y0); await page.mouse.down();
+        for (let i = 1; i <= 8; i++) await page.mouse.move(x + dx * i / 8, y0 + dy * i / 8);
         await page.mouse.up();
         await page.waitForTimeout(320);
       };
-      await swipe(-200);
-      await swipe(-200);
-      assert.equal(await page.evaluate(() => document.querySelector(".ds-media-viewer-count").textContent), "5 / 5", "two swipes left move two photos on");
+      await swipe(-240);
+      await swipe(-240);
+      assert.equal(await page.evaluate(() => document.querySelector(".ds-media-viewer-count").textContent), "5 / 5", "two swipes up move two photos on");
       if (captureDir) await page.screenshot({ path: path.join(captureDir, `media-viewer-${width}.png`) });
-      await swipe(200);
-      assert.equal(await page.evaluate(() => globalThis.danzstakMediaViewer.index()), 3, "swipe right goes back one");
+      await swipe(240);
+      assert.equal(await page.evaluate(() => globalThis.danzstakMediaViewer.index()), 3, "swipe down goes back one");
+      await swipe(0, -220);
+      assert.equal(await page.evaluate(() => globalThis.danzstakMediaViewer.index()), 3, "a sideways swipe does not move (vertical only)");
+      const slideTop = await page.evaluate(() => { const s = document.querySelectorAll(".ds-media-viewer-slide")[globalThis.danzstakMediaViewer.index()].getBoundingClientRect(); return [Math.round(s.top), Math.round(s.left)]; });
+      assert.deepEqual(slideTop, [0, 0], "the current photo fills the screen after a vertical move");
 
       await page.goBack();
       await page.waitForFunction(() => !document.querySelector(".ds-media-viewer"));
@@ -95,13 +100,15 @@ function pagePosts() {
       await page.locator("img.post-media").nth(0).focus();
       await page.keyboard.press("Enter");
       await page.waitForSelector(".ds-media-viewer");
-      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("ArrowDown");
       assert.equal(await page.evaluate(() => globalThis.danzstakMediaViewer.index()), 1, "arrow keys move");
+      await page.keyboard.press("ArrowUp");
+      assert.equal(await page.evaluate(() => globalThis.danzstakMediaViewer.index()), 0);
       await page.keyboard.press("Escape");
       await page.waitForFunction(() => !document.querySelector(".ds-media-viewer"));
 
-      // Swipe down closes.
-      await page.locator("img.post-media").nth(1).click();
+      // Swipe down on the first photo closes.
+      await page.locator("img.post-media").nth(0).click();
       await page.waitForSelector(".ds-media-viewer");
       await page.mouse.move(width / 2, 200); await page.mouse.down();
       for (let i = 1; i <= 8; i++) await page.mouse.move(width / 2, 200 + 25 * i);
@@ -127,7 +134,7 @@ function pagePosts() {
       await page.waitForFunction(() => !document.querySelector(".ds-media-viewer"));
       await page.close();
     }
-    console.log("Media viewer browser check passed at 320, 360, 390, 414 and 430px: same member's photos, swipe ×2, Back to the same scroll Y, keys, swipe-down, muted video with sound toggle.");
+    console.log("Media viewer browser check passed at 320, 360, 390, 414 and 430px: same member's photos, vertical swipes (up ×2, down, sideways ignored), Back to the same scroll Y, keys, swipe-down on the first closes, muted video with sound toggle.");
   } finally {
     await browser.close();
   }

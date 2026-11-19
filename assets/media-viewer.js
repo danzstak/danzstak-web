@@ -1,10 +1,10 @@
 "use strict";
 // Queue 5a1 (owner 2026-11-18 evening): tap any photo or video → one shared full-screen viewer.
-// Media only (no post text, no reaction rows). Swipe left/right moves through the SAME member's
+// Media only (no post text, no reaction rows). Swipe up/down (owner 2026-11-19: vertical, like Reels) moves through the SAME member's
 // photos (opened from a photo) or videos (opened from a video). Videos autoplay muted through the
 // shared playback coordinator (media-visibility.js) with its lower-right sound toggle, so the sound
 // choice carries over and only one player ever plays. Pinch-zoom and double-tap zoom on photos.
-// Swipe down, ✕, Esc or system Back closes and restores the exact scroll spot (history state, no reload).
+// Swipe down on the first item, ✕, Esc or system Back closes and restores the exact scroll spot (history state, no reload).
 //
 // Other screens opt in with data attributes instead of new code:
 //   <img data-media-viewer data-media-group="album-42" src="…">  → swipes through [data-media-group="album-42"]
@@ -111,7 +111,7 @@
     state.index = Math.min(Math.max(0, index), state.items.length - 1);
     resetZoom(state);
     state.track.style.transition = animate ? "transform .26s cubic-bezier(.2,.8,.2,1)" : "none";
-    state.track.style.transform = `translate3d(${-state.index * 100}%,0,0)`;
+    state.track.style.transform = `translate3d(0,${-state.index * 100}%,0)`; // owner 2026-11-19: vertical, like Reels
     state.slides.forEach((slide, i) => {
       slide.setAttribute("aria-hidden", String(i !== state.index));
       const video = slide.querySelector("video");
@@ -138,8 +138,8 @@
   function onKey(event) {
     if (!viewer) return;
     if (event.key === "Escape") { event.preventDefault(); close(); }
-    else if (event.key === "ArrowRight") { event.preventDefault(); show(viewer.index + 1); }
-    else if (event.key === "ArrowLeft") { event.preventDefault(); show(viewer.index - 1); }
+    else if (event.key === "ArrowDown" || event.key === "ArrowRight") { event.preventDefault(); show(viewer.index + 1); }
+    else if (event.key === "ArrowUp" || event.key === "ArrowLeft") { event.preventDefault(); show(viewer.index - 1); }
     else if (event.key === "Tab") { event.preventDefault(); viewer.root.querySelector(".ds-media-viewer-close")?.focus(); }
   }
 
@@ -159,13 +159,14 @@
     state.root.classList.toggle("is-zoomed", scale > 1);
   }
 
-  // One pointer: swipe sideways (next/previous), swipe down (close) or pan a zoomed photo.
+  // One pointer (owner correction 2026-11-19: vertical, like Reels): swipe up = next, swipe down = previous, and swipe
+  // down on the first one closes; or pan a zoomed photo. ✕, Esc and Back close too.
   // Two pointers on a photo: pinch-zoom. Double tap a photo: zoom in/out. Tap a video: play/pause.
   function bindGestures(state) {
     const { root, track } = state;
     const pointers = new Map();
-    let start = null, axis = "", pinch = null, lastTap = 0;
-    const width = () => root.clientWidth || window.innerWidth;
+    let start = null, axis = "", pinch = null, lastTap = 0, wheelAt = 0;
+    const height = () => root.clientHeight || window.innerHeight;
     root.addEventListener("pointerdown", event => {
       if (event.target.closest("button")) return;
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -191,12 +192,12 @@
       if (!start) return;
       const dx = event.clientX - start.x, dy = event.clientY - start.y;
       if (state.zoom.scale > 1) { state.zoom.x = start.zx + dx; state.zoom.y = start.zy + dy; applyZoom(state, false); return; }
-      if (!axis && Math.hypot(dx, dy) > 8) axis = Math.abs(dx) > Math.abs(dy) ? "x" : dy > 0 ? "down" : "up";
-      if (axis === "x") {
-        const edge = (state.index === 0 && dx > 0) || (state.index === state.items.length - 1 && dx < 0);
+      if (!axis && Math.hypot(dx, dy) > 8) axis = Math.abs(dx) > Math.abs(dy) ? "x" : state.index === 0 && dy > 0 ? "close" : "y";
+      if (axis === "y") {
+        const edge = state.index === state.items.length - 1 && dy < 0;
         track.style.transition = "none";
-        track.style.transform = `translate3d(calc(${-state.index * 100}% + ${edge ? dx / 3 : dx}px),0,0)`;
-      } else if (axis === "down") {
+        track.style.transform = `translate3d(0,calc(${-state.index * 100}% + ${edge ? dy / 3 : dy}px),0)`;
+      } else if (axis === "close") {
         const slide = state.slides[state.index];
         slide.style.transition = "none";
         slide.style.transform = `translate3d(0,${dy}px,0) scale(${Math.max(.8, 1 - dy / 1600)})`;
@@ -210,13 +211,13 @@
       if (!start) return;
       const dx = event.clientX - start.x, dy = event.clientY - start.y, elapsed = Math.max(1, Date.now() - start.t);
       const was = start; start = null;
-      if (axis === "x") {
-        const fast = Math.abs(dx) / elapsed > .45;
-        const step = Math.abs(dx) > width() * .2 || fast ? (dx < 0 ? 1 : -1) : 0;
+      if (axis === "y") {
+        const fast = Math.abs(dy) / elapsed > .45;
+        const step = Math.abs(dy) > height() * .15 || fast ? (dy < 0 ? 1 : -1) : 0;
         show(state.index + step);
         return;
       }
-      if (axis === "down") {
+      if (axis === "close") {
         const slide = state.slides[state.index];
         if (dy > 110 || dy / elapsed > .6) { close(); return; }
         slide.style.transition = "transform .2s ease"; slide.style.transform = "";
@@ -241,7 +242,10 @@
     root.addEventListener("pointerup", finish);
     root.addEventListener("pointercancel", finish);
     root.addEventListener("wheel", event => {
-      if (Math.abs(event.deltaX) > Math.abs(event.deltaY) && Math.abs(event.deltaX) > 30) { event.preventDefault(); show(state.index + (event.deltaX > 0 ? 1 : -1)); }
+      event.preventDefault();
+      const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+      if (Math.abs(delta) < 30 || Date.now() - wheelAt < 450) return; // one wheel flick = one item
+      wheelAt = Date.now(); show(state.index + (delta > 0 ? 1 : -1));
     }, { passive: false });
   }
 

@@ -25,4 +25,9 @@ assert.match(visibility, /video\.ds-media-viewer-video/, "viewer videos autoplay
 assert.match(css, /\.ds-media-viewer\{[^}]*position:fixed;inset:0/, "full screen");
 assert.match(css, /object-fit:contain/, "fit to the screen, never stretched");
 assert.match(css, /\.ds-media-viewer-close\{[^}]*width:44px;height:44px/, "44px close target");
+// Owner correction 2026-11-19: vertical swipes like Reels (up = next, down = previous, down on the first closes).
+{ const viewerJs = require("node:fs").readFileSync("assets/media-viewer.js", "utf8"), viewerCss = require("node:fs").readFileSync("assets/media-viewer.css", "utf8");
+  require("node:assert/strict").match(viewerCss, /\.ds-media-viewer-track\{display:flex;flex-direction:column;/, "the viewer moves vertically");
+  require("node:assert/strict").match(viewerJs, /state\.track\.style\.transform = `translate3d\(0,\$\{-state\.index \* 100\}%,0\)`;/);
+  require("node:assert/strict").match(viewerJs, /axis = Math\.abs\(dx\) > Math\.abs\(dy\) \? "x" : state\.index === 0 && dy > 0 \? "close" : "y";/, "swipe down on the first item closes; otherwise vertical moves"); }
 console.log("Media viewer wiring checks passed: Mix/profile media open full screen, same-member swipes, Back restores scroll, shared playback.");
