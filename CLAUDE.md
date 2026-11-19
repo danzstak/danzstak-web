@@ -152,8 +152,8 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - **Shop cover:** "When users put a store cover photo in the second image box on their profile it should open that user's store. That should be the store front." The picture links to the member's storefront: their Shop tab with the products, or the shop page.
   - **Any other photo**, e.g. their dog: "it should pop up to nothing more to see or something, but they can add a link to the photo if they wish, say to Bandcamp or somewhere."
     - When editing the box, the owner can add an optional **link** (https only; Bandcamp, SoundCloud, their site…). Tapping then opens that link in a new tab with a small "leaving DanzStak" note.
-    - With no link, tapping opens the photo full screen (the F1 viewer). If the owner set a caption, it shows as one short line; otherwise there's no dead "nothing" pop-up.
-  - Checks: shop cover → storefront; photo with link → the link; plain photo → full-screen viewer; visitor and owner both.
+    - With no link: **not full screen** (owner correction 2026-11-19: "F19 not full screen. Full box"). The photo simply fills its whole box, edge to edge with the saved focal point (F12). A tap does nothing beyond a light press feedback: no viewer, no pop-up.
+  - Checks: shop cover → storefront; photo with link → the link; plain photo → stays put and fills its whole box (no viewer, no pop-up); visitor and owner both.
 - **F20. Tapping your own picture on the Dailies tile goes to your profile.** Owner 2026-11-19: "When I click the profile image on Dailies it goes to this page for some reason. It should go to my profile page."
   - Today it opens an old full-screen Daily (`docs/screenshots/owner-reference/dailies-own-tile-opened-wrong-2026-11-19.png`).
   - **Own tile:** tapping your picture → `profile.html`. Only the small "watch" area or the tile's media opens your own Dailies.
