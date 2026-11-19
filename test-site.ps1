@@ -121,8 +121,10 @@ $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enh
 foreach ($storyPreviewControl in @('storyCopy.className = "story-card-copy"', 'item.classList.add("story-video")', 'caption.textContent = storyDisplayCaption(story)')) {
   if (-not $feed.Contains($storyPreviewControl)) { Add-Failure "Stories: photo and video cards lack an identifiable preview: $storyPreviewControl" }
 }
-if (-not $feedEnhancementCss.Contains('.story.story-video::after{content:')) {
-  Add-Failure 'Stories: video cards lack a branded play fallback when no poster frame is available'
+# Directive F15a (owner 2026-11-19): no play icon on Dailies tiles ("just click on the video and it plays"); a video with no
+# poster frame shows the DanzStak gradient instead of a black box.
+if ($feedEnhancementCss.Contains('.story.story-video::after{content:') -or -not $feedEnhancementCss.Contains('.story.story-video video{background:linear-gradient(')) {
+  Add-Failure 'Stories: video tiles must show no play icon and keep the branded gradient when no poster frame is available'
 }
 if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
