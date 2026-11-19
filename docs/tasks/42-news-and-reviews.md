@@ -5,7 +5,7 @@ Owner 2026-11-19 (phone):
 - "On the desktop there is an RSS news, but that also should incorporate writers from magazines, photographers, reviews for albums and concert reviews."
 - "If we get writers on DanzStak then we should have their reviews posted in the Mix on a rotating schedule from different writers."
 - "When a user clicks on News it should say Add your review, for an album or for a concert. For an album they can load two pictures, and for a concert they can do a short video to accompany their review."
-- Mix slots (owner answer 2026-11-19, "Alternate"): after The Roll, every 4th post is a slot that alternates **Bazaar item → review → Bazaar item → event flyer → …**; reviews rotate between different writers.
+- Mix slots (owner answer 2026-11-19, "Alternate"): after The Roll, **one post in every five** (4 member posts, then a slot: 20%, owner "so one every five") alternates **Bazaar item → review → Bazaar item → event flyer → …**; reviews rotate between different writers.
 
 ## News (Menu → News on phones; right column on desktop)
 - Back in the Menu grid as **News**, the same page on phone and desktop.
@@ -25,7 +25,7 @@ Owner 2026-11-19 (phone):
 - Magazine writers keep their byline and a link to their outlet. DanzStak never copies outside articles: headlines are RSS titles/links only.
 
 ## In Mix
-- The supplemental slot after every 3 posts (every 4th position) alternates Bazaar item / review / Bazaar item / event flyer, as decided above, replacing the old 3-post show-review/album-review/event pattern in `docs/OWNER-DIRECTIVES.md` where they conflict.
+- The supplemental slot after every 4 member posts (one in five) alternates Bazaar item / review / Bazaar item / event flyer, as decided above, replacing the old 3-post show-review/album-review/event pattern in `docs/OWNER-DIRECTIVES.md` where they conflict.
 - Reviews come from **different writers in rotation** (never the same writer twice in a row, newest unseen first; member reviews from the member's people and scene fill in when no writer review is unseen). Never paid, never ranked by engagement; a slot with nothing eligible is skipped.
 
 ## Checks
