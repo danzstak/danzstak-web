@@ -114,7 +114,7 @@ if (-not $feed.Contains("frame-src 'self' https://www.youtube-nocookie.com")) {
 foreach ($uploadCleanupControl in @('async function discardUploadedMedia(mediaKey)', 'await discardUploadedMedia(uploadedStoryKey)', 'await discardUploadedMedia(uploadedPostKey)')) {
   if (-not $feed.Contains($uploadCleanupControl)) { Add-Failure "Media: failed publication leaves an orphaned upload: $uploadCleanupControl" }
 }
-foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Daily from "', 'open.addEventListener("click", () => openStoryViewer(story))')) {
+foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Daily from "', 'open.addEventListener("click", () => openStoryViewer(story, { sequence: visibleStories }))')) {
   if (-not $feed.Contains($storyAccessibilityControl)) { Add-Failure "Stories: open and delete controls are not separately accessible: $storyAccessibilityControl" }
 }
 $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
