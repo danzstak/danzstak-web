@@ -6,7 +6,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 
-const workflow = fs.readFileSync(".github/workflows/live-check.yml", "utf8");
+const workflow = fs.readFileSync(".github/workflows/live-check.yml", "utf8").replace(/\r\n/g, "\n"); // Windows checkouts use CRLF
 assert.match(workflow, /schedule:\n\s+- cron: "\*\/30 \* \* \* \*"/, "every 30 minutes");
 assert.match(workflow, /push:\n\s+branches: \[main\]/, "after each push to main");
 assert.match(workflow, /workflow_dispatch: \{\}/, "on demand");
