@@ -5,6 +5,15 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Send a note": "Invia una nota",
+"Text": "Testo",
+"Your note": "La tua nota",
+"Type a note…": "Scrivi una nota…",
+"One moment…": "Un attimo…",
+"Note not sent, try again": "Nota non inviata, riprova",
+"Sent ✓": "Inviata ✓",
+"Close note": "Chiudi nota",
+"Note": "Nota",
 "Call alerts are not available in this browser.": "Gli avvisi di chiamata non sono disponibili in questo browser.",
 "Call alerts are on. Calls ring this phone even when SYNC is closed.": "Avvisi di chiamata attivi. Le chiamate suonano su questo telefono anche con SYNC chiuso.",
 "Call alerts could not be turned on. Allow notifications for DanzStak in your phone settings, then try again.": "Impossibile attivare gli avvisi di chiamata. Consenti le notifiche di DanzStak nelle impostazioni del telefono e riprova.",
@@ -255,6 +264,15 @@
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
 },
 "fr": {
+"Send a note": "Envoyer un mot",
+"Text": "Texte",
+"Your note": "Ton mot",
+"Type a note…": "Écris un mot…",
+"One moment…": "Un instant…",
+"Note not sent, try again": "Mot non envoyé, réessaie",
+"Sent ✓": "Envoyé ✓",
+"Close note": "Fermer le mot",
+"Note": "Mot",
 "Call alerts are not available in this browser.": "Les alertes d'appel ne sont pas disponibles dans ce navigateur.",
 "Call alerts are on. Calls ring this phone even when SYNC is closed.": "Alertes d'appel activées. Les appels sonnent sur ce téléphone même quand SYNC est fermé.",
 "Call alerts could not be turned on. Allow notifications for DanzStak in your phone settings, then try again.": "Impossible d'activer les alertes d'appel. Autorise les notifications de DanzStak dans les réglages du téléphone, puis réessaie.",
@@ -506,6 +524,15 @@
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
 },
 "es": {
+"Send a note": "Enviar una nota",
+"Text": "Texto",
+"Your note": "Tu nota",
+"Type a note…": "Escribe una nota…",
+"One moment…": "Un momento…",
+"Note not sent, try again": "Nota no enviada, inténtalo de nuevo",
+"Sent ✓": "Enviada ✓",
+"Close note": "Cerrar nota",
+"Note": "Nota",
 "Call alerts are not available in this browser.": "Las alertas de llamada no están disponibles en este navegador.",
 "Call alerts are on. Calls ring this phone even when SYNC is closed.": "Alertas de llamada activadas. Las llamadas suenan en este teléfono aunque SYNC esté cerrado.",
 "Call alerts could not be turned on. Allow notifications for DanzStak in your phone settings, then try again.": "No se pudieron activar las alertas de llamada. Permite las notificaciones de DanzStak en los ajustes del teléfono e inténtalo de nuevo.",
@@ -756,6 +783,15 @@
 "You can resend once. Try again in 10 minutes.": "Solo puedes reenviar una vez. Inténtalo de nuevo en 10 minutos."
 },
 "de": {
+"Send a note": "Notiz senden",
+"Text": "Text",
+"Your note": "Deine Notiz",
+"Type a note…": "Notiz schreiben…",
+"One moment…": "Einen Moment…",
+"Note not sent, try again": "Notiz nicht gesendet, versuch es nochmal",
+"Sent ✓": "Gesendet ✓",
+"Close note": "Notiz schließen",
+"Note": "Notiz",
 "Call alerts are not available in this browser.": "Anrufbenachrichtigungen sind in diesem Browser nicht verfügbar.",
 "Call alerts are on. Calls ring this phone even when SYNC is closed.": "Anrufbenachrichtigungen sind an. Anrufe klingeln auf diesem Telefon, auch wenn SYNC geschlossen ist.",
 "Call alerts could not be turned on. Allow notifications for DanzStak in your phone settings, then try again.": "Anrufbenachrichtigungen konnten nicht eingeschaltet werden. Erlaube Benachrichtigungen für DanzStak in den Telefoneinstellungen und versuche es erneut.",
@@ -818,6 +854,15 @@
 "You can resend once. Try again in 10 minutes.": "Du kannst nur einmal erneut senden. Versuche es in 10 Minuten erneut."
 },
 "pt": {
+"Send a note": "Enviar uma nota",
+"Text": "Texto",
+"Your note": "A sua nota",
+"Type a note…": "Escreva uma nota…",
+"One moment…": "Um momento…",
+"Note not sent, try again": "Nota não enviada, tente de novo",
+"Sent ✓": "Enviada ✓",
+"Close note": "Fechar nota",
+"Note": "Nota",
 "Call alerts are not available in this browser.": "Os alertas de chamada não estão disponíveis neste navegador.",
 "Call alerts are on. Calls ring this phone even when SYNC is closed.": "Alertas de chamada ativados. As chamadas tocam neste telefone mesmo com o SYNC fechado.",
 "Call alerts could not be turned on. Allow notifications for DanzStak in your phone settings, then try again.": "Não foi possível ativar os alertas de chamada. Permita as notificações do DanzStak nas definições do telefone e tente novamente.",
