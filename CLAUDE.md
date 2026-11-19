@@ -174,6 +174,19 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - **The slider is automated; users don't touch it** (owner: "a mix between 2 photos… the slider is automated, users don't touch the slider"). On the post, both photos sit in one frame and a divider with a round ⇄ badge **sweeps left and right on its own**: an easing loop of about 4 s, pausing a moment on each side, so viewers see the mix between the two. Labels "Then: Nov 19, 2018" and "Now" sit in the corners.
   - The loop plays only while the post is at least 50% visible, and stops (showing the split) with `prefers-reduced-motion` or data saver. A tap opens full screen (F1), with both photos side by side.
   - Same aspect rules as F22.
+- **F24. Gift codes the owner hands out** (owner 2026-11-19: "I will need a couple AI Shop Manager, a few translations for SYNC and a few AI for EPK that I can distribute"). Needed before doors open.
+  - The owner creates **single-use gift codes** for: **AI EPK** (one EPK), **AI Shop Manager** (the AI shop: setup + up to 10 listings), **SYNC Translation** (30 minutes). Each code grants exactly what the paid product grants, through the **same entitlement code path** the Stripe webhook uses (no second system), with `source: "gift"` and no charge.
+  - **Owner-only creation:** an owner page (`ops.html` → Gift codes) for members in the Cognito group `danzstak-owner`, checked on the server. Pick product + how many (max 25 per batch) + expiry (default 60 days) → a list of codes and share links (`https://danzstak.com/?gift=CODE`) to copy or share.
+  - **Redeem:** the link or Menu → **Redeem a code**, signed in. One code, one account, once. Codes are long and random (≥ 80 bits, readable alphabet), stored only as a keyed hash, rate-limited (10 tries/hour per account and per IP), and never logged in full.
+  - The owner sees each code's status (unused / redeemed by @username on date / expired) and can cancel unused codes.
+  - This is the owner's approved exception to "entitlements only from the Stripe webhook": gift entitlements only from an owner-created, hashed, single-use code. Update `test-payment-boundary.cjs` to allow exactly that and nothing else.
+  - Checks: create 3 codes as owner; a non-owner gets 403; redeem one → the product unlocks; a second redeem of the same code fails; an expired or cancelled code fails; the code never appears in logs.
+- **F25. Owner dashboards to monitor the site** (owner 2026-11-19: "I will also need dashboards so I can monitor the site"). Needed before doors open.
+  - **Ops page** (`ops.html`, owner-only, server-checked, phone first, UI kit): today and 7 days for: new sign-ups against the 25-account cap and the waitlist; members active today; posts, photos, videos; Dailies and Roll counts; SYNC devices registered, texts sent (Twilio), calls; Tribes, events, shop listings; test-mode purchases by product; gift codes issued/redeemed; error reports from the app ("tell us what's broken" plus friendly-error counts); CDN cache hit rate. Counts only: no messages, phone numbers or private data. One Auth API route `GET /ops/summary` reads counters, never full-table scans on each load.
+  - **CloudWatch dashboard `DanzStak-Live`** (in the templates, deployed by the owner in CloudShell): Lambda errors, duration p95, throttles and cold starts for the Auth API and call-signaling; API Gateway 4xx/5xx; DynamoDB throttles; CloudFront requests, cache hit rate, 4xx/5xx; SES bounces/complaints.
+  - **Alarms → push and email to the owner** (SNS): 5xx above 1% for 5 minutes, any Lambda error spike, SES complaint rate, Twilio send failures, a sign-up surge.
+  - Checks: the ops page renders at 360/390px with sample data; a non-owner gets 403; the template validates and names every alarm.
+- **F26. Live checks Claude can run.** This cloud session can't reach `danzstak.com` (its network blocks the host), so the live tests run in GitHub Actions: a `live-check.yml` workflow (on a schedule every 30 minutes, after each push to main, and on demand) runs `scripts/verify-live-pwa.cjs` and the public browser checks against `https://danzstak.com` at 360/390px. It confirms the published service-worker version matches main, and uploads screenshots as artifacts. A failure opens or updates one GitHub issue "Live check failing" (the owner gets a push through F25's alarms).
 - **The owner could do this on every page:** F8–F22 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
@@ -216,7 +229,7 @@ Every screen in the F8 pass and the G3 clean-up is rebuilt on this kit. **Rebuil
 Owner: "When you make all the fixes I want you to open it for 25 accounts so we can test… I need all products working and tested."
 
 Work through these in order. Each gate must pass before the next one starts.
-- **G1. Code finishes the fix list** F0–F15 and the CDN steps C1–C2. It tests each fix once (suite plus browser checks at 320/360/390/430px, tapping icon centres).
+- **G1. Code finishes the fix list** F0–F22 plus F24–F26 (gift codes, dashboards, live checks) and the CDN steps C1–C2. It tests each fix once (suite plus browser checks at 320/360/390/430px, tapping icon centres).
 - **G2. Claude does two full sweeps from start to finish**, separately, on the live installed PWA at 360 and 390px:
   - **The route:** sign up as a new member → name/@username → SYNC device registration → Mix (Dailies, composer, post a photo and a video, The Roll, the full-screen viewer) → profile (every tab, edit, pictures repositioned) → Friends → Tribes (create, post, Elder tools) → Events (create one) → Bazaar (browse, product, checkout in test mode) → Music HQ (EPK build/publish, Booking pitch in test mode, Tour Manager) → SYNC (chat, call, ring, Text note) → Notifications → Menu → Settings / Your data (export) → Log out.
   - **On every screen:** every button is tapped and must work and land on the right screen, with no raw errors, no dead or duplicate buttons, and nothing that looks unfinished.
@@ -235,6 +248,18 @@ Work through these in order. Each gate must pass before the next one starts.
   - A "Beta — tell us what's broken" link in Menu.
   - `docs/TESTING.md` for testers.
   - The owner gets a push when doors open, and again at 10 and 25 accounts.
+
+### Road to doors open: Christmas 2026 (owner 2026-11-19: "test this and test some more, I would like to open doors by Christmas. I will get a few users going.")
+Target: **doors open (G7) on Wednesday 23 December 2026**, with two days of margin before Christmas. Each week ends with a release train, and Claude's two test passes run on it before the next week starts.
+- **Week 1, 19–26 Nov:** F0 (CI green, flaky checks fixed at the root), F1–F7, C1–C2, F26 live checks.
+- **Week 2, 27 Nov–3 Dec:** UI kit set up (Tailwind build, icons, emoji, forms), then F8 Notifications, F10 Create event, F21 shop manager, F9 profile and Friends.
+- **Week 3, 4–10 Dec:** F11–F20, F22, F24 gift codes, F25 dashboards.
+- **Week 4, 11–17 Dec:** G2 two full sweeps with grades; G3 clean-up; G6 every product in Stripe test mode (including redeeming each gift code).
+- **Week 5, 18–22 Dec:** fixes from the sweeps; G4 final sweep; every screen and product graded A; G5 screenshots.
+- **23 Dec:** G7 doors open for 25 accounts; the owner sends invites and gift codes.
+- **F23 Then/Now** comes after doors open unless every other item is done early.
+- **Owner jobs before doors open:** the Auth API and call-signaling deploys (CloudShell, numbered steps), fixing the Stripe test keys, and choosing how many gift codes of each kind.
+- If a week slips, Claude says so in the Builder log and to the owner the same day, with what moves. Doors never open on a grade below A.
 
 ### Grading: outstanding, not just passing (owner 2026-11-19)
 Owner: "Everything we texted about is in there to do… make sure it's all checked and graded, not just passing but outstanding student material."
