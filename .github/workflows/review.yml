@@ -204,6 +204,7 @@ jobs:
             '.\browser-checks\dailies-tile-opens-dailies.cjs'
             '.\browser-checks\dailies-rotate.cjs'
             '.\browser-checks\app-tabs.cjs'
+            '.\browser-checks\app-bar.cjs'
             '.\browser-checks\profile-picture-links.cjs'
             '.\browser-checks\profile-showcase-fit.cjs'
           )
