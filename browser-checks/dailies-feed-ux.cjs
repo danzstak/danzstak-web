@@ -52,6 +52,8 @@ function fixture(url) {
         if (!source) throw new Error("Dailies profile image source is missing");
         await new Promise((resolve, reject) => { const image = new Image(); image.onload = resolve; image.onerror = reject; image.src = source; });
       });
+      // F15: friends' tiles slide in once per load; measure the strip after they settle.
+      await page.evaluate(() => Promise.all([...document.querySelectorAll("#storiesRail .story-enter")].flatMap(tile => tile.getAnimations()).map(animation => animation.finished)));
       const result = await page.evaluate(() => {
         const creator = document.querySelector(".story-create");
         const avatar = document.querySelector(".story-create-avatar");

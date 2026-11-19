@@ -1338,15 +1338,6 @@ function fitProfileName() {
   }
   name.style.fontSize = "15px";
 }
-(() => {
-  const name = document.getElementById("profileName");
-  const refit = () => requestAnimationFrame(fitProfileName);
-  window.addEventListener("resize", refit);
-  document.fonts?.ready?.then(refit).catch(() => {});
-  window.addEventListener("danzstak:profile-loaded", refit);
-  if (name && typeof MutationObserver === "function") new MutationObserver(refit).observe(name, { childList: true, characterData: true, subtree: true });
-  refit();
-})();
 
 async function loadProfileShop() {
   const version = profileTabVersion;
@@ -1676,3 +1667,18 @@ function applyLoadedProfile(profile = {}) {
 }
 window.addEventListener("danzstak:profile-loaded", event => applyLoadedProfile(event.detail || {}));
 if (window.danzstakCurrentProfile) applyLoadedProfile(window.danzstakCurrentProfile);
+
+// F4: re-fit the name on resize, font load, profile load and rename.
+(() => {
+  const name = document.getElementById("profileName");
+  const refit = () => requestAnimationFrame(fitProfileName);
+  window.addEventListener("resize", refit);
+  document.fonts?.ready?.then(refit).catch(() => {});
+  window.addEventListener("danzstak:profile-loaded", refit);
+  if (name && typeof MutationObserver === "function") new MutationObserver(refit).observe(name, { childList: true, characterData: true, subtree: true });
+  refit();
+  // The ⋯ on the showcase photo closes on a tap outside it or on Escape, like any familiar menu.
+  const openMenus = () => document.querySelectorAll(".profile-showcase-menu[open]");
+  document.addEventListener("click", event => openMenus().forEach(menu => { if (!menu.contains(event.target)) menu.open = false; }));
+  document.addEventListener("keydown", event => { if (event.key === "Escape") openMenus().forEach(menu => { menu.open = false; menu.querySelector("summary")?.focus(); }); });
+})();

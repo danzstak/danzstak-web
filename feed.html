@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-qkLjYU10YYLZZnOIfviZdwmO49TA5jupz0vU5m9UCek='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-LxeSNzcKYIAve/rSXlcRGNpeXVLZy5NpojgaVeXSwZA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -365,7 +365,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <link rel="stylesheet" href="assets/artist-hq.css?v=5">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=8" defer></script>
-<script src="assets/i18n-people.js?v=14" defer></script>
+<script src="assets/i18n-people.js?v=15" defer></script>
 <script src="assets/i18n-music.js?v=16" defer></script>
 <script src="assets/i18n.js?v=409" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
@@ -937,14 +937,14 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
 
 let lastStoriesLoad = 0;
 // Directive F15 (owner 2026-11-19): "Dailies should rotate each time the user comes back to the site." Each new visit
-// (opening the app, signing in, or coming back after more than 30 minutes) shows friends' Dailies in a new fair order
+// (opening the app, signing in again after log out, or coming back after more than 30 minutes) shows friends' Dailies in a new fair order
 // (a shuffle, so every friend is equally likely to come first), and never the same friend first twice in a row. A visit
 // keeps its order, so a reload or the 45-minute refresh does not reshuffle. Only the shuffle seed, the last-seen time and
-// the last first friend's id are kept, in this browser.
+// the last first friend's id are kept, in this browser; log out clears them (session-cleanup.js).
 const dailiesVisitKey = "danzstak_dailies_visit";
 function dailiesVisit() {
   let visit = null;
-  try { visit = JSON.parse(localStorage.getItem(dailiesVisitKey) || "null"); } catch { visit = null; }
+  try { visit = JSON.parse(readFeedPreference(dailiesVisitKey) || "null"); } catch { visit = null; }
   let sameSession = false;
   try { sameSession = sessionStorage.getItem(dailiesVisitKey) === String(visit?.seed); } catch { sameSession = false; }
   const now = Date.now();
@@ -966,7 +966,7 @@ function rotateDailiesForVisit(stories) {
     if (swap > 0) [list[0], list[swap]] = [list[swap], list[0]];
   }
   visit.first = list.length ? memberOf(list[0]) : visit.first;
-  try { localStorage.setItem(dailiesVisitKey, JSON.stringify(visit)); } catch { /* the order still rotates per page load */ }
+  writeFeedPreference(dailiesVisitKey, JSON.stringify(visit)); // guarded: kept in memory when storage is blocked
   return list;
 }
 let storyViewerPreviousFocus = null;
@@ -1038,7 +1038,7 @@ async function refreshStoryMedia(story) {
 }
 
 // T0-A2 (owner 2026-11-19): your own Dailies open from your tile as one run you swipe through left/right (Dailies are a
-// horizontal swipe); a friend's tile opens that Daily. Your own Dailies can be deleted from here.
+// horizontal swipe); a friend's tile opens friends' Dailies at that friend (directive F3). Only your own can be deleted.
 let storyViewerSequence = [];
 let ownDailies = []; // the signed-in member's own Dailies, newest first (set by loadStories)
 
@@ -1943,7 +1943,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/sync-tones.js?v=3" defer></script>
 <script src="assets/call-ringer.js?v=1" defer></script>
 <script src="assets/incoming-calls.js?v=311" defer></script>
-<script src="assets/session-cleanup.js?v=294" defer></script>
+<script src="assets/session-cleanup.js?v=295" defer></script>
 <script src="assets/app-feedback.js?v=4" defer></script>
 <script src="assets/logout.js?v=313" defer></script>
 <script src="assets/pwa.js?v=432" defer></script>

@@ -35,6 +35,8 @@ const friendStories = Array.from({ length: 4 }, (_, i) => ({ storyId: `s${i}`, m
       });
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.waitForTimeout(1800);
+      // F15: friends' tiles slide in once per load; measure the strip after they settle.
+      await page.evaluate(() => Promise.all([...document.querySelectorAll("#storiesRail .story-enter")].flatMap(tile => tile.getAnimations()).map(animation => animation.finished)));
       const strip = await page.evaluate(() => {
         const rail = document.getElementById("storiesRail"), r = rail.getBoundingClientRect();
         const tiles = [...rail.querySelectorAll(".story")].filter(n => n.getBoundingClientRect().width > 0 && n.id !== "storiesLoading").map(n => { const b = n.getBoundingClientRect(); return { own: n.classList.contains("story-create"), left: b.left, right: b.right, width: b.width }; });

@@ -117,6 +117,11 @@ function judge(r, c, label, failures) {
           await page.waitForTimeout(200);
           const open = await page.evaluate(() => [...document.querySelectorAll(".profile-showcase-tools button")].filter(button => button.getClientRects().length).map(button => button.textContent.trim()));
           if (open.join("|") !== "Change this photo|Remove this photo") failures.push(`${label}: the ⋯ does not open Change / Remove: ${JSON.stringify(open)}`);
+          // A tap outside closes it, like any familiar menu.
+          const name = await page.locator("#profileName").boundingBox();
+          await page.touchscreen.tap(name.x + 4, name.y + name.height / 2);
+          await page.waitForTimeout(200);
+          if (await page.evaluate(() => Boolean(document.querySelector(".profile-showcase-menu[open]")))) failures.push(`${label}: a tap outside does not close the ⋯ menu`);
         }
       }
       } catch (error) { failures.push(`${label}: ${String(error.message || error).split("\n")[0]}`); }
@@ -125,5 +130,5 @@ function judge(r, c, label, failures) {
     }
   } finally { await browser.close(); }
   if (failures.length) { console.error(`Profile header (F4): ${failures.length} problem(s)\n- ${failures.join("\n- ")}`); process.exit(1); }
-  console.log("Profile header (F4) passed at 320/360/390/430px: the name sits right of the avatar and always shows in full, the picture band is below it at full width (16:7 photo, shop items, Fill this space), no gap over 12px, renames re-fit, and the owner's ⋯ opens Change / Remove.");
+  console.log("Profile header (F4) passed at 320/360/390/430px: the name sits right of the avatar and always shows in full, the picture band is below it at full width (16:7 photo, shop items, Fill this space), no gap over 12px, renames re-fit, and the owner's ⋯ opens Change / Remove and closes on a tap outside.");
 })();
