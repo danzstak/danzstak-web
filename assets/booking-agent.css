@@ -4,6 +4,6 @@
 .tour-plan-add[aria-pressed="true"]{border-color:#16a34a;background:#f0fdf4;color:#166534}
 .tour-lead-backups .tour-plan-add-backup{min-height:44px;margin:0;padding:0 6px;border:0;border-radius:6px;background:transparent;color:#c2410c;font-size:inherit;font-weight:700;text-align:left}
 .tour-lead-backups .tour-plan-add-backup[aria-pressed="true"]{background:transparent;color:#166534}
-.tour-plan-add-all{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin:8px 0 12px;padding:0 16px;border:0;border-radius:24px;background:#ff5a1f;color:#fff;font:inherit;font-weight:800;cursor:pointer}
+.tour-plan-add-all{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin:8px 0 12px;padding:0 16px;border:0;border-radius:24px;background:var(--ds-btn-go,#15803d);color:#fff;font:inherit;font-weight:800;cursor:pointer}
 .tour-plan-add-all:disabled{background:#f0fdf4;color:#166534;cursor:default}
 .tour-calendar .tour-lead-backups{display:flex;flex-wrap:wrap;align-items:center;gap:0 2px}
