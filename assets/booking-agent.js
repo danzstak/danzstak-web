@@ -1501,6 +1501,7 @@
       ));
     let showIndex = 0;
     const usedVenues = new Set();
+    const planVenues = [];
     let lastPosition = Array.isArray(data.route.start?.position) ? data.route.start.position : null;
     const estimatedRoadMiles = (left, right) => {
       if (![left, right].every(position => Array.isArray(position) && position.length === 2 && position.every(Number.isFinite))) return null;
@@ -1559,13 +1560,16 @@
         venueStatus.className = "tour-lead-status sourced";
         venueStatus.textContent = venue.bookingSuitability === "contact-found" ? "Contact found" : "Sourced lead";
         venueStatus.title = "Public source found; booking and availability are not confirmed.";
-        venueCell.append(venueName, venueStatus);
+        venueCell.append(venueName, venueStatus, bookingListToggle(venue));
+        planVenues.push(venue);
         // Owner 2026-11-16: a few clubs in each town. Up to two backups to pitch if the first says no.
         const backups = market.venues.filter(candidate => candidate !== venue && !usedVenues.has(venueKey(candidate)) && !window.danzstakVenueFreshness?.hidden(candidate)).slice(0, 2);
         if (backups.length) {
           const backupLine = document.createElement("small");
           backupLine.className = "tour-lead-backups";
-          backupLine.textContent = `Backups: ${backups.map(candidate => candidate.name).join(", ")}`;
+          backupLine.append(document.createTextNode("Backups: "));
+          // Owner 2026-11-18: each backup can go on the booking list too.
+          backups.forEach((candidate, index) => { if (index) backupLine.append(document.createTextNode(", ")); backupLine.append(bookingListToggle(candidate, { backup: true })); });
           venueCell.append(backupLine);
         }
         planCell.textContent = "Show target · arrive 4:00 PM · soundcheck 5:00 PM";
@@ -1618,8 +1622,48 @@
     if (showIndex < shows) intro.textContent += ` ${shows} shows requested; ${shows - showIndex} still need club leads.`;
     table.append(head, body);
     tableBox.append(table);
-    details.append(summary, intro, tableBox);
+    details.append(summary, intro);
+    if (planVenues.length) details.append(addAllToBookingList(planVenues));
+    details.append(tableBox);
     return details;
+  }
+
+  // Owner 2026-11-18 (phone screenshot of the tour plan): "how would I add these clubs to my contact list?"
+  // Every club in the plan (and each backup) gets an add/remove toggle for the booking list; one tap adds them all.
+  function bookingListToggle(venue, { backup = false } = {}) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = backup ? "tour-plan-add tour-plan-add-backup" : "tour-plan-add";
+    const sync = () => {
+      const selected = window.danzstakBookingVenueSelected?.(venue) === true;
+      if (backup) button.textContent = `${selected ? "✓ " : "+ "}${venue.name}`;
+      else button.textContent = selected ? "✓ On booking list" : "+ Add to booking list";
+      button.setAttribute("aria-pressed", String(selected));
+      button.setAttribute("aria-label", `${selected ? "Remove" : "Add"} ${venue.name} ${selected ? "from" : "to"} booking list`);
+    };
+    button.addEventListener("click", () => { window.danzstakToggleBookingVenue?.(venue); sync(); });
+    window.addEventListener("danzstak:booking-selection", sync);
+    sync();
+    return button;
+  }
+
+  function addAllToBookingList(venues) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "tour-plan-add-all";
+    const sync = () => {
+      const missing = venues.filter(venue => window.danzstakBookingVenueSelected?.(venue) !== true).length;
+      button.textContent = missing ? `+ Add all ${venues.length} clubs to booking list` : "✓ All clubs on booking list";
+      button.disabled = !missing;
+    };
+    button.addEventListener("click", () => {
+      for (const venue of venues) if (window.danzstakBookingVenueSelected?.(venue) !== true) window.danzstakToggleBookingVenue?.(venue);
+      window.dispatchEvent(new CustomEvent("danzstak:booking-selection"));
+      sync();
+    });
+    window.addEventListener("danzstak:booking-selection", sync);
+    sync();
+    return button;
   }
 
   function routeItineraryMarkets(route, candidates = []) {
