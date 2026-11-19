@@ -5,18 +5,10 @@
   const status = document.getElementById("bazaarStatus");
   const search = document.getElementById("bazaarQuery");
   let catalog = [], nextOffset = null, total = 0, searchTimer = 0;
-  // Owner 2026-11-19: items from every shop mixed up, never one shop's items then the next. One seed per visit keeps the
-  // server's scrambled pages consistent while "Show more" loads the next page; a new visit gets a new mix.
+  // Owner 2026-11-19: items from every shop mixed up, never the same shop twice in a row (F15f). One seed per visit keeps
+  // the server's scrambled pages consistent while "Show more" loads the next page; a new visit gets a new mix.
   const seed = Math.random().toString(36).slice(2, 12);
-  const scramble = items => {
-    const shuffled = [...items];
-    for (let index = shuffled.length - 1; index > 0; index--) { const swap = Math.floor(Math.random() * (index + 1)); [shuffled[index], shuffled[swap]] = [shuffled[swap], shuffled[index]]; }
-    const sellers = new Map();
-    for (const item of shuffled) { const key = item.memberId || item.shopName || ""; if (!sellers.has(key)) sellers.set(key, []); sellers.get(key).push(item); }
-    const queues = [...sellers.values()], out = [];
-    while (queues.some(queue => queue.length)) for (const queue of queues) if (queue.length) out.push(queue.shift());
-    return out;
-  };
+  const scramble = items => window.danzstakScrambleBySeller(items, seed); // assets/scramble-by-seller.js, shared with the server
   const more = document.createElement("button");
   more.type = "button"; more.className = "bazaar-more"; more.textContent = "Show more"; more.hidden = true;
   list.after(more);
@@ -38,7 +30,8 @@
       throw error;
     } finally { clearTimeout(timer); }
   }
-  // Until the Bazaar has 24 real items (and only when not searching), labelled examples fill the grid after real items.
+  // Until the Bazaar has 24 real items (and only when not searching), labelled examples fill the grid, mixed in with the
+  // real items (F15f: appending them after the real items put one shop's items all together at the top).
   let exampleMix = null;
   const scrambledExamples = () => exampleMix || (exampleMix = scramble(Array.isArray(window.danzstakBazaarExamples) ? window.danzstakBazaarExamples : []));
   const examplesFor = (term, realCount) => {
@@ -47,6 +40,16 @@
     const realShops = new Set(catalog.map(product => String(product.shopName || "").trim().toLowerCase()).filter(Boolean));
     return term || realCount >= limit ? [] : scrambledExamples().filter(item => !realShops.has(item.shopName.toLowerCase())).slice(0, Math.max(0, limit - realCount));
   };
+  function productCard(product) {
+    const card = document.createElement("a"); card.className = "bazaar-card"; card.href = `product.html?id=${encodeURIComponent(product.id)}`;
+    const frame = node("span", "", "bazaar-image-frame");
+    if (product.imageUrl) { const image = document.createElement("img"); image.src = product.imageUrl; image.alt = ""; image.loading = "lazy"; image.decoding = "async"; image.referrerPolicy = "no-referrer"; frame.append(image); }
+    else frame.append(node("span", "No image", "image-fallback"));
+    const copy = node("span", "", "bazaar-card-copy");
+    copy.append(node("strong", product.title, "bazaar-title"), node("span", product.shopName, "bazaar-seller"), node("span", money(product.priceCents), "bazaar-price"), node("span", product.shippingCents ? `+${money(product.shippingCents)} shipping` : "Free shipping", "bazaar-shipping"));
+    card.append(frame, copy);
+    return card;
+  }
   function exampleCard(product) {
     // Not a link and no buy action: examples never reach a product page or checkout.
     const card = document.createElement("article"); card.className = "bazaar-card bazaar-example"; card.dataset.example = "true";
@@ -62,6 +65,8 @@
     const term = search.value.trim();
     const real = catalog, examples = examplesFor(term, total || real.length);
     const shown = real;
+    // On the last page, real items and examples are one mix, dealt out so no shop sits next to itself.
+    const mixed = nextOffset === null && examples.length ? scramble([...real, ...examples.map(example => ({ ...example, example: true }))]) : real;
     more.hidden = nextOffset === null;
     list.replaceChildren();
     if (examples.length) {
@@ -78,16 +83,7 @@
       status.textContent = term ? "0 products found." : "No published products are available right now.";
       return;
     }
-    for (const product of shown) {
-      const card = document.createElement("a"); card.className = "bazaar-card"; card.href = `product.html?id=${encodeURIComponent(product.id)}`;
-      const frame = node("span", "", "bazaar-image-frame");
-      if (product.imageUrl) { const image = document.createElement("img"); image.src = product.imageUrl; image.alt = ""; image.loading = "lazy"; image.decoding = "async"; image.referrerPolicy = "no-referrer"; frame.append(image); }
-      else frame.append(node("span", "No image", "image-fallback"));
-      const copy = node("span", "", "bazaar-card-copy");
-      copy.append(node("strong", product.title, "bazaar-title"), node("span", product.shopName, "bazaar-seller"), node("span", money(product.priceCents), "bazaar-price"), node("span", product.shippingCents ? `+${money(product.shippingCents)} shipping` : "Free shipping", "bazaar-shipping"));
-      card.append(frame, copy); list.append(card);
-    }
-    if (nextOffset === null) for (const product of examples) list.append(exampleCard(product));
+    for (const product of mixed) list.append(product.example ? exampleCard(product) : productCard(product));
     status.textContent = `${total || shown.length} product${(total || shown.length) === 1 ? "" : "s"}. Fixed price, no bidding.`;
   }
   // Search runs on the server so shops with thousands of records are searchable; "Show more" loads the next page (no infinite scroll).
@@ -96,7 +92,7 @@
     // Pre-launch: the examples still show what the Bazaar looks like when the live list can't load.
     if (!search.value.trim() && examplesFor("", 0).length) { catalog = []; nextOffset = null; total = 0; render(); status.textContent = error.message; }
   });
-  document.querySelector(".bazaar-search").addEventListener("submit", event => { event.preventDefault(); load(); });
+  search.form.addEventListener("submit", event => { event.preventDefault(); load(); });
   search.addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(load, 300); });
   more.addEventListener("click", () => { if (nextOffset === null) return; more.disabled = true; request(nextOffset).then(products => { catalog = catalog.concat(search.value.trim() ? products : scramble(products)); render(); }).catch(error => { status.textContent = error.message; }).finally(() => { more.disabled = false; }); });
   load();

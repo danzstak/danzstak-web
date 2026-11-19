@@ -111,14 +111,25 @@
   dialog.querySelector(".pivot-close").addEventListener("click", () => dialog.close());
   dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
   dialog.addEventListener("close", () => activeTrigger?.isConnected && activeTrigger.focus());
-  document.addEventListener("click", event => {
-    const trigger = event.target.closest?.("[data-pivot-trigger]");
-    if (!trigger) return;
+  function openPivot(trigger) {
     activeTrigger = trigger;
     active = "facebook";
     renderGuide();
     dialog.showModal();
     setTimeout(() => platforms.querySelector("button")?.focus(), 0);
+  }
+  document.addEventListener("click", event => {
+    const trigger = event.target.closest?.("[data-pivot-trigger]");
+    if (trigger) openPivot(trigger);
   });
   renderGuide();
+  // Directive F15j: the Pivot icon in the bar on the other pages lands here with ?pivot=open. Moving Day opens once and
+  // the parameter leaves the address, so Back or a reload doesn't open it again.
+  const query = new URLSearchParams(location.search);
+  if (query.get("pivot") === "open") {
+    query.delete("pivot");
+    const rest = String(query); // not query.size: Safari 16 lacks it
+    history.replaceState(history.state, "", location.pathname + (rest ? `?${rest}` : "") + location.hash);
+    openPivot(document.querySelector("header [data-pivot-trigger]"));
+  }
 })();

@@ -8,7 +8,7 @@ let deleted = 0;
 const context = vm.createContext({
   json: (statusCode, body) => ({statusCode, body}), ownerPrefix: () => 'owner', randomUUID: () => 'upload', now: () => 100,
   mediaTypes: {'image/png':['image','png'], 'video/mp4':['video','mp4']}, signedMediaUrl: (_, key) => key,
-  db: {send: async command => command.constructor.name === 'GetItemCommand' ? ({Item:{profileAvatarKey:{S:'users/owner/old.png'}}}) : ({})},
+  db: {send: async command => command.constructor.name === 'GetItemCommand' ? ({Item:{profileCoverKey:{S:'users/owner/old.png'}}}) : ({})},
   scanAll: async () => [],
   GetItemCommand: class GetItemCommand {}, UpdateItemCommand: class {}, DeleteItemCommand: class {}, TransactWriteItemsCommand: class {}, DeleteObjectCommand: class {}, HeadObjectCommand: class HeadObjectCommand {},
   s3: {send: async command => { if (command.constructor.name === 'HeadObjectCommand') return {}; deleted++; throw new Error('cleanup unavailable'); }},
@@ -23,7 +23,8 @@ async function upload(purpose) {
   assert.equal((await upload()).body.mediaKey,'stories/owner/upload.png');
   for(const purpose of ['post','profile']) assert.equal((await upload(purpose)).body.mediaKey,'users/owner/upload.png');
   assert.equal((await upload('../other')).statusCode,400);
-  context.event={body:JSON.stringify({avatarKey:'users/owner/new.png'})};
+  // A replaced cover is cleaned up (a replaced avatar stays in the picture history, directive F4c).
+  context.event={body:JSON.stringify({coverKey:'users/owner/new.png'})};
   assert.equal((await vm.runInContext('updateProfileUnique(event,{email:"owner@example.com"})',context)).statusCode,200);
   assert.equal(deleted,3,'cleanup failure receives the full retry budget without undoing a committed profile');
   assert.match(template,/profileMediaCleanup = :profileCleanup/,'failed profile cleanup stays durably queued for a later save');

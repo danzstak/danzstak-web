@@ -73,4 +73,15 @@ assert.match(regressions, /scripts\/run-checks\.ps1'\) -Checks \$checks/, "test-
 assert.match(regressions, /'test-run-checks\.ps1'/, "test-regressions.ps1 must run test-run-checks.ps1");
 assert.ok(fs.existsSync(path.join(root, "test-run-checks.ps1")), "test-run-checks.ps1 is missing");
 
+// Directive F0 (2026-11-19): browser checks are served by scripts/static-server.cjs (HTTP/1.1 keep-alive, backlog 511),
+// not python -m http.server (HTTP/1.0, backlog 5, file types from the Windows registry), and a failing browser check
+// prints what the browser saw (scripts/check-diagnostics.cjs).
+const text = workflow.join("\n");
+assert.doesNotMatch(text, /Start-Process python|'http\.server'/, "review.yml must serve the site with scripts/static-server.cjs, not python -m http.server");
+const servers = text.match(/Start-Process node -ArgumentList '\.\\scripts\\static-server\.cjs','\d+'/g) || [];
+assert.equal(servers.length, 2, "both browser jobs start scripts/static-server.cjs");
+const diagnostics = text.match(/NODE_OPTIONS: --require \.\/scripts\/check-diagnostics\.cjs/g) || [];
+assert.equal(diagnostics.length, 2, "both browser-check steps load scripts/check-diagnostics.cjs");
+for (const file of ["scripts/static-server.cjs", "scripts/check-diagnostics.cjs"]) assert.ok(fs.existsSync(path.join(root, file)), `${file} is missing`);
+
 console.log(`Review workflow checks passed: ${listed.length} checks in ${blocks.filter(block => block.lines.some(line => /run-checks\.ps1/.test(line))).length} steps run through scripts/run-checks.ps1, and no step runs several checks directly.`);

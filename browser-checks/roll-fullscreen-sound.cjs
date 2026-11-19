@@ -13,7 +13,7 @@ const base = String(process.env.DANZSTAK_LOCAL_URL || process.env.DANZSTAK_FEED_
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
 const viewports = [[320, 568], [360, 780], [390, 844], [414, 896], [430, 932], [1366, 900]];
 const me = "11111111-1111-4111-8111-111111111111";
-const posts = ["a", "b"].map((name, index) => ({
+const posts = ["a", "b", "c"].map((name, index) => ({ // three: the owner's rule is checked over three videos in a row
   postId: `roll-sound-${name}`, userId: me, authorName: "Roll Sound Test", content: `Roll video ${name}`,
   createdAt: `2026-11-1${8 - index}T18:00:00.000Z`, audience: "public", isOwner: true, mediaType: "video",
   mediaKey: `uploads/roll-sound-${name}.webm`, mediaUrl: `https://media.example.invalid/roll-sound-${name}.webm`,
@@ -130,7 +130,7 @@ async function openFeed(browser, clip, width, height) {
       const geometry = await page.evaluate(() => {
         const rail = document.querySelector(".reels-rail.roll-fullscreen");
         const video = [...rail.querySelectorAll("video.reel-player")].find(item => !item.paused);
-        const card = video.closest(".reel-card"), details = card.querySelector(".reel-details");
+        const card = video.closest(".reel-card"), details = card.querySelector(":scope > .ds-ma") || card.querySelector(".reel-details"); // F1a: the rail's caption layer (gradient edge to edge) replaces the old strip
         const box = node => { const r = node.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom }; };
         const links = [...details.querySelectorAll("a,button")].filter(node => node.checkVisibility()).map(box);
         return { vw: innerWidth, vh: innerHeight, card: box(card), details: box(details), links, padding: getComputedStyle(rail).padding, background: getComputedStyle(rail).backgroundColor, overflow: document.documentElement.scrollWidth > innerWidth };
@@ -156,6 +156,38 @@ async function openFeed(browser, clip, width, height) {
         assert.equal(next.playing[0].muted, false, `${label}: the next video inherits sound on: ${JSON.stringify(next)}`);
         await page.locator(".reels-rail.roll-fullscreen .reels-list").evaluate(list => list.scrollTo({ top: 0 }));
         await page.waitForFunction(src => [...document.querySelectorAll("video.reel-player")].some(video => !video.paused && video.currentSrc.endsWith(src)), first, { timeout: 5000 });
+        // Directive F2 (owner: "each video I have to turn the audio on"): when a video plays to its end, The Roll moves on
+        // by itself and the next video keeps the sound. Real playback: the 5-second clip runs out on its own.
+        await page.waitForFunction(src => [...document.querySelectorAll("video.reel-player")].some(video => !video.paused && !video.currentSrc.endsWith(src)), first, { timeout: 12000 });
+        await page.waitForTimeout(400);
+        const advanced = await rollState(page);
+        assert.equal(advanced.playing.length, 1, `${label}: after auto-advance only one Roll video plays: ${JSON.stringify(advanced)}`);
+        assert.equal(advanced.playing[0].muted, false, `${label}: the auto-advanced video keeps the sound on: ${JSON.stringify(advanced)}`);
+        assert.equal(advanced.audible, 1, `${label}: never two audible players: ${JSON.stringify(advanced)}`);
+        assert.equal(advanced.toggle, "Mute video", `${label}: the speaker on the auto-advanced video shows sound on`);
+        await page.locator(".reels-rail.roll-fullscreen .reels-list").evaluate(list => list.scrollTo({ top: 0 }));
+        await page.waitForFunction(src => [...document.querySelectorAll("video.reel-player")].some(video => !video.paused && video.currentSrc.endsWith(src)), first, { timeout: 5000 });
+        // Owner, 2026-11-19 6:32 pm: "In The Roll when sound is on the next video should have sound on; when the sound is
+        // off the next video should have sound off." Three videos in a row: sound on carries to the second and the third;
+        // turning it off on the third carries back to the second.
+        const goTo = async index => {
+          await page.locator(".reels-rail.roll-fullscreen .reels-list").evaluate((list, at) => list.scrollTo({ top: list.querySelectorAll(".reel-card")[at].offsetTop }), index);
+          await page.waitForFunction(at => { const video = document.querySelectorAll(".reels-rail.roll-fullscreen .reel-card")[at]?.querySelector("video.reel-player"); return video && !video.paused; }, index, { timeout: 5000 });
+          await page.waitForTimeout(400);
+          return rollState(page);
+        };
+        for (const index of [1, 2]) {
+          const at = await goTo(index);
+          assert.deepEqual([at.playing.length, at.playing[0]?.muted, at.audible], [1, false, 1], `${label}: video ${index + 1} of 3 follows sound on: ${JSON.stringify(at)}`);
+        }
+        await tapSpeaker(page, touch, `${label} third video`);
+        await page.waitForFunction(() => [...document.querySelectorAll("video.reel-player")].every(video => video.paused || video.muted));
+        const back = await goTo(1);
+        assert.deepEqual([back.playing.length, back.playing[0]?.muted, back.audible, back.toggle], [1, true, 0, "Unmute video"], `${label}: sound off on the third video carries to the next one played: ${JSON.stringify(back)}`);
+        // Sound back on for the rest of this run (the next step mutes in full screen and checks the strip).
+        await goTo(0);
+        await tapSpeaker(page, touch, `${label} first video again`);
+        await page.waitForFunction(() => [...document.querySelectorAll("video.reel-player")].some(video => !video.paused && !video.muted));
       }
 
       // 2. Muting in full screen carries back to Mix.

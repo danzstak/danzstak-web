@@ -1,15 +1,15 @@
-/* One top bar on every page (fix-it 18, owner 2026-11-17): logo, search, bell, SYNC. Loaded last on each page. */
+/* One top bar on every page (fix-it 18, owner 2026-11-17): logo, search, Pivot, bell, SYNC. Loaded last on each page. */
 body.ds-has-app-bar>header.ds-app-bar{
   position:sticky!important;top:0;z-index:40;display:flex!important;align-items:center!important;gap:4px!important;
   min-height:56px!important;height:auto!important;margin:0!important;padding:6px max(8px,env(safe-area-inset-right,0px)) 6px max(10px,env(safe-area-inset-left,0px))!important;
-  background:#121418!important;color:#f5f5f2!important;border:0!important;border-bottom:3px solid #ff5a1f!important;box-shadow:none!important;
+  background:#121418!important;color:#f5f5f2!important;border:0!important;border-bottom:3px solid var(--ds-accent,#ef6c20)!important;box-shadow:none!important;
 }
-body.ds-has-app-bar>header.ds-app-bar .ds-app-bar-brand{display:inline-flex!important;align-items:center;gap:8px;min-height:44px;margin:0 auto 0 0!important;padding:0!important;color:#f5f5f2!important;text-decoration:none!important;background:transparent!important;border:0!important}
-body.ds-has-app-bar>header.ds-app-bar .ds-app-bar-brand img{width:40px!important;height:40px!important;margin:0!important;object-fit:contain}
+body.ds-has-app-bar>header.ds-app-bar .ds-app-bar-brand{display:inline-flex!important;flex:none;align-items:center;gap:8px;min-height:44px;margin:0!important;padding:0!important;color:#f5f5f2!important;text-decoration:none!important;background:transparent!important;border:0!important}
+body.ds-has-app-bar>header.ds-app-bar .ds-app-bar-brand img{width:34px!important;height:34px!important;margin:0!important;object-fit:contain}
 body.ds-has-app-bar>header.ds-app-bar .ds-app-bar-brand span{font-weight:900;letter-spacing:.04em}
 @media(max-width:560px){body.ds-has-app-bar>header.ds-app-bar .ds-app-bar-brand span{display:none!important}}
 body.ds-has-app-bar>header.ds-app-bar>.ds-app-bar-links{display:none!important}
-.ds-app-bar-actions{display:flex;align-items:center;gap:2px;margin-left:auto}
+.ds-app-bar-actions{display:flex;align-items:center;gap:4px;margin-left:auto}
 .ds-app-bar-actions>*,.ds-app-bar-icon{
   display:grid!important;place-items:center;width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;
   border:0!important;border-radius:50%!important;background:transparent!important;color:#f5f5f2!important;box-shadow:none!important;
@@ -23,18 +23,34 @@ body.ds-has-app-bar>header.ds-app-bar>.ds-app-bar-links{display:none!important}
 .ds-app-tabs::-webkit-scrollbar{display:none}
 .ds-app-tabs a{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;color:#5b6472;font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:none!important;border-bottom:3px solid transparent}
 .ds-app-tabs a[aria-current=page]{color:#16191f;border-bottom-color:#ff5a1f}
-/* Mix: Pivot and the install arrow leave the header (Menu has both). */
-header.topbar #pivotButton,header.topbar .pivot-header-button{display:none!important}
+/* Pivot (directive F15j): the one orange icon in the bar, between Search and the bell (on wide Mix it leads the icons on the right). */
+.ds-app-bar-pivot svg{color:#ff5a1f}
+@media(min-width:1051px){header.topbar .ds-app-bar-pivot{margin-left:auto}}
 .install-app-button:not(.app-header-prompt){display:none!important}
 header.topbar .ds-app-bar-sync{color:#f5f5f2!important}
 @media(max-width:700px){header.topbar.ds-feed-bar{display:flex!important;align-items:center;gap:4px!important}header.topbar.ds-feed-bar>.search{flex:1 1 auto;min-width:0}}
 @media(min-width:701px){header.topbar .ds-app-bar-sync{display:none!important}} /* desktop already shows SYNC in the top nav */
 .install-app-button{display:none!important} /* install lives in Menu → Install DanzStak */
-/* Mix bar on phones: one row — logo, search, bell, SYNC (the older grid sent bell and SYNC to new rows). */
+/* Mix bar on phones: one row — logo, search, Pivot, bell, SYNC (the older grid sent bell and SYNC to new rows). */
 @media(max-width:700px){
-  body.ds-has-app-bar header.topbar.ds-feed-bar{display:grid!important;grid-template-columns:40px minmax(0,1fr) 44px 44px!important;grid-auto-flow:column;align-items:center;gap:4px!important;min-height:56px;padding:6px 8px!important}
+  body.ds-has-app-bar header.topbar.ds-feed-bar{display:grid!important;grid-template-columns:40px minmax(0,1fr) 44px 44px 44px!important;grid-auto-flow:column;align-items:center;gap:4px!important;min-height:56px;padding:6px 8px!important}
   body.ds-has-app-bar header.topbar.ds-feed-bar>*{grid-row:1!important;grid-column:auto!important;margin:0!important}
   body.ds-has-app-bar header.topbar.ds-feed-bar>.logo{width:40px}
   body.ds-has-app-bar header.topbar.ds-feed-bar>.logo span{display:none!important}
   body.ds-has-app-bar header.topbar.ds-feed-bar>.header-notifications{width:44px!important;height:44px!important;min-width:44px!important;padding:0!important;border-radius:50%!important;background:transparent!important;border:0!important}
 }
+/* Audit 36 B1 (directive F6): one bar everywhere: [← back] logo, search box, Pivot, bell, SYNC, the same size and colour on
+   Mix and on every other page. The search box looks like Mix's and opens the people search (top-search.js). */
+body.ds-has-app-bar>header.ds-app-bar,body.ds-has-app-bar header.topbar.ds-feed-bar{box-sizing:border-box;min-height:59px!important;background:#121418!important;border-bottom:3px solid var(--ds-accent,#ef6c20)!important}
+body.ds-has-app-bar>header.ds-app-bar .ds-top-search-button{box-sizing:border-box;display:flex;flex:1 1 0;align-items:center;justify-content:flex-start;gap:8px;width:auto;min-width:0;height:44px;min-height:44px;margin:0 2px 0 6px;padding:0 12px;border:1px solid rgba(255,255,255,.2);border-radius:12px;background:#f8fafc;color:#757575;font:inherit;font-size:16px;text-align:left}
+body.ds-has-app-bar>header.ds-app-bar .ds-top-search-button svg{flex:none;width:20px;height:20px;color:#5b6472}
+/* Audit 36 B10: a page's own search (the Bazaar) sits in the same box; inset ring so the field and its button are 44px. */
+body.ds-has-app-bar>header.ds-app-bar .ds-top-search-field{box-sizing:border-box;display:flex;flex:1 1 auto;align-items:center;min-width:0;height:44px;margin:0 2px 0 6px;border-radius:12px;background:#f8fafc;box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+body.ds-has-app-bar>header.ds-app-bar .ds-top-search-field:focus-within{box-shadow:inset 0 0 0 2px var(--ds-accent,#ef6c20)}
+.ds-top-search-submit{display:grid;flex:none;place-items:center;width:40px;height:44px;padding:0 0 0 4px;border:0;background:transparent;color:#5b6472;cursor:pointer}
+.ds-top-search-input{flex:1 1 0;width:0;min-width:0;height:44px;padding:0 12px 0 0;border:0;background:transparent;color:#121418;font:inherit;font-size:16px;outline:0}
+.ds-top-search-input::placeholder{color:#757575}
+.ds-top-search-placeholder{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+body.ds-has-app-bar>header.ds-app-bar .ds-app-bar-back{flex:none;margin-right:2px}
+/* 320px with ← and Pivot: the logo steps aside so the search box keeps room to read (← and the Mix tab both go home). */
+@media(max-width:359px){body.ds-has-app-bar>header.ds-app-bar:has(>.ds-app-bar-back) .ds-app-bar-brand{display:none!important}}
