@@ -96,7 +96,7 @@
     // Pre-launch: the examples still show what the Bazaar looks like when the live list can't load.
     if (!search.value.trim() && examplesFor("", 0).length) { catalog = []; nextOffset = null; total = 0; render(); status.textContent = error.message; }
   });
-  document.querySelector(".bazaar-search").addEventListener("submit", event => { event.preventDefault(); load(); });
+  search.form.addEventListener("submit", event => { event.preventDefault(); load(); });
   search.addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(load, 300); });
   more.addEventListener("click", () => { if (nextOffset === null) return; more.disabled = true; request(nextOffset).then(products => { catalog = catalog.concat(search.value.trim() ? products : scramble(products)); render(); }).catch(error => { status.textContent = error.message; }).finally(() => { more.disabled = false; }); });
   load();

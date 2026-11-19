@@ -4,7 +4,8 @@
 // Product's and Event's white "Bazaar / My Shop" and "Events / SYNC" buttons; Tour Manager's "← Back to venue map";
 // Support's "Back to Settings" link; Mix's bar 1px shorter, 45px of dead space for a hidden install button).
 // Checks at 320/360/390/430px, signed in:
-// - every page has one bar: 59px, #121418, the same logo, a 44px search box, bell and SYNC in the same place as on Mix;
+// - every page has one bar: 59px, #121418, the same logo, a 44px search box (the Bazaar's searches the Bazaar, B10),
+//   bell and SYNC in the same place as on Mix;
 // - pages that need Back show ← first and it goes back to where it should; no stray header links remain;
 // - tapping the centre of the search box opens search; no sideways scroll;
 // - Privacy and Terms keep their plain header for visitors who are signed out.
@@ -40,7 +41,7 @@ const barState = page => page.evaluate(() => {
   const bar = bars[0];
   if (!bar) return { bars: 0 };
   const box = element => { if (!shown(element)) return null; const r = element.getBoundingClientRect(); return { left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width), height: Math.round(r.height) }; };
-  const logo = bar.querySelector(".ds-app-bar-brand img, .logo img"), search = bar.querySelector(".ds-top-search-button, input.search");
+  const logo = bar.querySelector(".ds-app-bar-brand img, .logo img"), search = bar.querySelector(".ds-top-search-button, .ds-top-search-field, input.search");
   const loose = [...bar.querySelectorAll(":scope > a")].filter(link => shown(link) && !link.matches(".ds-app-bar-brand, .ds-app-bar-back, .logo, .ds-app-bar-icon")).map(link => link.textContent.trim());
   return {
     bars: bars.length, top: Math.round(bar.getBoundingClientRect().top), height: Math.round(bar.getBoundingClientRect().height), background: getComputedStyle(bar).backgroundColor,
@@ -73,11 +74,11 @@ const barState = page => page.evaluate(() => {
         mix ||= state;
         assert.ok(Math.abs(state.bell.left - mix.bell.left) <= 1 && Math.abs(state.sync.left - mix.sync.left) <= 1, `${label}: bell and SYNC sit where they sit on Mix ${JSON.stringify({ here: [state.bell.left, state.sync.left], mix: [mix.bell.left, mix.sync.left] })}`);
         // Tap the centre of the search box: it opens search.
-        const search = page.locator("header .ds-top-search-button, header input.search").first();
+        const search = page.locator("header .ds-top-search-button, header .ds-top-search-field, header input.search").first();
         const box = await search.boundingBox();
         await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
         await page.waitForTimeout(300);
-        const opened = await page.evaluate(() => Boolean(document.querySelector("dialog.ds-top-search[open]")) || document.activeElement?.matches?.("input.search, dialog.ds-top-search input"));
+        const opened = await page.evaluate(() => Boolean(document.querySelector("dialog.ds-top-search[open]")) || document.activeElement?.matches?.("input.search, dialog.ds-top-search input, .ds-top-search-field input"));
         assert.equal(opened, true, `${label}: tapping the search box opens search`);
         if (backTo) {
           await page.keyboard.press("Escape").catch(() => {});

@@ -206,6 +206,7 @@ jobs:
             '.\browser-checks\app-tabs.cjs'
             '.\browser-checks\app-bar.cjs'
             '.\browser-checks\own-photo.cjs'
+            '.\browser-checks\bazaar-tiles.cjs'
             '.\browser-checks\profile-picture-links.cjs'
             '.\browser-checks\profile-showcase-fit.cjs'
           )

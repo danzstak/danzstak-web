@@ -53,6 +53,7 @@
   function mount() {
     if (document.querySelector(".ds-top-search-button")) return;
     if (document.querySelector("input.search, .profile-header-search")) return; // this page already has the header search
+    if (document.querySelector("form[data-top-search]")) return; // audit 36 B10: the page's own search (the Bazaar) is the bar's box
     const chatSearch = document.getElementById("chatSearch");
     if (chatSearch) { mountSync(chatSearch); return; }
     const header = HEADERS.map(selector => document.querySelector(selector)).find(Boolean);
