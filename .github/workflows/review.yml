@@ -69,7 +69,8 @@ jobs:
       - name: Start local review server
         shell: pwsh
         run: |
-          $process = Start-Process python -ArgumentList '-m','http.server','8017','--bind','127.0.0.1' -WorkingDirectory $PWD -PassThru -WindowStyle Hidden
+          # Node static server (HTTP/1.1 keep-alive, backlog 511, fixed content types), not python -m http.server (directive F0).
+          $process = Start-Process node -ArgumentList '.\scripts\static-server.cjs','8017' -WorkingDirectory $PWD -PassThru -WindowStyle Hidden
           "DANZSTAK_SERVER_PID=$($process.Id)" | Out-File -FilePath $env:GITHUB_ENV -Append
           for ($attempt = 0; $attempt -lt 20; $attempt++) {
             try {
@@ -86,6 +87,8 @@ jobs:
           DANZSTAK_LOCAL_URL: http://127.0.0.1:8017
           DANZSTAK_FEED_ORIGIN: http://127.0.0.1:8017
           DANZSTAK_PROFILE_ORIGIN: http://127.0.0.1:8017
+          # A failing check prints the browser's failed requests and errors (scripts/check-diagnostics.cjs).
+          NODE_OPTIONS: --require ./scripts/check-diagnostics.cjs
         run: |
           .\scripts\run-checks.ps1 -Checks @(
             '.\browser-checks\call-video-two-party.cjs'
@@ -149,7 +152,8 @@ jobs:
       - name: Start static review server
         shell: pwsh
         run: |
-          $process = Start-Process python -ArgumentList '-m','http.server','8132','--bind','127.0.0.1' -WindowStyle Hidden -PassThru
+          # Node static server (HTTP/1.1 keep-alive, backlog 511, fixed content types), not python -m http.server (directive F0).
+          $process = Start-Process node -ArgumentList '.\scripts\static-server.cjs','8132' -WorkingDirectory $PWD -WindowStyle Hidden -PassThru
           "DANZSTAK_SERVER_PID=$($process.Id)" | Out-File -FilePath $env:GITHUB_ENV -Append
           for ($attempt = 0; $attempt -lt 20; $attempt++) {
             try {
@@ -164,6 +168,8 @@ jobs:
         shell: pwsh
         env:
           DANZSTAK_BASE_URL: http://127.0.0.1:8132
+          # A failing check prints the browser's failed requests and errors (scripts/check-diagnostics.cjs).
+          NODE_OPTIONS: --require ./scripts/check-diagnostics.cjs
         run: |
           .\scripts\run-checks.ps1 -Checks @(
             '.\browser-checks\account-security.cjs'
