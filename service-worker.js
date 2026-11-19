@@ -180,14 +180,21 @@ self.addEventListener("notificationclick", event => {
   if (destinationUrl.origin === self.location.origin && destinationUrl.pathname === "/messages.html") destinationUrl.pathname = "/sync/";
   const destination = destinationUrl.href;
   const syncDestination = destinationUrl.pathname.startsWith("/sync/");
+  // Owner 2026-11-19: on a phone, tapping a notification "should open the danzstak app … go to sync or open the stand
+  // alone sync app", but it left him on the home screen. A phone can't always bring an app window that sits in the
+  // background forward from here, so the tap navigated a window nobody could see. Opening the address always launches
+  // the installed app (SYNC's own app for /sync/ when it is installed), so on a phone only a window already on screen is
+  // reused; computers still bring their open window forward. A step that hangs never swallows the tap either.
+  const phone = /Android|iPhone|iPad|iPod/i.test(self.navigator?.userAgent || "");
+  const inTime = (promise, ms = 1500) => Promise.race([promise, new Promise(resolve => setTimeout(() => resolve(null), ms))]);
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async found => {
-    const clients = syncDestination ? [...found].sort((a, b) => Number(new URL(b.url).pathname.startsWith("/sync/")) - Number(new URL(a.url).pathname.startsWith("/sync/"))) : found;
+    const ours = found.filter(client => new URL(client.url).origin === self.location.origin && client.frameType !== "nested" && (!phone || client.focused || client.visibilityState === "visible"));
+    const clients = syncDestination ? ours.sort((a, b) => Number(new URL(b.url).pathname.startsWith("/sync/")) - Number(new URL(a.url).pathname.startsWith("/sync/"))) : ours;
     for (const client of clients) {
-      if (new URL(client.url).origin !== self.location.origin || client.frameType === "nested") continue;
       try {
         // Focus while the notification tap still supplies user activation.
-        await client.focus();
-        const navigated = await client.navigate(destination);
+        await inTime(client.focus());
+        const navigated = await inTime(client.navigate(destination));
         if (navigated) return navigated;
       } catch { /* A closed or unavailable window must not swallow the tap. */ }
     }
