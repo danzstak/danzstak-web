@@ -21,7 +21,7 @@ assert.match(html, /assets\/booking-workspace\.css\?v=14/);
 assert.match(html, /assets\/booking-map\.js\?v=451/);
 assert.match(html, /assets\/booking-discovery\.css\?v=5/);
 assert.match(html, /assets\/booking-discovery\.js\?v=5/);
-assert.match(html, /assets\/booking-agent\.js\?v=501/);
+assert.match(html, /assets\/booking-agent\.js\?v=504/);
 assert.match(html, /assets\/booking-conversation\.js\?v=486/);
 
 assert.match(css, /\.booking-start[\s\S]*grid-template-columns: minmax\(270px, \.8fr\) minmax\(420px, 1\.2fr\)/);
