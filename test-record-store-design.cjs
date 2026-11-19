@@ -9,7 +9,7 @@ assert.doesNotMatch(page, /💿/, "the record-store tool must not use a cartoon 
 assert.match(page, /data-menu-icon="disc"/, "the shared professional record icon should identify the tool");
 assert.match(page, /record-stores\.css\?v=3/);
 assert.match(page, /record-placement\.css\?v=3/);
-assert.match(page, /record-stores\.js\?v=7/);
+assert.match(page, /record-stores\.js\?v=8/);
 assert.match(css, /--store-blue:var\(--ds-blue/, "record stores should inherit the shared DANZSTAK tokens");
 assert.match(css, /min-height:44px/, "interactive controls need accessible mobile targets");
 assert.match(css, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/, "desktop results should use available width");
