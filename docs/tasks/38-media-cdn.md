@@ -67,9 +67,19 @@ containers, Kubernetes, pm2 or Redis are needed for this.
 - From the owner's phone in Italy (and in San Francisco, owner 2026-11-20): Mix with 10 photos + 3 videos shows the first
   screen in under 2 s on 4G after the first visit; record before/after numbers in the PR.
 
+## Built so far
+- Steps 1–2 (`build/media-cdn`): `infrastructure/auth-api/media-cdn.mjs` (6-hour signed URL windows, S3 fallback, delete
+  invalidation through the s3 client), call-signaling template resources `MediaKeyGroup`, `MediaOriginAccessControl`,
+  `MediaCachePolicy`, `MediaResponseHeadersPolicy`, `MediaDistribution`, bucket-policy statement, role policy, outputs
+  `MediaCdnDomain` / `MediaCdnDistributionId`. Parameters: `MediaSigningPublicKeyId` (creates the CDN) and
+  `MediaCdnServe` (`false` until step 3's CSP change is live; `true` makes call-signaling hand out CDN URLs). The Auth API
+  hands out CDN URLs only when `MEDIA_CDN_DOMAIN` is set; set it together with `MediaCdnServe=true`, plus
+  `MEDIA_CDN_DISTRIBUTION_ID` for delete invalidation, and give the Auth API role `secretsmanager:GetSecretValue` on the
+  signing secret and `cloudfront:CreateInvalidation` on the distribution (managed policy).
+
 ## Owner session (only the owner's computer / AWS console)
-1. Make the signing key pair: `openssl genrsa -out media-key.pem 2048 && openssl rsa -pubout -in media-key.pem -out media-key.pub`.
-2. Store the private key in Secrets Manager `danzstak/cloudfront/media-signing-key` (us-west-1); pass the public key as the
-   `MediaSigningPublicKey` parameter when deploying call-signaling. Delete the local private key file afterwards.
+1. Make the signing key (AWS CloudShell or `scripts/setup-media-cdn-key.ps1`): creates the CloudFront public key and stores
+   the private key only in Secrets Manager `danzstak/cloudfront/media-signing-key` (us-west-1); prints the public key id.
+2. Deploy call-signaling with `MediaSigningPublicKeyId=<that id>` (and `MediaCdnServe=false` until step 3 is live).
 3. Deploy call-signaling (CloudFormation change set), then the Auth API; set `MEDIA_CDN_DOMAIN` from the stack output.
 4. CloudFront console: https://us-east-1.console.aws.amazon.com/cloudfront/v4/home#/distributions
