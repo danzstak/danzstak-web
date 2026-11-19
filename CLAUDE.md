@@ -24,12 +24,16 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
 - **F1. Tap a photo or video → full screen.** The owner says it still doesn't work, because the viewer never merged. **#594 is green and ready.** Bring it up to date with main and merge it first, then check on the live app: Mix, Tribes, profile Posts, and the Photos/Videos tabs.
 - **F2. The Roll keeps the sound choice.** Owner: "each video I have to turn the audio on." Once sound is on, the next Roll video stays audible, whether reached by scroll or auto-advance; mute carries over the same way; never two audible players. Browser check with real playback. Root cause is likely `media-visibility.js` session sound (`sessionSound`) reset or not applied on the next card.
 - **F3. Dailies scrolling doesn't work** (owner's phone). Reproduce with touch at 360/390px, fix the root cause, and add a check that swipes both the strip and the full-screen Dailies. Land #605 (tile never opens the picker), #609 and #587 in the same train.
-- **F4. The photo/shop box beside the avatar fills the free space.** #629 stopped it covering the name. Now:
-  - It grows to fill all unused space: down to the avatar's bottom or the action row when the name text doesn't reach under it.
-  - It shrinks again when the name gets longer or the screen narrower.
-  - The image scales to fill the box (`object-fit: cover`).
-  - Recompute on resize and on name change.
-  - Extend `browser-checks/profile-showcase-fit.cjs`: a short name gives a tall box; a long name puts the box above the name.
+- **F4. Profile header: name beside the avatar, picture box below it.** Owner 2026-11-19, replacing the earlier "box beside the avatar" layout: "put the name to the right of the profile image and move the image box below the name… make the font size smaller to fit the space if needed… this also gives room for a bigger image. Think like a Marvell chip designer."
+  - Pack every pixel deliberately. Everything is measured and placed with no overlaps and no dead space.
+  - **Name** sits in the white space **to the right of the avatar**, under the cover. Its font scales down (`clamp` plus a fit-to-width step, minimum about 18px, then two lines) so the whole name always shows. Handle, friends count and the facepile go under it in that same column when they fit.
+  - **The showcase/shop picture box moves below the name row**: full content width, a bigger image (about 16:7, tall enough to read logos), `object-fit: cover` with the owner's saved focal point (F12). Shop preview thumbnails sit in the same band.
+  - Action buttons stay in one row under the band.
+  - This **replaces** the centred-avatar idea in F9 for the header. F9's tabs, Friends page and details rows still apply.
+  - Rewrite `browser-checks/profile-showcase-fit.cjs` so it checks:
+    - the name sits right of the avatar, never clipped or overlapped, across short and very long names;
+    - the box is below the name at full width;
+    - there is no gap of more than 12px anywhere in the header, at 320/360/390/430px.
 - **F5. Every profile picture opens that member's profile** (#598).
 - **F6. The rest of the audit**, `docs/tasks/36-site-audit-2026-11-19.md`, in its order: A4–A10, E8–E10, B1–B10 (one app bar, one tab bar, one font set, one post component, one button system), C1–C5, D.
 - **F7. Finish the open feature PRs**, one per train after F1–F6:
@@ -54,7 +58,7 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - subtle motion (≤150 ms press/fade), skeletons instead of "Loading…" text.
   - Screenshot before and after at 360/390px for each screen. Spec to write first: `docs/tasks/39-modern-look.md` (tokens, components, the per-screen list).
 - **F9. Profile and Friends pages look like a finished app.** Owner 2026-11-19: "See the difference. Each profile page and each friends page… still Friends is a button on DanzStak."
-  - Reference screenshots, layout only, DanzStak colours and brand, in `docs/screenshots/owner-reference/`: `profile-familiar-reference`, `friends-things-in-common-reference`, `profile-danzstak`, `friends-danzstak`.
+  - Reference screenshots, layout only, DanzStak colours and brand, in `docs/screenshots/owner-reference/`: `profile-familiar-reference`, `profile-familiar-reference-2` (Events tab, "Share a note…" bubble on the avatar), `friends-things-in-common-reference`, `profile-danzstak`, `friends-danzstak`.
   - **Profile:**
     - big avatar centred over the cover, with a small camera badge (owner only);
     - name with an optional check, then one line "N friends · N following";
@@ -97,8 +101,76 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - one primary action in context (Publish EPK only while the EPK is unpublished, as a slim button inside the EPK ring row).
   - Zeroes never look broken: empty states say what to do next ("Send your first pitch →").
   - Numbers come from the existing APIs (EPK views, booking pipeline, marketplace, follows). Never fake data.
-- **The owner could do this on every page:** F8–F11 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
+- **F12. Every picture can be moved to fit its box.** Owner 2026-11-19: "on all pictures I should be able to move them around to fit them in the box."
+  - Applies to the profile cover, avatar, showcase photo, Tribe cover and Tribe picture, shop cover and event flyer. When the owner sets or edits one: **drag to reposition** (and pinch or slider to zoom) inside a preview of the exact box, then Save.
+  - Store the focal point and zoom (`objectPosition` x/y %, scale) with the image, and render everywhere with `object-fit: cover` plus that position.
+  - Example: the "DACHSHUND" showcase logo is cut off today (`docs/screenshots/owner-reference/profile-duplicate-name-danzstak-2026-11-19.png`).
+  - Reuse one shared component. The cover already has a position (`test-cover-position.cjs`); extend that, don't add a second system.
+- **F13. Tribe page.** Reference: `docs/screenshots/owner-reference/tribe-page-danzstak-2026-11-19.png`.
+  - **Changing the cover also changes the Tribe's picture** in the top-left header and in the Tribes list, unless a separate Tribe picture was set.
+  - **Only Elders see Tribe controls:** Change cover, edit, members tools, pin. Everyone else sees none of them. Enforce on the server too, and add a check as a non-Elder member and a visitor.
+  - Modern look per F8:
+    - no "← Back to Tribes" text button (the app bar back arrow does it);
+    - no huge "✓ Joined" bar (a small "Joined ▾" chip with Leave/Notifications);
+    - pill tabs instead of boxed tabs;
+    - no box inside a box.
+- **F14. The name shows twice on a profile.** "Dachshund Records" appears as the name and again as the bio line under it. Hide a bio or handle line that repeats the name, ignoring case and spacing. Check: a profile whose bio equals its name shows the name once.
+- **F15. Dailies rotate on every return and "bounce and settle".** Owner 2026-11-19: "Dailies should rotate each time the user comes back to the site. They should just bounce and settle."
+  - Each new visit (app open, sign-in, return after more than 30 min) shows friends' Dailies in a new fair order, never the same first tile twice in a row. The member's own tile stays pinned left.
+  - On load the tiles slide in with a short spring: overshoot about 6px, settle within 400ms, staggered 40ms. No motion with `prefers-reduced-motion`.
+  - Check: two visits give different orders and the own tile stays first.
+- **The owner could do this on every page:** F8–F15 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
+
+### Launch gates — "doors open" for 25 testers (owner 2026-11-19)
+Owner: "When you make all the fixes I want you to open it for 25 accounts so we can test… I need all products working and tested."
+
+Work through these in order. Each gate must pass before the next one starts.
+- **G1. Code finishes the fix list** F0–F15 and the CDN steps C1–C2. It tests each fix once (suite plus browser checks at 320/360/390/430px, tapping icon centres).
+- **G2. Claude does two full sweeps from start to finish**, separately, on the live installed PWA at 360 and 390px:
+  - **The route:** sign up as a new member → name/@username → SYNC device registration → Mix (Dailies, composer, post a photo and a video, The Roll, the full-screen viewer) → profile (every tab, edit, pictures repositioned) → Friends → Tribes (create, post, Elder tools) → Events (create one) → Bazaar (browse, product, checkout in test mode) → Music HQ (EPK build/publish, Booking pitch in test mode, Tour Manager) → SYNC (chat, call, ring, Text note) → Notifications → Menu → Settings / Your data (export) → Log out.
+  - **On every screen:** every button is tapped and must work and land on the right screen, with no raw errors, no dead or duplicate buttons, and nothing that looks unfinished.
+  - **Findings:** each problem goes into a new fix list (F16+) here. Code fixes them, then the sweep repeats.
+- **G3. Code clean-up pass.** Remove broken or untranslated strings, half-finished screens, dead code and duplicate CSS and JS. Make one component per job: app bar, tab bar, post, button, sheet, list row. Delete unused assets. Code gets tight, not clunky. No behaviour changes without a check.
+- **G4. Claude tests again before doors open.** One more full sweep (G2 route) plus the full suite and every browser check against the live site.
+- **G5. Every page modern, every button works and goes to the right place** (the F8–F15 standard), confirmed screen by screen with before/after screenshots in `docs/screenshots/launch/`.
+- **G6. Every product works and is tested end to end in Stripe Test Mode:**
+  - single email, Starter/Club/Tour packs, AI EPK, AI redesign, AI profile, AI shop;
+  - Tour Itinerary, contact unlock, translation packs, shop items, event tickets;
+  - buyer pop-up with the all-in price, webhook entitlement, refunds under Terms 8A, unopened-pitch credit return.
+  - Record each result in `docs/tasks/40-launch-check.md`. Live keys stay off until the owner approves.
+- **G7. Doors open for 25 test accounts.**
+  - Invite-only sign-up capped at **25 new accounts**: a server-side counter plus invite links from Menu → Invite friends.
+  - Account 26 sees a friendly "Testing is full — join the waitlist" with an email field.
+  - A "Beta — tell us what's broken" link in Menu.
+  - `docs/TESTING.md` for testers.
+  - The owner gets a push when doors open, and again at 10 and 25 accounts.
+
+### Grading: outstanding, not just passing (owner 2026-11-19)
+Owner: "Everything we texted about is in there to do… make sure it's all checked and graded, not just passing but outstanding student material."
+
+In every sweep (G2, G4), Claude grades **every screen and every product** in `docs/tasks/40-launch-check.md`, scoring 1–10 on each:
+1. **Works:** every button does the right thing and lands on the right screen; no errors, no dead ends.
+2. **Looks:** modern, matches the owner's reference standard (F8–F15); no default browser controls, no boxes in boxes, no clipped or overlapping text.
+3. **Feels:** fast (CDN, first screen in under 2 s after the first visit); smooth motion; nothing jumps.
+4. **Words:** scene-voice copy, no broken or untranslated strings, no instructions where an icon is enough.
+5. **Reach:** 44px targets, readable contrast, keyboard and screen-reader labels; works at 320–430px and on desktop.
+
+**Only an A passes: 9 or 10 in every category.** Anything below goes back to Code as a new F-item, with the grade, a screenshot and the reason. A test that passes on a screen graded below A is not done.
+
+**Owner checklist (everything from the 2026-11-19 texts).** Each item must be graded A before doors open:
+- About on one line; no + bio; name shown once (F14).
+- Profile header with the name beside the avatar and the picture band below (F4).
+- Pictures repositionable (F12).
+- Full-screen photo/video viewer (F1).
+- Roll sound carries over (F2).
+- Dailies scrolling, rotating and bouncing (F3, F15).
+- TAKE count and Dailies/Roll filled (done; verify).
+- Bazaar mixed across shops (done; the server half ships in C1).
+- 720p photos (done); videos at 720p (C3).
+- CDN speed (C1–C4).
+- Notifications (F8), Profile and Friends (F9), Create event (F10), Music HQ dashboard (F11), Tribe page and Elder-only controls (F13).
+- Every page modern (G5), every product tested (G6), 25 testers (G7).
 
 ### CDN plan (task 38)
 - **Done (2026-11-19):**
