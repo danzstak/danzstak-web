@@ -185,3 +185,9 @@ img.post-avatar,img.feed-online-avatar,img.friend-avatar,img.comment-avatar,img.
 @keyframes danzstak-daily-settle{0%{opacity:0;transform:translateX(28px)}60%{opacity:1;transform:translateX(-6px)}82%{transform:translateX(2px)}100%{opacity:1;transform:none}}
 #storiesRail .story.story-enter{animation:danzstak-daily-settle 400ms cubic-bezier(.2,.8,.3,1) both;animation-delay:calc(var(--enter-index,0) * 40ms)}
 @media (prefers-reduced-motion:reduce){#storiesRail .story.story-enter{animation:none}}
+/* F15a (owner 2026-11-19): every strip tile is its own stacking layer, so nothing in it (name, time, video) can paint
+   over your pinned tile while the strip scrolls; photos and video posters fill the tile; a small time label instead
+   of icons and slates. */
+#storiesRail .story[data-story-id]{isolation:isolate}
+#storiesRail .story video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#storiesRail .story-time{position:absolute;top:7px;left:7px;z-index:1;padding:2px 6px;border-radius:4px;background:rgba(11,11,12,.72);color:#fff;font:600 11px/1.3 var(--ds-mono,"JetBrains Mono",ui-monospace,monospace);letter-spacing:.04em;text-transform:uppercase;pointer-events:none}

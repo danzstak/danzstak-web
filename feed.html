@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-4hhIzg7V5NVM55eG+x/moAsXX1VHkTNgTHVQcPM56/4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-lQ58mXBuFcdoMp3p4gkklFeZME02HHjP5qa+omqihL4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -349,7 +349,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 }
 </style>
 <link rel="stylesheet" href="assets/soft-ui.css?v=428">
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=525">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=526">
 <link rel="stylesheet" href="assets/facebook-import.css?v=342">
 <link rel="stylesheet" href="assets/pivot.css?v=3">
 <link rel="stylesheet" href="assets/invite-sharing.css?v=2">
@@ -377,7 +377,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <link rel="stylesheet" href="assets/media-fit.css?v=2">
 <link rel="stylesheet" href="assets/media-viewer.css?v=2">
 <link rel="stylesheet" href="assets/link-preview-cards.css?v=5">
-<link rel="stylesheet" href="assets/mix-polish.css?v=22">
+<link rel="stylesheet" href="assets/mix-polish.css?v=23">
 <link rel="stylesheet" href="assets/tribes-polish.css?v=2">
 <link rel="stylesheet" href="assets/tribes-home.css?v=1">
 <link rel="stylesheet" href="assets/tribe-create.css?v=1">
@@ -981,10 +981,6 @@ function storyDisplayCaption(story) {
   return story?.mediaType === "video" ? "Video Daily" : "Photo Daily";
 }
 
-function formatDailyClock(date = new Date()) {
-  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
-}
-
 function formatDailyDate(date = new Date()) {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
@@ -1259,17 +1255,6 @@ async function loadStories() {
         video.playsInline = true;
         video.preload = readFeedPreference("danzstak_data_saver") === "1" ? "none" : "metadata";
         video.setAttribute("aria-label", "Video Daily from " + storyAuthor + ": " + storyDisplayCaption(story));
-        const slate = document.createElement("span");
-        slate.className = "story-video-slate";
-        slate.innerHTML = `<strong>SCENE ${storyIndex + 1}</strong><small>TAKE 1</small><time>${formatDailyClock(new Date(story.createdAt || Date.now()))}</time>`;
-        item.appendChild(slate);
-        video.addEventListener("loadedmetadata", () => {
-          if (!Number.isFinite(video.duration)) return;
-          const minutes = Math.floor(video.duration / 60);
-          const seconds = Math.floor(video.duration % 60).toString().padStart(2, "0");
-          slate.querySelector("time").textContent = `${minutes}:${seconds}`;
-          slate.querySelector("time").setAttribute("aria-label", `Duration ${minutes} minutes ${Number(seconds)} seconds`);
-        });
         item.appendChild(video);
         const installStoryVideo = async (allowRefresh = true) => {
           const mediaUrl = story.mediaUrl || (allowRefresh ? await refreshStoryMedia(story) : "");
@@ -1283,6 +1268,11 @@ async function loadStories() {
         };
         void installStoryVideo();
       }
+      // F15a: every friend tile looks the same: the picture or poster, a small time label and the name; tap it and it plays.
+      const when = document.createElement("time");
+      when.className = "story-time";
+      window.danzstakTimeLabel?.paint(when, story.createdAt);
+      item.appendChild(when);
       // Directive F3: friends' Dailies open full screen as one run, starting at this friend, swiped left/right card to card.
       open.addEventListener("click", () => openStoryViewer(story, { sequence: visibleStories }));
       item.appendChild(open);
@@ -1940,7 +1930,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
   <menu><button type="button" id="installHelpAction" hidden>Install now</button><button type="button" id="installHelpClose">Close</button></menu>
 </dialog>
 <footer class="site-ownership">&copy; 2026 DanzStak LLC. All rights reserved.<br>User content belongs to its creators.</footer>
-<script src="assets/media-visibility.js?v=402" defer></script>
+<script src="assets/media-visibility.js?v=403" defer></script>
 <script src="assets/media-viewer.js?v=2" defer></script>
 <script src="assets/responsive-media.js?v=3" defer></script>
 <script src="assets/media-fit.js?v=3" defer></script>
