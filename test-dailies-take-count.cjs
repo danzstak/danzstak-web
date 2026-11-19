@@ -16,8 +16,8 @@ assert.match(template, /mediaType==='video'\?\[\{Update:/,
   "photos must not advance the Dailies video Take counter");
 assert.match(template, /observedTakeCount=Math\.max\(0,Number\(dailySettings\.Item\?\.dailyTakeCount\?\.N\|\|0\)\)/,
   "GET /stories must read the durable creator Take count");
-assert.match(template, /storedVideoCount=items\.filter\(item=>item\.userEmail\?\.S===user\.email&&item\.dedicated\?\.BOOL===true&&item\.mediaType\?\.S==='video'/,
-  "GET /stories must count legacy dedicated Dailies videos owned by the current member");
+assert.match(template, /storedVideoCount=items\.filter\(item=>item\.userEmail\?\.S===user\.email&&\(item\.dedicated\?\.BOOL===true\|\|item\.fromPost\?\.BOOL===true\)&&item\.mediaType\?\.S==='video'/,
+  "GET /stories must count the member's Dailies videos, dedicated or made from a post (owner 2026-11-19: TAKE showed 0)");
 assert.match(template, /dailyTakeCount=Math\.max\(observedTakeCount,storedVideoCount\)/,
   "legacy reconciliation must never lower a member's durable Take count");
 assert.match(template, /ADD dailyTakeCount :difference[\s\S]*?dailyTakeCount = :observed/,
