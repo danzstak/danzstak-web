@@ -94,9 +94,11 @@ const device = { deviceId: "44444444-4444-4444-8444-444444444444", deviceToken: 
           transaction.onerror = () => reject(transaction.error);
         };
       }), device);
+      // The first inbox poll runs when incoming-calls.js does, after the whole page and its deferred scripts load, so this
+      // wait covers a cold page load on a busy CI runner (it took longer than 5 s once, train e run 44610785814).
       const registeredInbox = page.waitForResponse(response => (
         new URL(response.url()).pathname === "/calls/inbox" && response.status() === 200
-      ), { timeout: 5000 });
+      ), { timeout: 15000 });
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await registeredInbox;
       await page.locator(`.post[data-post-id="${postId}"]`).waitFor({ state: "visible" });

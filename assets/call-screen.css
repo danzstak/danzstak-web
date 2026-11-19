@@ -2,7 +2,7 @@
 body[data-call-mode="video"]{--call-subtitle-band:0px;--call-pip-top:calc(88px + env(safe-area-inset-top,0px));--call-pip-bottom:calc(26px + 56px + 18px + env(safe-area-inset-bottom,0px) + var(--call-subtitle-band))}
 body[data-call-mode="video"][data-call-subtitles="on"]{--call-subtitle-band:clamp(84px,17dvh,140px)}
 /* Big video: edge to edge, framed slightly above centre (where faces are); ends above the subtitle band when it is on. */
-body[data-call-mode="video"] .video-grid{bottom:var(--call-subtitle-band)!important;height:auto!important;touch-action:manipulation}
+body[data-call-mode="video"] .video-grid{bottom:max(var(--call-subtitle-band),var(--call-note-band,0px))!important;transition:bottom .2s ease;height:auto!important;touch-action:manipulation}
 body[data-call-mode="video"] .video-grid video{max-height:none!important}/* chat.css capped call video at 440px tall */
 body[data-call-mode="video"] .video-grid #remoteVideo,body[data-call-mode="video"] .video-grid[data-swapped="1"] #localVideo{object-fit:cover;object-position:50% 35%}
 body[data-call-mode="video"] .video-grid[data-fit="contain"] #remoteVideo,body[data-call-mode="video"] .video-grid[data-fit="contain"][data-swapped="1"] #localVideo{object-fit:contain;object-position:50% 50%}
@@ -24,3 +24,4 @@ body[data-call-mode="video"][data-call-subtitles="on"] .call-subtitles:not([hidd
 /* Tidy: the self view needs no "You" label (it showed twice), and the old control-bar border drew a line across the video. */
 body[data-call-mode="video"] .video-grid figcaption{display:none!important}
 body[data-call-mode="video"] .media-controls{border:0!important}
+@media(prefers-reduced-motion:reduce){body[data-call-mode="video"] .video-grid{transition:none}}

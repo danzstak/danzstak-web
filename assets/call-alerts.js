@@ -24,15 +24,17 @@
     clearTimeout(noteTimer); noteTimer = setTimeout(() => { note.hidden = true; }, 9000);
   }
 
+  // F15e: a web page rings at the phone's media volume (it can't use the ringer volume), so every result says how to make it loudest.
+  const ringing = text => say(`${t(text)} ${t("Turn up your phone's volume for the loudest ring.")}`);
   async function testRinger() {
     window.danzstakCallRinger?.test(3000); // inside the member's tap, so the phone lets it sound
-    if (window.danzstakSyncDeviceRegistered?.() !== true) { say(t("Ringing here now. Register this phone for calls, then test again to check the ring with SYNC closed.")); return; }
+    if (window.danzstakSyncDeviceRegistered?.() !== true) { ringing("Ringing here now. Register this phone for calls, then test again to check the ring with SYNC closed."); return; }
     const state = await window.danzstakPushState?.().catch(() => "unsupported");
-    if (state !== "enabled") { say(t("Ringing here now. Turn on call alerts so calls ring when SYNC is closed.")); prompt(true); return; }
+    if (state !== "enabled") { ringing("Ringing here now. Turn on call alerts so calls ring when SYNC is closed."); prompt(true); return; }
     try {
       await window.danzstakEnablePush?.(); // re-saves this phone's subscription, tied to its registered calling device
       const result = await api("/push/test", { method: "POST", body: JSON.stringify({ kind: "call" }) });
-      say(result.thisDeviceRings ? t("Ringing here now, and a test call notification is on its way to this phone.") : t("Ringing here now. This phone isn't set up to ring with SYNC closed yet. Try again in a minute."));
+      ringing(result.thisDeviceRings ? "Ringing here now, and a test call notification is on its way to this phone." : "Ringing here now. This phone isn't set up to ring with SYNC closed yet. Try again in a minute.");
     } catch (error) { say(error.message); }
   }
 

@@ -13,6 +13,14 @@ assert.match(html, /for \(let slot = visibleStories\.length; slot < 2; slot \+= 
 assert.match(css, /\.story\.story-placeholder\{position:relative;box-sizing:border-box;border:0!important;\s*background:repeating-linear-gradient\(90deg,#d9d6cf 0 8px/, "owner 2026-11-18: empty slots look like a film strip with sprocket holes");
 assert.match(html, /\["LIGHTS", "SOUND"\], \["ROLLING", "SPEED", "SLATING"\], \["ROLL CAMERA", "ROLL SOUND"\], \["QUIET ON SET"\], \["FINAL CHECKS", "PICTURE IS UP"\]/, "owner 2026-11-18: film-set call sheets for the empty slots");
 assert.match(html, /"ACTION!"/, "Action is the last cue");
+// A set call never splits a word ("ACTIO" / "N!" at 320px): words scale with the tile and wrap only between words.
+// Real browser: browser-checks/dailies-set-call-fit.cjs.
+const cueWords = css.match(/#storiesRail \.story-placeholder-cue b\{([^}]*)\}/)?.[1] || "";
+assert.doesNotMatch(cueWords, /overflow-wrap:anywhere|word-break:break-all/, "set-call words never break inside a word");
+assert.match(cueWords, /overflow-wrap:normal;word-break:keep-all;-webkit-hyphens:none;hyphens:none/, "set-call words wrap only between words");
+assert.match(cueWords, /font-size:clamp\(8px,11\.5cqi,14px\)/, "set-call words scale with the tile width");
+assert.match(css, /#storiesRail \.story-placeholder-cue\{padding:0 4px;container-type:inline-size\}/, "the set-call frame is the size container");
+assert.match(css, /#storiesRail \.story-placeholder-cue b\.is-action\{[^}]*font-size:clamp\(12px,19cqi,20px\)/, "ACTION! scales with the tile width");
 // The inline script edit must keep the CSP hash in step, or the whole Mix script is blocked (caught while building this).
 const csp = html.match(/script-src ([^;]*)/)[1];
 for (const [, body] of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {

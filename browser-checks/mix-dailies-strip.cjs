@@ -35,6 +35,8 @@ const friendStories = Array.from({ length: 4 }, (_, i) => ({ storyId: `s${i}`, m
       });
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.waitForTimeout(1800);
+      // F15: friends' tiles slide in once per load; measure the strip after they settle.
+      await page.evaluate(() => Promise.all([...document.querySelectorAll("#storiesRail .story-enter")].flatMap(tile => tile.getAnimations()).map(animation => animation.finished)));
       const strip = await page.evaluate(() => {
         const rail = document.getElementById("storiesRail"), r = rail.getBoundingClientRect();
         const tiles = [...rail.querySelectorAll(".story")].filter(n => n.getBoundingClientRect().width > 0 && n.id !== "storiesLoading").map(n => { const b = n.getBoundingClientRect(); return { own: n.classList.contains("story-create"), left: b.left, right: b.right, width: b.width }; });
@@ -53,6 +55,22 @@ const friendStories = Array.from({ length: 4 }, (_, i) => ({ storyId: `s${i}`, m
         if (Math.abs(strip.tiles[1].width - expected) > 3) failures.push(`${label}: tiles are not about a third of the screen (${Math.round(strip.tiles[1].width)} vs ${Math.round(expected)})`);
       }
       if (!/^TAKE \d+$/.test(strip.take)) failures.push(`${label}: clapper does not show the member's Dailies count ("${strip.take}")`);
+      // F15a (owner 2026-11-19): while the strip is scrolled, friends' tiles slide fully behind your own tile: nothing from
+      // another tile (a name, a label) may paint over it. Probe a grid of points over the pinned tile.
+      if (withFriends) for (const scrollLeft of [40, 120, 200]) {
+        await page.evaluate(value => { document.getElementById("storiesRail").scrollLeft = value; }, scrollLeft);
+        await page.waitForTimeout(250);
+        const over = await page.evaluate(() => {
+          const own = document.querySelector("#storiesRail .story-create"), r = own.getBoundingClientRect(), hits = [];
+          for (let x = r.left + 1; x < r.right - 1; x += 6) for (let y = r.top + 1; y < r.bottom - 1; y += 12) {
+            const element = document.elementFromPoint(x, y);
+            if (element && !own.contains(element) && element.closest("#storiesRail")) hits.push((element.className || element.tagName).toString().slice(0, 40));
+          }
+          return [...new Set(hits)];
+        });
+        if (over.length) failures.push(`${label}: scrolled ${scrollLeft}px, another tile paints over your own tile (${over.join(", ")})`);
+      }
+      if (withFriends) await page.evaluate(() => { document.getElementById("storiesRail").scrollLeft = 0; });
       if ([360, 390].includes(width)) await page.screenshot({ path: path.join(output, `${prefix}-${withFriends ? "friends" : "own"}-${width}.png`), clip: { x: 0, y: 0, width, height: 360 } });
       if (errors.length) failures.push(`${label}: page errors ${errors.join(" | ")}`);
       await context.close();
@@ -60,5 +78,5 @@ const friendStories = Array.from({ length: 4 }, (_, i) => ({ storyId: `s${i}`, m
   } finally { await browser.close(); }
   const unique = [...new Set(failures)];
   if (unique.length) { console[process.env.AUDIT_ONLY ? "log" : "error"](`Mix Dailies strip: ${unique.length} problem(s)\n- ${unique.join("\n- ")}`); if (!process.env.AUDIT_ONLY) process.exitCode = 1; return; }
-  console.log("Mix Dailies strip checks passed: full-width strip, own tile first then friends', tiles about a third of the screen, own tile pinned, clapper shows the Dailies count.");
+  console.log("Mix Dailies strip checks passed: full-width strip, own tile first then friends', tiles about a third of the screen, own tile pinned with friends' tiles sliding behind it, clapper shows the Dailies count.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

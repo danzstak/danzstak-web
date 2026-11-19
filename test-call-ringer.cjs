@@ -235,12 +235,12 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   assert.match(tonesSource, /const loudChain = tone\.kind === "ring" \? ringChain\(out, master\) : null;/, "Web Audio rings go through the same chain");
   assert.doesNotMatch(ringerSource, /fetch\(|\.(mp3|ogg|m4a|aac|flac)\b|<input[^>]*file/i, "no audio file is fetched or uploaded");
 
-  // ---------- 7. Service worker: long vibration, re-ring every 8 s up to 45 s, stops on every resolution ----------
+  // ---------- 7. Service worker: long vibration; main's re-ring (#663: every 4 s, 6 times) stops on every resolution ----------
   {
     let clock = 0, nextId = 1; const timers = new Map();
     const advance = async ms => { const end = clock + ms; for (;;) { const due = [...timers.entries()].filter(([, t]) => t.at <= end).sort((a, b) => a[1].at - b[1].at)[0]; if (!due) break; timers.delete(due[0]); clock = due[1].at; due[1].fn(); await flush(); await flush(); } clock = end; await flush(); };
     const handlers = {}, messageHandlers = [], shown = [], closed = [], posted = [];
-    let open = [], visible = false;
+    let open = [];
     const self = {
       location: { origin: "https://danzstak.com" },
       addEventListener: (name, fn) => { if (name === "message") messageHandlers.push(fn); else handlers[name] = fn; },
@@ -248,7 +248,7 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
         showNotification: async (title, options) => { shown.push({ title, options }); open = [{ tag: options.tag, data: options.data, close() { closed.push(options.tag); open = open.filter(n => n !== this); } }]; },
         getNotifications: async ({ tag } = {}) => open.filter(n => !tag || n.tag === tag)
       },
-      clients: { matchAll: async () => [{ visibilityState: visible ? "visible" : "hidden", postMessage: m => posted.push(m) }] }
+      clients: { matchAll: async () => [{ visibilityState: "hidden", postMessage: m => posted.push(m) }] }
     };
     vm.runInNewContext(worker, { self, URL, setTimeout: (fn, ms) => { const id = nextId++; timers.set(id, { fn, at: clock + ms }); return id; }, clearTimeout: id => timers.delete(id), Date: class extends Date { static now() { return clock; } }, caches: {}, fetch: async () => ({ ok: true }) });
     const extended = [];
@@ -256,21 +256,19 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     const callId = "22222222-2222-4222-8222-222222222222";
     handlers.push(pushEvent({ type: "call", title: "Incoming call", body: "Tour Friend is calling", tag: `call-${callId}`, url: "/messages.html" }));
     await flush();
-    assert.equal(shown.length, 1); assert.deepEqual([...shown[0].options.vibrate], [600, 300, 600, 300, 600, 300, 600]);
+    assert.equal(shown.length, 1); assert.deepEqual([...shown[0].options.vibrate], [400, 180, 400, 180, 400]);
     assert.equal(shown[0].options.requireInteraction, true); assert.equal(shown[0].options.renotify, true);
-    assert.equal(extended.length, 2, "the worker stays alive while the call rings");
-    await advance(8000); assert.equal(shown.length, 2, "rings again after 8 s"); assert.equal(shown[1].options.tag, `call-${callId}`, "same tag: one notification");
-    visible = true; await advance(8000); assert.equal(shown.length, 2, "an open, visible SYNC rings in the page instead"); visible = false;
-    await advance(8000); assert.equal(shown.length, 3);
+    assert.equal(extended.length, 1, "the worker stays alive while the call rings");
+    await advance(4000); assert.equal(shown.length, 2, "rings again after 4 s"); assert.equal(shown[1].options.tag, `call-${callId}`, "same tag: one notification");
     handlers.push(pushEvent({ type: "call-resolved", callId, reason: "cancelled" })); await flush(); await flush();
     assert.deepEqual(closed, [`call-${callId}`], "the caller hung up: the notification closes");
     assert.deepEqual(JSON.parse(JSON.stringify(posted.at(-1))), { type: "DANZSTAK_CALL_RESOLVED", callId, reason: "cancelled" }, "open pages learn why");
-    await advance(30000); assert.equal(shown.length, 3, "no more rings after it resolved");
-    // The 45 s cap.
+    await advance(30000); assert.equal(shown.length, 2, "no more rings after it resolved");
+    // The cap: about as long as an in-app ring.
     const second = "33333333-3333-4333-8333-333333333333";
     handlers.push(pushEvent({ type: "call", tag: `call-${second}` })); await flush();
     const before = shown.length; await advance(120000);
-    assert.equal(shown.length - before, 5, "at most 45 s of re-ringing (5 more times at 8 s)");
+    assert.equal(shown.length - before, 6, "6 more rings, 4 s apart (about 25 s)");
     // Answered in an open window, tapped, or dismissed: stops.
     const third = "44444444-4444-4444-8444-444444444444";
     handlers.push(pushEvent({ type: "call", tag: `call-${third}` })); await flush();
@@ -353,7 +351,8 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   const setup = read("assets/call-setup.js");
   assert.match(tonesSource, /function ringChain\(out, master\) \{\r?\n    if \(!out\.createDynamicsCompressor\) return null;/, "rings are compressed and lifted (owner: ring tones too quiet)");
   assert.match(tonesSource, /const RING_MAKEUP_GAIN = 3\.2, RING_DRIVE = 24, RING_HIGHPASS_HZ = 600, RING_CEILING = 0\.97;/, "F15e: rings driven into the phone-speaker band and limited (browser-checks/ringer-loudness.cjs measures +10 dB)");
-  assert.match(setup, /const DEFAULT_RING = 0\.8;/, "louder default ring volume");
+  assert.match(setup, /const DEFAULT_RING = 1;/, "F15e: the default ring volume is the maximum");
+  assert.match(alertsSource, /const ringing = text => say\(`\$\{t\(text\)\} \$\{t\("Turn up your phone's volume for the loudest ring\."\)\}`\);/, "F15e: Test ringer says how to make it loudest");
   assert.match(chat, /finally\{delete els\.enable\.dataset\.busy;els\.enable\.disabled=false;\}/, "Call alerts can be tapped again (owner: it did nothing)");
   assert.match(chat, /window\.danzstakShowFeedback\?\.\(message,\{urgent\}\)/, "Call alerts shows its result on screen");
   assert.match(read("messages.html"), /<script src="assets\/call-alerts\.js\?v=\d+" defer><\/script>/);
@@ -361,5 +360,5 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     const start = i18n.indexOf(`"${lang}": {`), block = i18n.slice(start, i18n.indexOf("\n}", start));
     for (const key of ["Tap to hear the ringer", "Call ended.", "Test ringer", "Turn on call alerts so calls ring when SYNC is closed", "Turn on", "Not now", "Ringing here now, and a test call notification is on its way to this phone."]) assert.ok(block.includes(JSON.stringify(key) + ":"), `${lang}: ${key}`);
   }
-  console.log("Call ringer checks passed: <audio> → Web Audio → tap prompt, touch-safe unlock + visibilitychange, vibration, every stop, quiet hours, SW re-ring 8 s/45 s with every stop, caller-cancel push, test call push, push re-link, Test ringer + prompt, it/fr/es/de/pt.");
+  console.log("Call ringer checks passed: <audio> → Web Audio → tap prompt, touch-safe unlock + visibilitychange, vibration, every stop, quiet hours, SW re-ring (main's 4 s × 6) with every stop, caller-cancel push, test call push, push re-link, Test ringer + prompt, it/fr/es/de/pt.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

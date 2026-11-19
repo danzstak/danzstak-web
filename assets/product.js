@@ -6,12 +6,13 @@
   const productId = new URLSearchParams(location.search).get("id") || "";
   const money = cents => new Intl.NumberFormat(undefined, { style:"currency", currency:"USD" }).format(Number(cents || 0) / 100);
   async function load() {
-    if (!/^[a-f0-9-]{36}$/i.test(productId)) { status.textContent = "This product link is not valid."; return; }
+    const missing = (message, notFound) => { status.textContent = message; window.danzstakPageMissing?.(status, { title: notFound ? "Product not found" : "Product unavailable", back: "Back to the Bazaar", href: "bazaar.html" }); };
+    if (!/^[a-f0-9-]{36}$/i.test(productId)) { missing("This product link is not valid.", true); return; }
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 12000);
     try {
       const response = await fetch(`${API}/marketplace/bazaar/${encodeURIComponent(productId)}`, { credentials:"include", cache:"no-store", signal:controller.signal });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "The product could not be loaded.");
+      if (!response.ok) throw Object.assign(new Error(data.error || "The product could not be loaded."), { status: response.status });
       const product = data.product;
       byId("productTitle").textContent = product.title;
       byId("productDescription").textContent = product.description || "No description was provided.";
@@ -23,7 +24,7 @@
       document.title = `${product.title} | DanzStak Bazaar`;
       status.textContent = ""; detail.hidden = false;
     } catch (error) {
-      status.textContent = error.name === "AbortError" ? "The product took too long to respond. Try again." : (error instanceof TypeError || error.message === "Failed to fetch" ? "The Bazaar is temporarily unavailable. Try again shortly." : error.message);
+      missing(error.name === "AbortError" ? "The product took too long to respond. Try again." : (error instanceof TypeError || error.message === "Failed to fetch" ? "The Bazaar is temporarily unavailable. Try again shortly." : error.message), error.status === 404);
     } finally { clearTimeout(timer); }
   }
   load();

@@ -6,7 +6,9 @@ const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf
 const code = source.slice(source.indexOf('async function refreshNotificationCount()'), source.indexOf('function readSections()'));
 const requests = [], counts = [], document = { hidden: true };
 let settings = {};
-const context = vm.createContext({ document, AbortController, setTimeout, clearTimeout, readSections: () => settings,
+let reminderNeeded = false;
+const window = { danzstakDeviceReminder: { needed: async () => reminderNeeded, unread: () => true } };
+const context = vm.createContext({ document, window, AbortController, setTimeout, clearTimeout, readSections: () => settings,
   notificationSourceCounts: { social: null, engagement: null }, updateNotificationCount: count => counts.push(count),
   fetch: (_, options) => new Promise((resolve, reject) => {
     requests.push({ resolve, reject }); options.signal.addEventListener('abort', () => reject(new Error('Timed out')));
@@ -30,12 +32,23 @@ vm.runInContext('let notificationCountLoading = false;' + code, context);
   settings = { Settings: { notifications: false } };
   await vm.runInContext('refreshNotificationCount()', context);
   assert.equal(counts.at(-1), 0, 'turning badges off clears the visible count');
-  assert.equal(vm.runInContext('JSON.stringify(notificationSourceCounts)', context), '{"social":0,"engagement":0}', 'turning badges off clears stale source counts');
+  assert.equal(vm.runInContext('JSON.stringify(notificationSourceCounts)', context), '{"social":0,"engagement":0,"device":0}', 'turning badges off clears stale source counts');
   settings = {};
   const enabled = vm.runInContext('refreshNotificationCount()', context);
   requests[4].resolve({ ok: true, json: async () => ({ notifications: [{}, {}, {}] }) });
   requests[5].reject(new Error('Engagement offline'));
   await enabled;
   assert.equal(counts.at(-1), 3, 're-enabling after a partial failure must not resurrect an old source count');
+  // Owner 2026-11-19: an unverified device adds its "verify this device" reminder to the bell, even when the API is down.
+  reminderNeeded = true;
+  const reminded = vm.runInContext('refreshNotificationCount()', context);
+  requests[6].resolve({ ok: true, json: async () => ({ notifications: [{}, {}, {}] }) });
+  requests[7].reject(new Error('Engagement offline'));
+  await reminded;
+  assert.equal(counts.at(-1), 4, 'the reminder counts on the bell');
+  const offline = vm.runInContext('refreshNotificationCount()', context);
+  requests[8].reject(new Error('Offline')); requests[9].reject(new Error('Offline'));
+  await offline;
+  assert.equal(counts.at(-1), 4, 'offline, the reminder still counts with the last known notifications');
   console.log('Notification polling checks passed: hidden tabs, overlap prevention, failure recovery, and preference resets.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
