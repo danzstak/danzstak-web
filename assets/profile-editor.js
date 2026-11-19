@@ -821,7 +821,8 @@ function profileWallComposer(profile) {
         mediaType = ticket.mediaType;
         uploadedMediaKey = mediaKey;
       }
-      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType };
+      // T0-A1: every posted video goes to The Roll (the server also adds Dailies by itself).
+      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType, reel: mediaType === "video" };
       if (!profile.isOwner) body.profileMemberId = profile.memberId;
       const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({}));
