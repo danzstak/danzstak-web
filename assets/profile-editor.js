@@ -115,11 +115,6 @@ bioElement.className = "profile-bio";
 // gets one small "+ bio" icon that opens the editor.
 bioElement.hidden = true;
 handleElement.insertAdjacentElement("afterend", bioElement);
-const addBioButton = document.createElement("button");
-addBioButton.type = "button"; addBioButton.className = "profile-add-bio"; addBioButton.hidden = true;
-addBioButton.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 5v14M5 12h14"/></svg><span>bio</span>';
-addBioButton.setAttribute("aria-label", profileTranslate("Add a bio")); addBioButton.title = addBioButton.getAttribute("aria-label");
-bioElement.insertAdjacentElement("afterend", addBioButton);
 
 function detail(label, id) {
   const box = document.createElement("div");
@@ -821,7 +816,8 @@ function profileWallComposer(profile) {
         mediaType = ticket.mediaType;
         uploadedMediaKey = mediaKey;
       }
-      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType };
+      // T0-A1: every posted video goes to The Roll (the server also adds Dailies by itself).
+      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType, reel: mediaType === "video" };
       if (!profile.isOwner) body.profileMemberId = profile.memberId;
       const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({}));
@@ -1235,12 +1231,13 @@ function renderProfileWebsite(value) {
 function applyProfile(profile) {
   if (profile.name) document.getElementById("profileName").textContent = profile.name;
   if (profile.handle) handleElement.textContent = "@" + profile.handle;
+  // Owner 2026-11-19 (A12): no @username line under the name; the friends facepile (#572) sits there instead.
+  // The element stays (hidden) because the editor reads the handle from it.
+  handleElement.hidden = true;
   bioElement.textContent = profile.bio || "";
   bioElement.hidden = !profile.bio;
-  addBioButton.hidden = Boolean(profile.bio) || profile.isOwner !== true || viewingOtherProfile;
-  // Owner 2026-11-18: "+ bio" is the 5th icon in the action row (edit · shop · share · people · bio), not its own line.
-  const profileActionRow = document.querySelector(".profile-actions");
-  if (profileActionRow && addBioButton.parentElement !== profileActionRow) { addBioButton.classList.add("ds-icon-button", "profile-add-bio--icon"); profileActionRow.appendChild(addBioButton); }
+  // Owner 2026-11-19: no "+ bio" button in the profile header — it duplicated Edit profile ("4 of those 5 buttons do
+  // the same thing") and once leaked to visitors. The long-form bio is added from the About tab (#556).
   window.danzstakLinkifyUserText?.(bioElement);
   setProfileDetail("profileLocation", profile.location);
   setProfileDetail("profileWork", profile.work);
@@ -1264,8 +1261,11 @@ function applyProfile(profile) {
   }
 }
 
-addBioButton.addEventListener("click", () => { editButton.click(); setTimeout(() => { const field = document.querySelector(".edit-profile-panel [name='bio']"); const section = field?.closest("details"); if (section) section.open = true; field?.focus(); field?.scrollIntoView({ block: "center" }); }, 200); });
+// Only the account holder can open or save the editor (owner 2026-11-18: "when I click on it I can edit a profile
+// that is not mine" — the form filled with the other member's details and Save would have written them to your own).
+const canEditThisProfile = () => !viewingOtherProfile && window.danzstakCurrentProfile?.isOwner !== false;
 editButton.addEventListener("click", () => {
+  if (!canEditThisProfile()) return;
   const profile = window.danzstakCurrentProfile?.cloudProfile ? window.danzstakCurrentProfile : savedProfile();
   panel.elements.name.value = profile.name || document.getElementById("profileName").textContent;
   panel.elements.handle.value = profile.handle || handleElement.textContent.replace(/^@/, "");
@@ -1292,6 +1292,7 @@ document.getElementById("profileName").addEventListener("click", () => {
 panel.querySelector("[data-cancel]").addEventListener("click", () => { panel.hidden = true; repositioning = false; finishReposition.hidden = true; coverElement.classList.remove("repositioning"); repositionButton.classList.remove("active"); repositionButton.textContent = "Reposition Cover"; });
 panel.addEventListener("submit", async event => {
   event.preventDefault();
+  if (!canEditThisProfile()) { panel.hidden = true; return; }
   if (!panel.reportValidity()) return;
   const profile = Object.fromEntries(new FormData(panel).entries());
   if (String(profile.website || "").trim()) {
