@@ -24,12 +24,16 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
 - **F1. Tap a photo or video → full screen.** The owner says it still doesn't work, because the viewer never merged. **#594 is green and ready.** Bring it up to date with main and merge it first, then check on the live app: Mix, Tribes, profile Posts, and the Photos/Videos tabs.
 - **F2. The Roll keeps the sound choice.** Owner: "each video I have to turn the audio on." Once sound is on, the next Roll video stays audible, whether reached by scroll or auto-advance; mute carries over the same way; never two audible players. Browser check with real playback. Root cause is likely `media-visibility.js` session sound (`sessionSound`) reset or not applied on the next card.
 - **F3. Dailies scrolling doesn't work** (owner's phone). Reproduce with touch at 360/390px, fix the root cause, and add a check that swipes both the strip and the full-screen Dailies. Land #605 (tile never opens the picker), #609 and #587 in the same train.
-- **F4. The photo/shop box beside the avatar fills the free space.** #629 stopped it covering the name. Now:
-  - It grows to fill all unused space: down to the avatar's bottom or the action row when the name text doesn't reach under it.
-  - It shrinks again when the name gets longer or the screen narrower.
-  - The image scales to fill the box (`object-fit: cover`).
-  - Recompute on resize and on name change.
-  - Extend `browser-checks/profile-showcase-fit.cjs`: a short name gives a tall box; a long name puts the box above the name.
+- **F4. Profile header: name beside the avatar, picture box below it.** Owner 2026-11-19, replacing the earlier "box beside the avatar" layout: "put the name to the right of the profile image and move the image box below the name… make the font size smaller to fit the space if needed… this also gives room for a bigger image. Think like a Marvell chip designer."
+  - Pack every pixel deliberately. Everything is measured and placed with no overlaps and no dead space.
+  - **Name** sits in the white space **to the right of the avatar**, under the cover. Its font scales down (`clamp` plus a fit-to-width step, minimum about 18px, then two lines) so the whole name always shows. Handle, friends count and the facepile go under it in that same column when they fit.
+  - **The showcase/shop picture box moves below the name row**: full content width, a bigger image (about 16:7, tall enough to read logos), `object-fit: cover` with the owner's saved focal point (F12). Shop preview thumbnails sit in the same band.
+  - Action buttons stay in one row under the band.
+  - This **replaces** the centred-avatar idea in F9 for the header. F9's tabs, Friends page and details rows still apply.
+  - Rewrite `browser-checks/profile-showcase-fit.cjs` so it checks:
+    - the name sits right of the avatar, never clipped or overlapped, across short and very long names;
+    - the box is below the name at full width;
+    - there is no gap of more than 12px anywhere in the header, at 320/360/390/430px.
 - **F5. Every profile picture opens that member's profile** (#598).
 - **F6. The rest of the audit**, `docs/tasks/36-site-audit-2026-11-19.md`, in its order: A4–A10, E8–E10, B1–B10 (one app bar, one tab bar, one font set, one post component, one button system), C1–C5, D.
 - **F7. Finish the open feature PRs**, one per train after F1–F6:
@@ -54,7 +58,7 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - subtle motion (≤150 ms press/fade), skeletons instead of "Loading…" text.
   - Screenshot before and after at 360/390px for each screen. Spec to write first: `docs/tasks/39-modern-look.md` (tokens, components, the per-screen list).
 - **F9. Profile and Friends pages look like a finished app.** Owner 2026-11-19: "See the difference. Each profile page and each friends page… still Friends is a button on DanzStak."
-  - Reference screenshots, layout only, DanzStak colours and brand, in `docs/screenshots/owner-reference/`: `profile-familiar-reference`, `friends-things-in-common-reference`, `profile-danzstak`, `friends-danzstak`.
+  - Reference screenshots, layout only, DanzStak colours and brand, in `docs/screenshots/owner-reference/`: `profile-familiar-reference`, `profile-familiar-reference-2` (Events tab, "Share a note…" bubble on the avatar), `friends-things-in-common-reference`, `profile-danzstak`, `friends-danzstak`.
   - **Profile:**
     - big avatar centred over the cover, with a small camera badge (owner only);
     - name with an optional check, then one line "N friends · N following";
@@ -97,7 +101,25 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - one primary action in context (Publish EPK only while the EPK is unpublished, as a slim button inside the EPK ring row).
   - Zeroes never look broken: empty states say what to do next ("Send your first pitch →").
   - Numbers come from the existing APIs (EPK views, booking pipeline, marketplace, follows). Never fake data.
-- **The owner could do this on every page:** F8–F11 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
+- **F12. Every picture can be moved to fit its box.** Owner 2026-11-19: "on all pictures I should be able to move them around to fit them in the box."
+  - Applies to the profile cover, avatar, showcase photo, Tribe cover and Tribe picture, shop cover and event flyer. When the owner sets or edits one: **drag to reposition** (and pinch or slider to zoom) inside a preview of the exact box, then Save.
+  - Store the focal point and zoom (`objectPosition` x/y %, scale) with the image, and render everywhere with `object-fit: cover` plus that position.
+  - Example: the "DACHSHUND" showcase logo is cut off today (`docs/screenshots/owner-reference/profile-duplicate-name-danzstak-2026-11-19.png`).
+  - Reuse one shared component. The cover already has a position (`test-cover-position.cjs`); extend that, don't add a second system.
+- **F13. Tribe page.** Reference: `docs/screenshots/owner-reference/tribe-page-danzstak-2026-11-19.png`.
+  - **Changing the cover also changes the Tribe's picture** in the top-left header and in the Tribes list, unless a separate Tribe picture was set.
+  - **Only Elders see Tribe controls:** Change cover, edit, members tools, pin. Everyone else sees none of them. Enforce on the server too, and add a check as a non-Elder member and a visitor.
+  - Modern look per F8:
+    - no "← Back to Tribes" text button (the app bar back arrow does it);
+    - no huge "✓ Joined" bar (a small "Joined ▾" chip with Leave/Notifications);
+    - pill tabs instead of boxed tabs;
+    - no box inside a box.
+- **F14. The name shows twice on a profile.** "Dachshund Records" appears as the name and again as the bio line under it. Hide a bio or handle line that repeats the name, ignoring case and spacing. Check: a profile whose bio equals its name shows the name once.
+- **F15. Dailies rotate on every return and "bounce and settle".** Owner 2026-11-19: "Dailies should rotate each time the user comes back to the site. They should just bounce and settle."
+  - Each new visit (app open, sign-in, return after more than 30 min) shows friends' Dailies in a new fair order, never the same first tile twice in a row. The member's own tile stays pinned left.
+  - On load the tiles slide in with a short spring: overshoot about 6px, settle within 400ms, staggered 40ms. No motion with `prefers-reduced-motion`.
+  - Check: two visits give different orders and the own tile stays first.
+- **The owner could do this on every page:** F8–F15 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
 ### CDN plan (task 38)
