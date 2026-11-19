@@ -41,7 +41,7 @@ const target = path.join(root, "sync", "index.html");
 // Returns true when sync/index.html changed (or would change with dryRun).
 function write({ dryRun = false } = {}) {
   const next = build(source());
-  const current = fs.existsSync(target) ? fs.readFileSync(target, "utf8") : "";
+  const current = fs.existsSync(target) ? fs.readFileSync(target, "utf8").replace(/\r\n/g, "\n") : ""; // a Windows checkout has CRLF
   if (current === next) return false;
   if (!dryRun) { fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, next); }
   return true;

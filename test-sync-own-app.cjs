@@ -3,7 +3,8 @@
 // browser check is browser-checks/sync-own-app.cjs (manifest scope basics also live in test-sync-standalone.cjs).
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const read = file => fs.readFileSync(file, "utf8");
+// Windows checkouts (CI) turn LF into CRLF; compare text, not line endings.
+const read = file => fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n");
 const { build } = require("./scripts/build-sync-app.cjs");
 const sync = JSON.parse(read("sync.webmanifest")), main = JSON.parse(read("manifest.webmanifest"));
 const page = read("sync/index.html"), messages = read("messages.html"), app = read("assets/sync-app.js"), pwa = read("assets/pwa.js");
