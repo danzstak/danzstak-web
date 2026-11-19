@@ -1188,7 +1188,19 @@ function renderProfileShowcase(shop, profile = {}) {
 
 // Sit in the white space under the cover, never on top of the cover photo.
 function placeProfileShopPreview(preview) {
-  const place = () => { const cover = document.querySelector(".cover"), box = preview.offsetParent; if (!cover || !box) return; preview.style.top = Math.max(8, Math.round(cover.getBoundingClientRect().bottom - box.getBoundingClientRect().top) + 10) + "px"; };
+  // Owner 2026-11-19 (screenshot): the box sat on top of the member's name. It now starts right where the cover photo
+  // ends and is sized to the space between the cover and the name, so the name always shows in full.
+  const place = () => {
+    const cover = document.querySelector(".cover"), box = preview.offsetParent, name = document.getElementById("profileName");
+    if (!cover || !box) return;
+    const coverBottom = cover.getBoundingClientRect().bottom, boxTop = box.getBoundingClientRect().top;
+    preview.style.top = Math.max(0, Math.round(coverBottom - boxTop) + 4) + "px";
+    const avatar = document.getElementById("profileInitial");
+    if (avatar) preview.style.left = Math.round(avatar.getBoundingClientRect().right - box.getBoundingClientRect().left + 12) + "px"; // clear of the round photo and its ring
+    const room = name ? Math.floor(name.getBoundingClientRect().top - coverBottom - 4 - 8) : 84;
+    preview.style.setProperty("--showcase-room", Math.max(40, Math.min(room, 96)) + "px");
+    preview.classList.toggle("is-tight", room < 72);
+  };
   place(); requestAnimationFrame(place);
   if (!window.__danzstakShopPreviewResize) { window.__danzstakShopPreviewResize = true; window.addEventListener("resize", () => { const current = document.querySelector(".profile-shop-preview"); if (current) current.dispatchEvent(new Event("danzstak:place")); }); }
   preview.addEventListener("danzstak:place", place);
