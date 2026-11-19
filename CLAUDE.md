@@ -392,6 +392,7 @@ Owner: "Make all the little things we've done so far work and look good so I can
 Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, translate), Twilio upgrade, Stripe test keys, live testing on two real phones.
 
 ### Builder log (newest first)
+- 2026-11-19 01:22 UTC · Claude Code · T2a profile pictures → PR #598 (wall authors, SYNC list photo, online friends link to profiles; 44px tap areas; your own picture opens Change profile picture: this phone or your DanzStak photos; profile post box now shows your photo; + bio last in the row) · Next: T2b
 - 2026-11-19 · Claude (planning chat) · owner asked what's next → "T2 checklist" (16 fix-it items) added under the test-ready plan; queue rows T2a–T2p · Next: T1
 - 2026-11-19 00:45 UTC · Claude (planning chat) · owner: tap photo/video → full screen **vertical** swipe through that member's photos/videos (was horizontal); Dailies = horizontal swipe; The Roll = carousel swipe → plan steps 1 and 6 updated, queue 5a1/5a7 · Next: T1
 - 2026-11-19 00:40 UTC · Claude (planning chat) · owner: Twilio is upgraded (paid), not Trial; plan T4 updated · Next: T1
