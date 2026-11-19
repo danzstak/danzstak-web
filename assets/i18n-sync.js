@@ -5,6 +5,8 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Sending…": "Invio…",
+"Not delivered, try again": "Non consegnata, riprova",
 "Get a SYNC icon on your home screen, straight to your chats.": "Un'icona SYNC nella schermata Home, dritta alle tue chat.",
 "Add SYNC to home screen": "Aggiungi SYNC alla schermata Home",
 "Save the SYNC app to your home screen": "Salva l'app SYNC nella schermata Home",
@@ -293,6 +295,8 @@
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
 },
 "fr": {
+"Sending…": "Envoi…",
+"Not delivered, try again": "Pas reçu, réessaie",
 "Get a SYNC icon on your home screen, straight to your chats.": "Une icône SYNC sur ton écran d'accueil, directement vers tes chats.",
 "Add SYNC to home screen": "Ajouter SYNC à l'écran d'accueil",
 "Save the SYNC app to your home screen": "Enregistre l'app SYNC sur ton écran d'accueil",
@@ -582,6 +586,8 @@
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
 },
 "es": {
+"Sending…": "Enviando…",
+"Not delivered, try again": "No entregada, inténtalo de nuevo",
 "Get a SYNC icon on your home screen, straight to your chats.": "Un icono de SYNC en tu pantalla de inicio, directo a tus chats.",
 "Add SYNC to home screen": "Añadir SYNC a la pantalla de inicio",
 "Save the SYNC app to your home screen": "Guarda la app SYNC en tu pantalla de inicio",
@@ -870,6 +876,8 @@
 "You can resend once. Try again in 10 minutes.": "Solo puedes reenviar una vez. Inténtalo de nuevo en 10 minutos."
 },
 "de": {
+"Sending…": "Wird gesendet…",
+"Not delivered, try again": "Nicht zugestellt, versuch es noch mal",
 "Get a SYNC icon on your home screen, straight to your chats.": "Ein SYNC-Symbol auf deinem Startbildschirm, direkt zu deinen Chats.",
 "Add SYNC to home screen": "SYNC zum Startbildschirm hinzufügen",
 "Save the SYNC app to your home screen": "Speichere die SYNC-App auf deinem Startbildschirm",
@@ -973,6 +981,8 @@
 "You can resend once. Try again in 10 minutes.": "Du kannst nur einmal erneut senden. Versuche es in 10 Minuten erneut."
 },
 "pt": {
+"Sending…": "Enviando…",
+"Not delivered, try again": "Não entregue, tente de novo",
 "Get a SYNC icon on your home screen, straight to your chats.": "Um ícone do SYNC na sua tela inicial, direto para as suas conversas.",
 "Add SYNC to home screen": "Adicionar o SYNC à tela inicial",
 "Save the SYNC app to your home screen": "Salve o app SYNC na sua tela inicial",

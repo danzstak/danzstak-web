@@ -89,6 +89,7 @@ jobs:
         run: |
           .\scripts\run-checks.ps1 -Checks @(
             '.\browser-checks\call-video-two-party.cjs'
+            '.\browser-checks\call-note.cjs'
             '.\browser-checks\call-audio-output.cjs'
             '.\browser-checks\foreground-call-ringtone.cjs'
             '.\browser-checks\ringer-loudness.cjs'
