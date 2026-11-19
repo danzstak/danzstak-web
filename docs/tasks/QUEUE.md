@@ -24,6 +24,8 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-A1 | **Owner bug:** posted video not in Dailies/The Roll → automatic from every composer (server-side), remove opt-in checkboxes, backfill | 36 | TODO |
 | T0-A2 | **Owner bug:** Dailies tile opens the photo picker; only your own big profile picture edits; every other avatar opens that profile | 36 | TODO |
 | T0-A3 | **Owner bug:** The Roll full screen loses sound (carry the sound choice over) + fill the screen | 36 | TODO |
+| T0-A11 | **Owner bug:** + bio opens the long-bio editor (not Edit profile); only the account holder sees it | 36 | TODO |
+| T0-A12 | **Owner:** remove @username under the profile name; friends row there; tap a friend's photo → their posts | 36, 5a3 | TODO |
 | T0-A4 | Saved page crash (`volatilePostPreferences` used before declared) | 36 | TODO |
 | T0-A5 | Record Stores crash + endless loading | 36 | TODO |
 | T0-A6 | Shop manager shows a raw JS error; shared friendly-error helper; Save shop feedback | 36 | TODO |
