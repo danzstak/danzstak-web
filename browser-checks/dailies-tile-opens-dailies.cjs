@@ -71,6 +71,14 @@ async function touchSwipe(page, fromX, toX, y) {
   await page.waitForTimeout(250);
 }
 
+// The viewer changes Daily synchronously, but the browser delivers a tap's click (and a swipe's pointerup) a moment
+// after Playwright's touch call returns; on a busy CI machine the state was read before that click arrived. Wait for
+// the Daily the step should reach (up to 3 s), then read the whole state.
+async function stateAt(page, count) {
+  await page.waitForFunction(expected => document.querySelector("#storyViewer .story-viewer-count")?.textContent === expected, count, { timeout: 3000 }).catch(() => {});
+  return viewerState(page);
+}
+
 (async () => {
   fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({ channel: "msedge", headless: true });
@@ -139,16 +147,16 @@ async function touchSwipe(page, fromX, toX, y) {
       assert.ok(state.smallestTarget >= 44, `${label}: viewer buttons are at least 44px (${state.smallestTarget})`);
       if (width === 360 || width === 390) await run.page.screenshot({ path: path.join(output, `viewer-${width}.png`) });
       await touchSwipe(run.page, width * 0.8, width * 0.2, 400);
-      state = await viewerState(run.page);
+      state = await stateAt(run.page, "2 / 3");
       assert.deepEqual([state.caption, state.count, state.open], ["Merch table", "2 / 3", true], `${label}: a finger swipe left goes to the next Daily`);
       await run.page.locator(".story-viewer-next").tap();
-      state = await viewerState(run.page);
+      state = await stateAt(run.page, "3 / 3");
       assert.deepEqual([state.caption, state.count, state.next, state.prev], ["Last call", "3 / 3", false, true], `${label}: › goes to the last Daily`);
       await touchSwipe(run.page, width * 0.2, width * 0.8, 400);
-      state = await viewerState(run.page);
+      state = await stateAt(run.page, "2 / 3");
       assert.deepEqual([state.caption, state.count], ["Merch table", "2 / 3"], `${label}: a finger swipe right goes back`);
       await run.page.keyboard.press("ArrowLeft");
-      state = await viewerState(run.page);
+      state = await stateAt(run.page, "1 / 3");
       assert.equal(state.count, "1 / 3", `${label}: arrow keys move too`);
       // Delete your own Daily from the viewer: the next one shows and the tile count drops.
       await run.page.locator(".story-viewer-delete").tap();
