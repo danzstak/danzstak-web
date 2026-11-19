@@ -126,7 +126,7 @@ self.addEventListener("push", event => {
     if (candidate.origin === self.location.origin && /^\/(?:feed|messages|profile)\.html$/.test(candidate.pathname)) url = candidate.pathname + candidate.search + candidate.hash;
   } catch { /* Keep the safe feed destination. */ }
   const call = payload.type === "call";
-  event.waitUntil(self.registration.showNotification(title, {
+  const options = {
     body,
     icon: "/assets/favicon-192.png",
     badge: "/assets/notification-badge.png",
@@ -138,8 +138,24 @@ self.addEventListener("push", event => {
     // 16-F: the lock-screen ring has Accept and Decline. Decline refuses the call without opening the app.
     actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Accept").slice(0, 40) }, { action: "decline", title: String(payload.declineTitle || payload.dismissTitle || "Decline").slice(0, 40) }] : [],
     data: { url, type: call ? "call" : payload.type === "booking" ? "booking" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
-  }));
+  };
+  event.waitUntil(call && payload.silent !== true ? ringCallNotification(title, options) : self.registration.showNotification(title, options));
 });
+
+// Owner 2026-11-19 (screenshot): the call notification arrived but "still not ringing". A web push plays the phone's
+// notification sound once, not a ringtone. So while the call is still waiting (the notification is still there: not
+// answered, declined or ended, which close it), show it again every few seconds with renotify, so the phone sounds and
+// vibrates again, for about as long as an in-app ring (25 s).
+const CALL_RING_REPEATS = 6, CALL_RING_EVERY_MS = 4000;
+async function ringCallNotification(title, options) {
+  await self.registration.showNotification(title, options);
+  for (let i = 0; i < CALL_RING_REPEATS; i++) {
+    await new Promise(resolve => setTimeout(resolve, CALL_RING_EVERY_MS));
+    const open = await self.registration.getNotifications({ tag: options.tag });
+    if (!open.length) return; // answered, declined, dismissed or the call ended (call-resolved push)
+    await self.registration.showNotification(title, { ...options, renotify: true });
+  }
+}
 
 // 16-F: Decline from the lock screen. The server refuses the offer (cookie session, no camera or microphone) and tells the
 // caller; open SYNC windows stop ringing. If the network is down the caller's ring simply times out.
