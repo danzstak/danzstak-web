@@ -1237,10 +1237,10 @@ function applyProfile(profile) {
   if (profile.handle) handleElement.textContent = "@" + profile.handle;
   bioElement.textContent = profile.bio || "";
   bioElement.hidden = !profile.bio;
-  addBioButton.hidden = Boolean(profile.bio) || profile.isOwner !== true || viewingOtherProfile;
-  // Owner 2026-11-18: "+ bio" is the 5th icon in the action row (edit · shop · share · people · bio), not its own line.
-  const profileActionRow = document.querySelector(".profile-actions");
-  if (profileActionRow && addBioButton.parentElement !== profileActionRow) { addBioButton.classList.add("ds-icon-button", "profile-add-bio--icon"); profileActionRow.appendChild(addBioButton); }
+  // Owner 2026-11-18 (later): "+ bio" did the same as Edit profile (redundant) and showed on other members' profiles,
+  // where it opened the editor. Removed: the bio is edited in Edit profile, which only the account holder sees.
+  addBioButton.hidden = true;
+  addBioButton.remove();
   window.danzstakLinkifyUserText?.(bioElement);
   setProfileDetail("profileLocation", profile.location);
   setProfileDetail("profileWork", profile.work);
@@ -1265,7 +1265,11 @@ function applyProfile(profile) {
 }
 
 addBioButton.addEventListener("click", () => { editButton.click(); setTimeout(() => { const field = document.querySelector(".edit-profile-panel [name='bio']"); const section = field?.closest("details"); if (section) section.open = true; field?.focus(); field?.scrollIntoView({ block: "center" }); }, 200); });
+// Only the account holder can open or save the editor (owner 2026-11-18: "when I click on it I can edit a profile
+// that is not mine" — the form filled with the other member's details and Save would have written them to your own).
+const canEditThisProfile = () => !viewingOtherProfile && window.danzstakCurrentProfile?.isOwner !== false;
 editButton.addEventListener("click", () => {
+  if (!canEditThisProfile()) return;
   const profile = window.danzstakCurrentProfile?.cloudProfile ? window.danzstakCurrentProfile : savedProfile();
   panel.elements.name.value = profile.name || document.getElementById("profileName").textContent;
   panel.elements.handle.value = profile.handle || handleElement.textContent.replace(/^@/, "");
@@ -1292,6 +1296,7 @@ document.getElementById("profileName").addEventListener("click", () => {
 panel.querySelector("[data-cancel]").addEventListener("click", () => { panel.hidden = true; repositioning = false; finishReposition.hidden = true; coverElement.classList.remove("repositioning"); repositionButton.classList.remove("active"); repositionButton.textContent = "Reposition Cover"; });
 panel.addEventListener("submit", async event => {
   event.preventDefault();
+  if (!canEditThisProfile()) { panel.hidden = true; return; }
   if (!panel.reportValidity()) return;
   const profile = Object.fromEntries(new FormData(panel).entries());
   if (String(profile.website || "").trim()) {

@@ -37,22 +37,15 @@ const json = body => ({ status: 200, contentType: "application/json", body: JSON
         return { placeholder: /Add a short bio so people know more about you/.test(document.body.innerText), addBio: visible(add), addBioHeight: add?.getBoundingClientRect().height || 0, empty: [...document.querySelectorAll(".profile-empty-wall, .profile-tab-message")].some(n => visible(n) && /No posts yet/.test(n.textContent)) };
       });
       if (state.placeholder) failures.push(`${label}: instructional bio placeholder is shown`);
-      if (owner && (!state.addBio || state.addBioHeight < 43.5)) failures.push(`${label}: owner has no 44px "+ bio"`);
-      if (!owner && state.addBio) failures.push(`${label}: a visitor sees "+ bio"`);
+      // Owner 2026-11-18: no separate "+ bio" for anyone (Edit profile covers it).
+      if (state.addBio) failures.push(`${label}: a "+ bio" button is shown`);
       if (owner && !state.empty) failures.push(`${label}: empty wall shows nothing under the composer`);
       if ([360, 390].includes(width)) await page.screenshot({ path: path.join(output, `${prefix}-${who}-${width}.png`) });
-      if (owner && state.addBio) {
-        await page.locator(".profile-add-bio").click();
-        await page.waitForTimeout(500);
-        if (!(await page.evaluate(() => Boolean(document.querySelector(".edit-profile-panel"))))) failures.push(`${label}: "+ bio" does not open the editor`);
-        if (!(await page.evaluate(() => document.activeElement?.getAttribute("name") === "bio"))) failures.push(`${label}: "+ bio" does not land in the bio field`);
-        await page.keyboard.press("Escape").catch(() => {});
-      }
       if (errors.length) failures.push(`${label}: page errors ${errors.join(" | ")}`);
       await context.close();
     }
   } finally { await browser.close(); }
   const unique = [...new Set(failures)];
   if (unique.length) { console[process.env.AUDIT_ONLY ? "log" : "error"](`Profile empty states: ${unique.length} problem(s)\n- ${unique.join("\n- ")}`); if (!process.env.AUDIT_ONLY) process.exitCode = 1; return; }
-  console.log("Profile empty-state checks passed: no bio placeholder, owner-only 44px \"+ bio\" opens the editor, empty wall says \"No posts yet\".");
+  console.log("Profile empty-state checks passed: no bio placeholder, no separate \"+ bio\", empty wall says \"No posts yet\".");
 })().catch(error => { console.error(error); process.exitCode = 1; });
