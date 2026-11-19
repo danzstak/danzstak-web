@@ -24,7 +24,7 @@ assert.ok(examples.filter(item => item.shopName === "Eroticon").length >= 7, "ev
 // Examples are never links, never buyable, labelled, after real items, gone during search and at 24 real items.
 assert.match(bazaar, /const card = document\.createElement\("article"\); card\.className = "bazaar-card bazaar-example"/);
 assert.doesNotMatch(bazaar.slice(bazaar.indexOf("function exampleCard"), bazaar.indexOf("function render")), /\.href|createElement\("(a|button)"\)|fetch\(/, "example cards have no link, button or request");
-assert.match(bazaar, /return term \|\| realCount >= limit \? \[\] : examples\.filter\(item => !realShops\.has\(item\.shopName\.toLowerCase\(\)\)\)\.slice\(0, Math\.max\(0, limit - realCount\)\);/, "a shop with real items is never shown as an example");
+assert.match(bazaar, /return term \|\| realCount >= limit \? \[\] : scrambledExamples\(\)\.filter\(item => !realShops\.has\(item\.shopName\.toLowerCase\(\)\)\)\.slice\(0, Math\.max\(0, limit - realCount\)\);/, "a shop with real items is never shown as an example");
 assert.match(bazaar, /if \(nextOffset === null\) for \(const product of examples\) list\.append\(exampleCard\(product\)\);/, "examples come after every real item");
 assert.match(bazaar, /"Example · not for sale"/);
 assert.match(bazaar, /nothing here is for sale yet/);
