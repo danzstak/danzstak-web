@@ -44,6 +44,7 @@
       deferred = null; added = true; knownInstalled = true;
       try { localStorage.setItem(INSTALLED_KEY, "1"); } catch { /* optional */ }
       if (dialog?.open) render();
+      placeVerifiedInstall();
     });
   }
   async function installedRelatedApp() {
@@ -139,7 +140,7 @@
   }
 
   // ---- T3 (owner 2026-11-19): right after this device registers for SYNC calls, offer SYNC as its own app once ----
-  // "Make SYNC its own app": Add SYNC to home screen / Not now. Never inside the SYNC app, never once SYNC is installed,
+  // "Save the SYNC app to your home screen": Save app / Not now. Never inside the SYNC app, never once SYNC is installed,
   // never after two "Not now", and never in the way of a call (registering to answer one goes straight to the call).
   // The "set up this phone" flow (phone-setup.js) waits until this closes.
   const OFFER_DISMISSED = "danzstak_sync_offer_dismissed";
@@ -155,18 +156,7 @@
       offer.setAttribute("aria-labelledby", "syncAppOfferTitle");
       offer.innerHTML = '<header><h2 id="syncAppOfferTitle"></h2></header><div class="sync-install-body"><img class="sync-install-icon" src="assets/sync-icon-192.png?v=1" alt="" width="72" height="72">'
         + '<p class="sync-install-text"></p><button type="button" class="sync-install-primary" data-action="install"></button><button type="button" class="sync-install-primary sync-offer-later" data-action="close"></button></div>';
-      offer.querySelector('[data-action="install"]').addEventListener("click", async () => {
-        if (inSyncApp && deferred) { // one tap: SYNC's own install prompt
-          const prompt = deferred; deferred = null;
-          offer.close();
-          try { await prompt.prompt(); const choice = await prompt.userChoice; if (choice?.outcome === "accepted") { added = true; knownInstalled = true; } } catch { /* fall back to the sheet */ }
-          if (!added) openInstall();
-          return;
-        }
-        offer.close();
-        if (inSyncApp) openInstall(); // no prompt (iPhone, or the browser has not offered one): the phone's own steps
-        else location.href = `${HOME}?install=1&setup=1`; // SYNC's own page, where its manifest applies; setup continues there
-      });
+      offer.querySelector('[data-action="install"]').addEventListener("click", () => { offer.close(); installSync({ resumeSetup: true }); });
       offer.querySelector(".sync-offer-later").addEventListener("click", () => {
         try { localStorage.setItem(OFFER_DISMISSED, String(dismissals() + 1)); } catch { /* optional */ }
         offer.close();
@@ -174,15 +164,52 @@
       offer.addEventListener("cancel", event => { event.preventDefault(); offer.querySelector(".sync-offer-later").click(); });
       document.body.appendChild(offer);
     }
-    offer.querySelector("h2").textContent = t("Make SYNC its own app");
+    // F16 (owner 2026-11-19): "Save the SYNC app to your home screen" — Save app / Not now.
+    offer.querySelector("h2").textContent = t("Save the SYNC app to your home screen");
     offer.querySelector(".sync-install-text").textContent = t("Get a SYNC icon on your home screen, straight to your chats.");
-    offer.querySelector('[data-action="install"]').textContent = t("Add SYNC to home screen");
+    offer.querySelector('[data-action="install"]').textContent = t("Save app");
     offer.querySelector(".sync-offer-later").textContent = t("Not now");
     offerClosed = new Promise(resolve => offer.addEventListener("close", () => resolve(), { once: true }));
     offer.showModal();
     return true;
   }
-  addEventListener("danzstak:call-device-registered", () => setTimeout(offerApp, 150));
+  // One tap: SYNC's own install prompt when this page has it; otherwise the phone's own steps, or SYNC's page (where its
+  // own manifest applies) when this is the main DanzStak page.
+  async function installSync({ resumeSetup = false } = {}) {
+    if (inSyncApp && deferred) {
+      const prompt = deferred; deferred = null;
+      try { await prompt.prompt(); const choice = await prompt.userChoice; if (choice?.outcome === "accepted") { added = true; knownInstalled = true; } } catch { /* fall back to the sheet */ }
+      if (added) placeVerifiedInstall(); else openInstall();
+      return;
+    }
+    if (inSyncApp) openInstall(); // no prompt (iPhone, or the browser has not offered one): the phone's own steps
+    else location.href = `${HOME}?install=1${resumeSetup ? "&setup=1" : ""}`; // setup continues there after the offer
+  }
+
+  // F16 (owner 2026-11-19): "right under the verification text". Once this device is registered, the same choice stays
+  // directly under "This device is registered for calls and voice messages." until SYNC is installed — after "Not now"
+  // too. Never inside the installed SYNC app.
+  function placeVerifiedInstall() {
+    const status = document.getElementById("deviceStatus");
+    let button = document.getElementById("syncVerifiedInstall");
+    const show = Boolean(status && document.body?.classList.contains("sync-device-registered") && !inInstalledSync() && !knownInstalled && !added);
+    if (!show) { if (button) button.hidden = true; return; }
+    if (!button) {
+      button = document.createElement("button");
+      button.type = "button"; button.id = "syncVerifiedInstall"; button.className = "sync-verified-install";
+      button.addEventListener("click", () => installSync());
+    }
+    button.textContent = t("Add SYNC to home screen");
+    if (status.nextElementSibling !== button) status.after(button);
+    button.hidden = false;
+  }
+  const watchRegistered = () => {
+    placeVerifiedInstall();
+    if (document.body) new MutationObserver(placeVerifiedInstall).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    installedRelatedApp().then(found => { if (found) { knownInstalled = true; placeVerifiedInstall(); } });
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watchRegistered, { once: true }); else watchRegistered();
+  addEventListener("danzstak:call-device-registered", () => { placeVerifiedInstall(); setTimeout(offerApp, 150); });
   // Arrived from the offer on messages.html: once the install sheet closes, carry on with "set up this phone".
   if (inSyncApp && new URLSearchParams(location.search).get("setup") === "1") {
     const params = new URLSearchParams(location.search); params.delete("setup");

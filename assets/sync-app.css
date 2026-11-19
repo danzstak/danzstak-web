@@ -8,3 +8,9 @@
 .sync-install-dialog .sync-install-primary,.sync-install-dialog .sync-install-link{display:grid;place-items:center;width:100%;min-height:48px;margin-top:4px;padding:0 20px;border:0;border-radius:999px;background:#ff5a1f;color:#0b0b0c;font:inherit;font-weight:800;text-decoration:none;cursor:pointer;box-shadow:none}
 .sync-install-dialog .sync-install-primary[data-action="close"]{background:rgba(239,108,32,.12);color:#9a3412}
 .sync-install-dialog .sync-install-primary:focus-visible,.sync-install-dialog .sync-install-link:focus-visible{outline:3px solid #ff5a1f;outline-offset:3px}
+/* F16: "Add SYNC to home screen" directly under the verified text in "Calls on this device". */
+.sync-verified-install{display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box;width:auto;min-height:48px;margin-top:8px;margin-bottom:4px;padding:0 20px;border:0;border-radius:999px;background:#ff5a1f;color:#0b0b0c;font:inherit;font-weight:800;cursor:pointer;box-shadow:none}
+.sync-verified-install::before{content:"";width:20px;height:20px;background:url("sync-icon-192.png?v=1") center/cover;border-radius:5px}
+.calling-devices-dialog>.sync-verified-install{width:calc(100% - 36px)} /* same width as the status line above it */
+.sync-verified-install[hidden]{display:none!important}
+.sync-verified-install:focus-visible{outline:3px solid #ff5a1f;outline-offset:3px}

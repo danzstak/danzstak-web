@@ -5,9 +5,10 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
-"Make SYNC its own app": "Rendi SYNC un'app a sé",
 "Get a SYNC icon on your home screen, straight to your chats.": "Un'icona SYNC nella schermata Home, dritta alle tue chat.",
 "Add SYNC to home screen": "Aggiungi SYNC alla schermata Home",
+"Save the SYNC app to your home screen": "Salva l'app SYNC nella schermata Home",
+"Save app": "Salva app",
 "Not now": "Non ora",
 "SYNC is installed on this phone": "SYNC è installata su questo telefono",
 "You're in the SYNC app. Same account as DanzStak, no second login.": "Sei nell'app SYNC. Stesso account di DanzStak, nessun secondo accesso.",
@@ -287,9 +288,10 @@
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
 },
 "fr": {
-"Make SYNC its own app": "Fais de SYNC une app à part",
 "Get a SYNC icon on your home screen, straight to your chats.": "Une icône SYNC sur ton écran d'accueil, directement vers tes chats.",
 "Add SYNC to home screen": "Ajouter SYNC à l'écran d'accueil",
+"Save the SYNC app to your home screen": "Enregistre l'app SYNC sur ton écran d'accueil",
+"Save app": "Enregistrer l'app",
 "Not now": "Pas maintenant",
 "SYNC is installed on this phone": "SYNC est installée sur ce téléphone",
 "You're in the SYNC app. Same account as DanzStak, no second login.": "Tu es dans l'app SYNC. Même compte que DanzStak, pas de deuxième connexion.",
@@ -570,9 +572,10 @@
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
 },
 "es": {
-"Make SYNC its own app": "Haz de SYNC su propia app",
 "Get a SYNC icon on your home screen, straight to your chats.": "Un icono de SYNC en tu pantalla de inicio, directo a tus chats.",
 "Add SYNC to home screen": "Añadir SYNC a la pantalla de inicio",
+"Save the SYNC app to your home screen": "Guarda la app SYNC en tu pantalla de inicio",
+"Save app": "Guardar app",
 "Not now": "Ahora no",
 "SYNC is installed on this phone": "SYNC está instalada en este teléfono",
 "You're in the SYNC app. Same account as DanzStak, no second login.": "Estás en la app SYNC. Misma cuenta que DanzStak, sin segundo inicio de sesión.",
@@ -852,9 +855,10 @@
 "You can resend once. Try again in 10 minutes.": "Solo puedes reenviar una vez. Inténtalo de nuevo en 10 minutos."
 },
 "de": {
-"Make SYNC its own app": "Mach SYNC zu einer eigenen App",
 "Get a SYNC icon on your home screen, straight to your chats.": "Ein SYNC-Symbol auf deinem Startbildschirm, direkt zu deinen Chats.",
 "Add SYNC to home screen": "SYNC zum Startbildschirm hinzufügen",
+"Save the SYNC app to your home screen": "Speichere die SYNC-App auf deinem Startbildschirm",
+"Save app": "App speichern",
 "Not now": "Nicht jetzt",
 "SYNC is installed on this phone": "SYNC ist auf diesem Handy installiert",
 "You're in the SYNC app. Same account as DanzStak, no second login.": "Du bist in der SYNC-App. Dasselbe Konto wie DanzStak, kein zweites Login.",
@@ -949,9 +953,10 @@
 "You can resend once. Try again in 10 minutes.": "Du kannst nur einmal erneut senden. Versuche es in 10 Minuten erneut."
 },
 "pt": {
-"Make SYNC its own app": "Faça do SYNC um app próprio",
 "Get a SYNC icon on your home screen, straight to your chats.": "Um ícone do SYNC na sua tela inicial, direto para as suas conversas.",
 "Add SYNC to home screen": "Adicionar o SYNC à tela inicial",
+"Save the SYNC app to your home screen": "Salve o app SYNC na sua tela inicial",
+"Save app": "Salvar app",
 "Not now": "Agora não",
 "SYNC is installed on this phone": "O SYNC está instalado neste telefone",
 "You're in the SYNC app. Same account as DanzStak, no second login.": "Você está no app SYNC. Mesma conta do DanzStak, sem segundo login.",

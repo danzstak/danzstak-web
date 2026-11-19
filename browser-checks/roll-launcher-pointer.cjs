@@ -197,6 +197,7 @@ async function pointerOwner(page, selector) {
             cardStyle: (() => { const style = getComputedStyle(document.querySelector(".roll-fullscreen .reel-card")); return { margin: style.margin, border: style.border, padding: style.padding, width: style.width, boxSizing: style.boxSizing }; })(),
             heading: bounds(".roll-fullscreen .reels-heading"),
             details: bounds(".roll-fullscreen .reel-details"),
+            detailsContentRight: Math.max(0, ...[...document.querySelector(".roll-fullscreen .reel-details").children].filter(node => node.checkVisibility()).map(node => node.getBoundingClientRect().right)),
             close: bounds(".roll-fullscreen .roll-close"),
             closeIcon: (() => { const button = document.querySelector(".roll-fullscreen .roll-close"); return { requested: button?.dataset.icon || "", children: button?.childElementCount || 0, icons: [...(button?.querySelectorAll("svg") || [])].map(icon => icon.getAttribute("data-ds-icon")) }; })()
           };
@@ -204,7 +205,10 @@ async function pointerOwner(page, selector) {
         assert.ok(Math.abs(rollGeometry.viewer.left) <= 1 && Math.abs(rollGeometry.viewer.top) <= 1 && Math.abs(rollGeometry.viewer.right - width) <= 1 && Math.abs(rollGeometry.viewer.bottom - height) <= 1, `${width}x${height} Roll viewer is not full viewport: ${JSON.stringify(rollGeometry)}`);
         assert.ok(Math.abs(rollGeometry.card.width - width) <= 1 && Math.abs(rollGeometry.card.height - height) <= 1, `${width}x${height} Roll card is not 100vw by 100vh: ${JSON.stringify(rollGeometry)}`);
         assert.ok(rollGeometry.heading.height >= height * .08 - 2, `${width}x${height} Roll top safe zone is too short: ${JSON.stringify(rollGeometry)}`);
-        assert.ok(Math.abs(rollGeometry.details.right - width * .89) <= 2, `${width}x${height} Roll caption enters the 11vw control tray: ${JSON.stringify(rollGeometry)}`);
+        // T0-A3 (owner 2026-11-19): the caption's gradient runs edge to edge (no strip at the lower right); its text and
+        // links still stay out of the right 11vw control tray, clear of the sound button.
+        assert.ok(Math.abs(rollGeometry.details.left) <= 1 && Math.abs(rollGeometry.details.right - width) <= 1, `${width}x${height} Roll caption does not run edge to edge: ${JSON.stringify(rollGeometry)}`);
+        assert.ok(rollGeometry.detailsContentRight > 0 && rollGeometry.detailsContentRight <= width * .89 + 2, `${width}x${height} Roll caption text enters the 11vw control tray: ${JSON.stringify(rollGeometry)}`);
         assert.ok(Math.abs(rollGeometry.details.top - height * .78) <= 2 && Math.abs(rollGeometry.details.bottom - height) <= 2, `${width}x${height} Roll caption is outside the lower 22% safe zone: ${JSON.stringify(rollGeometry)}`);
         assert.ok(rollGeometry.close.width >= 44 && rollGeometry.close.height >= 44, `${width}x${height} Roll close target is below 44px: ${JSON.stringify(rollGeometry)}`);
         assert.deepEqual(rollGeometry.closeIcon, { requested: "close", children: 1, icons: ["close"] }, `${width}x${height} Roll close button contains the wrong or duplicated icon`);

@@ -50,11 +50,17 @@ for (const file of ["/sync/", "/sync.webmanifest", "/assets/sync-app.js", "/asse
 assert.match(worker, /destinationUrl\.pathname === "\/messages\.html"\) destinationUrl\.pathname = "\/sync\/";/, "SYNC notifications open /sync/");
 
 // T3 (owner 2026-11-19): after device registration, offer SYNC as its own app; never in a call, never twice dismissed.
-assert.match(app, /addEventListener\("danzstak:call-device-registered", \(\) => setTimeout\(offerApp, 150\)\);/);
+assert.match(app, /addEventListener\("danzstak:call-device-registered", \(\) => \{ placeVerifiedInstall\(\); setTimeout\(offerApp, 150\); \}\);/);
 assert.match(app, /if \(inInstalledSync\(\) \|\| knownInstalled \|\| added \|\| dismissals\(\) >= 2 \|\| inCall\(\) \|\| offer\?\.open\) return false;/);
-assert.match(app, /else location\.href = `\$\{HOME\}\?install=1&setup=1`;/, "outside /sync/ the offer opens SYNC's own page");
+assert.match(app, /else location\.href = `\$\{HOME\}\?install=1\$\{resumeSetup \? "&setup=1" : ""\}`;/, "outside /sync/ the offer opens SYNC's own page");
+// F16 (owner 2026-11-19): pop-up "Save the SYNC app to your home screen" (Save app / Not now), and "Add SYNC to home screen"
+// stays directly under the verified text until SYNC is installed.
+assert.match(app, /offer\.querySelector\("h2"\)\.textContent = t\("Save the SYNC app to your home screen"\);/);
+assert.match(app, /offer\.querySelector\('\[data-action="install"\]'\)\.textContent = t\("Save app"\);/);
+assert.match(app, /const show = Boolean\(status && document\.body\?\.classList\.contains\("sync-device-registered"\) && !inInstalledSync\(\) && !knownInstalled && !added\);/);
+assert.match(app, /if \(status\.nextElementSibling !== button\) status\.after\(button\);/, "right under the verified text");
 assert.match(read("assets/phone-setup.js"), /await window\.danzstakSyncApp\?\.offerClosed\?\.\(\); open\(\);/, "set up this phone waits for the offer");
-for (const key of ["Make SYNC its own app", "Get a SYNC icon on your home screen, straight to your chats.", "Add SYNC to home screen"]) assert.equal(i18n.split(`${JSON.stringify(key)}:`).length - 1, 5, `"${key}" translated`);
+for (const key of ["Save the SYNC app to your home screen", "Save app", "Get a SYNC icon on your home screen, straight to your chats.", "Add SYNC to home screen"]) assert.equal(i18n.split(`${JSON.stringify(key)}:`).length - 1, 5, `"${key}" translated`);
 
 // Translations for the sheet.
 for (const key of ["SYNC is installed on this phone", "Tap Share.", "Tap Add to Home Screen.", "Tap ⋮ at the top right of Chrome.", "Tap Install app (or Add to Home screen).", "Open in Chrome to install", "Install SYNC"]) {

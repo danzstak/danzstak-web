@@ -164,15 +164,52 @@ async function openRow(page) {
         const d = document.getElementById("syncAppOffer"), box = d.getBoundingClientRect(), buttons = [...d.querySelectorAll("button")].map(b => ({ text: b.textContent, h: b.getBoundingClientRect().height }));
         return { title: d.querySelector("h2").textContent, text: d.querySelector(".sync-install-text").textContent, buttons, fits: box.left >= 0 && box.right <= innerWidth + 0.5, setupOpen: Boolean(document.querySelector(".phone-setup-dialog[open]")) };
       });
-      assert.equal(offerState.title, "Make SYNC its own app", `${label}: the offer shows after registration`);
+      assert.equal(offerState.title, "Save the SYNC app to your home screen", `${label}: the offer shows after registration`);
       assert.equal(offerState.text, "Get a SYNC icon on your home screen, straight to your chats.");
-      assert.deepEqual(offerState.buttons.map(b => b.text), ["Add SYNC to home screen", "Not now"]);
+      assert.deepEqual(offerState.buttons.map(b => b.text), ["Save app", "Not now"]);
       assert.ok(offerState.buttons.every(b => b.h >= 44) && offerState.fits, `${label}: two 44px buttons, offer fits`);
       assert.equal(offerState.setupOpen, false, `${label}: "set up this phone" waits for the offer`);
       if (shots) await page.screenshot({ path: path.join(output, `6-offer-after-registration-${width}.png`) });
       await page.locator('#syncAppOffer [data-action="install"]').click();
       await page.waitForFunction(() => window.__prompted === true && !document.getElementById("syncAppOffer").open);
       await page.locator(".phone-setup-dialog[open]").waitFor({ timeout: 3000 });
+      await context.close();
+
+      // 9. F16 (owner 2026-11-19): after "Not now", "Add SYNC to home screen" stays directly under the verified text in
+      // "Calls on this device" until SYNC is installed. The registered state is the body class call-devices.js renders
+      // for a registered device (a real registration needs this phone's stored device key, outside this check).
+      ({ context, page } = await open(browser, width));
+      await page.goto(`${baseUrl}/sync/?app=sync`, { waitUntil: "domcontentloaded" });
+      await page.locator(".conversation-row").first().waitFor({ timeout: 10000 });
+      await page.waitForFunction(() => window.danzstakSyncApp);
+      assert.equal(await page.evaluate(() => Boolean(document.getElementById("syncVerifiedInstall") && !document.getElementById("syncVerifiedInstall").hidden)), false, `${label}: no install button before the device is registered`);
+      await page.evaluate(() => {
+        const event = new Event("beforeinstallprompt", { cancelable: true });
+        event.prompt = async () => { window.__prompted = true; };
+        event.userChoice = Promise.resolve({ outcome: "accepted", platform: "web" });
+        dispatchEvent(event);
+        document.body.classList.add("sync-device-registered");
+        dispatchEvent(new CustomEvent("danzstak:call-device-registered"));
+      });
+      await page.locator("#syncAppOffer[open]").waitFor({ timeout: 3000 });
+      await page.locator("#syncAppOffer .sync-offer-later").click();
+      // "Set up this phone" follows the offer; close it (✕), as a member who wants to get on with it would.
+      await page.locator(".phone-setup-dialog[open]").waitFor({ timeout: 3000 });
+      await page.locator(".phone-setup-dialog[open] .call-setup-close").click();
+      await page.waitForFunction(() => !document.querySelector(".phone-setup-dialog[open]"), null, { timeout: 3000 });
+      await page.evaluate(() => { document.getElementById("deviceStatus").textContent = "This device is registered for calls and voice messages."; document.getElementById("callingDevicesDialog").showModal(); });
+      await page.waitForTimeout(300);
+      const under = await page.evaluate(() => {
+        const status = document.getElementById("deviceStatus"), button = document.getElementById("syncVerifiedInstall"), r = button?.getBoundingClientRect(), s = status.getBoundingClientRect();
+        return { next: status.nextElementSibling?.id || "", text: button?.textContent || "", tall: Boolean(r && r.height >= 44), below: Boolean(r && r.top >= s.bottom - 1 && r.top - s.bottom < 24), fits: Boolean(r && r.left >= 0 && r.right <= innerWidth + 0.5), sameWidth: Boolean(r && Math.abs(r.left - s.left) < 1.5 && Math.abs(r.right - s.right) < 1.5), inDialog: Boolean(button?.closest("#callingDevicesDialog")) };
+      });
+      assert.deepEqual(under, { next: "syncVerifiedInstall", text: "Add SYNC to home screen", tall: true, below: true, fits: true, sameWidth: true, inDialog: true }, `${label}: the button sits right under the verified text, as wide as it`);
+      // Only the part under test: the rest of this dialog needs a real registered device (title, phone row).
+      if (shots) { const s = await page.locator("#deviceStatus").boundingBox(), b = await page.locator("#syncVerifiedInstall").boundingBox(); await page.screenshot({ path: path.join(output, `7-under-verified-text-${width}.png`), clip: { x: 0, y: Math.max(0, s.y - 16), width, height: b.y + b.height + 16 - Math.max(0, s.y - 16) } }); }
+      await page.locator("#syncVerifiedInstall").click();
+      await page.waitForFunction(() => window.__prompted === true, null, { timeout: 3000 });
+      await page.waitForFunction(() => document.getElementById("syncVerifiedInstall").hidden === true, null, { timeout: 3000 });
+      assert.deepEqual(page.errors, [], `${label}: no page errors`);
       await context.close();
 
       // Two "Not now" and it never comes back; never during a call; never inside the installed SYNC app.
