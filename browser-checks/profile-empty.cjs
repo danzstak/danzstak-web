@@ -34,18 +34,13 @@ const json = body => ({ status: 200, contentType: "application/json", body: JSON
       const state = await page.evaluate(() => {
         const visible = n => n && n.getBoundingClientRect().height > 0 && getComputedStyle(n).display !== "none";
         const add = document.querySelector(".profile-add-bio");
-        return { placeholder: /Add a short bio so people know more about you/.test(document.body.innerText), addBio: visible(add), addBioHeight: add?.getBoundingClientRect().height || 0, empty: [...document.querySelectorAll(".profile-empty-wall, .profile-tab-message")].some(n => visible(n) && /No posts yet/.test(n.textContent)) };
+        const handle = document.getElementById("profileHandle");
+        return { handleShown: visible(handle), placeholder: /Add a short bio so people know more about you/.test(document.body.innerText), addBio: visible(add), addBioHeight: add?.getBoundingClientRect().height || 0, empty: [...document.querySelectorAll(".profile-empty-wall, .profile-tab-message")].some(n => visible(n) && /No posts yet/.test(n.textContent)) };
       });
       if (state.placeholder) failures.push(`${label}: instructional bio placeholder is shown`);
-      // Owner 2026-11-19: "+ bio" is for the account holder only and opens the long-form bio.
-      if (owner && (!state.addBio || state.addBioHeight < 43.5)) failures.push(`${label}: owner has no 44px "+ bio"`);
-      if (!owner && state.addBio) failures.push(`${label}: a visitor sees "+ bio"`);
-      if (owner && state.addBio) {
-        await page.locator(".profile-add-bio").click();
-        await page.waitForTimeout(500);
-        if (!(await page.evaluate(() => ["story", "bio"].includes(document.activeElement?.getAttribute("name"))))) failures.push(`${label}: "+ bio" does not land in the bio field`);
-        await page.keyboard.press("Escape").catch(() => {});
-      }
+      // Owner 2026-11-19: no "+ bio" in the action row for anyone (it duplicated Edit profile; the long bio lives in About).
+      if (state.addBio) failures.push(`${label}: a "+ bio" button is shown`);
+      if (state.handleShown) failures.push(`${label}: the @username line is shown under the name`);
       if (owner && !state.empty) failures.push(`${label}: empty wall shows nothing under the composer`);
       if ([360, 390].includes(width)) await page.screenshot({ path: path.join(output, `${prefix}-${who}-${width}.png`) });
       if (errors.length) failures.push(`${label}: page errors ${errors.join(" | ")}`);
@@ -54,5 +49,5 @@ const json = body => ({ status: 200, contentType: "application/json", body: JSON
   } finally { await browser.close(); }
   const unique = [...new Set(failures)];
   if (unique.length) { console[process.env.AUDIT_ONLY ? "log" : "error"](`Profile empty states: ${unique.length} problem(s)\n- ${unique.join("\n- ")}`); if (!process.env.AUDIT_ONLY) process.exitCode = 1; return; }
-  console.log("Profile empty-state checks passed: no bio placeholder, owner-only 44px \"+ bio\" opens the bio, empty wall says \"No posts yet\".");
+  console.log("Profile empty-state checks passed: no bio placeholder, no \"+ bio\" in the action row, empty wall says \"No posts yet\".");
 })().catch(error => { console.error(error); process.exitCode = 1; });
