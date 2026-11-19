@@ -174,6 +174,24 @@ function cleanImport(body) {
   return { status, items };
 }
 
+// Owner 2026-11-19: "the bazaar needs to have items mixed up from users, not one user's items then another's — scrambled".
+// Seeded shuffle (the browser sends one seed per visit, so "Show more" pages stay consistent), then deal the items out
+// seller by seller so the same shop never fills a row while other shops still have items left. Never paid, never ranked.
+function seededRandom(seed) {
+  let h = 2166136261;
+  for (const char of String(seed || "")) h = Math.imul(h ^ char.charCodeAt(0), 16777619);
+  return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+}
+export function scrambleBySeller(items, seed) {
+  const random = seededRandom(seed), shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index--) { const swap = Math.floor(random() * (index + 1)); [shuffled[index], shuffled[swap]] = [shuffled[swap], shuffled[index]]; }
+  const sellers = new Map();
+  for (const item of shuffled) { const key = item.memberId || item.shopName || ""; if (!sellers.has(key)) sellers.set(key, []); sellers.get(key).push(item); }
+  const queues = [...sellers.values()], out = [];
+  while (queues.some(queue => queue.length)) for (const queue of queues) if (queue.length) out.push(queue.shift());
+  return out;
+}
+
 export function marketplaceFeeCents(subtotalCents) {
   const subtotal = positiveInteger(subtotalCents, 0, Number.MAX_SAFE_INTEGER);
   if (subtotal === null) throw new TypeError("Subtotal must be integer cents");
@@ -265,9 +283,11 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     const term = String(query.q || "").trim().toLocaleLowerCase().slice(0, 80);
     const offset = Math.max(0, Math.min(Number.parseInt(query.offset, 10) || 0, 100_000));
     const limit = Math.max(1, Math.min(Number.parseInt(query.limit, 10) || BAZAAR_PAGE_MAX, BAZAAR_PAGE_MAX));
-    const all = (await queryProducts("BAZAAR", 20_000)).map(bazaarProductView)
+    let all = (await queryProducts("BAZAAR", 20_000)).map(bazaarProductView)
       .filter(item => !term || `${item.title} ${item.description} ${item.shopName}`.toLocaleLowerCase().includes(term))
-      .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
+      .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)) || String(left.id).localeCompare(String(right.id)));
+    const seed = String(query.seed || "").replace(/[^a-z0-9]/gi, "").slice(0, 32);
+    if (!term) all = scrambleBySeller(all, seed || new Date(clock()).toISOString().slice(0, 13));
     const products = all.slice(offset, offset + limit);
     return response(200, { products, total: all.length, nextOffset: offset + products.length < all.length ? offset + products.length : null }, headers);
   }
