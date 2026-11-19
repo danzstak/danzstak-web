@@ -25,6 +25,6 @@ assert.match(sharing, /url\.searchParams\.set\('member', member\)/, "profile sha
 assert.doesNotMatch(sharing, /searchParams\.set\('user'/, "profile sharing must never put account email addresses in shared links");
 assert.match(sharing, /dialog\.onclose = \(\) => opener\.focus\(\)/, "closing the share dialog must return focus to its opener");
 assert.match(html, /assets\/i18n\.js\?v=410/);
-assert.match(html, /assets\/profile-sharing\.js\?v=418/);
+assert.match(html, /assets\/profile-sharing\.js\?v=419/);
 
 console.log("Profile sharing localization checks passed: all 15 languages cover profile links, invitations, clipboard recovery, and dialog controls.");
