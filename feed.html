@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-lQ58mXBuFcdoMp3p4gkklFeZME02HHjP5qa+omqihL4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-HDrS9JWc8R8RrIVqcU4ZmVuPXWBFc/LColMClzI5nFQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -276,24 +276,6 @@ textarea {
   padding: 7px 14px;
 }
 
-.load-more-posts {
-  display: block;
-  width: min(100%, 260px);
-  min-height: 42px;
-  margin: 14px auto 4px;
-  border: 1px solid #ccd5e2;
-  border-radius: 999px;
-  background: #fff;
-  color: #121418;
-  font-weight: 800;
-}
-
-.load-more-posts:hover,
-.load-more-posts:focus-visible {
-  background: #eef5ff;
-  border-color: #121418;
-}
-
 .stories { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-bottom: 18px; }
 .story { position: relative; min-height: 170px; overflow: hidden; border-radius: 12px; background: linear-gradient(160deg,#121418,#8c52e5); box-shadow: 0 1px 2px #0003; color: white; padding: 16px; display: flex; align-items: flex-end; font-weight: 800; }
 .story:nth-child(2) { background: linear-gradient(160deg,#ff7a00,#ef3054); }
@@ -365,7 +347,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <link rel="stylesheet" href="assets/artist-hq.css?v=5">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=8" defer></script>
-<script src="assets/i18n-people.js?v=16" defer></script>
+<script src="assets/i18n-people.js?v=17" defer></script>
 <script src="assets/time-label.js?v=1"></script>
 <script src="assets/i18n-music.js?v=17" defer></script>
 <script src="assets/i18n.js?v=409" defer></script>
@@ -377,7 +359,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <link rel="stylesheet" href="assets/media-fit.css?v=2">
 <link rel="stylesheet" href="assets/media-viewer.css?v=2">
 <link rel="stylesheet" href="assets/link-preview-cards.css?v=5">
-<link rel="stylesheet" href="assets/mix-polish.css?v=23">
+<link rel="stylesheet" href="assets/mix-polish.css?v=24">
 <link rel="stylesheet" href="assets/tribes-polish.css?v=2">
 <link rel="stylesheet" href="assets/tribes-home.css?v=1">
 <link rel="stylesheet" href="assets/tribe-create.css?v=1">
@@ -1395,11 +1377,18 @@ async function loadPosts() {
     );
     const feedBatchSize = 12;
     let renderedPostCount = 0;
-    const loadMorePosts = document.createElement("button");
-    loadMorePosts.type = "button";
-    loadMorePosts.className = "load-more-posts";
-    loadMorePosts.dataset.icon = "chevron-down"; // owner 2026-11-16: icons, not words
-    loadMorePosts.setAttribute("aria-label", "Show more posts");
+    // F15c (owner 2026-11-19: "take away that downward arrow… just make the Mix flow"): about one screen before the end of
+    // what's shown, the next chronological posts appear by themselves; at the true end one quiet line says so. Finite:
+    // nothing recycled or suggested, no ranking, no further requests.
+    const moreMarker = document.createElement("div");
+    moreMarker.className = "feed-more-marker";
+    moreMarker.setAttribute("aria-hidden", "true");
+    const caughtUp = document.createElement("p");
+    caughtUp.className = "feed-caught-up";
+    caughtUp.textContent = feedTranslate("You're caught up");
+    const moreObserver = "IntersectionObserver" in window
+      ? new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) renderNextPostBatch(); }, { rootMargin: "0px 0px 100% 0px" })
+      : null;
 
     function appendPost(post, target) {
 
@@ -1480,8 +1469,9 @@ async function loadPosts() {
       return article;
     }
 
-    function renderNextPostBatch(count = feedBatchSize) {
-      loadMorePosts.remove();
+    function renderNextPostBatch(count = moreObserver ? feedBatchSize : visiblePosts.length) {
+      moreObserver?.unobserve(moreMarker);
+      moreMarker.remove();
       const end = Math.min(visiblePosts.length, renderedPostCount + count);
       const fragment = document.createDocumentFragment();
       let firstAddedPost = null;
@@ -1491,17 +1481,11 @@ async function loadPosts() {
       }
       feed.appendChild(fragment);
       if (renderedPostCount < visiblePosts.length) {
-        loadMorePosts.setAttribute("aria-label", `Show more posts. ${visiblePosts.length - renderedPostCount} remaining.`);
-        feed.appendChild(loadMorePosts);
-      }
+        feed.appendChild(moreMarker);
+        moreObserver.observe(moreMarker); // observing anew reports at once if the marker is already within a screen
+      } else feed.appendChild(caughtUp);
       return firstAddedPost;
     }
-
-    loadMorePosts.addEventListener("click", () => {
-      const firstAddedPost = renderNextPostBatch();
-      firstAddedPost?.focus({ preventScroll: true });
-      firstAddedPost?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
 
     const linkedPostId = location.hash.startsWith("#post-")
       ? decodeURIComponent(location.hash.slice(6))
@@ -1912,7 +1896,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/invite-sharing.js?v=1" defer></script>
 <script src="assets/tribes-art.js?v=1" defer></script>
 <script src="assets/tribe-create.js?v=1" defer></script>
-<script src="assets/feed-enhancements.js?v=588" defer></script>
+<script src="assets/feed-enhancements.js?v=589" defer></script>
 <script src="assets/profile-onboarding.js?v=12" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/call-setup.js?v=2" defer></script>

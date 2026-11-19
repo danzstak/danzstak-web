@@ -209,6 +209,7 @@ jobs:
             '.\browser-checks\own-photo.cjs'
             '.\browser-checks\bazaar-tiles.cjs'
             '.\browser-checks\bazaar-mix.cjs'
+            '.\browser-checks\mix-flows.cjs'
             '.\browser-checks\tour-manager-no-paywall.cjs'
             '.\browser-checks\not-found-pages.cjs'
             '.\browser-checks\epk-actions.cjs'

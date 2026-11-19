@@ -133,10 +133,12 @@ const stripState = page => page.evaluate(() => {
         if (width === 390 && swipe === 0) await page.locator("#storiesRail").screenshot({ path: path.join(output, "scrolled-390.png") });
       }
       assert.ok(state.scroll > 100, `${label}: the strip scrolled under a finger (${state.scroll}px)`);
-      // Tap a video tile: it plays full screen.
-      await page.evaluate(() => { document.getElementById("storiesRail").scrollLeft = 0; });
-      const videoTile = page.locator('#storiesRail .story[data-media-type="video"] .story-open').first();
-      const box = await videoTile.boundingBox();
+      // Tap a video tile: it plays full screen. The visit's shuffle can put it off screen, so bring it into view first and
+      // wait for the strip to stop moving (a tap during a swipe's momentum only stops the scroll, on phones too).
+      await page.evaluate(() => document.querySelector('#storiesRail .story[data-media-type="video"]').scrollIntoView({ block: "nearest", inline: "center" }));
+      await page.waitForFunction(() => new Promise(resolve => { const rail = document.getElementById("storiesRail"), before = rail.scrollLeft; setTimeout(() => resolve(rail.scrollLeft === before), 250); }), null, { timeout: 5000, polling: 300 });
+      const box = await page.locator('#storiesRail .story[data-media-type="video"] .story-open').first().boundingBox();
+      assert.ok(box.x >= 0 && box.x + box.width <= width, `${label}: the video tile is on screen before the tap ${JSON.stringify(box)}`);
       await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
       await page.waitForFunction(() => document.getElementById("storyViewer")?.open, null, { timeout: 5000 });
       assert.deepEqual(errors, [], `${label}: page errors ${errors.join(" | ")}`);

@@ -53,14 +53,12 @@
 
 /* Icon controls: round, quiet, orange on focus. */
 #feed > .post .post-menu-toggle{width:36px;height:36px;border-radius:50%}
-.load-more-posts{
-  display:grid!important;place-items:center;
-  width:48px!important;height:48px;min-height:48px!important;margin:8px auto 16px!important;padding:0!important;
-  border:1px solid var(--mix-rule)!important;border-radius:50%!important;
-  background:#fff!important;color:var(--mix-ink)!important;
-}
-.load-more-posts:hover,.load-more-posts:focus-visible{border-color:var(--mix-accent)!important;color:var(--mix-accent)!important;background:#fff!important}
-.load-more-posts .ds-action-icon{width:24px;height:24px}
+/* F15c: Mix flows. The marker is where the next posts appear (a skeleton you only glimpse on a fast fling); the feed ends
+   with one quiet line. */
+.feed-more-marker{height:96px;margin:0 var(--mix-pad,12px) 12px;border-radius:12px;background:linear-gradient(90deg,#ececea 25%,#f6f6f4 50%,#ececea 75%) 0 0/200% 100%;animation:feed-skeleton 1.2s linear infinite}
+@keyframes feed-skeleton{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.feed-more-marker{animation:none}}
+.feed-caught-up{margin:0;padding:20px 16px 28px;color:var(--mix-muted,#667085);font:600 12px/1.4 var(--ds-mono,"JetBrains Mono",ui-monospace,monospace);letter-spacing:.06em;text-align:center;text-transform:uppercase}
 .roll-add-toggle.ds-icon-button{width:40px;min-width:40px;height:40px;padding:0;border-radius:50%;display:grid;place-items:center}
 
 :is(#feed,.reels-rail) :is(button,a):focus-visible{outline:2px solid var(--mix-accent);outline-offset:2px}

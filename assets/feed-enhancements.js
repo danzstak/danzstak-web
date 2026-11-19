@@ -4751,7 +4751,7 @@ function placeReelsRail() {
   const feedElement = document.getElementById("feed");
   const posts = [...feedElement.children].filter(child => child.classList.contains("post") && child !== reelsRail);
   if (posts.length >= 4) posts[3].insertAdjacentElement("afterend", reelsRail);
-  else feedElement.appendChild(reelsRail);
+  else feedElement.insertBefore(reelsRail, feedElement.querySelector(":scope > .feed-caught-up, :scope > .feed-more-marker")); // F15c: the end line stays last
 }
 
 // Composer offers The Roll for a pasted video link too (owner 2026-11-16), not only uploaded videos.
