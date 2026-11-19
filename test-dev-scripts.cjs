@@ -28,6 +28,10 @@ assert.throws(() => parse(["--shell", "abc"]), /number/);
 assert.throws(() => parse(["--asset", "event.js"]), /name\.ext:N/);
 fs.rmSync(root, { recursive: true, force: true });
 
+// This file's sample pages are fixtures, not pins: a real bump must never rewrite them (event.js:7 once did).
+const real = plan(process.cwd(), parse(["--shell", "9999", "--asset", "event.js:9999", "--asset", "feed-enhancements.js:9999"]));
+assert.ok(real.size > 0, "the real repo has files to bump");
+assert.equal(real.has("test-dev-scripts.cjs"), false, "a bump leaves this test's own fixtures alone");
 const runner = fs.readFileSync("scripts/run-all-tests.cjs", "utf8");
 assert.match(runner, /\/\^test-\.\*\\\.cjs\$\//, "runs every test-*.cjs");
 assert.match(runner, /test-release-verification\.ps1", "test-site\.ps1", "test-infrastructure\.ps1"/, "and the PowerShell suites");
