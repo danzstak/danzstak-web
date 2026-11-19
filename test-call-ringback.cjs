@@ -50,7 +50,7 @@ const state = vm.createContext({
   clearTimeout() {},
   Date
 });
-vm.runInContext(["playTone", "ringbackBurst", "startIncomingRingtone", "stopIncomingRingtone", "updateRingbackControl", "stopRingback", "stopRing", "startRingback"].map(extract).join("\n"), state);
+vm.runInContext(["playTone", "ringbackBurst", "loudRingback", "startIncomingRingtone", "stopIncomingRingtone", "updateRingbackControl", "stopRingback", "stopRing", "startRingback"].map(extract).join("\n"), state);
 
 state.startIncomingRingtone();
 assert.ok(state.ringTimer, "an unlocked visible incoming call must have a ringtone cadence");
