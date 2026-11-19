@@ -49,6 +49,7 @@
     bookmark: ["M6 3h12v18l-6-4-6 4Z"],
     help: ["M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4", "M12 18h.01", "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"],
     lock: ["M5 10h14v11H5Z", "M8 10V7a4 4 0 0 1 8 0v3"],
+    shield: ["M12 22s8-3.6 8-10V5l-8-3-8 3v7c0 6.4 8 10 8 10Z"], // audit 36 D7: Settings → Account security showed "•"
     file: ["M6 2h8l4 4v16H6Z", "M14 2v5h5"],
     logout: ["M10 17l5-5-5-5", "M15 12H3", "M21 3v18h-6"],
     tag: ["M20 13 13 20 4 11V4h7Z", "M8.5 8.5h.01"],
@@ -104,7 +105,8 @@
   }
 
   function iconFromAccessibleName(control, visible) {
-    if (/^[\p{P}\p{S}\s]+$/u.test(visible) || !visible) {
+    // Symbols only (marks and joiners count too: "🗑️" ends in a variation selector, which kept EPK's delete an emoji, audit 36 D6).
+    if (/^[\p{P}\p{S}\p{M}\u200d\s]+$/u.test(visible) || !visible) {
       const name = readableLabel(control, visible).toLocaleLowerCase("en-US");
       for (const [prefix, icon] of [["delete", "trash"], ["remove", "trash"], ["close", "close"], ["cancel", "close"], ["minimize", "minimize"], ["more", "more"], ["send", "send"], ["attach", "paperclip"], ["take a photo", "camera"], ["open camera", "camera"], ["phone", "phone"], ["video", "video"], ["reply", "reply"]]) if (name.startsWith(prefix)) return icon;
     }

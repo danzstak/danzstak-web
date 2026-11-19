@@ -33,7 +33,7 @@
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   min-height:var(--ds-btn-size);border:0;border-radius:var(--ds-btn-radius);box-shadow:none;
   font:inherit;font-weight:600;letter-spacing:0;text-transform:none;white-space:nowrap;line-height:1.1;
-  cursor:pointer;touch-action:manipulation;user-select:none;
+  cursor:pointer;touch-action:manipulation;user-select:none;text-decoration:none; /* also on links styled as buttons */
   transition:background-color .12s ease,transform .08s ease,color .12s ease;
 }
 .ds-btn-icon{width:var(--ds-btn-size);min-width:var(--ds-btn-size);height:var(--ds-btn-size);padding:0;background:transparent;color:var(--ds-btn-ink)}

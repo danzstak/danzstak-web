@@ -58,7 +58,8 @@ const feedState = page => page.evaluate(() => ({
   lit: document.querySelector("nav.ds-mobile-nav a[aria-current=page]")?.dataset.tab || "",
   screen: document.getElementById("featureView")?.hidden ? "" : document.getElementById("featureView")?.dataset.workspaceName || "",
   menu: document.body.classList.contains("mobile-menu-open"), expanded: document.querySelector('nav.ds-mobile-nav a[data-tab="menu"]')?.getAttribute("aria-expanded"),
-  focus: document.activeElement?.dataset?.tab || document.activeElement?.className || "", page: location.pathname.split("/").pop()
+  focus: document.activeElement?.dataset?.tab || document.activeElement?.className || "", page: location.pathname.split("/").pop(),
+  title: document.getElementById("featureView")?.hidden ? "" : document.getElementById("featureTitle")?.textContent.trim() || ""
 }));
 
 (async () => {
@@ -93,6 +94,7 @@ const feedState = page => page.evaluate(() => ({
         await tapTab(page, id);
         const state = await feedState(page);
         assert.deepEqual([state.lit, state.screen, state.page], [id, screen, "feed.html"], `${label}: ${id} tab opens ${screen || "Mix"} ${JSON.stringify(state)}`);
+        assert.equal(state.title, { hq: "Music HQ", events: "Events", mix: "" }[id], `${label}: the screen is titled ${id === "hq" ? "Music HQ (audit 36 C5), not HQ" : "by its name"}`);
       }
       assert.equal(await page.evaluate(() => window.__sameDocument), true, `${label}: Mix's tabs switch screens without reloading the page`);
       await tapTab(page, "menu");

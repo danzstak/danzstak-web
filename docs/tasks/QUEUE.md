@@ -48,13 +48,13 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-B4 | One post component (Mix's) on Profile/Tribes/Saved | 36 | Dates done in train d (#642, one time label for posts and comments). The single post layout and icon row is the UI kit's post component (G3): Mix's post look is about 160 stacked `#feed > .post … !important` rules across 9 files |
 | T0-B5 | Your photo instead of "N" on your posts and composer | 36 | Train d (#642) |
 | T0-B6 | One button system (orange primary) | 36 | With the UI kit (week 2) |
-| T0-C1 | Tour Manager: no paywall | 36 | TODO |
-| T0-C2 | Tour Manager: never re-ask EPK info | 36 | TODO |
+| T0-C1 | Tour Manager: no paywall | 36 | Train e (branch claude/modest-fermi-6r0jo1-train-e): no Buy form, price or "Paid" label; credits only when a send needs one; count + Refund an unused purchase stay |
+| T0-C2 | Tour Manager: never re-ask EPK info | 36 | Already done (task 25): "Pitching as … · View EPK · Edit in the EPK builder", act details from the published EPK. Verified 2026-11-19 |
 | T0-B7 | Styled switches/selects/date/file pickers | 36 | With the UI kit (week 2: every web form matches, forms-match.cjs) |
 | T0-B8 | Fluid pages: Tour Manager, Support, Settings, HQ | 36 | With the UI kit (week 2, screen by screen) |
 | T0-B9 | Landing page in DanzStak style | 36 | With the UI kit (week 2) |
 | T0-B10 | Bazaar images fill tiles; one search | 36 | Train d (#642) |
-| T0-CD | Small fixes C3–C5, D1–D7 | 36 | TODO |
+| T0-CD | Small fixes C3–C5, D1–D7 | 36 | Train e: C5 "Music HQ" title, D2/D3 not-found pages with a way back, D5 Roll empty state lined up, D6 Unpublish only when published + trash icon (root cause: emoji variation selector), D7 shield icon. C3 already gone (verified). Moved: C4 Menu grid + Radio stations → F8 Menu pass with T2h/T2i; D1 Events form → F10; D4 Friends invite → F9 |
 | T2a | Tap any profile picture → that member's profile | CLAUDE.md "T2 checklist", 18 | PR #598 (train) |
 | T2b | No separate Dailies upload (Dailies tile never opens the photo picker) | CLAUDE.md "T2 checklist", 18 | PR #605 (train, with T0-A2) |
 | T2c | TAKE N counts photos and videos | CLAUDE.md "T2 checklist", 18 | TODO |

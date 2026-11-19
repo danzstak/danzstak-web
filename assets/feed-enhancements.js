@@ -2694,7 +2694,7 @@ function openWorkspaceRoute(name, pushHistory = true) {
   homeControl?.setAttribute("aria-pressed", "false");
   document.getElementById("newsFeedView").hidden = true;
   featurePanel.hidden = false;
-  const visibleName = canonicalName === "Groups" ? "Tribes" : canonicalName;
+  const visibleName = screenTitles[canonicalName] || canonicalName; // audit 36 C5: "Music HQ", not "HQ"; Groups → Tribes
   setScreenTitle(canonicalName);
   featureHeading.textContent = visibleName;
   const pageHeading = document.getElementById("pageHeading");
