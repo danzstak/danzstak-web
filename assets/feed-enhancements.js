@@ -548,8 +548,11 @@ function renderOnlineFriendList(list, users, presenceAvailable = true) {
     const row = document.createElement("div");
     row.className = "feed-online-row friend-discovery-row";
     const displayName = person.name || feedTranslate("DanzStak member");
-    const avatarWrap = document.createElement("span");
+    // T2a (owner 2026-11-18): the photo opens their profile too (the name link stays the keyboard stop).
+    const personId = String(person.memberId || ""), personHref = /^[a-f0-9-]{36}$/.test(personId) ? "profile.html?member=" + encodeURIComponent(personId) : "";
+    const avatarWrap = document.createElement(personHref ? "a" : "span");
     avatarWrap.className = "feed-online-avatar-wrap";
+    if (personHref) { avatarWrap.href = personHref; avatarWrap.tabIndex = -1; avatarWrap.setAttribute("aria-hidden", "true"); }
     const avatar = person.picture ? document.createElement("img") : document.createElement("span");
     avatar.className = "feed-online-avatar";
     if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, person); }

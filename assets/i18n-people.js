@@ -4,6 +4,15 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Change profile picture": "Cambia immagine del profilo",
+"Choose from this phone": "Scegli da questo telefono",
+"Choose from your DanzStak photos": "Scegli tra le tue foto su DanzStak",
+"Remove profile picture": "Rimuovi immagine del profilo",
+"Pick a photo": "Scegli una foto",
+"No photos posted yet. Choose one from this phone.": "Nessuna foto pubblicata. Scegline una da questo telefono.",
+"Setting your profile picture…": "Imposto la tua immagine del profilo…",
+"Profile picture updated.": "Immagine del profilo aggiornata.",
+"That photo can't be used right now. Choose it from this phone instead.": "Questa foto non si può usare adesso. Sceglila da questo telefono.",
 "Add a bio": "Aggiungi una bio",
 "No posts yet": "Ancora nessun post",
 "Profile post photo": "Foto del post",
@@ -60,6 +69,15 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"Change profile picture": "Changer la photo de profil",
+"Choose from this phone": "Choisir sur ce téléphone",
+"Choose from your DanzStak photos": "Choisir parmi tes photos DanzStak",
+"Remove profile picture": "Supprimer la photo de profil",
+"Pick a photo": "Choisis une photo",
+"No photos posted yet. Choose one from this phone.": "Aucune photo publiée. Choisis-en une sur ce téléphone.",
+"Setting your profile picture…": "Mise à jour de ta photo de profil…",
+"Profile picture updated.": "Photo de profil mise à jour.",
+"That photo can't be used right now. Choose it from this phone instead.": "Cette photo ne peut pas être utilisée pour l'instant. Choisis-la sur ce téléphone.",
 "Add a bio": "Ajouter une bio",
 "No posts yet": "Pas encore de publications",
 "Profile post photo": "Photo de la publication",
@@ -116,6 +134,15 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"Change profile picture": "Cambiar foto de perfil",
+"Choose from this phone": "Elegir de este teléfono",
+"Choose from your DanzStak photos": "Elegir de tus fotos de DanzStak",
+"Remove profile picture": "Quitar foto de perfil",
+"Pick a photo": "Elige una foto",
+"No photos posted yet. Choose one from this phone.": "Aún no has publicado fotos. Elige una de este teléfono.",
+"Setting your profile picture…": "Poniendo tu foto de perfil…",
+"Profile picture updated.": "Foto de perfil actualizada.",
+"That photo can't be used right now. Choose it from this phone instead.": "Esa foto no se puede usar ahora. Elígela desde este teléfono.",
 "Add a bio": "Añadir una bio",
 "No posts yet": "Aún no hay publicaciones",
 "Profile post photo": "Foto de la publicación",

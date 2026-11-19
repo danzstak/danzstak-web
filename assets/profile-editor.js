@@ -273,6 +273,107 @@ addProfileImageButton("Change Profile Photo", document.getElementById("profileIn
 addProfileImageButton("Change Cover Photo", document.querySelector(".cover"), "cover");
 addRemoveImageButton("Remove Profile Photo", "avatar", document.getElementById("profileInitial"));
 addRemoveImageButton("Remove Cover Photo", "cover", document.querySelector(".cover"));
+
+// Owner 2026-11-19: on your own profile, tapping your profile picture changes it — from this phone or from photos you
+// already posted on DanzStak. Every other picture of you (posts, comments, menu) shows that same picture.
+const profilePhotoWords = {
+  change: "Change profile picture", phone: "Choose from this phone", danzstak: "Choose from your DanzStak photos",
+  remove: "Remove profile picture", cancel: "Cancel", pick: "Pick a photo", none: "No photos posted yet. Choose one from this phone.",
+  saving: "Setting your profile picture…", done: "Profile picture updated.", failed: "That photo can't be used right now. Choose it from this phone instead."
+};
+let profilePhotoSheet = null;
+function markAvatarEditable(on) {
+  const avatar = document.getElementById("profileInitial");
+  if (!avatar) return;
+  avatar.classList.toggle("profile-avatar-editable", on);
+  if (on) { avatar.tabIndex = 0; avatar.setAttribute("role", "button"); avatar.setAttribute("aria-label", profileTranslate(profilePhotoWords.change)); avatar.removeAttribute("aria-hidden"); }
+  else { avatar.removeAttribute("tabindex"); avatar.removeAttribute("role"); avatar.removeAttribute("aria-label"); avatar.setAttribute("aria-hidden", "true"); }
+}
+function profilePhotoMediaButton(field, label) {
+  return [...mediaTools.querySelectorAll(`button[data-media-field="${field}"]`)].find(button => button.textContent === label);
+}
+function refreshOwnPictures(oldPicture, newPicture) {
+  if (!newPicture) return;
+  for (const image of document.querySelectorAll("img")) if (oldPicture && image.getAttribute("src") === oldPicture) image.src = newPicture;
+  window.dispatchEvent(new CustomEvent("danzstak:profile-picture-changed", { detail: { picture: newPicture } }));
+}
+async function useDanzStakPhoto(post, status) {
+  status.textContent = profileTranslate(profilePhotoWords.saving);
+  const oldPicture = window.danzstakCurrentProfile?.picture || "";
+  try {
+    if (!window.danzstakCurrentProfile?.cloudProfile) throw new Error("not a cloud profile");
+    let response = await profileFetch(post.mediaUrl, { mode: "cors", credentials: "omit" }).catch(() => null);
+    if (!response?.ok && typeof refreshProfilePostMedia === "function") { const fresh = await refreshProfilePostMedia(post).catch(() => ""); if (fresh) response = await profileFetch(fresh, { mode: "cors", credentials: "omit" }).catch(() => null); }
+    if (!response?.ok) throw new Error("photo unavailable");
+    // Re-encode on this phone as a JPEG (any posted type works, and it stays a sensible size), then upload it as usual.
+    const bitmap = await createImageBitmap(await response.blob());
+    const scale = Math.min(1, 1080 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const jpeg = await new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("encode")), "image/jpeg", 0.9));
+    const profile = await uploadCloudProfileMedia(new File([jpeg], "profile-picture.jpg", { type: "image/jpeg" }), "avatarKey");
+    if (profile) applyProfile(profile);
+    refreshOwnPictures(oldPicture, profile?.picture || "");
+    profilePhotoSheet?.close();
+    showProfileFeedback(profilePhotoWords.done);
+  } catch { status.textContent = profileTranslate(profilePhotoWords.failed); }
+}
+async function showDanzStakPhotos(sheet) {
+  const grid = sheet.querySelector(".profile-photo-grid"), status = sheet.querySelector(".profile-photo-status");
+  sheet.querySelector(".profile-photo-choices").hidden = true;
+  grid.hidden = false; grid.replaceChildren(); status.textContent = profileTranslate(profilePhotoWords.pick);
+  let posts = [];
+  try {
+    const response = await profileFetch(profileApi + "/secure-posts", { credentials: "include", cache: "no-store" });
+    const data = response.ok ? await response.json() : {};
+    const me = String(window.danzstakCurrentProfile?.memberId || "");
+    posts = (data.posts || []).filter(post => post.mediaType === "image" && post.mediaUrl && (post.isOwner === true || (me && String(post.authorMemberId || post.userId || "") === me))).slice(0, 60);
+  } catch { /* falls through to the empty line */ }
+  if (!posts.length) { status.textContent = profileTranslate(profilePhotoWords.none); return; }
+  for (const post of posts) {
+    const tile = document.createElement("button");
+    tile.type = "button"; tile.className = "profile-photo-tile";
+    tile.setAttribute("aria-label", profileTranslate(profilePhotoWords.pick));
+    const image = document.createElement("img"); image.src = post.mediaUrl; image.alt = ""; image.loading = "lazy"; image.referrerPolicy = "no-referrer";
+    tile.append(image);
+    tile.addEventListener("click", () => useDanzStakPhoto(post, status));
+    grid.append(tile);
+  }
+}
+function openProfilePhotoSheet() {
+  if (viewingOtherProfile) return;
+  if (!profilePhotoSheet) {
+    const sheet = document.createElement("dialog");
+    sheet.className = "profile-photo-sheet"; sheet.setAttribute("aria-labelledby", "profilePhotoSheetTitle");
+    sheet.innerHTML = '<h2 id="profilePhotoSheetTitle"></h2><div class="profile-photo-choices"><button type="button" data-choice="phone"></button><button type="button" data-choice="danzstak"></button><button type="button" data-choice="remove" class="is-danger"></button></div>'
+      + '<p class="profile-photo-status" role="status"></p><div class="profile-photo-grid" hidden></div><button type="button" data-choice="cancel" class="profile-photo-cancel"></button>';
+    sheet.addEventListener("click", event => {
+      if (event.target === sheet) { sheet.close(); return; }
+      const choice = event.target.closest("[data-choice]")?.dataset.choice;
+      if (choice === "cancel") sheet.close();
+      else if (choice === "phone") { sheet.close(); profilePhotoMediaButton("avatar", "Change Profile Photo")?.click(); }
+      else if (choice === "remove") { sheet.close(); profilePhotoMediaButton("avatar", "Remove Profile Photo")?.click(); }
+      else if (choice === "danzstak") void showDanzStakPhotos(sheet);
+    });
+    document.body.appendChild(sheet);
+    profilePhotoSheet = sheet;
+  }
+  const sheet = profilePhotoSheet;
+  sheet.querySelector("h2").textContent = profileTranslate(profilePhotoWords.change);
+  for (const [choice, key] of [["phone", "phone"], ["danzstak", "danzstak"], ["remove", "remove"], ["cancel", "cancel"]]) sheet.querySelector(`[data-choice="${choice}"]`).textContent = profileTranslate(profilePhotoWords[key]);
+  sheet.querySelector('[data-choice="remove"]').hidden = !window.danzstakCurrentProfile?.picture;
+  sheet.querySelector(".profile-photo-choices").hidden = false;
+  const grid = sheet.querySelector(".profile-photo-grid"); grid.hidden = true; grid.replaceChildren();
+  sheet.querySelector(".profile-photo-status").textContent = "";
+  if (!sheet.open) sheet.showModal();
+}
+{
+  const avatar = document.getElementById("profileInitial");
+  avatar?.addEventListener("click", () => { if (avatar.classList.contains("profile-avatar-editable")) openProfilePhotoSheet(); });
+  avatar?.addEventListener("keydown", event => { if ((event.key === "Enter" || event.key === " ") && avatar.classList.contains("profile-avatar-editable")) { event.preventDefault(); openProfilePhotoSheet(); } });
+  if (!viewingOtherProfile) markAvatarEditable(true);
+}
 const coverElement = document.querySelector(".cover");
 const repositionButton = document.createElement("button");
 repositionButton.type = "button";
@@ -585,8 +686,28 @@ function profilePostCard(post) {
   const audience = document.createElement("span");
   audience.textContent = post.audience === "private" ? "Just me" : post.audience === "friends" ? "Friends" : "Public";
   meta.append(time, document.createTextNode(" · "), audience);
-  authorDetails.append(author, meta);
-  header.append(avatar, authorDetails);
+  // T2a (owner 2026-11-18): the author's photo and name open their profile, like everywhere else (real links, 44px).
+  const authorId = String(post.authorMemberId || post.userId || currentProfile.memberId || "");
+  const ownWall = currentProfile.isOwner === true && (!authorId || authorId === String(currentProfile.memberId || ""));
+  const authorHref = ownWall ? "profile.html" : /^[a-f0-9-]{36}$/i.test(authorId) ? "profile.html?member=" + encodeURIComponent(authorId) : "";
+  if (authorHref) {
+    const avatarLink = document.createElement("a");
+    avatarLink.className = "profile-post-avatar-link";
+    avatarLink.href = authorHref;
+    avatarLink.tabIndex = -1; // the name link below is the one keyboard and screen-reader stop
+    avatarLink.setAttribute("aria-hidden", "true");
+    avatarLink.append(avatar);
+    const authorLink = document.createElement("a");
+    authorLink.className = "profile-post-author-link";
+    authorLink.href = authorHref;
+    authorLink.setAttribute("aria-label", profileTranslate("Open {name} profile").replace("{name}", authorName));
+    authorLink.append(author);
+    authorDetails.append(authorLink, meta);
+    header.append(avatarLink, authorDetails);
+  } else {
+    authorDetails.append(author, meta);
+    header.append(avatar, authorDetails);
+  }
   const text = document.createElement("p");
   text.className = "profile-post-content";
   const postContent = String(post.content || "Shared media");
@@ -675,16 +796,18 @@ function profileWallComposer(profile) {
   };
   // Owner 2026-11-18: the composer shows the member's own profile photo. The wall can render before the profile
   // photo arrives, so the owner's photo is fetched too when it isn't in hand yet.
-  if (profile.isOwner && profile.picture) installCompactAvatar(profile);
-  else profileFetch(profileApi + "/profiles", { credentials: "include", cache: "no-store" })
-    .then(async response => { if (response.ok) installCompactAvatar((await response.json()).profile || {}); })
-    .catch(() => {});
+  // (Installed below, once the placeholder is in the row: replaceWith() on a detached element silently did nothing, so
+  // the owner saw their initial instead of their photo whenever the photo was already known — owner 2026-11-19.)
   const opener = document.createElement("button");
   opener.type = "button";
   opener.className = "profile-create-opener";
   opener.textContent = profile.isOwner ? "What’s on your mind?" : `Write something to ${profile.name || "this member"}…`;
   opener.setAttribute("aria-expanded", "false");
   compact.append(compactAvatar, opener);
+  if (profile.isOwner && profile.picture) installCompactAvatar(profile);
+  else profileFetch(profileApi + "/profiles", { credentials: "include", cache: "no-store" })
+    .then(async response => { if (response.ok) installCompactAvatar((await response.json()).profile || {}); })
+    .catch(() => {});
 
   const shortcuts = document.createElement("div");
   shortcuts.className = "profile-create-shortcuts";
@@ -1240,7 +1363,13 @@ function applyProfile(profile) {
   addBioButton.hidden = Boolean(profile.bio) || profile.isOwner !== true || viewingOtherProfile;
   // Owner 2026-11-18: "+ bio" is the 5th icon in the action row (edit · shop · share · people · bio), not its own line.
   const profileActionRow = document.querySelector(".profile-actions");
-  if (profileActionRow && addBioButton.parentElement !== profileActionRow) { addBioButton.classList.add("ds-icon-button", "profile-add-bio--icon"); profileActionRow.appendChild(addBioButton); }
+  if (profileActionRow && addBioButton.parentElement !== profileActionRow) {
+    addBioButton.classList.add("ds-icon-button", "profile-add-bio--icon"); profileActionRow.appendChild(addBioButton);
+    // Owner 2026-11-19: "+ bio" sits to the right of the other buttons. Share, Invite (and Shop) are added to this row
+    // later, so keep it the last button in the page itself (not only visually), so focus order matches what you see.
+    new MutationObserver(() => { if (addBioButton.parentElement === profileActionRow && profileActionRow.lastElementChild !== addBioButton) profileActionRow.appendChild(addBioButton); })
+      .observe(profileActionRow, { childList: true });
+  }
   window.danzstakLinkifyUserText?.(bioElement);
   setProfileDetail("profileLocation", profile.location);
   setProfileDetail("profileWork", profile.work);
@@ -1334,6 +1463,7 @@ if (!viewingOtherProfile) {
   try { applyProfileMedia(JSON.parse(localStorage.getItem(profileMediaKey) || "{}")); } catch { /* Ignore corrupt local drafts. */ }
 }
 function applyLoadedProfile(profile = {}) {
+  markAvatarEditable(profile.isOwner === true); // owner 2026-11-19: only your own picture is tappable to change
   if (profile.isOwner === true) {
     viewingOtherProfile = false;
     editButton.hidden = false;
