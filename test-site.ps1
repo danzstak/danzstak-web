@@ -459,7 +459,7 @@ foreach ($accessibilityFeature in @('tabs.setAttribute("role", "tablist")', 'but
   if (-not $profileEditorJs.Contains($accessibilityFeature)) { Add-Failure "Profile tab keyboard accessibility is missing: $accessibilityFeature" }
 }
 foreach ($profilePresenceFeature in @(
-  'const [friendsResult, directoryResult] = await Promise.allSettled([',
+  'const [friendsResult, directoryResult, everyoneResult] = await Promise.allSettled([',
   'user.online === true',
   'profile-friend-presence online',
   'status.setAttribute("aria-hidden", "true")'
