@@ -186,7 +186,7 @@ const call = async (method, rawPath, { session, body, query } = {}) => {
   assert.match(inviteJs, /danzstak:call-device-registered/, "calls wait for real device verification");
   assert.match(inviteJs, /Later — text only/);
   assert.match(onboarding, /if \(!\/\[\?&\]\(invite\|invited\)=\/\.test\(location\.search\)\) deviceStep\(\);/, "invitees are not asked twice to register");
-  assert.match(messages, /assets\/call-invite\.js\?v=1/); assert.match(messages, /assets\/call-invite\.css\?v=1/);
+  assert.match(messages, /assets\/call-invite\.js\?v=4/); assert.match(messages, /assets\/call-invite\.css\?v=1/);
   for (const asset of ["/answer.html", "/assets/answer.js", "/assets/answer.css", "/assets/call-invite.js", "/assets/call-invite.css"]) assert.ok(worker.includes(`"${asset}"`), `${asset} in the offline shell`);
   assert.match(worker, /danzstak-shell-v997/);
 
