@@ -3,7 +3,8 @@
 // Real browser: browser-checks/profile-picture-links.cjs (320-430px and 1280px).
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const read = file => fs.readFileSync(file, "utf8");
+// Windows checkouts (CI) use CRLF line endings; compare text, not line endings.
+const read = file => fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n");
 const profileEditor = read("assets/profile-editor.js"), dm = read("assets/direct-messages.js"), fe = read("assets/feed-enhancements.js"), feed = read("feed.html");
 const feCss = read("assets/feed-enhancements.css"), profileCss = read("assets/profile-polish.css");
 
