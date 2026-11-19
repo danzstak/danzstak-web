@@ -49,6 +49,13 @@ assert.match(pwa, /navigator\.standalone === true\) && !syncAppPage;/);
 for (const file of ["/sync/", "/sync.webmanifest", "/assets/sync-app.js", "/assets/sync-app.css"]) assert.ok(worker.includes(`"${file}"`), `cached: ${file}`);
 assert.match(worker, /destinationUrl\.pathname === "\/messages\.html"\) destinationUrl\.pathname = "\/sync\/";/, "SYNC notifications open /sync/");
 
+// T3 (owner 2026-11-19): after device registration, offer SYNC as its own app; never in a call, never twice dismissed.
+assert.match(app, /addEventListener\("danzstak:call-device-registered", \(\) => setTimeout\(offerApp, 150\)\);/);
+assert.match(app, /if \(inInstalledSync\(\) \|\| knownInstalled \|\| added \|\| dismissals\(\) >= 2 \|\| inCall\(\) \|\| offer\?\.open\) return false;/);
+assert.match(app, /else location\.href = `\$\{HOME\}\?install=1&setup=1`;/, "outside /sync/ the offer opens SYNC's own page");
+assert.match(read("assets/phone-setup.js"), /await window\.danzstakSyncApp\?\.offerClosed\?\.\(\); open\(\);/, "set up this phone waits for the offer");
+for (const key of ["Make SYNC its own app", "Get a SYNC icon on your home screen, straight to your chats.", "Add SYNC to home screen"]) assert.equal(i18n.split(`${JSON.stringify(key)}:`).length - 1, 5, `"${key}" translated`);
+
 // Translations for the sheet.
 for (const key of ["SYNC is installed on this phone", "Tap Share.", "Tap Add to Home Screen.", "Tap ⋮ at the top right of Chrome.", "Tap Install app (or Add to Home screen).", "Open in Chrome to install", "Install SYNC"]) {
   assert.equal(i18n.split(`${JSON.stringify(key)}:`).length - 1, 5, `"${key}" translated for it, fr, es, de and pt`);

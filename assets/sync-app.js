@@ -138,7 +138,60 @@
     if (!knownInstalled && !deferred) installedRelatedApp().then(yes => { if (yes) { knownInstalled = true; render(); } });
   }
 
-  window.danzstakSyncApp = Object.freeze({ openInstall, inSyncApp, home: HOME });
+  // ---- T3 (owner 2026-11-19): right after this device registers for SYNC calls, offer SYNC as its own app once ----
+  // "Make SYNC its own app": Add SYNC to home screen / Not now. Never inside the SYNC app, never once SYNC is installed,
+  // never after two "Not now", and never in the way of a call (registering to answer one goes straight to the call).
+  // The "set up this phone" flow (phone-setup.js) waits until this closes.
+  const OFFER_DISMISSED = "danzstak_sync_offer_dismissed";
+  let offer = null, offerClosed = Promise.resolve();
+  const dismissals = () => { try { return Number(localStorage.getItem(OFFER_DISMISSED) || 0); } catch { return 0; } };
+  const inCall = () => Boolean(document.body?.dataset.callMode) || /[?&](invite|invited|answer|callId)=/.test(location.search) || document.getElementById("incomingCall")?.hidden === false;
+  function offerApp() {
+    if (inInstalledSync() || knownInstalled || added || dismissals() >= 2 || inCall() || offer?.open) return false;
+    if (!offer) {
+      offer = document.createElement("dialog");
+      offer.id = "syncAppOffer";
+      offer.className = "call-setup-dialog sync-install-dialog sync-app-offer";
+      offer.setAttribute("aria-labelledby", "syncAppOfferTitle");
+      offer.innerHTML = '<header><h2 id="syncAppOfferTitle"></h2></header><div class="sync-install-body"><img class="sync-install-icon" src="assets/sync-icon-192.png?v=1" alt="" width="72" height="72">'
+        + '<p class="sync-install-text"></p><button type="button" class="sync-install-primary" data-action="install"></button><button type="button" class="sync-install-primary sync-offer-later" data-action="close"></button></div>';
+      offer.querySelector('[data-action="install"]').addEventListener("click", async () => {
+        if (inSyncApp && deferred) { // one tap: SYNC's own install prompt
+          const prompt = deferred; deferred = null;
+          offer.close();
+          try { await prompt.prompt(); const choice = await prompt.userChoice; if (choice?.outcome === "accepted") { added = true; knownInstalled = true; } } catch { /* fall back to the sheet */ }
+          if (!added) openInstall();
+          return;
+        }
+        offer.close();
+        if (inSyncApp) openInstall(); // no prompt (iPhone, or the browser has not offered one): the phone's own steps
+        else location.href = `${HOME}?install=1&setup=1`; // SYNC's own page, where its manifest applies; setup continues there
+      });
+      offer.querySelector(".sync-offer-later").addEventListener("click", () => {
+        try { localStorage.setItem(OFFER_DISMISSED, String(dismissals() + 1)); } catch { /* optional */ }
+        offer.close();
+      });
+      offer.addEventListener("cancel", event => { event.preventDefault(); offer.querySelector(".sync-offer-later").click(); });
+      document.body.appendChild(offer);
+    }
+    offer.querySelector("h2").textContent = t("Make SYNC its own app");
+    offer.querySelector(".sync-install-text").textContent = t("Get a SYNC icon on your home screen, straight to your chats.");
+    offer.querySelector('[data-action="install"]').textContent = t("Add SYNC to home screen");
+    offer.querySelector(".sync-offer-later").textContent = t("Not now");
+    offerClosed = new Promise(resolve => offer.addEventListener("close", () => resolve(), { once: true }));
+    offer.showModal();
+    return true;
+  }
+  addEventListener("danzstak:call-device-registered", () => setTimeout(offerApp, 150));
+  // Arrived from the offer on messages.html: once the install sheet closes, carry on with "set up this phone".
+  if (inSyncApp && new URLSearchParams(location.search).get("setup") === "1") {
+    const params = new URLSearchParams(location.search); params.delete("setup");
+    history.replaceState(history.state, "", `${HOME}${params.size ? `?${params}` : ""}${location.hash}`);
+    const resume = () => { const sheet = document.getElementById("syncInstallDialog"); if (sheet?.open) sheet.addEventListener("close", () => window.danzstakPhoneSetup?.open?.(), { once: true }); else window.danzstakPhoneSetup?.open?.(); };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(resume, 300), { once: true }); else setTimeout(resume, 300);
+  }
+
+  window.danzstakSyncApp = Object.freeze({ openInstall, inSyncApp, home: HOME, offerApp, offerClosed: () => offerClosed });
   if (inSyncApp && new URLSearchParams(location.search).get("install") === "1") {
     const params = new URLSearchParams(location.search); params.delete("install");
     history.replaceState(history.state, "", `${HOME}${params.size ? `?${params}` : ""}${location.hash}`);
