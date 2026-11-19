@@ -171,8 +171,9 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - Check: for a landscape, a square and a portrait image, the frame rect equals the image rect at 320–430px.
 - **F23. "Then / Now" before-and-after posts with a slider** (owner 2026-11-19: "an effect like this that does before and after with the slider going left and right… would be kind of cool"). Reference: `docs/screenshots/owner-reference/then-now-slider-reference-2026-11-19.png`. This is a new feature, so build it **after F1–F22**.
   - In the composer, pick **two photos** and add **Then / Now**, with an optional date for "Then" (prefilled from the photo's date).
-  - On the post, both photos sit in one frame with a draggable divider and a round ⇄ handle. Drag left/right to reveal more of either side; a tap on the handle flips between them. Labels "Then: Nov 19, 2018" and "Now" sit in the corners.
-  - Same aspect rules as F22. Keyboard: arrows move the divider. Full screen (F1) shows both side by side.
+  - **The slider is automated; users don't touch it** (owner: "a mix between 2 photos… the slider is automated, users don't touch the slider"). On the post, both photos sit in one frame and a divider with a round ⇄ badge **sweeps left and right on its own**: an easing loop of about 4 s, pausing a moment on each side, so viewers see the mix between the two. Labels "Then: Nov 19, 2018" and "Now" sit in the corners.
+  - The loop plays only while the post is at least 50% visible, and stops (showing the split) with `prefers-reduced-motion` or data saver. A tap opens full screen (F1), with both photos side by side.
+  - Same aspect rules as F22.
 - **The owner could do this on every page:** F8–F22 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
