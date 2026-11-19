@@ -1,6 +1,8 @@
 "use strict";
 // Moving Day for shops (owner 2026-11-17): read a shop's own inventory export
 // (Discogs, eBay, Shopify or any spreadsheet) entirely in the browser.
+// Owner 2026-11-18: a Discogs *collection* export works too. It has no prices, so every item
+// starts with "no price" until the member sets one (for all picked items or row by row).
 // No platform login, no API, nothing copied from a marketplace database.
 (function (root) {
   const MAX_ROWS = 20000;
@@ -38,17 +40,18 @@
 
   // Column names as each platform's own export writes them.
   const FIELDS = {
-    ref: ["listing_id", "item_number", "item_id", "custom_label_sku", "sku", "variant_sku", "handle", "id"],
+    ref: ["listing_id", "item_number", "item_id", "custom_label_sku", "sku", "variant_sku", "handle", "id", "release_id"],
     artist: ["artist", "artists"],
     title: ["title", "item_title", "name", "product_title"],
     label: ["label", "labels"],
-    catno: ["catno", "catalog_number", "cat_no", "catalogue_number"],
+    catno: ["catno", "catalog_number", "cat_no", "catalogue_number", "catalog"],
     format: ["format", "formats", "type"],
     price: ["price", "start_price", "current_price", "variant_price", "buy_it_now_price"],
     quantity: ["quantity", "available_quantity", "variant_inventory_qty", "inventory", "stock", "qty"],
-    media: ["media_condition", "condition"],
-    sleeve: ["sleeve_condition"],
-    comments: ["comments", "description", "body_html", "body"],
+    media: ["media_condition", "condition", "collection_media_condition"],
+    released: ["released", "year"],
+    sleeve: ["sleeve_condition", "collection_sleeve_condition"],
+    comments: ["comments", "description", "body_html", "body", "collection_notes"],
     image: ["image_src", "image", "image_url", "picture_url"],
     status: ["status"],
     shipping: ["flat_shipping", "shipping", "shipping_cost"]
@@ -62,6 +65,7 @@
       if (index >= 0) map[field] = index;
     }
     const source = names.includes("listing_id") && names.includes("release_id") ? "discogs"
+      : names.includes("release_id") && (names.includes("collection_media_condition") || names.includes("collectionfolder") || names.includes("date_added")) ? "discogs-collection"
       : names.includes("item_number") || names.includes("custom_label_sku") ? "ebay"
       : names.includes("handle") && names.includes("variant_price") ? "shopify"
       : "spreadsheet";
@@ -90,10 +94,11 @@
       const artist = cell(row, "artist"), title = cell(row, "title");
       const name = (artist && title ? `${artist} – ${title}` : title || artist).slice(0, 120);
       const format = cell(row, "format"), label = cell(row, "label"), catno = cell(row, "catno");
-      const media = cell(row, "media"), sleeve = cell(row, "sleeve"), comments = stripHtml(cell(row, "comments"));
+      const media = cell(row, "media"), sleeve = cell(row, "sleeve"), comments = stripHtml(cell(row, "comments")), released = cell(row, "released");
       const details = [
         format && `Format: ${format}`,
         (label || catno) && `Label: ${[label, catno].filter(Boolean).join(" · ")}`,
+        released && released !== "0" && `Released: ${released}`,
         media && `${sleeve ? "Media" : "Condition"}: ${media}`,
         sleeve && `Sleeve: ${sleeve}`,
         comments

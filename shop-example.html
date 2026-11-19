@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#121418">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; style-src 'self'; script-src 'self'; img-src 'self' data: https:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <title>Example shops | DanzStak</title>
+  <meta name="description" content="Three example shops, a fan, a band and a record shop, that show how to build yours on DanzStak. Nothing here is for sale.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
+  <link rel="stylesheet" href="assets/mobile-design-system.css?v=22">
+  <link rel="stylesheet" href="assets/icon-buttons.css?v=5">
+  <link rel="stylesheet" href="assets/store.css?v=8">
+  <link rel="stylesheet" href="assets/shop-example.css?v=1">
+<link rel="stylesheet" href="assets/top-search.css?v=2">
+<link rel="stylesheet" href="assets/app-bar.css?v=9">
+<link rel="stylesheet" href="assets/app-tabs.css?v=1">
+<script src="assets/app-tabs.js?v=2" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#exampleMain">Skip to example shops</a>
+  <header class="store-header">
+    <a class="store-brand" href="feed.html?view=feed" aria-label="DanzStak home"><img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span></a>
+    <nav aria-label="Store navigation"><a href="bazaar.html">Bazaar</a><a href="store.html?manage=1">My Shop</a></nav>
+  </header>
+  <main id="exampleMain" class="store-main example-main" tabindex="-1">
+    <section class="example-intro" aria-labelledby="exampleTitle">
+      <p class="store-eyebrow">Example shops</p>
+      <h1 id="exampleTitle">Build a shop people buy from</h1>
+      <p>Three made-up shops show what works on DanzStak: a fan selling crafts, a band selling merch and records, a record shop moving its crate. <strong>Nothing here is real or for sale.</strong></p>
+      <p class="example-actions"><a class="example-primary" href="store.html?manage=1">Start my shop</a><a href="moving-day.html">Moving Day (free import)</a></p>
+    </section>
+
+    <div id="exampleSwitch" class="example-switch" role="tablist" aria-label="Example shops">
+      <button type="button" role="tab" id="tab-fan" data-shop="fan" aria-controls="exampleShop">Fan shop</button>
+      <button type="button" role="tab" id="tab-band" data-shop="band" aria-controls="exampleShop">Band shop</button>
+      <button type="button" role="tab" id="tab-record" data-shop="record" aria-controls="exampleShop">Record shop</button>
+    </div>
+    <div id="exampleShop" class="example-shop" role="tabpanel" tabindex="0"></div>
+
+    <section class="example-basics" aria-labelledby="basicsTitle">
+      <h2 id="basicsTitle">Shop basics</h2>
+      <details class="example-guide"><summary>Photos</summary><p>Square, natural light. For records: front, back and label. Show the real item, not a stock image.</p></details>
+      <details class="example-guide"><summary>Titles</summary><p>Artist – Title (Format, Label Cat#). Collectors search for the exact pressing.</p></details>
+      <details class="example-guide"><summary>Condition</summary><p>Discogs-style grades (M, NM, VG+, VG…) for the media and the sleeve, plus a line on anything a buyer should know.</p></details>
+      <details class="example-guide"><summary>Price and shipping</summary><p>You keep your full price and your shipping. Buyers pay DanzStak's 6% fee (plus $1 on orders under $30), shown up front as one all-in price. Shipping can't cost more than the item.</p></details>
+      <details class="example-guide"><summary>Stock, drafts and where it shows</summary><p>Set stock and mark sold out in one tap. Drafts stay private until you publish. Your shop lives on your profile, and published items also appear in the Bazaar.</p></details>
+      <details class="example-guide"><summary>Moving Day</summary><p>Bring a whole Discogs, eBay or Shopify inventory, or a Discogs collection, in one go. It's free and runs from your own export.</p></details>
+      <details class="example-guide"><summary>AI shop (optional)</summary><p>For $6.30, the AI shop drafts your shop and up to 10 listings from your photos. You review every word before anything is published.</p></details>
+    </section>
+
+    <section class="example-cta" aria-labelledby="ctaTitle">
+      <h2 id="ctaTitle">Ready?</h2>
+      <p class="example-actions"><a class="example-primary" href="store.html?manage=1">Start my shop</a><a href="moving-day.html">Bring my inventory over</a></p>
+    </section>
+  </main>
+  <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"></nav>
+  <script src="assets/icon-buttons.js?v=16" defer></script>
+  <script src="assets/shop-example.js?v=1" defer></script>
+<script src="assets/people-search.js?v=424" defer></script>
+<script src="assets/top-search.js?v=3" defer></script>
+<script src="assets/app-bar.js?v=7" defer></script>
+</body>
+</html>
