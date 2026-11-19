@@ -122,6 +122,30 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
 - **The owner could do this on every page:** F8–F15 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
+### Launch gates — "doors open" for 25 testers (owner 2026-11-19)
+Owner: "When you make all the fixes I want you to open it for 25 accounts so we can test… I need all products working and tested."
+
+Work through these in order. Each gate must pass before the next one starts.
+- **G1. Code finishes the fix list** F0–F15 and the CDN steps C1–C2. It tests each fix once (suite plus browser checks at 320/360/390/430px, tapping icon centres).
+- **G2. Claude does two full sweeps from start to finish**, separately, on the live installed PWA at 360 and 390px:
+  - **The route:** sign up as a new member → name/@username → SYNC device registration → Mix (Dailies, composer, post a photo and a video, The Roll, the full-screen viewer) → profile (every tab, edit, pictures repositioned) → Friends → Tribes (create, post, Elder tools) → Events (create one) → Bazaar (browse, product, checkout in test mode) → Music HQ (EPK build/publish, Booking pitch in test mode, Tour Manager) → SYNC (chat, call, ring, Text note) → Notifications → Menu → Settings / Your data (export) → Log out.
+  - **On every screen:** every button is tapped and must work and land on the right screen, with no raw errors, no dead or duplicate buttons, and nothing that looks unfinished.
+  - **Findings:** each problem goes into a new fix list (F16+) here. Code fixes them, then the sweep repeats.
+- **G3. Code clean-up pass.** Remove broken or untranslated strings, half-finished screens, dead code and duplicate CSS and JS. Make one component per job: app bar, tab bar, post, button, sheet, list row. Delete unused assets. Code gets tight, not clunky. No behaviour changes without a check.
+- **G4. Claude tests again before doors open.** One more full sweep (G2 route) plus the full suite and every browser check against the live site.
+- **G5. Every page modern, every button works and goes to the right place** (the F8–F15 standard), confirmed screen by screen with before/after screenshots in `docs/screenshots/launch/`.
+- **G6. Every product works and is tested end to end in Stripe Test Mode:**
+  - single email, Starter/Club/Tour packs, AI EPK, AI redesign, AI profile, AI shop;
+  - Tour Itinerary, contact unlock, translation packs, shop items, event tickets;
+  - buyer pop-up with the all-in price, webhook entitlement, refunds under Terms 8A, unopened-pitch credit return.
+  - Record each result in `docs/tasks/40-launch-check.md`. Live keys stay off until the owner approves.
+- **G7. Doors open for 25 test accounts.**
+  - Invite-only sign-up capped at **25 new accounts**: a server-side counter plus invite links from Menu → Invite friends.
+  - Account 26 sees a friendly "Testing is full — join the waitlist" with an email field.
+  - A "Beta — tell us what's broken" link in Menu.
+  - `docs/TESTING.md` for testers.
+  - The owner gets a push when doors open, and again at 10 and 25 accounts.
+
 ### CDN plan (task 38)
 - **Done (2026-11-19):**
   - CloudFront `dk7kawr758jtd.cloudfront.net` (distribution `E1IHQF8SMWIYPH`, private bucket via Origin Access Control, trusted key group).
