@@ -26,7 +26,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-SHOP | **Owner 2026-11-19:** shop cover photo uploaded from the phone (not only an http link), a shop album every shop gets, product photos from the phone | owner | PR (build/shop-photos); needs the Auth API deploy |
 | T0-A1 | **Owner bug:** posted video not in Dailies/The Roll → automatic from every composer (server-side), remove opt-in checkboxes, backfill | 36 | MERGED #602 (owner: deploy Auth API) |
 | T0-A2 | **Owner bug:** Dailies tile opens the photo picker; only your own big profile picture edits; every other avatar opens that profile | 36 | Dailies tile: PR #606; avatars: PR #598 |
-| T0-A3 | **Owner bug:** The Roll full screen loses sound (carry the sound choice over) + fill the screen | 36 | IN PROGRESS (Claude Code) |
+| T0-A3 | **Owner bug:** The Roll full screen loses sound (carry the sound choice over) + fill the screen | 36 | PR #633 |
 | T0-A11 | ~~+ bio opens the long-bio editor~~ Owner (later 2026-11-19): no + bio button at all; Edit profile owner-only; Edit · Shop · Share row | 36 | MERGED #600 |
 | T0-A12 | **Owner:** remove @username under the profile name; friends row there; tap a friend's photo → their posts | 36, 5a3 | PR #600 (@username hidden) + PR #572 (facepile, needs `/friends/of` deploy) |
 | T0-A13 | **Owner:** shop storefront beside the profile picture (shop name + item preview + price → Shop tab), replaces the shop icon button | 36 | MERGED #599 |
