@@ -36,7 +36,8 @@ function fixture(pathname) {
         body: JSON.stringify(fixture(new URL(route.request().url()).pathname))
       }));
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
-      await page.locator(".topbar .topnav").waitFor({ state: "attached" });
+      // The phone bottom bar is the shared tab bar (app-tabs.js, audit 36 B2).
+      await page.locator(width < 700 ? "nav.ds-mobile-nav[data-app-tabs]" : ".topbar .topnav").waitFor({ state: "attached" });
       await page.evaluate(() => {
         document.querySelector(".push-alert-prompt")?.remove();
         const prompt = document.createElement("aside");
@@ -46,7 +47,7 @@ function fixture(pathname) {
       });
       const result = await page.evaluate(() => {
         const prompt = document.querySelector(".push-alert-prompt");
-        const nav = document.querySelector(".topbar .topnav");
+        const nav = [...document.querySelectorAll("nav.ds-mobile-nav, .topbar .topnav")].find(element => element.getClientRects().length && getComputedStyle(element).display !== "none") || document.querySelector(".topbar .topnav");
         const action = prompt.querySelector(".primary");
         const dismiss = prompt.querySelector(".push-alert-dismiss");
         const detail = prompt.querySelector("span");

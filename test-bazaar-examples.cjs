@@ -21,11 +21,13 @@ for (const item of examples) {
   assert.ok(Object.isFrozen(item));
 }
 assert.ok(examples.filter(item => item.shopName === "Eroticon").length >= 7, "every Eroticon photo is in the examples");
-// Examples are never links, never buyable, labelled, after real items, gone during search and at 24 real items.
+// Examples are never links, never buyable, labelled, mixed in among the real items on the last page (F15f, owner
+// 2026-11-19: never one shop's items together), gone during search and at 24 real items.
 assert.match(bazaar, /const card = document\.createElement\("article"\); card\.className = "bazaar-card bazaar-example"/);
 assert.doesNotMatch(bazaar.slice(bazaar.indexOf("function exampleCard"), bazaar.indexOf("function render")), /\.href|createElement\("(a|button)"\)|fetch\(/, "example cards have no link, button or request");
 assert.match(bazaar, /return term \|\| realCount >= limit \? \[\] : scrambledExamples\(\)\.filter\(item => !realShops\.has\(item\.shopName\.toLowerCase\(\)\)\)\.slice\(0, Math\.max\(0, limit - realCount\)\);/, "a shop with real items is never shown as an example");
-assert.match(bazaar, /if \(nextOffset === null\) for \(const product of examples\) list\.append\(exampleCard\(product\)\);/, "examples come after every real item");
+assert.match(bazaar, /const mixed = nextOffset === null && examples\.length \? scramble\(\[\.\.\.real, \.\.\.examples\.map\(example => \(\{ \.\.\.example, example: true \}\)\)\]\) : real;/, "on the last page examples are mixed in with the real items");
+assert.match(bazaar, /for \(const product of mixed\) list\.append\(product\.example \? exampleCard\(product\) : productCard\(product\)\);/, "each card is built as an example or a real product");
 assert.match(bazaar, /"Example · not for sale"/);
 assert.match(bazaar, /nothing here is for sale yet/);
 assert.match(css, /\.bazaar-example-tag\{[^}]*text-transform:uppercase/);

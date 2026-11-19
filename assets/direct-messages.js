@@ -1442,7 +1442,11 @@ async function loadConversations() {
         meta.appendChild(badge);
       }
       copy.append(name, preview); button.append(avatarWrap, copy, meta);
-      button.addEventListener("click", () => { if (row.dataset.swiped === "true") { closeChatRowActions(row); return; } openConversationFromInbox(
+      // T2a (owner 2026-11-18): tapping the photo opens that member's profile; the rest of the row opens the chat.
+      // (The row is a button, so the photo cannot be its own link; the thread header's photo is a real link.)
+      const rowProfileHref = /^[a-f0-9-]{36}$/i.test(String(conversation.memberId || "")) ? "profile.html?member=" + encodeURIComponent(conversation.memberId) : "";
+      if (rowProfileHref) { avatarWrap.dataset.profileHref = rowProfileHref; avatarWrap.title = messageFormat("Open {name} profile", { name: conversation.name || "DanzStak member" }); }
+      button.addEventListener("click", event => { if (row.dataset.swiped === "true") { closeChatRowActions(row); return; } if (rowProfileHref && event.target?.closest?.(".conversation-avatar-wrap")) { location.href = rowProfileHref; return; } openConversationFromInbox(
         cachedConversations.find(item => item.contactEmail === conversation.contactEmail) || conversation
       ); });
       if (activeFilter === "chats" && conversation.hasConversation === true) attachChatRowActions(row, button, conversation);

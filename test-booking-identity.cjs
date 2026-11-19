@@ -33,7 +33,7 @@ assert.match(api, /currentRevision !== data\.revision/);
 assert.match(api, /venues: Array\.isArray\(saved\.venues\) \? saved\.venues : \[\]/, "identity saves must preserve selected venues");
 assert.match(api, /method === "PATCH" && path === "\/booking-pipeline\/identity"/);
 assert.match(deploy, /PATCH \/booking-pipeline\/identity/);
-assert.match(serviceWorker, /danzstak-shell-v994/);
+assert.match(serviceWorker, /danzstak-shell-v1001/);
 assert.match(serviceWorker, /"\/assets\/booking-identity\.js"/);
 
 console.log("Booking identity checks passed: top placement, canonical fallbacks, scoped persistence, conflict safety, responsive layout, and PWA caching.");

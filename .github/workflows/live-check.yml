@@ -1,0 +1,82 @@
+name: Live check
+
+# Directive F26 (owner 2026-11-19): the cloud session can't reach danzstak.com, so the live site is checked from here:
+# every 30 minutes, after each push to main, and on demand. It confirms the published service worker matches main, then
+# runs the public browser checks against https://danzstak.com (they mock the API, so no member data is read or changed)
+# and keeps their screenshots. A failure opens or updates one issue, "Live check failing".
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: live-check
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      DANZSTAK_LIVE_URL: https://danzstak.com
+      DANZSTAK_BASE_URL: https://danzstak.com
+      DANZSTAK_CAPTURE_DIR: ${{ github.workspace }}\live-screenshots
+      NODE_OPTIONS: --require ./scripts/check-diagnostics.cjs
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install browser-check dependency
+        shell: pwsh
+        run: npm install --no-save --ignore-scripts playwright@1.55.0 playwright-core@1.55.0
+      - name: The live service worker is main's (after a push, wait for Amplify to publish)
+        shell: pwsh
+        run: |
+          $attempts = if ('${{ github.event_name }}' -eq 'push') { 20 } else { 1 }
+          for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+            node .\scripts\verify-live-pwa.cjs
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($attempt -lt $attempts) { Write-Host "Not published yet (attempt $attempt of $attempts); waiting 60 s."; Start-Sleep -Seconds 60 }
+          }
+          throw 'The live service worker does not match main.'
+      - name: Public browser checks against the live site
+        shell: pwsh
+        run: |
+          .\scripts\run-checks.ps1 -Checks @(
+            '.\browser-checks\app-bar.cjs'
+            '.\browser-checks\pivot-header.cjs'
+            '.\browser-checks\app-tabs.cjs'
+            '.\browser-checks\mix-flows.cjs'
+            '.\browser-checks\media-viewer-all.cjs'
+            '.\browser-checks\video-rail-comments.cjs'
+            '.\browser-checks\profile-pictures.cjs'
+            '.\browser-checks\bazaar-mix.cjs'
+            '.\browser-checks\not-found-pages.cjs'
+          )
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-screenshots
+          path: live-screenshots
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Open or update the "Live check failing" issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "Live check failing";
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `The live check failed at ${new Date().toISOString()} (${context.eventName}).\n\nRun and screenshots: ${run}\nmain at ${context.sha}\n\nOpened by the live-check workflow (directive F26).`;
+            const open = await github.paginate(github.rest.issues.listForRepo, { ...context.repo, state: "open", per_page: 100 });
+            const existing = open.find(issue => issue.title === title && !issue.pull_request);
+            if (existing) await github.rest.issues.createComment({ ...context.repo, issue_number: existing.number, body });
+            else await github.rest.issues.create({ ...context.repo, title, body });
