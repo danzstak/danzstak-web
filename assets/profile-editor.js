@@ -889,7 +889,11 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
       tabMessage.appendChild(note);
       if (!posts.length) { const empty = document.createElement("p"); empty.textContent = collection === "memories" ? "No memories from this day yet." : "No featured posts to show yet."; tabMessage.appendChild(empty); }
     }
-    for (const post of posts) tabMessage.appendChild(profilePostCard(post));
+    // Owner 2026-11-18: the Videos tab is videos only (no captions, likes or comments); tap → full-screen vertical player.
+    // Owner 2026-11-18: Photos the same way: photos only, tap → full screen, scroll through all of them.
+    const videoGrid = mediaOnly && (mediaType === "video" || mediaType === "image") && window.danzstakProfileVideos ? window.danzstakProfileVideos.createGrid({ kind: mediaType }) : null;
+    const addVideo = item => { if (!videoGrid) return false; videoGrid.add(item); if (videoGrid.items.length && !videoGrid.element.isConnected) tabMessage.appendChild(videoGrid.element); return true; };
+    for (const post of posts) if (!addVideo({ mediaUrl: post.mediaUrl, content: post.content || "", refresh: () => refreshProfilePostMedia(post) })) tabMessage.appendChild(profilePostCard(post));
     if (mediaOnly && mediaType !== "image") {
       const params = new URLSearchParams();
       const profileMemberId = String(window.danzstakCurrentProfile?.memberId || "");
@@ -900,7 +904,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
         const refreshed = await refreshedResponse.json().catch(() => ({}));
         return refreshed.mediaUrl || "";
       };
-      const profileVideoCard = mediaUrl => profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl, refreshMedia: refreshProfileVideo });
+      const profileVideoCard = mediaUrl => addVideo({ mediaUrl, content: "Profile video", refresh: refreshProfileVideo }) ? videoGrid.element : profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl, refreshMedia: refreshProfileVideo });
       const videoResponse = await profileFetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" });
       if (version !== profileTabVersion) return;
       if (!videoResponse.ok && videoResponse.status !== 404) throw new Error("Profile video is temporarily unavailable.");
@@ -908,7 +912,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
         const stored = await videoResponse.json();
         if (version !== profileTabVersion) return;
         if (stored.mediaUrl) {
-          tabMessage.appendChild(profileVideoCard(stored.mediaUrl));
+          { const card = profileVideoCard(stored.mediaUrl); if (!card.isConnected) tabMessage.appendChild(card); }
         } else if (stored.mediaKey && !viewingOtherProfile) {
           const viewResponse = await profileFetch(profileApi + "/stories", {
             method: "POST", credentials: "include", cache: "no-store",
@@ -918,7 +922,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
           if (viewResponse.ok) {
             const view = await viewResponse.json();
             if (version !== profileTabVersion) return;
-            tabMessage.appendChild(profileVideoCard(view.mediaUrl));
+            { const card = profileVideoCard(view.mediaUrl); if (!card.isConnected) tabMessage.appendChild(card); }
           }
         }
       }
