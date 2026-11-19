@@ -31,8 +31,8 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-A4 | Saved page crash (`volatilePostPreferences` used before declared) | 36 | PR #607 |
 | T0-A5 | Record Stores crash + endless loading | 36 | PR #607 |
 | T0-A6 | Shop manager shows a raw JS error; shared friendly-error helper; Save shop feedback (+ E2 Trusted contacts raw error, E4 Events/Support/Shop silent forms) | 36 | PR #608 |
-| T0-E8 | Remove "Tap your name to change it" and the tap-name-to-edit path; Edit button is the only way in (C3) | 36 E8 | TODO |
-| T0-E9 | One Photo/video button in the profile and Mix composers (no duplicate media buttons) | 36 E9 | TODO |
+| T0-E8 | Remove "Tap your name to change it" and the tap-name-to-edit path; Edit button is the only way in (C3) | 36 E8 | PR (build/edit-profile-one-way) |
+| T0-E9 | One Photo/video button in the profile and Mix composers (no duplicate media buttons) | 36 E9 | Profile composer: PR (build/edit-profile-one-way). Mix keeps Photo + Video (different file filters and size limits, not duplicates) |
 | T0-E10 | Visitor profile: Friends ▾ (Unfriend/Unfollow) instead of a dead disabled button; Add friend → Cancel request | 36 E10 | TODO |
 | T0-A7 | Booking Example / Find clubs dead; Leaflet served locally | 36 | Re-checked 2026-11-19: Example works (crawler could not see the textarea value), empty Find clubs uses the native required bubble, the map shows a message if Leaflet cannot load. Left: ship Leaflet in assets/vendor/ (this cloud session cannot download packages) |
 | T0-A8 | Tribes: Elder sees Join; open on Your Tribes | 36 | PR (build/tribes-elder-join) |
