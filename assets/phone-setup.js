@@ -85,6 +85,7 @@
   }
 
   // The registration window closes on success (call-devices.js); then offer setup once.
-  window.addEventListener("danzstak:call-device-registered", () => setTimeout(open, 250));
+  // T3 (owner 2026-11-19): the "Save the SYNC app to your home screen" offer (sync-app.js) comes first; setup waits until it closes.
+  window.addEventListener("danzstak:call-device-registered", () => setTimeout(async () => { await window.danzstakSyncApp?.offerClosed?.(); open(); }, 250));
   window.danzstakPhoneSetup = { open, reset: () => { try { localStorage.removeItem(DONE_KEY); } catch {} } };
 })();

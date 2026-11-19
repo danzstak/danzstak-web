@@ -58,6 +58,10 @@ if (require.main === module) {
   const options = parse(process.argv.slice(2)), root = path.resolve(__dirname, "..");
   const changes = plan(root, options);
   for (const [file, text] of changes) { if (!options.dryRun) fs.writeFileSync(path.join(root, file), text); console.log(`${options.dryRun ? "would update" : "updated"} ${file}`); }
-  console.log(`${changes.size} file${changes.size === 1 ? "" : "s"} ${options.dryRun ? "would change" : "changed"}.`);
+  // Task 34: /sync/ (SYNC as its own app) is generated from messages.html; keep it in step with every bump.
+  const syncChanged = require("./build-sync-app.cjs").write({ dryRun: options.dryRun });
+  if (syncChanged) console.log(`${options.dryRun ? "would update" : "updated"} sync/index.html`);
+  const total = changes.size + (syncChanged && !changes.has("sync/index.html") ? 1 : 0);
+  console.log(`${total} file${total === 1 ? "" : "s"} ${options.dryRun ? "would change" : "changed"}.`);
 }
 module.exports = { parse, plan };
