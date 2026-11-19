@@ -43,6 +43,9 @@ async function open(browser, width) {
   });
   await page.goto(`${base}/bazaar.html`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => document.querySelectorAll('.bazaar-card:not(.bazaar-example) .bazaar-image-frame').length >= 4, null, { timeout: 8000 });
+  // Grid images load lazily as they near the screen and F15f mixes the examples in, so many sit far below the fold where
+  // Edge never fetches them: bring each into view once, then every one must be loaded.
+  await page.evaluate(async () => { for (const img of document.querySelectorAll(".bazaar-image-frame img")) { img.scrollIntoView({ block: "center" }); await new Promise(resolve => requestAnimationFrame(resolve)); } scrollTo(0, 0); });
   await page.waitForFunction(() => [...document.querySelectorAll(".bazaar-image-frame img")].every(img => img.complete), null, { timeout: 8000 });
   return { context, page, errors, queries };
 }
