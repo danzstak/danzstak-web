@@ -50,7 +50,7 @@
     window.danzstakIcons?.enhance?.(actions);
   }
   // 16-G: SYNC as its own app (same account, no second login).
-  add({ id: "standalone", label: "Get SYNC as its own app", hint: "Its own icon on your home screen, straight to your chats", icon: "smartphone", order: 95, run: () => { location.href = "sync.html"; } });
+  add({ id: "standalone", label: "Get SYNC as its own app", hint: "Its own icon on your home screen, straight to your chats", icon: "smartphone", order: 95, run: () => { if (window.danzstakSyncApp?.openInstall) window.danzstakSyncApp.openInstall(); else location.href = "/sync/?install=1"; } }); // task 34
   add({ id: "devices", label: "Phone and registered devices", hint: "SMS registration for calls and voice messages", icon: "smartphone", order: 90, run: () => document.getElementById("callingDevices")?.click() });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountButton); else mountButton();
   window.danzstakSyncSettings = { open, add };

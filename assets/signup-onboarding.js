@@ -74,7 +74,7 @@
 <div class="ds-row"><button type="button" data-later>Later — text only</button><button type="button" class="ds-go" data-now>Register now</button></div>`;
     document.body.append(d);
     d.querySelector("[data-later]").addEventListener("click", () => { d.close(); d.remove(); });
-    d.querySelector("[data-now]").addEventListener("click", () => { d.close(); d.remove(); location.href = "messages.html?device=register"; });
+    d.querySelector("[data-now]").addEventListener("click", () => { d.close(); d.remove(); location.href = `${location.pathname.startsWith("/sync/") ? "/sync/" : "messages.html"}?device=register`; });
     d.showModal();
   }
 
