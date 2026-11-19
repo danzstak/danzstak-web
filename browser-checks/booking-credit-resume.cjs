@@ -4,6 +4,16 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
+// Task 11 added a "Before you pay" dialog in front of every Stripe Checkout: Continue stays disabled until the terms box is ticked.
+async function acceptPurchaseTerms(page, label) {
+  const dialog = page.locator("dialog.ds-terms-dialog");
+  await dialog.waitFor({ state: "visible" });
+  const proceed = dialog.getByRole("button", { name: "Continue to payment" });
+  assert.equal(await proceed.isDisabled(), true, `${label}: payment can't continue before the terms are accepted`);
+  await dialog.locator('input[type="checkbox"]').check();
+  await proceed.click();
+}
+
 
 const origin = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8132").replace(/\/$/, "");
 const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
@@ -134,6 +144,7 @@ const startingWorkspace = () => ({
       const buyHeight = await buyButton.evaluate(node => node.getBoundingClientRect().height);
       assert.ok(buyHeight >= 44, `${width}px credit purchase target is ${buyHeight}px`);
       await buyButton.click();
+      await acceptPurchaseTerms(page, `${width}px credit purchase`);
       await page.waitForURL("https://checkout.stripe.com/**");
       assert.deepEqual(checkoutPayload, { quantity:1 }, `${width}px venue recovery must buy exactly one email credit`);
 
