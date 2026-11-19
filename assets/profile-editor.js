@@ -148,7 +148,7 @@ const storyEdit = document.createElement("button");
 storyEdit.type = "button"; storyEdit.className = "profile-story-edit"; storyEdit.dataset.icon = "edit";
 storyEdit.setAttribute("aria-label", profileTranslate("Edit your story")); storyEdit.title = storyEdit.getAttribute("aria-label");
 const storyAdd = document.createElement("button");
-storyAdd.type = "button"; storyAdd.className = "profile-story-add"; storyAdd.textContent = profileTranslate("Tell people who you are");
+storyAdd.type = "button"; storyAdd.className = "profile-story-add"; storyAdd.textContent = "+ bio"; storyAdd.setAttribute("aria-label", profileTranslate("Add your long bio")); storyAdd.title = storyAdd.getAttribute("aria-label"); // owner 2026-11-19: "+ bio" lives in About and opens the long bio
 storyBlock.append(storyText, storyEdit, storyAdd);
 details.appendChild(storyBlock);
 function renderProfileStory(profile = {}) {
