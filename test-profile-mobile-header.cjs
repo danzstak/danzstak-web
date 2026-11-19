@@ -15,8 +15,8 @@ assert.match(profile, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile na
 assert.match(profile, /assets\/app-tabs\.js\?v=\d+/, "the profile must expose the same six primary mobile destinations (Mix, Music HQ, Events, Bazaar, SYNC, Menu) as the rest of DanzStak");
 assert.match(profile, /class="profile-header-search"[\s\S]*?name="q"[\s\S]*?placeholder="Search posts and users"/,
   "the profile header must retain the familiar cross-page search entry point");
-assert.match(profile, /id="profileHeaderPivot"[\s\S]*?data-pivot-trigger[\s\S]*?<span>Pivot<\/span>/,
-  "the profile header must retain the labeled Pivot action");
+assert.match(profile, /id="profileHeaderPivot" class="ds-app-bar-icon ds-app-bar-pivot" type="button" data-pivot-trigger data-icon="refresh" aria-label="Pivot your data"/,
+  "the profile header must retain the named Pivot icon (directive F15j)");
 assert.match(profileHeader, /grid-template-columns:34px minmax\(96px,1fr\) 66px/,
   "the phone profile header must reserve compact columns for brand, search, and Pivot");
 assert.match(feedEnhancements, /new URLSearchParams\(location\.search\)\.get\("q"\)/,

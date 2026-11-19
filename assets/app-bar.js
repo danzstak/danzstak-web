@@ -1,16 +1,20 @@
 "use strict";
-// One top bar on every page (fix-it 18, owner 2026-11-17): the same slim bar everywhere — logo, search, bell, SYNC.
+// One top bar on every page (fix-it 18, owner 2026-11-17): the same slim bar everywhere — logo, search, Pivot, bell, SYNC.
 // - Tool pages (Bazaar, Booking, EPK, Record shops, shop, Moving Day): their header becomes that bar. The old desktop
 //   link rows go; the Bazaar's "Bazaar / My Shop" links become tabs under the bar.
 // - Mix / Music HQ / Events keep their search box and bell and gain the SYNC icon.
-// - The orange install arrow leaves the header (Menu → Install DanzStak, only when the browser offers it) and Pivot moves
-//   into the Menu (and later HQ's Pivot card) instead of taking header space.
+// - The orange install arrow leaves the header (Menu → Install DanzStak, only when the browser offers it).
+// - Pivot (directive F15j, owner 2026-11-19: "the Pivot button has gone from the top header"): an orange icon between
+//   Search and the bell on every page (Mix and Profile have it in their markup; it opens Moving Day there). On the other
+//   pages it goes to Mix with ?pivot=open, which opens Moving Day (pivot.js). The Menu keeps its Pivot item too.
 (() => {
   const t = value => window.danzstakTranslate?.(value) || value;
   const icons = {
     back: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>',
     bell: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
     sync: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg>',
+    // Lucide refresh-cw (ISC), the same paths as icon-buttons.js "refresh" (pages without icon-buttons.js need it inline).
+    pivot: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>',
     download: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>'
   };
   function iconLink(className, href, label, svg) {
@@ -21,7 +25,7 @@
   }
 
   // ---- tool pages ----
-  // Audit 36 B1 (directive F6): every page's header becomes the same bar: [← back] logo, search box, bell, SYNC.
+  // Audit 36 B1 (directive F6): every page's header becomes the same bar: [← back] logo, search box, Pivot, bell, SYNC.
   // A page that needs Back marks its back link with data-app-back; its page title (an h1 in the header) moves below.
   function mountToolBar(header) {
     if (header.classList.contains("ds-app-bar")) return;
@@ -50,7 +54,7 @@
     header.querySelectorAll(":scope > img").forEach(image => image.remove()); // a second, smaller logo (Tour Manager)
     const actions = document.createElement("div");
     actions.className = "ds-app-bar-actions";
-    actions.append(iconLink("ds-app-bar-bell", "feed.html#notifications", "Notifications", icons.bell), iconLink("ds-app-bar-sync", "messages.html", "SYNC", icons.sync));
+    actions.append(iconLink("ds-app-bar-pivot", "feed.html?view=feed&pivot=open", "Pivot your data", icons.pivot), iconLink("ds-app-bar-bell", "feed.html#notifications", "Notifications", icons.bell), iconLink("ds-app-bar-sync", "messages.html", "SYNC", icons.sync));
     header.appendChild(actions);
     // top-search.js puts its search box in the header: it sits between the logo and the icons, like Mix's.
     const adoptSearch = () => { const search = header.querySelector(".ds-top-search-button, .top-search-toggle, [data-top-search]"); if (search && search.previousElementSibling !== brand) brand.after(search); return Boolean(search); };
@@ -67,7 +71,7 @@
     (bell || topbar.lastElementChild).after(sync);
   }
 
-  // ---- Menu: Pivot and Install move here ----
+  // ---- Menu: Pivot (also in the bar) and Install ----
   function mountMenu() {
     const menu = document.getElementById("mobileNavMenu");
     if (!menu || menu.querySelector(".menu-pivot")) return;

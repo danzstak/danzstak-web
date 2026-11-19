@@ -180,8 +180,6 @@ body.messages-page .contact-details-block:active{transform:scale(.97)}
 /* Post "⋯": a 44px icon button with a round press state. */
 #feed .post .post-menu-toggle{width:var(--ds-btn-size)!important;min-width:var(--ds-btn-size)!important;height:var(--ds-btn-size)!important;min-height:var(--ds-btn-size)!important;top:2px!important;right:2px!important;padding:0!important;border-radius:50%!important;-webkit-tap-highlight-color:transparent}
 #feed .post .post-menu-toggle:active{background:var(--ds-btn-press)!important}
-/* Header Pivot pill keeps its look but gets a full 44px target. */
-#pivotButton,.pivot-header-button{min-height:var(--ds-btn-size)!important}
 /* Mix action rows: instant press feedback, no grey tap flash. */
 #feed .post :is(.post-actions,.post-reactions) button{-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,transform .08s ease}
 #feed .post :is(.post-actions,.post-reactions) button:active{background:var(--ds-btn-press);transform:scale(.96)}
@@ -222,7 +220,5 @@ body.booking-page .map-actions>.secondary{background:var(--ds-btn-tonal)!importa
 body.profile-page .profile-create-opener{min-height:var(--ds-btn-size)!important;-webkit-tap-highlight-color:transparent}
 body.profile-page .profile-post-comment-count{min-height:var(--ds-btn-size)!important;display:inline-flex!important;align-items:center;padding:0 8px!important;border-radius:var(--ds-btn-radius)!important;-webkit-tap-highlight-color:transparent}
 body.profile-page .profile-post-comment-count:active{background:var(--ds-btn-press)!important}
-/* Header Pivot pill: the same filled orange pill on every page (the profile drew it as a white outline). */
-.pivot-header-button,#pivotButton{border:0!important;background:#ff5a1f!important;color:#0b0b0c!important;border-radius:12px!important}
 /* Install prompt button: a 44px target wherever it shows. */
 .install-app-button{min-width:var(--ds-btn-size)!important;min-height:var(--ds-btn-size)!important}

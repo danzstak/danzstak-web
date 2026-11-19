@@ -166,8 +166,8 @@ async function makeVideos(browser) {
       if (nav.note) failures.push(`${label}: instructional "only … can post" copy is shown`);
       if (width <= 700) {
         const header = nav.header.join(" ");
-        if (!/profile-back/.test(header) || !/profile-header-name/.test(header) || !/profile-search-toggle/.test(header)) failures.push(`${label}: top bar is not back / name / search (${header})`);
-        if (/brand|pivot-header-button|profile-header-search/.test(header)) failures.push(`${label}: top bar still shows ${header}`);
+        if (!/profile-back/.test(header) || !/profile-header-name/.test(header) || !/profile-search-toggle/.test(header) || !/ds-app-bar-pivot/.test(header)) failures.push(`${label}: top bar is not back / name / search / Pivot (${header})`);
+        if (/brand|profile-header-search/.test(header)) failures.push(`${label}: top bar still shows ${header}`);
         if (nav.headerName !== "Night Shift") failures.push(`${label}: top bar name "${nav.headerName}"`);
         if (nav.headerHeight > 60) failures.push(`${label}: top bar is not slim (${nav.headerHeight}px)`);
         if (nav.headerContrast.some(ratio => ratio < 4.5)) failures.push(`${label}: top bar name/icons are hard to see (contrast ${nav.headerContrast.map(r => r.toFixed(1)).join(", ")})`);

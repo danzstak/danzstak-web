@@ -5,7 +5,7 @@
 // Support's "Back to Settings" link; Mix's bar 1px shorter, 45px of dead space for a hidden install button).
 // Checks at 320/360/390/430px, signed in:
 // - every page has one bar: 59px, #121418, the same logo, a 44px search box (the Bazaar's searches the Bazaar, B10),
-//   bell and SYNC in the same place as on Mix;
+//   Pivot (F15j), bell and SYNC in the same place as on Mix (at 320px a page with ← drops the logo to keep the search readable);
 // - pages that need Back show ← first and it goes back to where it should; no stray header links remain;
 // - tapping the centre of the search box opens search; no sideways scroll;
 // - Privacy and Terms keep their plain header for visitors who are signed out.
@@ -64,7 +64,9 @@ const barState = page => page.evaluate(() => {
         assert.equal(state.top, 0, `${label}: the bar sits at the top`);
         assert.ok(Math.abs(state.height - 59) <= 1, `${label}: the bar is 59px tall (got ${state.height})`);
         assert.equal(state.background, "rgb(18, 20, 24)", `${label}: the bar is DanzStak ink`);
-        assert.ok(state.logo && state.logo.width === 34, `${label}: the same 34px logo ${JSON.stringify(state.logo)}`);
+        // F15j: at 320px a page with ← and Pivot gives the logo's room to the search box.
+        if (backTo && width < 360) assert.equal(state.logo, null, `${label}: the logo steps aside for the search box`);
+        else assert.ok(state.logo && state.logo.width === 34, `${label}: the same 34px logo ${JSON.stringify(state.logo)}`);
         assert.ok(state.search && state.search.height === 44 && state.search.width >= 90, `${label}: a 44px search box ${JSON.stringify(state.search)}`);
         assert.ok(state.bell?.width === 44 && state.sync?.width === 44, `${label}: 44px bell and SYNC`);
         assert.deepEqual(state.loose, [], `${label}: no stray header links`);
