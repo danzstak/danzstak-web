@@ -12,7 +12,7 @@ const read = file => fs.readFileSync(file, "utf8");
 const ringerSource = read("assets/call-ringer.js"), alertsSource = read("assets/call-alerts.js"), tonesSource = read("assets/sync-tones.js");
 const chat = read("assets/chat.js"), incoming = read("assets/incoming-calls.js"), worker = read("service-worker.js");
 const template = read("infrastructure/call-signaling/template.yaml"), push = read("assets/push-notifications.js"), i18n = read("assets/i18n-sync.js");
-const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
+const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); }; // the offline render adds a few promise hops
 
 // ---------- A small fake browser with a manual clock ----------
 function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, resumeWorks = () => true } = {}) {
@@ -57,14 +57,20 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   }
   const contexts = [];
   class AudioContext { constructor() { this.state = contextStartsRunning ? "running" : "suspended"; contexts.push(this); } resume() { if (resumeWorks()) this.state = "running"; return Promise.resolve(); } }
-  const tonePlays = [];
+  const tonePlays = [], renders = [];
   const tones = {
     toneFor: () => "classic", vibrates: () => true,
-    pattern: id => id === "classic" ? { period: 1, notes: [[0, 0.2, 440, "sine", 0.9], [0.3, 0.1, 9000, "noise", 0.3], [0.5, 0.2, 220, "square", 0.5, 330]] } : null,
+    period: id => id === "classic" ? 1 : 0,
+    render: (id, audio, options) => { renders.push({ id, options, rate: audio.sampleRate, length: audio.length }); return options.loops; },
     play: (id, options) => { const handle = { id, options, stopped: false, stop() { this.stopped = true; } }; tonePlays.push(handle); return handle; }
   };
+  // Stands in for the browser's offline renderer: a loud 440 Hz loop (the real chain is measured in browser-checks/ringer-loudness.cjs).
+  class OfflineAudioContext {
+    constructor(channels, length, sampleRate) { this.length = length; this.sampleRate = sampleRate; }
+    startRendering() { const data = new Float32Array(this.length); for (let i = 0; i < data.length; i++) data[i] = 0.95 * Math.sin(2 * Math.PI * 440 * i / this.sampleRate); return Promise.resolve({ getChannelData: () => data }); }
+  }
   const window = {
-    AudioContext, danzstakSyncTones: tones, danzstakTranslate: null, danzstakCallSetup: { ringVolume: () => 0.4 },
+    AudioContext, OfflineAudioContext, danzstakSyncTones: tones, danzstakTranslate: null, danzstakCallSetup: { ringVolume: () => 0.4 },
     addEventListener: (type, fn) => (windowListeners.get(type) || windowListeners.set(type, []).get(type)).push(fn),
     dispatchEvent: event => { for (const fn of windowListeners.get(event.type) || []) fn(event); return true; }
   };
@@ -83,7 +89,7 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   vm.createContext(sandbox);
   vm.runInContext(ringerSource, sandbox);
   const fire = (type, event = { type }) => { for (const fn of listeners.get(type) || []) fn(event); };
-  return { sandbox, window, document, navigator, media, contexts, tonePlays, vibrations, posted, played, blobs, listeners, timers, advance, fire, Element, clock: () => clock };
+  return { sandbox, window, document, navigator, media, contexts, tonePlays, renders, vibrations, posted, played, blobs, listeners, timers, advance, fire, Element, clock: () => clock };
 }
 
 (async () => {
@@ -99,6 +105,8 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     assert.equal(player.paused, false); assert.equal(player.loop, true, "the ringtone loops");
     assert.match(player.src, /^blob:ringer-/, "the member's tone is rendered in memory (no audio file)");
     assert.equal(b.blobs[0].type, "audio/wav");
+    assert.deepEqual({ ...b.renders[0].options }, { volume: 0.4, loops: 3 }, "rendered through sync-tones.js (the loud ring chain) at the member's ring volume, 3 s of loops");
+    assert.equal(player.volume, 1, "the ring volume is inside the render, so the element plays at full volume (as loud as Web Audio)");
     assert.deepEqual([...b.vibrations[0]], [600, 300, 600, 300, 600], "spec vibration pattern");
     await b.advance(3000);
     assert.ok(b.vibrations.length >= 2, "vibration repeats while ringing");
@@ -115,8 +123,11 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     ringer.start({ durationMs: 5000 }); await b.advance(0);
     assert.equal(first, "audio"); assert.equal(b.media.length, 1, "one shared <audio> element");
     ringer.stop();
+    // One render per tone and volume per page session.
+    assert.equal(b.renders.length, 1, "the ringtone is rendered once and reused");
     // The render is a real looping WAV of at least 3 s.
-    const wav = ringer.renderWav({ period: 1, notes: [[0, 0.2, 440, "sine", 0.9]] }, { rate: 8000, minSeconds: 3 });
+    const wav = await ringer.renderLoud("classic", { rate: 8000, minSeconds: 3, level: 0.6 });
+    assert.deepEqual({ ...b.renders.at(-1).options }, { volume: 0.6, loops: 3 }); assert.equal(b.renders.at(-1).rate, 8000);
     const text = (offset, length) => String.fromCharCode(...wav.slice(offset, offset + length));
     assert.equal(text(0, 4), "RIFF"); assert.equal(text(8, 4), "WAVE"); assert.equal(text(36, 4), "data");
     const view = new DataView(wav.buffer);
@@ -173,6 +184,7 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     activated = true;
     b.fire("pointerup"); await b.advance(0);
     assert.equal(b.played.length, 1, "the first tap primes the <audio> element"); assert.equal(b.played[0].muted, true, "silently");
+    assert.equal(b.renders.length, 1, "and renders the member's ringtone, so a later call rings at once");
     assert.equal(b.media[0].paused, true, "and pauses it again"); assert.equal(b.media[0].muted, false);
     assert.equal(b.contexts[0].state, "running", "Web Audio is resumed on the same tap");
     b.fire("click"); await b.advance(0);
@@ -218,8 +230,9 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   assert.match(incoming, /if \(window\.danzstakCallRinger\?\.start\) \{ ringtoneTimer = window\.danzstakCallRinger\.start\(\{ contact: current\.senderEmail \|\| "", durationMs: remaining, surface: popup, audioContext: ringtoneContext \}\); return; \}/);
   assert.match(incoming, /window\.danzstakCallRinger\?\.handled\(event\.callId\);\r?\n    if \(typeof window\.openMessageDrawer/);
   assert.match(incoming, /<div data-ringer-slot><strong id="globalIncomingTitle">/);
-  // The tones stay synthesized: the ringer reads the pattern, sync-tones.js ships no audio file.
-  assert.match(tonesSource, /const pattern = id => TONES\[id\] \?/);
+  // The tones stay synthesized: sync-tones.js renders them (no audio file ships) through the one ring chain both paths use.
+  assert.match(tonesSource, /function render\(id, audio, \{ volume = 0\.4, loops = 1 \} = \{\}\) \{[\s\S]{0,200}?tone\.kind === "ring" && ringChain\(audio, master\)/, "<audio> loops go through the loud ring chain");
+  assert.match(tonesSource, /const loudChain = tone\.kind === "ring" \? ringChain\(out, master\) : null;/, "Web Audio rings go through the same chain");
   assert.doesNotMatch(ringerSource, /fetch\(|\.(mp3|ogg|m4a|aac|flac)\b|<input[^>]*file/i, "no audio file is fetched or uploaded");
 
   // ---------- 7. Service worker: long vibration, re-ring every 8 s up to 45 s, stops on every resolution ----------
@@ -294,10 +307,8 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   }
 
   // ---------- 9. Push re-link the moment the phone registers ----------
-  assert.ok(push.includes("async function renewExistingSubscription()"), "signature pinned by test-site.ps1");
-  assert.match(push, /const relink = \(\) => \{ relinkRequested = true; return renewExistingSubscription\(\); \};\r?\n  addEventListener\("danzstak:call-device-registered", relink\);/);
-  assert.match(push, /if \(!force && sessionStorage\.getItem\("danzstak_push_synced"\) === "1"\) return;/);
-  assert.match(push, /sessionStorage\.setItem\("danzstak_push_linked", saved\?\.callingDeviceLinked \? "1" : "0"\)/);
+  // The re-link when the device registers is main's #659 (test-push-device-link.cjs covers it).
+  assert.match(push, /addEventListener\("danzstak:call-device-registered", \(\) => renewExistingSubscription\(\{ force: true \}\)\);/);
 
   // ---------- 10. SYNC ⋮ → Test ringer and the call-alerts prompt ----------
   {
@@ -340,8 +351,8 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   for (const file of ["/assets/call-ringer.js", "/assets/call-ringer.css", "/assets/call-alerts.js"]) assert.ok(worker.includes(`"${file}"`), `${file} cached offline`);
   // Kept from PR #578: louder rings, a louder default, and a Call alerts button that always answers.
   const setup = read("assets/call-setup.js");
-  assert.match(tonesSource, /tone\.kind === "ring" && out\.createDynamicsCompressor/, "rings are compressed and lifted (owner: ring tones too quiet)");
-  assert.match(tonesSource, /const RING_MAKEUP_GAIN = 3\.2;/);
+  assert.match(tonesSource, /function ringChain\(out, master\) \{\r?\n    if \(!out\.createDynamicsCompressor\) return null;/, "rings are compressed and lifted (owner: ring tones too quiet)");
+  assert.match(tonesSource, /const RING_MAKEUP_GAIN = 3\.2, RING_DRIVE = 24, RING_HIGHPASS_HZ = 600, RING_CEILING = 0\.97;/, "F15e: rings driven into the phone-speaker band and limited (browser-checks/ringer-loudness.cjs measures +10 dB)");
   assert.match(setup, /const DEFAULT_RING = 0\.8;/, "louder default ring volume");
   assert.match(chat, /finally\{delete els\.enable\.dataset\.busy;els\.enable\.disabled=false;\}/, "Call alerts can be tapped again (owner: it did nothing)");
   assert.match(chat, /window\.danzstakShowFeedback\?\.\(message,\{urgent\}\)/, "Call alerts shows its result on screen");
