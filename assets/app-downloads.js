@@ -43,3 +43,7 @@ installHelpAction.addEventListener("click", async () => {
 });
 
 installHelpClose.addEventListener("click", () => installHelp.close());
+// The signed-in Menu has one "Install DanzStak" item (owner 2026-11-18: separate Android/Apple items were redundant);
+// on iPhone/iPad it opens these Add to Home Screen steps.
+window.danzstakOpenInstallHelp = () => openInstallHelp(isAppleMobile ? "apple" : "android");
+window.danzstakIsAppleMobile = isAppleMobile;
