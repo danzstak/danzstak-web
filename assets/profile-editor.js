@@ -1242,8 +1242,7 @@ function renderProfileShopPreview(shop = {}, profile = {}, shopTab = null) {
     tab?.click();
     tabs.scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  avatar.insertAdjacentElement("afterend", preview);
-  placeProfileShopPreview(preview);
+  placeProfileBand(preview);
   return preview;
 }
 
@@ -1280,16 +1279,19 @@ function renderProfileShowcase(shop, profile = {}) {
     image.addEventListener("error", () => image.remove(), { once: true });
     box.append(image);
     if (owner) {
+      // One ⋯ on the photo (directive F4/F9: no floating edit/delete circles over the picture).
+      const menu = document.createElement("details"); menu.className = "profile-showcase-menu";
+      const toggle = document.createElement("summary"); toggle.setAttribute("aria-label", profileTranslate("Photo options")); toggle.title = toggle.getAttribute("aria-label"); toggle.textContent = "⋯";
       const tools = document.createElement("span"); tools.className = "profile-showcase-tools";
-      const change = document.createElement("button"); change.type = "button"; change.className = "profile-showcase-change"; change.dataset.icon = "edit";
-      change.setAttribute("aria-label", profileTranslate("Change this photo")); change.title = change.getAttribute("aria-label");
-      change.addEventListener("click", () => picker.click());
-      const remove = document.createElement("button"); remove.type = "button"; remove.className = "profile-showcase-remove"; remove.dataset.icon = "trash";
-      remove.setAttribute("aria-label", profileTranslate("Remove this photo")); remove.title = remove.getAttribute("aria-label");
-      remove.addEventListener("click", () => void save({ showcaseKey: "" }));
+      const change = document.createElement("button"); change.type = "button"; change.className = "profile-showcase-change";
+      change.textContent = profileTranslate("Change this photo"); change.setAttribute("aria-label", change.textContent);
+      change.addEventListener("click", () => { menu.open = false; picker.click(); });
+      const remove = document.createElement("button"); remove.type = "button"; remove.className = "profile-showcase-remove";
+      remove.textContent = profileTranslate("Remove this photo"); remove.setAttribute("aria-label", remove.textContent);
+      remove.addEventListener("click", () => { menu.open = false; void save({ showcaseKey: "" }); });
       tools.append(change, remove);
-      box.prepend(tools);
-      window.danzstakIcons?.enhance?.(tools);
+      menu.append(toggle, tools);
+      box.append(menu); // menu rows read as words, so no icon-only conversion here
     }
   } else {
     const add = document.createElement("button"); add.type = "button"; add.className = "profile-showcase-add";
@@ -1297,67 +1299,54 @@ function renderProfileShowcase(shop, profile = {}) {
     const text = document.createElement("span"); text.className = "profile-shop-preview-label";
     const kicker = document.createElement("span"); kicker.textContent = profileTranslate("Fill this space");
     const line = document.createElement("strong"); line.textContent = profileTranslate("Add a photo: your dog, your rig, anything");
-    text.append(kicker, line); add.prepend(text);
+    text.append(kicker, line); add.append(text);
     add.addEventListener("click", () => picker.click());
     const shopLink = document.createElement("a"); shopLink.className = "profile-showcase-shop"; shopLink.href = "store.html?manage=1";
     shopLink.textContent = profileTranslate(shop ? "or add a shop item" : "or open your shop");
     box.append(add, shopLink);
   }
   box.append(picker);
-  avatar.insertAdjacentElement("afterend", box);
-  placeProfileShopPreview(box);
+  placeProfileBand(box);
   return box;
 }
 
-// Sit in the white space under the cover, never on top of the cover photo.
-function placeProfileShopPreview(preview) {
-  // Owner 2026-11-19 (screenshot): the box sat on top of the member's name. It now starts right where the cover photo
-  // ends and is sized to the space between the cover and the name, so the name always shows in full.
-  // Directive F4 (owner 2026-11-19): the box fills all the free space. It grows down to the first thing that sits in its
-  // column: the name's text, the bio, the friends row or the action buttons (so with a short name it reaches past the
-  // avatar to the action row; with a long name it stays above the name), and shrinks again when the name gets longer or
-  // the screen narrower. The photo fills the box; shop items grow with it.
-  const place = () => {
-    if (!preview.isConnected) return;
-    const cover = document.querySelector(".cover"), host = preview.offsetParent;
-    if (!cover || !host) return;
-    const coverBottom = cover.getBoundingClientRect().bottom, hostRect = host.getBoundingClientRect(), top = coverBottom + 4;
-    preview.style.top = Math.max(0, Math.round(top - hostRect.top)) + "px";
-    const avatar = document.getElementById("profileInitial");
-    if (avatar) preview.style.left = Math.round(avatar.getBoundingClientRect().right - hostRect.left + 12) + "px"; // clear of the round photo and its ring
-    const column = preview.getBoundingClientRect();
-    const textRects = element => { if (!element || element.hidden || !element.getClientRects().length) return []; const range = document.createRange(); range.selectNodeContents(element); return [...range.getClientRects()]; };
-    const boxes = selector => [...document.querySelectorAll(selector)].filter(element => !preview.contains(element) && element.getClientRects().length).map(element => element.getBoundingClientRect());
-    const blockers = [
-      ...textRects(document.getElementById("profileName")), ...textRects(document.querySelector(".profile-bio")),
-      ...boxes(".profile-actions > *, .profile-friends-row, .profile-facepile, .profile-tabs, [role='tablist']")
-    ].filter(rect => rect.width > 0 && rect.height > 0 && rect.right > column.left + 0.5 && rect.left < column.right - 0.5 && rect.bottom > top);
-    const floor = blockers.length ? Math.min(...blockers.map(rect => rect.top)) : top + 96;
-    const room = Math.max(40, Math.min(Math.floor(floor - 8 - top), 240));
-    preview.style.setProperty("--showcase-room", room + "px");
-    preview.classList.toggle("is-tight", room < 72);
-    preview.classList.toggle("is-roomy", room >= 88); // the owner's "Fill this space" line shows in full
-    const items = preview.querySelector(".profile-shop-preview-items");
-    if (items) {
-      const images = [...items.querySelectorAll("img")].filter(image => getComputedStyle(image).display !== "none");
-      const label = preview.querySelector(".profile-shop-preview-label")?.getBoundingClientRect().height || 0, gap = 6;
-      const size = images.length ? Math.floor(Math.min((column.width - gap * (images.length - 1)) / images.length, room - label - gap, 120)) : 0;
-      images.forEach(image => { image.style.width = image.style.height = Math.max(32, size) + "px"; });
-    }
-  };
-  place(); requestAnimationFrame(place);
-  document.fonts?.ready?.then(place).catch(() => {});
-  if (!window.__danzstakShopPreviewResize) {
-    window.__danzstakShopPreviewResize = true;
-    const replace = () => { const current = document.querySelector(".profile-shop-preview"); if (current) current.dispatchEvent(new Event("danzstak:place")); };
-    window.addEventListener("resize", replace);
-    // Recompute when the name or bio changes (Edit profile) and when the header's layout changes.
-    const header = document.getElementById("profileName")?.parentElement;
-    if (header && typeof MutationObserver === "function") new MutationObserver(() => requestAnimationFrame(replace)).observe(header, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["hidden"] });
-    if (header && typeof ResizeObserver === "function") new ResizeObserver(() => requestAnimationFrame(replace)).observe(header);
-  }
-  preview.addEventListener("danzstak:place", place);
+// Directive F4 (owner 2026-11-19): the name sits to the right of the avatar and the picture band (showcase photo or shop
+// preview) runs full width below the name row, with the action buttons under it. "Think like a Marvell chip designer":
+// every pixel placed, no overlaps, no dead space. The layout is CSS (profile-shop.css); this puts the band before the
+// action row and fits the name to its column.
+function placeProfileBand(band) {
+  const row = document.querySelector("#profileContent > .profile-actions");
+  if (row) row.insertAdjacentElement("beforebegin", band);
+  else document.getElementById("profileName")?.insertAdjacentElement("afterend", band);
+  fitProfileName();
 }
+
+// The whole name always shows: one line, scaled down to 18px; then two lines down to 15px; then as many lines as it takes.
+function fitProfileName() {
+  const name = document.getElementById("profileName");
+  if (!name || !name.getClientRects().length) return;
+  name.style.fontSize = ""; name.style.whiteSpace = "nowrap";
+  const largest = parseFloat(getComputedStyle(name).fontSize) || 26;
+  const fitsWidth = () => name.scrollWidth <= name.clientWidth + 0.5;
+  for (let size = Math.round(largest); size >= 18; size -= 1) { name.style.fontSize = size + "px"; if (fitsWidth()) return; }
+  name.style.whiteSpace = "normal";
+  for (let size = Math.min(Math.round(largest), 22); size >= 15; size -= 1) {
+    name.style.fontSize = size + "px";
+    const style = getComputedStyle(name), line = parseFloat(style.lineHeight) || size * 1.2;
+    const textHeight = name.scrollHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0);
+    if (fitsWidth() && textHeight <= line * 2 + 2) return;
+  }
+  name.style.fontSize = "15px";
+}
+(() => {
+  const name = document.getElementById("profileName");
+  const refit = () => requestAnimationFrame(fitProfileName);
+  window.addEventListener("resize", refit);
+  document.fonts?.ready?.then(refit).catch(() => {});
+  window.addEventListener("danzstak:profile-loaded", refit);
+  if (name && typeof MutationObserver === "function") new MutationObserver(refit).observe(name, { childList: true, characterData: true, subtree: true });
+  refit();
+})();
 
 async function loadProfileShop() {
   const version = profileTabVersion;

@@ -8,11 +8,11 @@ assert.match(editor, /renderProfileShopPreview\(profileShop, profile, moreTab\);
 assert.match(body, /\(shop\?\.products \|\| \[\]\)\.filter\(item => item\.available && item\.imageUrl\)\.slice\(0, 3\)/, "up to 3 items for sale, with photos");
 assert.match(body, /preview\.type = "button"/);
 assert.match(body, /tab\?\.click\(\);/, "tapping opens the Shop tab");
-assert.match(body, /avatar\.insertAdjacentElement\("afterend", preview\)/);
-assert.match(editor, /function placeProfileShopPreview[\s\S]*?cover\.getBoundingClientRect\(\)\.bottom/, "placed below the cover, never on the photo");
+assert.match(body, /placeProfileBand\(preview\);/, "F4: the shop preview is the picture band under the name row");
+assert.match(editor, /function placeProfileBand\(band\) \{[\s\S]*?row\.insertAdjacentElement\("beforebegin", band\)/, "F4: the band sits just above the action row");
 assert.match(body, /title\.setAttribute\("data-no-translate", ""\)/);
-assert.match(css, /\.profile-shop-preview\{position:absolute;[^}]*min-height:44px/);
-assert.match(css, /\.profile-shop-preview-items img\{width:56px;height:56px/);
+assert.match(css, /\.profile-shop-preview\{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%;min-height:44px/, "F4: a full-width band, not a box beside the avatar");
+assert.match(css, /\.profile-shop-preview-items\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/, "F4: three items across the band");
 console.log("profile shop preview ok");
 {
   // No shop items: the member fills the space with a photo they pick ("a picture of their dog or something").

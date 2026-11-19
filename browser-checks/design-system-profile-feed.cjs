@@ -123,7 +123,8 @@ function color(value) { return String(value || "").replace(/\s+/g, ""); }
           avatarOverlapsCover: avatar.top < cover.getBoundingClientRect().bottom && avatar.bottom > cover.getBoundingClientRect().bottom,
           nameLeft: name.left,
           bioLeft: document.querySelector(".profile-bio").getBoundingClientRect().left,
-          nameAligned: Math.abs(name.left - document.querySelector(".profile-bio").getBoundingClientRect().left) <= 1,
+          // Directive F4 (owner 2026-11-19): the name sits to the right of the avatar (was: stacked under it, aligned with the bio).
+          nameAligned: name.left >= avatar.right + 4,
           detailCount: details.length,
           detailBackgrounds: details.map(item => getComputedStyle(item).backgroundColor),
           detailRadii: details.map(item => parseFloat(getComputedStyle(item).borderRadius)),

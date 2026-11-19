@@ -1,11 +1,19 @@
 "use strict";
-// Owner 2026-11-19 (screenshot): the box beside the avatar covered the name. Behaviour check: browser-checks/profile-showcase-fit.cjs.
+// Directive F4 (owner 2026-11-19): name beside the avatar, the picture band below the name row at full width, actions
+// under it. Behaviour check: browser-checks/profile-showcase-fit.cjs (320-430px, short and very long names).
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const editor = fs.readFileSync("assets/profile-editor.js", "utf8"), css = fs.readFileSync("assets/profile-shop.css", "utf8");
-assert.match(editor, /const room = name \? Math\.floor\(name\.getBoundingClientRect\(\)\.top - coverBottom - 4 - 8\) : 84;/, "box height = the space between the cover and the name");
-assert.match(editor, /preview\.style\.top = Math\.max\(0, Math\.round\(coverBottom - boxTop\) \+ 4\) \+ "px";/, "box starts where the cover ends");
-assert.match(editor, /avatar\.getBoundingClientRect\(\)\.right - box\.getBoundingClientRect\(\)\.left \+ 12/, "box starts clear of the round avatar");
-assert.match(css, /\.profile-showcase-photo\{height:var\(--showcase-room,84px\)!important/, "photo fits the room");
-assert.match(css, /\.profile-showcase\{align-items:flex-start;max-height:var\(--showcase-room,84px\)\}/, "prompt never grows over the name");
-console.log("Profile showcase fit wiring checks passed: box meets the cover, sized to the space above the name, clear of the avatar.");
+const polish = fs.readFileSync("assets/profile-polish.css", "utf8");
+assert.match(css, /#profileContent\.profile\{position:relative;display:grid;grid-template-columns:auto minmax\(0,1fr\)/, "header grid: avatar | name");
+assert.match(css, /#profileContent\.profile>#profileName\{grid-column:2;grid-row:1;/, "the name sits right of the avatar");
+assert.match(css, /\.profile-showcase-photo\{display:block;width:100%;height:auto;aspect-ratio:16\/7;[^}]*object-fit:cover/, "a full-width 16:7 photo that fills the band");
+assert.match(polish, /\.profile-actions\{[^}]*margin:0!important\}/, "the header sets each gap once (grid margins do not collapse)");
+const fit = editor.match(/function fitProfileName\(\) \{[\s\S]*?\n\}\n/)[0];
+assert.match(fit, /size >= 18; size -= 1/, "one line down to 18px");
+assert.match(fit, /size >= 15; size -= 1/, "then two lines down to 15px");
+assert.match(fit, /textHeight <= line \* 2 \+ 2/, "two lines, measured without the padding");
+assert.match(editor, /new MutationObserver\(refit\)\.observe\(name, \{ childList: true, characterData: true, subtree: true \}\)/, "a rename re-fits the name");
+assert.match(editor, /menu\.className = "profile-showcase-menu"/, "the owner gets one ⋯ on the photo");
+assert.doesNotMatch(editor, /placeProfileShopPreview|--showcase-room/, "the old box-beside-the-avatar sizing is gone");
+console.log("Profile header (F4) wiring checks passed: avatar | name grid, full-width 16:7 band, name fit to 18px then two lines, rename re-fit, owner ⋯.");

@@ -1,6 +1,6 @@
 /* Profile polish (owner directive 2026-11-16): familiar Facebook-style profile, icons instead of words,
    mobile first and tight. Loaded last on profile.html. */
-.profile-actions{display:flex!important;flex-wrap:nowrap!important;gap:8px!important;justify-content:flex-start;margin:10px 0 4px!important}
+.profile-actions{display:flex!important;flex-wrap:nowrap!important;gap:8px!important;justify-content:flex-start;margin:0!important} /* F4: the header sets every gap once (profile-shop.css) */
 .profile-actions > :is(button,a).ds-icon-button:not([hidden]){
   display:grid!important;place-items:center;flex:0 0 auto;
   width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;
