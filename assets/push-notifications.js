@@ -61,11 +61,11 @@
       applicationServerKey: applicationServerKey(key.publicKey)
     }), 15000, "Notification permission setup took too long. Try again.");
     const serialized = subscription.toJSON();
-    await api("/push/subscribe", {
+    const linked = await api("/push/subscribe", {
       method: "POST",
       body: JSON.stringify({ endpoint: serialized.endpoint, keys: serialized.keys })
     });
-    try { sessionStorage.setItem("danzstak_push_synced", "1"); } catch (_) {}
+    try { sessionStorage.setItem(SYNC_KEY, linked.callingDeviceLinked ? "linked" : "1"); } catch (_) {}
     dispatchEvent(new CustomEvent("danzstak:push-enabled"));
     return subscription;
   }
@@ -73,24 +73,38 @@
   window.danzstakPushState = state;
   window.danzstakEnablePush = enable;
 
-  async function renewExistingSubscription() {
+  // A call push only rings devices whose subscription is linked to a registered SYNC device (the server
+  // checks the device headers sent with /push/subscribe). Owner 2026-11-19: "it's not ringing the device":
+  // a subscription saved before this device registered (or before its headers were ready) stayed unlinked
+  // for the whole session. So "synced" is only final once the server says the device is linked, and a
+  // device that becomes registered re-links straight away.
+  const SYNC_KEY = "danzstak_push_synced";
+  const syncedState = () => { try { return sessionStorage.getItem(SYNC_KEY) || ""; } catch (_) { return ""; } };
+  let syncing = null;
+  async function renewExistingSubscription({ force = false } = {}) {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window) || Notification.permission !== "granted") return;
-    try {
-      if (sessionStorage.getItem("danzstak_push_synced") === "1") return;
-    } catch (_) {}
-    try {
-      const registration = await withDeadline(navigator.serviceWorker.ready, 10000, "Notification service is not ready.");
-      const subscription = await withDeadline(registration.pushManager.getSubscription(), 10000, "Notification status took too long.");
-      if (!subscription) return;
-      const serialized = subscription.toJSON();
-      await api("/push/subscribe", {
-        method: "POST",
-        body: JSON.stringify({ endpoint: serialized.endpoint, keys: serialized.keys })
-      });
-      try { sessionStorage.setItem("danzstak_push_synced", "1"); } catch (_) {}
-      dispatchEvent(new CustomEvent("danzstak:push-enabled"));
-    } catch (_) { /* Retry on the next page load without disturbing the signed-in experience. */ }
+    if (syncedState() === "linked" || (!force && syncedState() === "1")) return;
+    if (syncing) return syncing;
+    syncing = (async () => {
+      try {
+        const registration = await withDeadline(navigator.serviceWorker.ready, 10000, "Notification service is not ready.");
+        const subscription = await withDeadline(registration.pushManager.getSubscription(), 10000, "Notification status took too long.");
+        if (!subscription) return;
+        const serialized = subscription.toJSON();
+        const result = await api("/push/subscribe", {
+          method: "POST",
+          body: JSON.stringify({ endpoint: serialized.endpoint, keys: serialized.keys })
+        });
+        try { sessionStorage.setItem(SYNC_KEY, result.callingDeviceLinked ? "linked" : "1"); } catch (_) {}
+        dispatchEvent(new CustomEvent("danzstak:push-enabled"));
+      } catch (_) { /* Retry on the next page load without disturbing the signed-in experience. */ }
+      finally { syncing = null; }
+    })();
+    return syncing;
   }
+  addEventListener("danzstak:call-device-ready", event => { if (event.detail?.registered === true) renewExistingSubscription({ force: true }); });
+  addEventListener("danzstak:call-device-registered", () => renewExistingSubscription({ force: true }));
+  window.danzstakRenewPushSubscription = renewExistingSubscription;
 
   async function showPermissionPrompt() {
     if (new URLSearchParams(location.search).get("embedded") === "1") return;
