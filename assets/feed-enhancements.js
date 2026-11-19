@@ -2479,6 +2479,11 @@ globalThis.danzstakSyncMobileMenuCurrent = syncMobileMenuCurrent;
 const screenTitles = { HQ: "Music HQ", Groups: "Tribes" };
 let titleBeforeMenu = "";
 function setScreenTitle(name) { const label = screenTitles[name] || name || "Your Mix"; document.title = "DanzStak | " + (window.danzstakTranslate?.(label) || label); }
+// Focus goes back to the Menu control the member can see: on phones the tab bar's Menu tab (app-tabs.js), elsewhere the
+// header button.
+function visibleMenuControl() {
+  return [...document.querySelectorAll('[aria-controls="mobileNavMenu"]')].find(control => control.getClientRects().length) || mobileMenuControl;
+}
 function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {}) {
   const shouldOpen = Boolean(open && matchMedia("(max-width: 700px)").matches);
   if (shouldOpen) globalThis.danzstakActivateMobileScreen?.("menu", { preserveMenu: true });
@@ -2506,7 +2511,7 @@ function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {})
     // on the page underneath the modal mobile menu.
     requestAnimationFrame(focusMenu);
   }
-  else if (wasOpen) mobileMenuControl?.focus({ preventScroll: true });
+  else if (wasOpen) visibleMenuControl()?.focus({ preventScroll: true });
 }
 function closeMobileMenuFromControl() {
   if (history.state?.danzstakMenuOpen === true) history.back();
@@ -2520,8 +2525,11 @@ mobileNavMenu?.querySelector("[data-menu-close]")?.addEventListener("click", clo
 mobileNavMenu?.addEventListener("click", event => {
   if (document.body.classList.contains("mobile-menu-open") && event.target.closest("a")) setMobileMenu(false);
 });
+// Any Menu control toggles the menu instead of counting as a tap outside it: the header button and, on phones, the
+// shared tab bar's Menu tab (app-tabs.js), which carries aria-controls="mobileNavMenu".
+const isMenuControl = target => Boolean(mobileMenuControl?.contains(target) || target?.closest?.('[aria-controls="mobileNavMenu"]'));
 document.addEventListener("click", event => {
-  if (document.body.classList.contains("mobile-menu-open") && !mobileNavMenu?.contains(event.target) && !mobileMenuControl?.contains(event.target)) closeMobileMenuFromControl();
+  if (document.body.classList.contains("mobile-menu-open") && !mobileNavMenu?.contains(event.target) && !isMenuControl(event.target)) closeMobileMenuFromControl();
 });
 document.addEventListener("keydown", event => {
   if (event.key === "Escape" && document.body.classList.contains("mobile-menu-open")) closeMobileMenuFromControl();

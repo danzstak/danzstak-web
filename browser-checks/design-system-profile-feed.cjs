@@ -75,7 +75,8 @@ function color(value) { return String(value || "").replace(/\s+/g, ""); }
         const media = post.querySelector(":scope > .feed-media-gallery, :scope > .danzstak-media-shell, :scope > .post-media");
         const postRect = post.getBoundingClientRect();
         const mediaRect = media.getBoundingClientRect();
-        const navButtons = [...document.querySelectorAll(".topnav button")];
+        // Phone targets: the shared bottom tab bar (app-tabs.js, audit 36 B2); Mix's .topnav is the desktop header nav.
+        const navButtons = innerWidth > 700 ? [...document.querySelectorAll(".topnav button")] : [...document.querySelectorAll("nav.ds-mobile-nav a")];
         return {
           documentWidth: document.documentElement.scrollWidth,
           brand: root.getPropertyValue("--ds-brand").trim(),

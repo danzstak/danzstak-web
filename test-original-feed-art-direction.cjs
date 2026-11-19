@@ -12,7 +12,7 @@ const profileScript = fs.readFileSync("assets/profile-editor.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 
 assert.match(feed, /<body class="danzstak-original">/, "the scoped art direction must be explicit");
-assert.match(feed, /assets\/mobile-design-system\.css\?v=21[\s\S]*assets\/danzstak-original-feed\.css\?v=32/, "the Feed layer must extend the shared foundation");
+assert.match(feed, /assets\/mobile-design-system\.css\?v=22[\s\S]*assets\/danzstak-original-feed\.css\?v=32/, "the Feed layer must extend the shared foundation");
 assert.doesNotMatch(feed, /\.menu \.app-menu-link\s*\{[^}]*min-height:\s*42px/, "legacy application links must not undercut the shared touch target");
 assert.doesNotMatch(art, /--mix-/, "the Feed must not introduce a competing token palette");
 for (const token of ["--ds-brand", "--ds-accent", "--ds-ink", "--ds-canvas", "--ds-surface", "--ds-border", "--ds-touch"]) {

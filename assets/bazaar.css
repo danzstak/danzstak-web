@@ -11,7 +11,7 @@ body{margin:0;min-height:100vh;background:var(--market-bg);color:var(--market-in
 @media(max-width:1000px){.bazaar-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:760px){.market-header{min-height:58px;padding:6px 12px}.market-brand span{display:none}.market-header nav a{padding:0 9px;font-size:13px}.bazaar-main,.product-main{width:100%;margin:0 auto 84px;padding:0 12px}.bazaar-intro{padding:20px 0 16px}.bazaar-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px}.product-main{padding-top:12px}.product-detail{grid-template-columns:1fr;gap:18px}.product-gallery{width:calc(100% + 24px);margin-left:-12px;border-left:0;border-right:0;border-radius:0}.product-copy{padding:0}.ds-mobile-nav{display:grid}}
 @media(max-width:350px){.market-header nav a{padding:0 7px;font-size:12px}.bazaar-search>div{grid-template-columns:1fr}.bazaar-search button{width:100%}}
-@media(min-width:761px){.ds-mobile-nav{display:none}}
+
 
 .bazaar-more{display:block;width:100%;min-height:48px;margin:12px 0;border:0;background:transparent;font:inherit;font-weight:900;color:var(--ds-brand,#121418);cursor:pointer}.bazaar-more[hidden]{display:none}
 

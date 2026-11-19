@@ -15,7 +15,8 @@ assert.match(css, /\.messages-page \.chat-shell[\s\S]*?border:0!important;[\s\S]
 assert.doesNotMatch(hq, /artist-hq-card\{[^}]*border-(?:right|bottom):1px/, "HQ cards must not retain container divider lines");
 assert.match(feedSource, /friendsHeading\.insertAdjacentElement\("afterend", invite\)/, "Friends invite must move into the title row");
 assert.match(feedCss, /\.friends-heading-invite\{grid-column:2;margin-left:20px\}/, "Friends invite must sit five spacing units to the right of the heading");
-assert.match(css, /\.ds-mobile-nav a\{transform:translateY\(-4px\)\}/, "tool navigation icons must sit above the footer baseline");
+// The bottom tab bar is one component (app-tabs.css, audit 36 B2) on every page, Mix included.
+assert.match(fs.readFileSync("assets/app-tabs.css", "utf8"), /\.ds-mobile-nav a\{[^}]*transform:translateY\(-4px\)\}/, "tab icons must sit above the footer baseline");
 assert.match(css, /\.topbar \.topnav button\{transform:translateY\(-4px\)\}/, "social navigation icons must sit above the footer baseline");
 assert.match(bookingSelectionsCss, /\.credit-panel,\.tour-manager-dashboard,\.tour-calendar-panel,\.artist-workspace,\.empty\{[\s\S]*?border:0;[\s\S]*?background:transparent;[\s\S]*?box-shadow:none;/, "Tour Manager outer sections must flow on the page canvas");
 assert.match(bookingSelectionsCss, /\.tour-budget\{margin-top:6px;border-top:0;padding-top:4px\}/, "Tour estimate must not retain the divider or wasted vertical space");

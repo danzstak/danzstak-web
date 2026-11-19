@@ -43,7 +43,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-A10 | Menu → Photos/Videos show only your media (with 5a2) | 36 | PR #634 (train) |
 | T0-A10b | **Found in #634:** your own profile's Photos/Videos tabs show the Location / Work / Website "Not added" block above the grid; Photos and Videos are media only (5a2) — show that block on About only | 36, 5a2 | PR #634 (train) |
 | T0-B1 | One app bar on every page | 36 | TODO |
-| T0-B2 | One bottom tab bar, correct lit tab, on every signed-in page | 36 | TODO |
+| T0-B2 | One bottom tab bar, correct lit tab, on every signed-in page (+ E11 one link scheme) | 36 | Branch claude/modest-fermi-6r0jo1-f6 (train d, after #634) |
 | T0-B3 | One font set | 36 | TODO |
 | T0-B4 | One post component (Mix's) on Profile/Tribes/Saved | 36 | TODO |
 | T0-B5 | Your photo instead of "N" on your posts and composer | 36 | TODO |
