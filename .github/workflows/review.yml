@@ -191,6 +191,9 @@ jobs:
             '.\browser-checks\dailies-tile-no-picker.cjs'
             '.\browser-checks\load-crashes.cjs'
             '.\browser-checks\friendly-errors.cjs'
+            '.\browser-checks\sync-own-app.cjs'
+            '.\browser-checks\sync-standalone.cjs'
+            '.\browser-checks\sync-phone-setup.cjs'
           )
       - name: Stop static review server
         if: always()
