@@ -90,18 +90,21 @@ async function touchSwipe(page, fromX, toX, y) {
       // A friend's tile opens friends' Dailies full screen at that friend, and a finger swipe moves card to card
       // (directive F3, owner: "Dailies scrolling doesn't work"; plan 5a7: Dailies swipe left/right). No delete on
       // someone else's Daily.
+      // The strip order rotates per visit (directive F15), so read it instead of assuming it.
+      const captions = await run.page.$$eval("#storiesRail .story[data-story-id]", tiles => tiles.map(tile => tile.title));
+      assert.deepEqual([...captions].sort(), ["Load-out", "Soundcheck"], `${label}: both friends' Dailies are in the strip`);
       await run.page.locator("#storiesRail .story[data-story-id] .story-open").first().tap();
       await run.page.waitForFunction(() => document.getElementById("storyViewer")?.open);
       let state = await viewerState(run.page);
-      assert.equal(state.caption, "Soundcheck", `${label}: a friend's tile opens their Daily`);
+      assert.equal(state.caption, captions[0], `${label}: a friend's tile opens their Daily`);
       assert.deepEqual([state.del, state.count, state.prev, state.next], [false, "1 / 2", false, true], `${label}: a friend's Daily opens the run of friends' Dailies, without delete`);
       await touchSwipe(run.page, width - 30, 30, 400);
-      await run.page.waitForFunction(() => document.querySelector("#storyViewer .story-viewer-caption")?.textContent === "Load-out", null, { timeout: 3000 }).catch(() => {});
+      await run.page.waitForFunction(next => document.querySelector("#storyViewer .story-viewer-caption")?.textContent === next, captions[1], { timeout: 3000 }).catch(() => {});
       state = await viewerState(run.page);
-      assert.deepEqual([state.caption, state.count, state.del], ["Load-out", "2 / 2", false], `${label}: swiping left moves to the next friend's Daily`);
+      assert.deepEqual([state.caption, state.count, state.del], [captions[1], "2 / 2", false], `${label}: swiping left moves to the next friend's Daily`);
       await touchSwipe(run.page, 30, width - 30, 400);
-      await run.page.waitForFunction(() => document.querySelector("#storyViewer .story-viewer-caption")?.textContent === "Soundcheck", null, { timeout: 3000 }).catch(() => {});
-      assert.equal((await viewerState(run.page)).caption, "Soundcheck", `${label}: swiping right goes back`);
+      await run.page.waitForFunction(back => document.querySelector("#storyViewer .story-viewer-caption")?.textContent === back, captions[0], { timeout: 3000 }).catch(() => {});
+      assert.equal((await viewerState(run.page)).caption, captions[0], `${label}: swiping right goes back`);
       await run.page.locator(".story-viewer-close").tap();
       await run.page.locator(".composer-avatar").first().tap({ timeout: 3000 }).catch(() => {});
       assert.equal(run.seen.pickers, 0, `${label}: no tile or avatar opened a file picker`);
@@ -126,7 +129,7 @@ async function touchSwipe(page, fromX, toX, y) {
       run = await openFeed(browser, width, [...mine.slice(0, 1), ...friends.slice(0, 1), ...mine.slice(1), ...friends.slice(1)]);
       tile = await run.page.evaluate(() => ({ label: document.querySelector(".story-create").getAttribute("aria-label"), ids: [...document.querySelectorAll("#storiesRail .story[data-story-id]")].map(n => n.dataset.storyId) }));
       assert.equal(tile.label, "Open your Dailies (3)", `${label}: own tile opens your Dailies`);
-      assert.deepEqual(tile.ids, ["f1", "f2"], `${label}: your own Dailies are behind your tile, not repeated in the strip`);
+      assert.deepEqual([...tile.ids].sort(), ["f1", "f2"], `${label}: your own Dailies are behind your tile, not repeated in the strip`);
       if (width === 360 || width === 390) await run.page.screenshot({ path: path.join(output, `strip-${width}.png`), clip: { x: 0, y: 0, width, height: 340 } });
       await run.page.locator(".story-create").tap();
       await run.page.waitForFunction(() => document.getElementById("storyViewer")?.open);

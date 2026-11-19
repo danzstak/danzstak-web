@@ -180,3 +180,8 @@ img.post-avatar,img.feed-online-avatar,img.friend-avatar,img.comment-avatar,img.
 /* Owner 2026-11-18: The Roll runs from the far left edge to the far right edge, like post media. */
 #feed > .reels-rail .reels-list,.reels-rail.post .reels-list{margin-left:calc(-1 * var(--mix-pad,12px))!important;margin-right:calc(-1 * var(--mix-pad,12px))!important;width:auto!important;max-width:none!important;padding:0!important;scroll-padding-inline:0!important;gap:4px!important;background:transparent!important;border-radius:0!important}
 #feed > .reels-rail .reels-list>.reel-card,.reels-rail.post .reels-list>.reel-card{border-radius:0!important}
+/* Directive F15 (owner 2026-11-19): friends' Dailies "just bounce and settle" when the strip appears: each tile slides in
+   with a short spring (about 6px overshoot), settles within 400ms, 40ms apart. No motion with reduced motion. */
+@keyframes danzstak-daily-settle{0%{opacity:0;transform:translateX(28px)}60%{opacity:1;transform:translateX(-6px)}82%{transform:translateX(2px)}100%{opacity:1;transform:none}}
+#storiesRail .story.story-enter{animation:danzstak-daily-settle 400ms cubic-bezier(.2,.8,.3,1) both;animation-delay:calc(var(--enter-index,0) * 40ms)}
+@media (prefers-reduced-motion:reduce){#storiesRail .story.story-enter{animation:none}}
