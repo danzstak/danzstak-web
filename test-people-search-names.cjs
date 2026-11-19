@@ -107,7 +107,7 @@ const lambda = shim.exports.__test;
   assert.doesNotMatch(onboarding, /name\.value = profile|handle\.value = profile/, "nothing fake is prefilled");
   for (const page of ["feed.html", "profile.html", "messages.html", "bazaar.html", "epk.html", "booking.html", "record-stores.html"]) {
     const html = fs.readFileSync(page, "utf8");
-    assert.match(html, /assets\/signup-onboarding\.js\?v=3/, `${page} runs the naming step`);
+    assert.match(html, /assets\/signup-onboarding\.js\?v=4/, `${page} runs the naming step`);
     assert.ok(html.indexOf("assets/i18n-people.js") > 0 && html.indexOf("assets/i18n-people.js") < html.indexOf("assets/i18n.js?v="), `${page} loads people translations before i18n.js`);
   }
   // Search in the top bar on every page: feed.html (Mix, Music HQ, Events) has the header box; the others get the icon.
