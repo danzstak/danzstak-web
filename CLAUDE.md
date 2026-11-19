@@ -352,7 +352,29 @@ Owner-session only (not Claude Code): deploy the Auth API for AI EPK (#567) and 
 
 Build order for Claude Code right now: **5a0 → 5a04 Tribe creation (design 29a) → 5a01 → 5a02 → 5a03 → 5a2 albums (finish #575) → 5a3 friends row (#572) → 5a1 viewer (#577) review fixes → 5a5 Bazaar in Mix → 5a6 shop skin → 5a7 Dailies carousel → 5a8 share sheet → 5a9 Tribes.**
 
+### Plan: test-ready for the owner and friends (Claude, 2026-11-19) — Claude Code builds this BEFORE any new feature
+
+Owner: "Make all the little things we've done so far work and look good so I can test them, in the PWA. When everything works, open accounts so friends can sign up and test. When users register devices, a pop-up says save SYNC as its own app." Order:
+
+**T1. Finish what's open (one at a time, each tested in the installed PWA at 360/390px, then merged by the owner's review session):**
+- #577 full-screen media viewer (5a1), #575 Photos/Videos albums (5a2), #572 friends row (5a3): bring each up to date with main, fix conflicts, finish, browser-check, screenshots.
+- `build/share-target` (5a01): finish as described in the Builder log.
+
+**T2. "Works and looks good" sweep (the owner tests from the installed app):** walk every screen a tester touches, in the installed PWA at 360 and 390px, signed in as a new member: sign up → name/@username → Mix (Dailies, composer with own photo, post photo/video, The Roll) → profile (Posts/About/Friends/Photos/Videos/Shop, + bio, edit profile) → Tribes (create, open, post) → Bazaar (Eroticon items, open product) → Events → Music HQ / EPK builder → SYNC (chat list, thread, send text, call + ring + Text note, Call alerts, Test ringer) → Menu → Log out. For every broken or "'97-looking" thing: add a line to `docs/tasks/18-fix-it.md`, fix the root cause, add a check. No new features in this pass. Done when a fresh account can do the whole walk without help and every screen looks finished.
+
+**T3. SYNC as its own app (5a03 + owner 2026-11-19):** spec 34, plus: **right after a device registers** (the SMS code succeeds), show a one-time pop-up: "Make SYNC its own app — get a SYNC icon on your home screen, straight to your chats" with **Add SYNC to home screen** (uses the install prompt from SYNC's own `/sync/` scope; iPhone shows the Share → Add to Home Screen steps) and **Not now**. Never shown again once installed or dismissed twice.
+
+**T4. Friends can sign up and test (needs the owner — Claude Code prepares, never changes live services):**
+- Owner tasks before inviting friends: **upgrade Twilio from Trial** (a trial only texts verified numbers, so friends can't register phones for calls); confirm sign-up is open on the live site; payments stay in **Stripe Test Mode** (friends must not be charged; checkout stays blocked until the test keys are fixed).
+- Claude Code builds a simple **"Invite testers"** path: Menu → Invite friends shares the sign-up link (`https://danzstak.com/?invite=<member>`); new members land in Mix with the inviter as a friend request; a small "Beta — tell us what's broken" link in Menu opens support with the device and app version filled in.
+- Claude Code writes `docs/TESTING.md`: what testers should try (the T2 walk), how to report a problem, known limits (no real payments, AI EPK pending deploy).
+
+**T5. Then continue the feature plan above:** 5a04 steps 2–5 (Tribe creation design 29a), 5a02 auto-translate, 5a5 Bazaar in Mix, 5a6 shop skin, 5a7 Dailies carousel, 5a8 share sheet, 5a9 Tribes feed.
+
+Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, translate), Twilio upgrade, Stripe test keys, live testing on two real phones.
+
 ### Builder log (newest first)
+- 2026-11-19 00:20 UTC · Claude (planning chat) · owner: make everything work and look good in the PWA, then friends test; SYNC "make it its own app" pop-up after device registration → plan "test-ready" T1–T5 above · Next: T1 (#577, #575, #572, build/share-target), then T2 sweep
 - 2026-11-19 00:12 UTC · Claude (planning chat) · **handing all coding to Claude Code.** #588 merged (service worker installs again). Unfinished from tonight for Claude Code: **5a01 share-to-DanzStak** — WIP on branch `build/share-target` (manifest `share_target`, service-worker `/share-target` handler, `assets/share-receive.js` composer hand-off, `browser-checks/share-target.cjs`); finish it: run the browser check against a server that tolerates parallel requests, add `test-share-target.cjs`, bump versions, open the PR. Then 5a04 steps 2–5 (design 29a), 5a02, 5a03, 5a2/5a3/5a1 reviews · Next: 5a01
 - 2026-11-18 23:58 UTC · Claude (planning chat) · **found and fixed a root cause**: `service-worker.js` listed 28 URLs twice, so `Cache.addAll()` failed and the service worker never installed on new phones (no offline, no push → "Call alerts does nothing", no ring when SYNC is closed). Fixed + `test-service-worker-shell.cjs` guards it. **Rule for everyone: never add a URL to SHELL that's already there; run `node test-service-worker-shell.cjs`.** #586 Tribe create screen merged. Next: 5a01 share-to-DanzStak (branch build/share-target, in progress), 5a02, 5a03
 - 2026-11-19 01:30 UTC · Claude (working through the night on the owner's word; hourly builder paused) · shipped tonight: #578 calls ring + louder rings + Call alerts fixed, #582 no built-in category Tribes, #584 Tribes home like Facebook Groups (art covers, pins, ⋯), #585 Text button in calls (5a0). Open from other sessions: #577 media viewer (5a1), #575 albums (5a2), #572 friends row (5a3), #567 AI EPK (needs Auth API deploy) · Next: 5a04 Tribe creation (design 29a), then 5a01 share-to-DanzStak, 5a02 auto-translate, 5a03 SYNC own app
