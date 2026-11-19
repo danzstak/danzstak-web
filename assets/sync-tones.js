@@ -24,7 +24,14 @@
     "pop": { name: "Pop", kind: "message", period: 0.5, notes: [[0, 0.12, 660, "sine", 0.8, 990]] },
     "rimshot": { name: "Rimshot", kind: "message", period: 0.5, notes: [[0, 0.06, 900, "triangle", 0.6], [0, 0.04, 5000, "noise", 0.5], [0.14, 0.05, 1200, "triangle", 0.4]] }
   };
-  const RING_MAKEUP_GAIN = 3.2; // rings: compressed, then lifted (owner 2026-11-18: ring tones were too quiet)
+  const RING_MAKEUP_GAIN = 3.2, RING_DRIVE = 24, RING_HIGHPASS_HZ = 600, RING_CEILING = 0.97; // see the loud chain in play()
+  const curves = {};
+  function ringCurve(kind) {
+    if (curves[kind]) return curves[kind];
+    const n = 2049, curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = kind === "tanh" ? Math.tanh(x * 3) / Math.tanh(3) : Math.max(-RING_CEILING, Math.min(RING_CEILING, x)); }
+    return (curves[kind] = curve);
+  }
   const DEFAULTS = { ring: "classic", message: "pop", ringVibrate: true, messageVibrate: true, contacts: {} };
   let ctx = null, active = null, previewTimer = null;
 
@@ -88,9 +95,17 @@
     let loudChain = null;
     if (tone.kind === "ring" && out.createDynamicsCompressor) {
       try {
-        const comp = out.createDynamicsCompressor(); comp.threshold.value = -20; comp.knee.value = 6; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.12;
+        // Owner 2026-11-19: "real quiet, turn it up at least 10 dB". Phone speakers barely play below ~400 Hz, where most
+        // ring notes sit, so: cut the lows, saturate (tanh) to put harmonics in the 1–5 kHz band the speaker and ear hear
+        // best, compress, lift, and hard-limit just under full scale so nothing clips at the output.
+        const hp = out.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = RING_HIGHPASS_HZ;
+        const drive = out.createGain(); drive.gain.value = RING_DRIVE;
+        const shaper = out.createWaveShaper(); shaper.curve = ringCurve("tanh"); shaper.oversample = "4x";
+        const comp = out.createDynamicsCompressor(); comp.threshold.value = -24; comp.knee.value = 4; comp.ratio.value = 12; comp.attack.value = 0.002; comp.release.value = 0.1;
         const makeup = out.createGain(); makeup.gain.value = RING_MAKEUP_GAIN;
-        master.connect(comp); comp.connect(makeup); makeup.connect(out.destination); loudChain = [comp, makeup];
+        const limiter = out.createWaveShaper(); limiter.curve = ringCurve("limit");
+        master.connect(hp); hp.connect(drive); drive.connect(shaper); shaper.connect(comp); comp.connect(makeup); makeup.connect(limiter); limiter.connect(out.destination);
+        loudChain = [hp, drive, shaper, comp, makeup, limiter];
       } catch { loudChain = null; }
     }
     if (!loudChain) master.connect(out.destination);
