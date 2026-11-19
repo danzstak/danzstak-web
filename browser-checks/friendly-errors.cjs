@@ -22,11 +22,18 @@ const cases = [
       page.on("pageerror", error => errors.push(error.message));
       await page.route("https://api.danzstak.com/**", route => { const p = new URL(route.request().url()).pathname; route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": base, "access-control-allow-credentials": "true" }, body: JSON.stringify(p === "/auth/session" ? { authenticated: true, user: { sub: me, email: "a@example.test" } } : item.reply(p)) }); });
       await page.goto(`${base}/${item.path}`, { waitUntil: "domcontentloaded" });
-      await page.waitForTimeout(1800);
+      // At least 1.8s for late raw errors; the expected message may take longer on a cold CI runner, so wait for it
+      // (up to 10s) instead of reading the page once after a fixed sleep.
+      const settled = page.waitForTimeout(1800);
+      if (item.expect) await page.waitForFunction(source => new RegExp(source).test(document.body.innerText), item.expect.source, { timeout: 10000 }).catch(() => {});
+      await settled;
       if (item.act) await item.act(page);
       const body = await page.evaluate(() => document.body.innerText);
       if (raw.test(body)) failures.push(`${label}: raw error text on screen: ${body.match(new RegExp(".*(" + raw.source + ").*"))?.[0]}`);
-      if (item.expect && !item.expect.test(body)) failures.push(`${label}: expected ${item.expect}`);
+      if (item.expect && !item.expect.test(body)) {
+        const shown = await page.evaluate(() => document.getElementById("storeStatus")?.textContent?.trim() || "");
+        failures.push(`${label}: expected ${item.expect}; status line: ${JSON.stringify(shown)}; page starts: ${JSON.stringify(body.replace(/\s+/g, " ").slice(0, 240))}`);
+      }
       if (errors.length) failures.push(`${label}: script errors: ${errors.join(" | ")}`);
       await context.close();
     }
