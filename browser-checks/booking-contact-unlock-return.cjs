@@ -30,6 +30,20 @@ const workspace = () => ({
   estimate:{ total:0, confirmedRevenue:0, potentialProfit:0, breakEvenRevenue:0, bookingEmailsUsd:0 }
 });
 
+// Owner 2026-11-15 (Terms 8A): a pop-up must be accepted before every purchase. Nothing is bought until the member
+// ticks the terms and presses Continue; the pop-up's total is the price printed on the button they pressed.
+async function acceptPurchaseTerms(page, { label, price, beforeAccept }) {
+  const terms = page.locator("dialog.ds-terms-dialog");
+  await terms.waitFor({ state:"visible" });
+  assert.ok((await terms.textContent()).includes(`Total: ${price} (USD)`), `${label}: purchase pop-up total must match the button price ${price}`);
+  const proceed = terms.getByRole("button", { name:"Continue to payment" });
+  assert.equal(await proceed.isDisabled(), true, `${label}: Continue must wait for the terms checkbox`);
+  beforeAccept?.();
+  await terms.getByRole("checkbox").check();
+  await proceed.click();
+  await terms.waitFor({ state:"detached" });
+}
+
 function installApi(page, mode) {
   const state = { order:[], saves:[], contactPolls:0, unlocked:false };
   page.route("https://api.danzstak.com/**", async route => {
@@ -77,9 +91,24 @@ function installApi(page, mode) {
       await date.fill("2027-02-02");
       await date.dispatchEvent("change");
       const unlock = card.locator(".unlock-contact");
+      const price = (await unlock.textContent()).match(/\$\d+\.\d{2}/)?.[0];
+      assert.ok(price, `${width}px unlock button must show its price`);
+      if (width === 390) {
+        // Cancel on the pop-up charges nothing and gives the button back.
+        await unlock.click();
+        const terms = page.locator("dialog.ds-terms-dialog");
+        await terms.waitFor({ state:"visible" });
+        await terms.getByRole("button", { name:"Cancel" }).click();
+        await terms.waitFor({ state:"detached" });
+        assert.equal(state.order.includes("checkout"), false, `${width}px cancelled pop-up must not start a contact checkout`);
+        await page.waitForFunction(() => document.querySelector(".unlock-contact")?.disabled === false);
+      }
       await unlock.click();
+      await acceptPurchaseTerms(page, { label:`${width}px contact unlock`, price, beforeAccept:() => assert.equal(state.order.includes("checkout"), false, `${width}px contact checkout started before the purchase terms were accepted`) });
       await card.locator('a[href="mailto:booking@example.com"]').waitFor({ state:"visible" });
-      assert.deepEqual(state.order, ["save", "checkout"], `${width}px contact Checkout did not save first`);
+      assert.equal(state.order[0], "save", `${width}px contact Checkout did not save first: ${state.order.join(",")}`);
+      assert.equal(state.order.filter(step => step === "checkout").length, 1, `${width}px contact Checkout must run exactly once: ${state.order.join(",")}`);
+      assert.equal(state.order.at(-1), "checkout", `${width}px nothing may run after the contact Checkout: ${state.order.join(",")}`);
       assert.equal(state.saves[0]?.venues?.[0]?.booking?.showDate, "2027-02-02", `${width}px saved workspace missed the edited date`);
       const geometry = await page.evaluate(() => ({
         overflow:document.documentElement.scrollWidth - document.documentElement.clientWidth,
