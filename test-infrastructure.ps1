@@ -58,7 +58,7 @@ foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 
   if (-not $authApi.Contains($required)) { throw "Auth API post authorization safeguard is missing: $required" }
 }
 $callTemplate = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'infrastructure\call-signaling\template.yaml') -Raw -Encoding utf8
-foreach ($storyCleanupControl in @('Id: ExpireDedicatedStoryMedia', 'Prefix: stories/', 'NoncurrentVersionExpiration:', 'const purpose=body.purpose||''story''', 'storyUpload=new RegExp(`^stories/${prefix}/', 'body.dedicatedMedia!==true')) {
+foreach ($storyCleanupControl in @('Id: ExpireDedicatedStoryMedia', 'Prefix: stories/', 'NoncurrentVersionExpiration:', 'const purpose=body.purpose||''story''', 'storyUpload=new RegExp(`^stories/${prefix}/', 'storyUpload&&body.dedicatedMedia===true', 'dedicated:{BOOL:!fromPost}')) {
   if (-not $callTemplate.Contains($storyCleanupControl)) { throw "Stories: dedicated expired media cleanup is missing: $storyCleanupControl" }
 }
 foreach ($persistentReelControl in @("kind:{S:'reel'},content:{S:url.href},createdAt:{S:createdAt}}", "x.kind?.S==='reel'", "Math.floor(created/1000)+86400")) {
@@ -327,7 +327,8 @@ foreach ($protection in $requiredReelProtections) {
 }
 
 $requiredStoryDeletionProtections = @(
-  "dedicated:{BOOL:true}",
+  "dedicated:{BOOL:!fromPost}",
+  "const fromPost=body.fromPost===true&&postUpload",
   "const mediaKey=found.Item.mediaKey?.S",
   "mediaKey&&found.Item.dedicated?.BOOL",
   'new RegExp(`^(?:stories|users)/${prefix}/`).test(mediaKey)',
