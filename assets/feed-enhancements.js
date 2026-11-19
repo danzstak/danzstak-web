@@ -3081,6 +3081,14 @@ if (composerActions && publishButton) {
   }
 }
 
+// A Save from the full-screen rail (media-actions.js, directive F1a) shows on the post's own Save in Mix too.
+addEventListener("danzstak:post-saved", event => {
+  const post = document.querySelector(`.post[data-post-id="${CSS.escape(String(event.detail?.postId || ""))}"]`);
+  if (!post) return;
+  post.dataset.saved = String(event.detail.saved === true);
+  paintPostSaveButton(post);
+});
+
 function addShareButton(post) {
   const actions = post.querySelector(".post-actions");
   if (!actions || actions.querySelector(".shareBtn")) return;
@@ -4368,12 +4376,14 @@ function setRollFullscreen(open, { updateHistory = true, fromHistory = false, st
       ? startCard
       : reelsList.querySelector(".reel-card");
     reelsList.scrollTop = targetCard?.offsetTop || 0;
+    if (targetCard) mountRollActions(targetCard);
     const first = targetCard?.querySelector("video.reel-player,iframe.reel-player")
       || reelsList.querySelector("video.reel-player,iframe.reel-player");
     const started = window.danzstakMediaCoordinator?.startSession?.(reelsList, first, { sound: !dataSaverEnabled() });
     if (!started && first?.tagName === "VIDEO" && !dataSaverEnabled()) { first.muted = true; first.play().catch(() => {}); }
     rollClose.focus({ preventScroll: true });
   } else {
+    window.danzstakMediaActions?.closeComments?.({ fromHistory: true });
     window.danzstakMediaCoordinator?.endSession?.(reelsList);
     rollSessionStatus.hidden = true;
     restoreRollBackground();
@@ -4396,6 +4406,31 @@ reelsHeading.append(reelsTitle, rollSessionStatus, rollClose);
 // Owner 2026-11-16: no + or fullscreen icon on The Roll — tap a tile to open it; videos join The Roll from the post composer.
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
+// Directive F1a: in full screen each DanzStak video gets the shared rail (like, comment, save, share) and caption once it
+// is on screen (media-actions.js); the comments sheet keeps the video in the top 40%, so the card re-snaps when it opens
+// and closes, and the video loops instead of moving on while comments are open.
+const rollCardPosts = new WeakMap();
+const mountRollActions = card => {
+  const post = rollCardPosts.get(card);
+  if (!post || !reelsRail.classList.contains("roll-fullscreen") || card.classList.contains("ds-ma-host") || !window.danzstakMediaActions?.mount?.(card, post, { layer: reelsRail })) return;
+  // Like the viewer: no native control bar under the caption; a tap on the video plays or pauses it.
+  const video = card.querySelector("video.reel-player");
+  if (video) video.controls = false;
+};
+reelsList.addEventListener("click", event => {
+  if (!reelsRail.classList.contains("roll-fullscreen") || event.target.closest(".ds-ma,button,a")) return;
+  const video = event.target.closest(".ds-ma-host")?.querySelector("video.reel-player");
+  if (!video || video.controls) return;
+  if (video.paused) video.play().catch(() => {}); else video.pause();
+});
+const rollActionsObserver = "IntersectionObserver" in window
+  ? new IntersectionObserver(entries => entries.forEach(entry => { if (entry.intersectionRatio >= .6) mountRollActions(entry.target); }), { threshold: [.6] })
+  : null;
+addEventListener("danzstak:comments", event => {
+  if (event.detail?.layer !== reelsRail) return;
+  const card = event.detail.host?.closest?.(".reel-card");
+  if (card) reelsList.scrollTop = card.offsetTop;
+});
 function restoreRollFullscreenFromHistory(event) {
   if (event.state?.danzstakRollOpen === true) {
     if (!reelsRail.classList.contains("roll-fullscreen")) setRollFullscreen(true, { updateHistory: false, fromHistory: true });
@@ -4405,6 +4440,7 @@ addEventListener("popstate", restoreRollFullscreenFromHistory);
 restoreRollFullscreenFromHistory({ state: history.state });
 function advanceRollCard(media) {
   if (!reelsRail.classList.contains("roll-fullscreen")) return;
+  if (reelsRail.classList.contains("ds-commenting")) { media.currentTime = 0; media.play?.().catch(() => {}); return; }
   const card = media?.closest?.(".reel-card"), next = card?.nextElementSibling;
   if (!next?.classList.contains("reel-card")) {
     rollSessionStatus.textContent = feedTranslate("End of The Roll");
@@ -4585,6 +4621,7 @@ function renderPlayableReels() {
     if (!reel.internal && !reelUrlValue) continue;
     const card = document.createElement("article");
     card.className = "reel-card";
+    if (reel.internal && reel.postId) { rollCardPosts.set(card, { postId: String(reel.postId), authorMemberId: reel.memberId, authorName: reel.authorName, isOwner: reel.isOwner === true, content: reel.content }); rollActionsObserver?.observe(card); }
     const fullscreenTrigger = document.createElement("button");
     fullscreenTrigger.type = "button";
     fullscreenTrigger.className = "reel-fullscreen-trigger";

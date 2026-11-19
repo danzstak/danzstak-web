@@ -130,7 +130,7 @@ async function openFeed(browser, clip, width, height) {
       const geometry = await page.evaluate(() => {
         const rail = document.querySelector(".reels-rail.roll-fullscreen");
         const video = [...rail.querySelectorAll("video.reel-player")].find(item => !item.paused);
-        const card = video.closest(".reel-card"), details = card.querySelector(".reel-details");
+        const card = video.closest(".reel-card"), details = card.querySelector(":scope > .ds-ma") || card.querySelector(".reel-details"); // F1a: the rail's caption layer (gradient edge to edge) replaces the old strip
         const box = node => { const r = node.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom }; };
         const links = [...details.querySelectorAll("a,button")].filter(node => node.checkVisibility()).map(box);
         return { vw: innerWidth, vh: innerHeight, card: box(card), details: box(details), links, padding: getComputedStyle(rail).padding, background: getComputedStyle(rail).backgroundColor, overflow: document.documentElement.scrollWidth > innerWidth };

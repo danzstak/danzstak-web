@@ -214,6 +214,7 @@ jobs:
             '.\browser-checks\pinned-welcome.cjs'
             '.\browser-checks\media-viewer-all.cjs'
             '.\browser-checks\pivot-header.cjs'
+            '.\browser-checks\video-rail-comments.cjs'
             '.\browser-checks\tour-manager-no-paywall.cjs'
             '.\browser-checks\not-found-pages.cjs'
             '.\browser-checks\epk-actions.cjs'

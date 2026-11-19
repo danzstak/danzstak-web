@@ -44,7 +44,7 @@
     const index = mine.findIndex(post => String(post.postId) === postId);
     if (index < 0) return null;
     const drawn = new Map([...document.querySelectorAll(OPENERS)].filter(item => kindOf(item) === kind && !item.closest(SKIP)).map(item => [item.closest("[data-post-id]")?.dataset.postId, item]));
-    return { items: mine.map(post => drawn.has(String(post.postId)) ? itemFor(drawn.get(String(post.postId))) : { type: kind, src: post.mediaUrl, alt: post.content || "" }), index };
+    return { items: mine.map(post => drawn.has(String(post.postId)) ? itemFor(drawn.get(String(post.postId))) : { type: kind, src: post.mediaUrl, alt: post.content || "", post: { postId: String(post.postId) } }), index };
   }
   function collect(element) {
     const kind = kindOf(element), key = ownerKey(element);
@@ -136,12 +136,17 @@
     });
     state.root.querySelector(".ds-media-viewer-count").textContent = state.items.length > 1 ? `${state.index + 1} / ${state.items.length}` : "";
     state.root.dataset.index = String(state.index);
+    // Directive F1a: a post's video gets the rail (like, comment, save, share) and its caption; media-actions.js finds the
+    // rest of the post (author, photo, text) in the page's post list. Photos stay media only (queue 5a1).
+    const item = state.items[state.index], slide = state.slides[state.index];
+    if (item.type === "video" && item.post?.postId && !slide.classList.contains("ds-ma-host")) globalThis.danzstakMediaActions?.mount?.(slide, item.post, { layer: state.root });
   }
 
   function close({ fromHistory = false, silent = false } = {}) {
     const state = viewer; if (!state) return;
     if (!fromHistory && state.history && history.state?.danzstakMediaViewer === true) { history.back(); return; }
     viewer = null;
+    globalThis.danzstakMediaActions?.closeComments?.({ fromHistory: true });
     globalThis.danzstakMediaCoordinator?.endSession?.(state.track);
     state.root.querySelectorAll("video").forEach(video => { video.pause(); video.removeAttribute("src"); video.load?.(); });
     state.root.remove();
@@ -185,7 +190,7 @@
     let start = null, axis = "", pinch = null, lastTap = 0, wheelAt = 0;
     const height = () => root.clientHeight || window.innerHeight;
     root.addEventListener("pointerdown", event => {
-      if (event.target.closest("button")) return;
+      if (event.target.closest("button, .ds-ma, .ds-comment-sheet")) return; // the rail and the comments sheet act on their own
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       try { root.setPointerCapture(event.pointerId); } catch {}
       if (pointers.size === 2 && state.items[state.index].type === "image") {
@@ -271,7 +276,9 @@
   document.addEventListener("focusin", event => { if (viewer && !viewer.root.contains(event.target)) viewer.root.querySelector(".ds-media-viewer-close")?.focus({ preventScroll: true }); }, true);
 
   function itemFor(element) {
-    return { type: kindOf(element), src: sourceOf(element), alt: element.getAttribute("alt") || element.getAttribute("aria-label") || "" };
+    // A post's own media carries its post (a shared post's media belongs to its original author: no rail).
+    const postId = element.closest?.(".shared-post,.shared-post-card,.shared-original") ? "" : element.closest?.("[data-post-id]")?.dataset.postId || "";
+    return { type: kindOf(element), src: sourceOf(element), alt: element.getAttribute("alt") || element.getAttribute("aria-label") || "", ...(postId ? { post: { postId } } : {}) };
   }
   function openFrom(element) {
     const all = element.closest?.(".feed-media-gallery") ? null : fromPosts(element, kindOf(element), ownerKey(element));
