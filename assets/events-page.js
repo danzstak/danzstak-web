@@ -141,7 +141,7 @@
       }
       const dateText = startsAt.toLocaleString(undefined, { year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
       const ticketCopy = tickets.length ? `\nTickets from $${(Math.min(...tickets.map(t => t.priceCents)) / 100).toFixed(2)}\nhttps://danzstak.com/event.html?id=${eventData.event.id}` : draft.outsideUrl.trim() ? `\nTickets: ${draft.outsideUrl.trim()}` : "";
-      const postResponse = await postActionFetch("/secure-posts", { method: "POST", credentials: "include", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: `Event: ${draft.title.trim()}\n${dateText}\n${draft.venue.trim()}${ticketCopy}`, audience: draft.audience, mediaKey: media.mediaKey, mediaType: media.mediaType === "video" ? "video" : "image", originalContentCertified: true }) });
+      const postResponse = await postActionFetch("/secure-posts", { method: "POST", credentials: "include", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: `Event: ${draft.title.trim()}\n${dateText}\n${draft.venue.trim()}${ticketCopy}`, audience: draft.audience, mediaKey: media.mediaKey, mediaType: media.mediaType === "video" ? "video" : "image", reel: media.mediaType === "video", originalContentCertified: true }) });
       const postData = await postResponse.json().catch(() => ({}));
       if (!postResponse.ok) throw new Error(postData.error || "Event could not be published");
       return { ok: true, eventId: eventData.event.id };
