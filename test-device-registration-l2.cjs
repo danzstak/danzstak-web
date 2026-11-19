@@ -19,7 +19,7 @@ assert.match(devices, /if\(state\.pendingChallenge&&Date\.now\(\)-state\.pending
 assert.match(devices, /state\.pendingIssuedAt=Date\.now\(\)/, "the time a challenge was issued must be recorded");
 
 // Every send asks for a valid challenge, so a code is never bound to an expired one.
-assert.match(phone, /const challenge = await window\.danzstakBeginCallingDeviceEnrollment\(\);\n\s+if \(!deviceChallenge \|\| challenge\.challengeId !== deviceChallenge\.challengeId\) await startDeviceOtp\(challenge, \{ keepNumber:true \}\);/, "send must refresh the device challenge");
+assert.match(phone, /const challenge = await window\.danzstakBeginCallingDeviceEnrollment\(\);\r?\n\s+if \(!deviceChallenge \|\| challenge\.challengeId !== deviceChallenge\.challengeId\) await startDeviceOtp\(challenge, \{ keepNumber:true \}\);/, "send must refresh the device challenge");
 
 // A failed registration after a confirmed code offers a new code instead of a dead end.
 assert.match(devices, /danzstak:device-registration-failed/, "a failed registration must be announced");
