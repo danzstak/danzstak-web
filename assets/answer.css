@@ -19,7 +19,7 @@ html,body{margin:0;min-height:100%;background:#0b0b0c;color:#ededea;font:16px/1.
 .answer-go svg{width:26px;height:26px;fill:currentColor}
 .answer-go:focus-visible{outline:3px solid #ff5a1f;outline-offset:3px}
 .answer-go:disabled{opacity:.6;cursor:wait}
-.answer-go--plain{background:#ff5a1f;color:#0b0b0c;min-height:52px}
+.answer-go--plain{background:var(--ds-btn-go,#15803d);color:#fff;min-height:52px}
 .answer-legal{display:flex;gap:10px;align-items:flex-start;max-width:320px;margin-top:6px;text-align:left;font-size:.88rem;color:#b9bcc4;cursor:pointer}
 .answer-legal input{flex:none;width:22px;height:22px;margin:0;accent-color:#ff5a1f}
 .answer-legal a,.answer-login{color:#ededea}
