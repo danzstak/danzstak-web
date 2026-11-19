@@ -43,6 +43,13 @@ const posts = [{
   viewCount: 42
 }];
 
+// The API route records each write asynchronously, after the click has resolved: wait until it arrives instead of
+// reading the list right after the click (that raced under load).
+async function awaitWrite(page, writes, count, label) {
+  for (let attempt = 0; attempt < 100 && writes.length < count; attempt += 1) await page.waitForTimeout(50);
+  assert.ok(writes.length >= count, `${label} never reached the API`);
+}
+
 const engagement = {
   reactionCounts: { Like: 2, Fire: 1 },
   myReaction: "",
@@ -175,16 +182,21 @@ const engagement = {
 
       if (width === 390) {
         await page.screenshot({ path: path.join(output, "profile-comments-390.png"), fullPage: true });
+        const reactionCount = reactionWrites.length;
         await card.locator(".profile-post-like").click();
+        await awaitWrite(page, reactionWrites, reactionCount + 1, `${width}px Like`);
         assert.deepEqual(reactionWrites.at(-1), { postId, reaction: "Like" });
         await card.locator(".profile-post-comment").click();
         const input = card.locator(".profile-comment-input");
         await input.fill("A new top-level comment");
+        const commentCount = commentWrites.length;
         await card.locator(".profile-comment-send").click();
+        await awaitWrite(page, commentWrites, commentCount + 1, `${width}px comment`);
         assert.deepEqual(commentWrites.at(-1), { postId, content: "A new top-level comment" });
         await card.locator(".profile-comment:not(.profile-comment-reply)").getByRole("button", { name: "Reply" }).click();
         await input.fill("A nested reply");
         await card.locator(".profile-comment-send").click();
+        await awaitWrite(page, commentWrites, commentCount + 2, `${width}px reply`);
         assert.deepEqual(commentWrites.at(-1), { postId, content: "A nested reply", parentCommentId: commentId });
         await card.locator(".profile-post-share").click();
         await page.locator(".post-share-dialog[open]").waitFor();
@@ -192,7 +204,9 @@ const engagement = {
         await page.locator(".profile-create-opener").click();
         await page.locator(".profile-create-form textarea").fill("A working profile post");
         await page.locator(".profile-wall-certify input").check();
+        const postCount = postWrites.length;
         await page.locator('.profile-create-form button[type="submit"]').click();
+        await awaitWrite(page, postWrites, postCount + 1, `${width}px profile post`);
         assert.equal(postWrites.at(-1).content, "A working profile post");
         assert.equal(postWrites.at(-1).originalContentCertified, true);
         assert.equal(postWrites.at(-1).audience, "public");
