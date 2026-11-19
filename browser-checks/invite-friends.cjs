@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8016").replace(/\/$/, "");
 const captureDir = path.resolve(process.env.DANZSTAK_CAPTURE_DIR || "docs/screenshots/invite-friends");
-const widths = process.env.DANZSTAK_TEST_WIDTHS ? process.env.DANZSTAK_TEST_WIDTHS.split(",").map(Number) : [320, 360, 390, 430, 768, 1366];
+const widths = process.env.DANZSTAK_TEST_WIDTHS ? process.env.DANZSTAK_TEST_WIDTHS.split(",").map(Number) : [320, 360, 390, 414, 430, 768, 1366];
 const uuid = value => `${String(value).padStart(8, "0")}-1111-4111-8111-${String(value).padStart(12, "0")}`;
 
 function payload(url) {
@@ -38,8 +38,8 @@ async function prepare(page) {
   });
 }
 
-async function exercise(page, button, label, screenshotPath) {
-  await button.click();
+async function exercise(page, button, label, screenshotPath, openDialog = () => button.click()) {
+  await openDialog();
   const dialog = page.getByRole("dialog", { name: "Invite a friend" });
   await dialog.waitFor({ state: "visible" });
   const textarea = dialog.getByRole("textbox", { name: "Invitation message" });
@@ -53,7 +53,9 @@ async function exercise(page, button, label, screenshotPath) {
   await dialog.getByRole("button", { name: "Copy invitation link" }).click();
   assert.equal(await page.evaluate(() => window.__copiedInvite), "https://danzstak.com/", `${label}: copy fallback URL`);
   assert.equal(await dialog.getByRole("status").textContent(), "Invitation link copied.", `${label}: copy feedback`);
-  const targets = await dialog.locator(".invite-action").evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height));
+  // Only rendered actions are touch targets: the call-link panel (task 24, "Answer to join") stays hidden until a link is made.
+  const targets = await dialog.locator(".invite-action").evaluateAll(elements => elements.filter(element => element.checkVisibility()).map(element => element.getBoundingClientRect().height));
+  assert.ok(targets.length >= 3, `${label}: Text message, Share via apps and Copy must be visible: ${JSON.stringify(targets)}`);
   assert.ok(targets.every(height => height >= 44), `${label}: invite target below 44px: ${JSON.stringify(targets)}`);
   if (screenshotPath) await page.screenshot({ path: screenshotPath, fullPage: true });
   await dialog.getByRole("button", { name: "Close" }).click();
@@ -78,10 +80,20 @@ async function exercise(page, button, label, screenshotPath) {
       await friendsInvite.waitFor({ state: "visible" });
       await exercise(page, friendsInvite, `${width}px Friends`, path.join(captureDir, `friends-invite-${width}.png`));
 
+      // SYNC list (owner check 2026-11-18, fix-it 18 "SYNC list"): the header keeps ONE ⋮; Invite a friend is a row in
+      // the SYNC settings sheet it opens. Focus returns to that ⋮ when the invite closes.
       await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
-      const syncInvite = page.getByRole("button", { name: "Invite a friend" });
-      await syncInvite.waitFor({ state: "visible" });
-      await exercise(page, syncInvite, `${width}px SYNC`, path.join(captureDir, `sync-invite-${width}.png`));
+      const syncMore = page.getByRole("button", { name: "More options" });
+      await syncMore.waitFor({ state: "visible" });
+      await exercise(page, syncMore, `${width}px SYNC`, path.join(captureDir, `sync-invite-${width}.png`), async () => {
+        await syncMore.click();
+        const sheet = page.getByRole("dialog", { name: "SYNC settings" });
+        await sheet.waitFor({ state: "visible" });
+        const row = sheet.locator('.sync-settings-row[data-settings-row="invite"]');
+        assert.match((await row.textContent()).trim(), /^Invite a friend/, `${width}px SYNC: Invite a friend row in the ⋮ sheet`);
+        assert.ok(await row.evaluate(element => element.getBoundingClientRect().height >= 44), `${width}px SYNC: Invite a friend row below 44px`);
+        await row.click();
+      });
 
       const geometry = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
       assert.ok(geometry.scrollWidth <= width, `${width}px horizontal overflow: ${JSON.stringify(geometry)}`);
