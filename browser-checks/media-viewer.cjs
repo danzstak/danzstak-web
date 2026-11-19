@@ -25,7 +25,7 @@ function pagePosts() {
 (async () => {
   const browser = await chromium.launch();
   try {
-    for (const width of [320, 390]) {
+    for (const width of [320, 360, 390, 414, 430]) {
       const page = await browser.newPage({ viewport: { width, height: 760 }, hasTouch: true });
       await page.setContent(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>
         body{margin:0;font:14px sans-serif} #feed{display:grid;gap:12px} .post{background:#fff;padding:0 0 8px}
@@ -127,7 +127,7 @@ function pagePosts() {
       await page.waitForFunction(() => !document.querySelector(".ds-media-viewer"));
       await page.close();
     }
-    console.log("Media viewer browser check passed at 320 and 390px: same member's photos, swipe ×2, Back to the same scroll Y, keys, swipe-down, muted video with sound toggle.");
+    console.log("Media viewer browser check passed at 320, 360, 390, 414 and 430px: same member's photos, swipe ×2, Back to the same scroll Y, keys, swipe-down, muted video with sound toggle.");
   } finally {
     await browser.close();
   }
