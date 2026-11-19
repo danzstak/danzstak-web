@@ -3007,9 +3007,13 @@ async function postActionFetch(path, options = {}, timeoutMs = 12000) {
   } finally { clearTimeout(timeout); }
 }
 
-const changedPostPreferenceFields = new Map();
-let volatilePostPreferences = {};
 
+const changedPostPreferenceFields = new Map();
+// Audit A4 (2026-11-19): `var`, not `let`. restoreWorkspaceRoute() runs at load (above) and can open Saved, which
+// reads post preferences before this line has run; a `let` was still in its temporal dead zone and Saved crashed.
+// eslint-disable-next-line no-var
+var volatilePostPreferences;
+volatilePostPreferences = volatilePostPreferences || {};
 function mergeRemotePostPreferences(postId, current, remote) {
   const merged = { ...(current || {}) };
   const changed = changedPostPreferenceFields.get(postId);
