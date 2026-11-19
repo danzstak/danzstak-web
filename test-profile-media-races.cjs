@@ -31,7 +31,8 @@ function harness({ item, failingDeletes = [], concurrentSnapshots = 0 }) {
       const expected = values[token]?.S || "", actual = state[field]?.S || "";
       if (expected !== actual) throw conflict();
     }
-    for (const [field, token] of [["profileAvatarKey", ":profileAvatarKey"], ["profileCoverKey", ":profileCoverKey"]]) {
+    if ((values[":expectedHistory"]?.S || "") !== (state.profileAvatarHistory?.S || "")) throw conflict(); // F4c: the history is read-checked too
+    for (const [field, token] of [["profileAvatarKey", ":profileAvatarKey"], ["profileCoverKey", ":profileCoverKey"], ["profileAvatarHistory", ":profileAvatarHistory"], ["profileAvatarSetAt", ":profileAvatarSetAt"]]) {
       if (values[token]) state[field] = values[token];
     }
     if (values[":profileCleanup"]) state.profileMediaCleanup = clone(values[":profileCleanup"]);
@@ -43,7 +44,7 @@ function harness({ item, failingDeletes = [], concurrentSnapshots = 0 }) {
   function applyCleanup(input) {
     const values = input.ExpressionAttributeValues || {}, expression = input.UpdateExpression;
     if (expression.startsWith("SET profileMediaCleanupClaim")) {
-      const key = values[":candidate"].S, active = [state.profileAvatarKey?.S, state.profileCoverKey?.S, state.profileVideoKey?.S].includes(key);
+      const key = values[":candidate"].S, active = [state.profileAvatarKey?.S, state.profileCoverKey?.S, state.profileVideoKey?.S].includes(key) || (state.profileAvatarHistory?.S || "").includes(key);
       if (!(state.profileMediaCleanup?.SS || []).includes(key) || active || state.profileMediaCleanupClaim) throw updateConflict();
       state.profileMediaCleanupClaim = values[":claim"];
       state.profileMediaCleanupClaimKey = values[":candidate"];
@@ -58,7 +59,7 @@ function harness({ item, failingDeletes = [], concurrentSnapshots = 0 }) {
     }
     if (input.ConditionExpression?.includes("profileAvatarKey = :candidate")) {
       const key = values[":candidate"].S;
-      if (![state.profileAvatarKey?.S, state.profileCoverKey?.S, state.profileVideoKey?.S].includes(key)) throw updateConflict();
+      if (![state.profileAvatarKey?.S, state.profileCoverKey?.S, state.profileVideoKey?.S].includes(key) && !(state.profileAvatarHistory?.S || "").includes(key)) throw updateConflict();
     }
     if (values[":resolved"] && state.profileMediaCleanup) state.profileMediaCleanup.SS = state.profileMediaCleanup.SS.filter(key => !values[":resolved"].SS.includes(key));
     return {};
@@ -106,22 +107,23 @@ async function save(harness, body) {
 }
 
 (async () => {
-  const reselect = harness({ item: { profileAvatarKey: { S: A } }, failingDeletes: [A] });
-  assert.equal((await save(reselect, { avatarKey: B })).statusCode, 200);
-  assert.equal(reselect.state.profileAvatarKey.S, B);
+  // A replaced cover is cleaned up (a replaced avatar stays in the picture history, F4c: test-profile-picture-history.cjs).
+  const reselect = harness({ item: { profileCoverKey: { S: A } }, failingDeletes: [A] });
+  assert.equal((await save(reselect, { coverKey: B })).statusCode, 200);
+  assert.equal(reselect.state.profileCoverKey.S, B);
   assert.deepEqual(Array.from(reselect.state.profileMediaCleanup.SS), [A]);
   assert.equal(reselect.deletes.get(A), 3, "the failed A cleanup receives its bounded retry budget");
   reselect.failures.delete(A);
-  assert.equal((await save(reselect, { avatarKey: A })).statusCode, 200);
-  assert.equal(reselect.state.profileAvatarKey.S, A);
-  assert.equal(reselect.deletes.get(A), 3, "A to B failed cleanup to A never deletes the reselected active avatar");
+  assert.equal((await save(reselect, { coverKey: A })).statusCode, 200);
+  assert.equal(reselect.state.profileCoverKey.S, A);
+  assert.equal(reselect.deletes.get(A), 3, "A to B failed cleanup to A never deletes the reselected active cover");
   assert.equal(reselect.deletes.get(B), 1, "B becomes the only cleanup candidate after A is reselected");
   assert.deepEqual(Array.from(reselect.state.profileMediaCleanup.SS), []);
 
   const shared = harness({ item: { profileAvatarKey: { S: A }, profileCoverKey: { S: A } } });
-  assert.equal((await save(shared, { avatarKey: B })).statusCode, 200);
-  assert.equal(shared.state.profileCoverKey.S, A);
-  assert.equal(shared.deletes.has(A), false, "replacing an avatar never deletes the same key while the cover still references it");
+  assert.equal((await save(shared, { coverKey: B })).statusCode, 200);
+  assert.equal(shared.state.profileAvatarKey.S, A);
+  assert.equal(shared.deletes.has(A), false, "replacing a cover never deletes the same key while the avatar still references it");
 
   const concurrent = harness({ item: { profileAvatarKey: { S: A } }, concurrentSnapshots: 2 });
   const [first, second] = await Promise.all([save(concurrent, { avatarKey: B }), save(concurrent, { avatarKey: C })]);

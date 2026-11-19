@@ -8,14 +8,15 @@ const mobile = fs.readFileSync("assets/mobile-design-system.css", "utf8");
 const profileHeader = fs.readFileSync("assets/profile-app-header.css", "utf8");
 const feedEnhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 
-assert.match(profile, /assets\/mobile-design-system\.css\?v=21/,
+assert.match(profile, /assets\/mobile-design-system\.css\?v=22/,
   "the profile must load the shared mobile application shell");
-assert.match(profile, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">[\s\S]*?data-icon="home"[\s\S]*?data-icon="disc"[\s\S]*?data-icon="calendar"[\s\S]*?data-icon="store"[\s\S]*?data-icon="chat"[\s\S]*?data-icon="menu"/,
-  "the profile must expose the same six primary mobile destinations (Mix, Music HQ, Events, Bazaar, SYNC, Menu) as the rest of DanzStak");
+// Audit 36 B2: the six destinations come from the one tab bar component (app-tabs.js), not a copy in each page.
+assert.match(profile, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"><\/nav>/, "the profile keeps the tab bar placeholder");
+assert.match(profile, /assets\/app-tabs\.js\?v=\d+/, "the profile must expose the same six primary mobile destinations (Mix, Music HQ, Events, Bazaar, SYNC, Menu) as the rest of DanzStak");
 assert.match(profile, /class="profile-header-search"[\s\S]*?name="q"[\s\S]*?placeholder="Search posts and users"/,
   "the profile header must retain the familiar cross-page search entry point");
-assert.match(profile, /id="profileHeaderPivot"[\s\S]*?data-pivot-trigger[\s\S]*?<span>Pivot<\/span>/,
-  "the profile header must retain the labeled Pivot action");
+assert.match(profile, /id="profileHeaderPivot" class="ds-app-bar-icon ds-app-bar-pivot" type="button" data-pivot-trigger data-icon="refresh" aria-label="Pivot your data"/,
+  "the profile header must retain the named Pivot icon (directive F15j)");
 assert.match(profileHeader, /grid-template-columns:34px minmax\(96px,1fr\) 66px/,
   "the phone profile header must reserve compact columns for brand, search, and Pivot");
 assert.match(feedEnhancements, /new URLSearchParams\(location\.search\)\.get\("q"\)/,
