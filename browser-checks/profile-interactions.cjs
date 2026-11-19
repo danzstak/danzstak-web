@@ -138,6 +138,7 @@ const engagement = {
         return {
           overflow: document.documentElement.scrollWidth > innerWidth,
           tabs: tabs && { height: tabs.height, labels: [...document.querySelectorAll(".profile-tabs button")].map(button => button.textContent.trim()) },
+          composerEdges: composer && [composer.left, composer.right],
           composerMargins: composer && [getComputedStyle(document.querySelector(".profile-wall-composer")).marginTop, getComputedStyle(document.querySelector(".profile-wall-composer")).marginBottom],
           createAvatar: createAvatar && [createAvatar.width, createAvatar.height],
           createInput: createInput && [createInput.height, getComputedStyle(document.querySelector(".profile-create-opener")).borderRadius],
@@ -158,9 +159,14 @@ const engagement = {
       assert.equal(geometry.overflow, false, `${width}px Profile interactions overflow horizontally`);
       assert.equal(Math.round(geometry.tabs.height), 44, `${width}px profile tabs are not 44px high`);
       assert.deepEqual(geometry.tabs.labels, ["Posts", "About", "Friends", "Photos", "Videos", "More"]);
-      assert.deepEqual(geometry.composerMargins, ["8px", "8px"]);
+      // Fix-it 18 (owner 2026-11-17, assets/profile-polish.css): on a phone the composer is part of one continuous wall,
+      // edge to edge with no gaps; wider screens keep the 8px rhythm.
+      if (width <= 560) {
+        assert.deepEqual(geometry.composerMargins, ["0px", "0px"], `${width}px profile composer must sit flush in the wall`);
+        assert.ok(Math.abs(geometry.composerEdges[0]) <= 1 && Math.abs(geometry.composerEdges[1] - width) <= 1, `${width}px profile composer is not edge to edge: ${JSON.stringify(geometry.composerEdges)}`);
+      } else assert.deepEqual(geometry.composerMargins, ["8px", "8px"]);
       assert.deepEqual(geometry.createAvatar.map(Math.round), [36, 36]);
-      assert.equal(Math.round(geometry.createInput[0]), 36);
+      assert.equal(Math.round(geometry.createInput[0]), 44, `${width}px composer opener is not the 44px button-system target`); // 16-C (owner 2026-11-17)
       assert.equal(geometry.createInput[1], "20px");
       assert.equal(Math.round(geometry.shortcutsHeight), 40);
       assert.deepEqual(geometry.shortcutLabels, ["Add a photo or video", "Add an event"]); // icon buttons (owner 2026-11-16) keep accessible names
@@ -197,7 +203,11 @@ const engagement = {
         assert.equal(postWrites.at(-1).originalContentCertified, true);
         assert.equal(postWrites.at(-1).audience, "public");
         await page.locator('[data-profile-tab="Photos"]').click();
-        await page.locator(".profile-post-media").first().waitFor();
+        // Photos is a media-only 3-column grid of square tiles (plan 5a2, owner 2026-11-18), not post cards.
+        const photoTile = page.locator(".profile-photo-grid .profile-photo-tile").first();
+        await photoTile.locator("img").waitFor();
+        const tileBox = await photoTile.boundingBox();
+        assert.ok(tileBox && Math.abs(tileBox.width - tileBox.height) <= 1 && Math.abs(tileBox.width - width / 3) <= 4, `${width}px Photos tile is not a square third of the screen: ${JSON.stringify(tileBox)}`);
         // Owner 2026-11-16: Featured, Memories and Media are gone; Friends is a top tab; More only appears for a Shop.
         assert.equal(await page.locator('[data-profile-tab="More"]').isHidden(), true);
         await page.locator('[data-profile-tab="Friends"]').click();
