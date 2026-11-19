@@ -54,7 +54,7 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - subtle motion (≤150 ms press/fade), skeletons instead of "Loading…" text.
   - Screenshot before and after at 360/390px for each screen. Spec to write first: `docs/tasks/39-modern-look.md` (tokens, components, the per-screen list).
 - **F9. Profile and Friends pages look like a finished app.** Owner 2026-11-19: "See the difference. Each profile page and each friends page… still Friends is a button on DanzStak."
-  - Reference screenshots, layout only, DanzStak colours and brand, in `docs/screenshots/owner-reference/`: `profile-familiar-reference`, `friends-things-in-common-reference`, `profile-danzstak`, `friends-danzstak`.
+  - Reference screenshots, layout only, DanzStak colours and brand, in `docs/screenshots/owner-reference/`: `profile-familiar-reference`, `profile-familiar-reference-2` (Events tab, "Share a note…" bubble on the avatar), `friends-things-in-common-reference`, `profile-danzstak`, `friends-danzstak`.
   - **Profile:**
     - big avatar centred over the cover, with a small camera badge (owner only);
     - name with an optional check, then one line "N friends · N following";
