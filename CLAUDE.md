@@ -146,6 +146,32 @@ Work through these in order. Each gate must pass before the next one starts.
   - `docs/TESTING.md` for testers.
   - The owner gets a push when doors open, and again at 10 and 25 accounts.
 
+### Grading: outstanding, not just passing (owner 2026-11-19)
+Owner: "Everything we texted about is in there to do… make sure it's all checked and graded, not just passing but outstanding student material."
+
+In every sweep (G2, G4), Claude grades **every screen and every product** in `docs/tasks/40-launch-check.md`, scoring 1–10 on each:
+1. **Works:** every button does the right thing and lands on the right screen; no errors, no dead ends.
+2. **Looks:** modern, matches the owner's reference standard (F8–F15); no default browser controls, no boxes in boxes, no clipped or overlapping text.
+3. **Feels:** fast (CDN, first screen in under 2 s after the first visit); smooth motion; nothing jumps.
+4. **Words:** scene-voice copy, no broken or untranslated strings, no instructions where an icon is enough.
+5. **Reach:** 44px targets, readable contrast, keyboard and screen-reader labels; works at 320–430px and on desktop.
+
+**Only an A passes: 9 or 10 in every category.** Anything below goes back to Code as a new F-item, with the grade, a screenshot and the reason. A test that passes on a screen graded below A is not done.
+
+**Owner checklist (everything from the 2026-11-19 texts).** Each item must be graded A before doors open:
+- About on one line; no + bio; name shown once (F14).
+- Profile header with the name beside the avatar and the picture band below (F4).
+- Pictures repositionable (F12).
+- Full-screen photo/video viewer (F1).
+- Roll sound carries over (F2).
+- Dailies scrolling, rotating and bouncing (F3, F15).
+- TAKE count and Dailies/Roll filled (done; verify).
+- Bazaar mixed across shops (done; the server half ships in C1).
+- 720p photos (done); videos at 720p (C3).
+- CDN speed (C1–C4).
+- Notifications (F8), Profile and Friends (F9), Create event (F10), Music HQ dashboard (F11), Tribe page and Elder-only controls (F13).
+- Every page modern (G5), every product tested (G6), 25 testers (G7).
+
 ### CDN plan (task 38)
 - **Done (2026-11-19):**
   - CloudFront `dk7kawr758jtd.cloudfront.net` (distribution `E1IHQF8SMWIYPH`, private bucket via Origin Access Control, trusted key group).
