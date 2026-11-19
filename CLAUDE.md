@@ -175,9 +175,10 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - The loop plays only while the post is at least 50% visible, and stops (showing the split) with `prefers-reduced-motion` or data saver. A tap opens full screen (F1), with both photos side by side.
   - Same aspect rules as F22.
 - **F24. Gift codes the owner hands out** (owner 2026-11-19: "I will need a couple AI Shop Manager, a few translations for SYNC and a few AI for EPK that I can distribute"). Needed before doors open.
-  - The owner creates **single-use gift codes** for: **AI EPK** (one EPK), **AI Shop Manager** (the AI shop: setup + up to 10 listings), **SYNC Translation** (30 minutes). Each code grants exactly what the paid product grants, through the **same entitlement code path** the Stripe webhook uses (no second system), with `source: "gift"` and no charge.
+  - The owner creates **single-use gift codes** for: **AI EPK** (one EPK), **AI Shop Manager** (the AI shop: setup + up to 10 listings), **SYNC Translation** (30 minutes), **AI profile** (owner 2026-11-19: "and 10 AI profile"). Each code grants exactly what the paid product grants, through the **same entitlement code path** the Stripe webhook uses (no second system), with `source: "gift"` and no charge.
   - **Owner-only creation:** an owner page (`ops.html` → Gift codes) for members in the Cognito group `danzstak-owner`, checked on the server. Pick product + how many (max 25 per batch) + expiry (default 60 days) → a list of codes and share links (`https://danzstak.com/?gift=CODE`) to copy or share.
   - **Redeem:** the link or Menu → **Redeem a code**, signed in. One code, one account, once. Codes are long and random (≥ 80 bits, readable alphabet), stored only as a keyed hash, rate-limited (10 tries/hour per account and per IP), and never logged in full.
+  - **First batch (owner 2026-11-19: "10 of all 3"):** 10 AI EPK, 10 AI Shop Manager, 10 SYNC Translation and 10 AI profile codes (40 in all), ready for doors open (23 Dec).
   - The owner sees each code's status (unused / redeemed by @username on date / expired) and can cancel unused codes.
   - This is the owner's approved exception to "entitlements only from the Stripe webhook": gift entitlements only from an owner-created, hashed, single-use code. Update `test-payment-boundary.cjs` to allow exactly that and nothing else.
   - Checks: create 3 codes as owner; a non-owner gets 403; redeem one → the product unlocks; a second redeem of the same code fails; an expired or cancelled code fails; the code never appears in logs.
@@ -256,9 +257,9 @@ Target: **doors open (G7) on Wednesday 23 December 2026**, with two days of marg
 - **Week 3, 4–10 Dec:** F11–F20, F22, F24 gift codes, F25 dashboards.
 - **Week 4, 11–17 Dec:** G2 two full sweeps with grades; G3 clean-up; G6 every product in Stripe test mode (including redeeming each gift code).
 - **Week 5, 18–22 Dec:** fixes from the sweeps; G4 final sweep; every screen and product graded A; G5 screenshots.
-- **23 Dec:** G7 doors open for 25 accounts; the owner sends invites and gift codes.
+- **23 Dec:** G7 doors open for 25 accounts; the owner sends invites and the 40 gift codes.
 - **F23 Then/Now** comes after doors open unless every other item is done early.
-- **Owner jobs before doors open:** the Auth API and call-signaling deploys (CloudShell, numbered steps), fixing the Stripe test keys, and choosing how many gift codes of each kind.
+- **Owner jobs before doors open:** the Auth API and call-signaling deploys (CloudShell, numbered steps), fixing the Stripe test keys. Gift codes: 10 of each of the four kinds (decided 2026-11-19).
 - If a week slips, Claude says so in the Builder log and to the owner the same day, with what moves. Doors never open on a grade below A.
 
 ### Grading: outstanding, not just passing (owner 2026-11-19)
