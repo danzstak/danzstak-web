@@ -12,7 +12,7 @@ assert.match(source, /video\.addEventListener\('loadedmetadata',showFrame/);
 assert.match(source, /video\.currentTime=previewTime/);
 assert.match(source, /video\.currentTime=0/);
 assert.match(source, /if\(video\.autoplay\)return/);
-assert.match(source, /!element\.closest\('\.video-grid(?:,\.call-setup-dialog)?'\)/);
+assert.match(source, /!element\.closest\('\.video-grid(?:,\.call-setup-dialog)?(?:,\.profile-video-grid)?'\)/);
 assert.match(softUi, /video::\-webkit-media-controls-overlay-play-button[^}]*display:none!important/);
 
 console.log("Video preview checks passed: saved videos seek to a visible early frame and restart from zero when played.");
