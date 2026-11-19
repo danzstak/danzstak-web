@@ -33,7 +33,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-A6 | Shop manager shows a raw JS error; shared friendly-error helper; Save shop feedback (+ E2 Trusted contacts raw error, E4 Events/Support/Shop silent forms) | 36 | PR #608 |
 | T0-E8 | Remove "Tap your name to change it" and the tap-name-to-edit path; Edit button is the only way in (C3) | 36 E8 | TODO |
 | T0-E9 | One Photo/video button in the profile and Mix composers (no duplicate media buttons) | 36 E9 | TODO |
-| T0-E10 | Visitor profile: Friends ▾ (Unfriend/Unfollow) instead of a dead disabled button; Add friend → Cancel request | 36 E10 | TODO |
+| T0-E10 | Visitor profile: Friends ▾ (Unfriend/Unfollow) instead of a dead disabled button; Add friend → Cancel request | 36 E10 | PR (build/friends-menu); Cancel request needs a server route (later) |
 | T0-A7 | Booking Example / Find clubs dead; Leaflet served locally | 36 | TODO |
 | T0-A8 | Tribes: Elder sees Join; open on Your Tribes | 36 | TODO |
 | T0-A9 | Mix composer avatar opens your profile | 36 | TODO |
