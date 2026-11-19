@@ -113,8 +113,8 @@ const startingWorkspace = () => ({
       const card = page.locator('.venue-card[data-venue-key]', { hasText:"Credit Room" });
       await card.waitFor({ state:"visible" });
       const prompt = card.locator(".booking-credit-needed");
-      await prompt.waitFor({ state:"visible" });
-      assert.match(await prompt.textContent(), /No booking-email credit is ready[\s\S]*Buy 1 credit · \$1\.50/, `${width}px must explain the zero-credit next step`);
+      // Task 25: no standing paywall; the prompt appears only when Send needs a credit.
+      assert.equal(await prompt.isHidden(), true, `${width}px must not show a credit prompt before Send`);
 
       await card.getByRole("button", { name:"Preview exact email" }).click();
       let dialog = page.locator("dialog.booking-send-review");

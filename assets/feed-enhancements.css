@@ -398,3 +398,5 @@ a.post-avatar,a.comment-avatar{position:relative;overflow:visible!important}
 a.post-avatar>img,a.comment-avatar>img{border-radius:50%}
 a.post-avatar::after{content:"";position:absolute;inset:-6px;border-radius:50%}/* -6px: the photo has a 2px border */
 a.comment-avatar::after{content:"";position:absolute;inset:-6px;border-radius:50%}
+/* T2a: the Mix post-box photo is a link to your profile (#610); keep its 36px look with a 44px tap area (6px past its 2px border). */
+.post-composer a.composer-avatar{position:relative}.post-composer a.composer-avatar::after{content:"";position:absolute;inset:-6px;border-radius:50%}

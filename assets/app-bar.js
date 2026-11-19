@@ -64,12 +64,27 @@
     install.href = "#install"; install.className = "menu-install"; install.hidden = true;
     install.innerHTML = '<span class="menu-icon" aria-hidden="true">' + icons.download + '</span><span class="menu-label"></span>';
     install.querySelector(".menu-label").textContent = t("Install DanzStak");
-    install.addEventListener("click", event => { event.preventDefault(); document.querySelector(".install-app-button")?.click(); });
+    // One install item (owner 2026-11-18): the browser's one-tap install where offered, the Add to Home Screen steps on iPhone/iPad.
+    install.addEventListener("click", event => {
+      event.preventDefault();
+      void (async () => {
+        if (window.danzstakIsAppleMobile !== true && typeof window.danzstakRequestInstall === "function") {
+          const result = await window.danzstakRequestInstall();
+          if (result === "accepted" || result === "dismissed") return;
+          if (result === "installed") { window.danzstakShowFeedback?.(t("DanzStak is already installed on this device."), { timeout: 4000 }); return; }
+        }
+        // No one-tap install here (iPhone/iPad, or the browser didn't offer it): show the steps.
+        window.danzstakOpenInstallHelp?.();
+      })();
+    });
     if (anchor) { anchor.before(pivot); anchor.before(install); } else menu.append(pivot, install);
     window.danzstakIcons?.enhance?.(pivot);
     // Show "Install DanzStak" only while the browser offers installation (pwa.js toggles its own hidden button).
     // Only write when it changes: writing `hidden` fires this observer again (a same-value write still counts).
-    const sync = () => { const button = document.querySelector(".install-app-button"), next = !button || button.hidden; if (install.hidden !== next) install.hidden = next; };
+    const standalone = (() => { try { return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch { return false; } })();
+    const appleNeedsSteps = () => !standalone && window.danzstakIsAppleMobile === true && typeof window.danzstakOpenInstallHelp === "function";
+    // Owner 2026-11-18: always offer "Install DanzStak" until it is installed, for members who don't know how to add a PWA.
+    const sync = () => { const button = document.querySelector(".install-app-button"), next = standalone || ((!button || button.hidden) && !appleNeedsSteps() && typeof window.danzstakOpenInstallHelp !== "function"); if (install.hidden !== next) install.hidden = next; };
     sync();
     const button = document.querySelector(".install-app-button");
     if (button) new MutationObserver(sync).observe(button, { attributes: true, attributeFilter: ["hidden"] });
