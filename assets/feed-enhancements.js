@@ -2479,6 +2479,11 @@ globalThis.danzstakSyncMobileMenuCurrent = syncMobileMenuCurrent;
 const screenTitles = { HQ: "Music HQ", Groups: "Tribes" };
 let titleBeforeMenu = "";
 function setScreenTitle(name) { const label = screenTitles[name] || name || "Your Mix"; document.title = "DanzStak | " + (window.danzstakTranslate?.(label) || label); }
+// Focus goes back to the Menu control the member can see: on phones the tab bar's Menu tab (app-tabs.js), elsewhere the
+// header button.
+function visibleMenuControl() {
+  return [...document.querySelectorAll('[aria-controls="mobileNavMenu"]')].find(control => control.getClientRects().length) || mobileMenuControl;
+}
 function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {}) {
   const shouldOpen = Boolean(open && matchMedia("(max-width: 700px)").matches);
   if (shouldOpen) globalThis.danzstakActivateMobileScreen?.("menu", { preserveMenu: true });
@@ -2506,7 +2511,7 @@ function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {})
     // on the page underneath the modal mobile menu.
     requestAnimationFrame(focusMenu);
   }
-  else if (wasOpen) mobileMenuControl?.focus({ preventScroll: true });
+  else if (wasOpen) visibleMenuControl()?.focus({ preventScroll: true });
 }
 function closeMobileMenuFromControl() {
   if (history.state?.danzstakMenuOpen === true) history.back();
@@ -2520,8 +2525,11 @@ mobileNavMenu?.querySelector("[data-menu-close]")?.addEventListener("click", clo
 mobileNavMenu?.addEventListener("click", event => {
   if (document.body.classList.contains("mobile-menu-open") && event.target.closest("a")) setMobileMenu(false);
 });
+// Any Menu control toggles the menu instead of counting as a tap outside it: the header button and, on phones, the
+// shared tab bar's Menu tab (app-tabs.js), which carries aria-controls="mobileNavMenu".
+const isMenuControl = target => Boolean(mobileMenuControl?.contains(target) || target?.closest?.('[aria-controls="mobileNavMenu"]'));
 document.addEventListener("click", event => {
-  if (document.body.classList.contains("mobile-menu-open") && !mobileNavMenu?.contains(event.target) && !mobileMenuControl?.contains(event.target)) closeMobileMenuFromControl();
+  if (document.body.classList.contains("mobile-menu-open") && !mobileNavMenu?.contains(event.target) && !isMenuControl(event.target)) closeMobileMenuFromControl();
 });
 document.addEventListener("keydown", event => {
   if (event.key === "Escape" && document.body.classList.contains("mobile-menu-open")) closeMobileMenuFromControl();
@@ -3795,15 +3803,7 @@ function createCommentReactions(post, item, comment) {
 }
 
 function formatCommentTimestamp(time) {
-  const parsed = new Date(time?.dateTime || "");
-  if (Number.isNaN(parsed.getTime())) { time.textContent = feedTranslate("now"); return; }
-  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 60000));
-  const locale = document.documentElement.lang || undefined;
-  try {
-    const relative = new Intl.RelativeTimeFormat(locale, { numeric: "auto", style: "narrow" });
-    time.textContent = elapsedMinutes < 1 ? relative.format(0, "minute") : elapsedMinutes < 60 ? relative.format(-elapsedMinutes, "minute") : elapsedMinutes < 1440 ? relative.format(-Math.floor(elapsedMinutes / 60), "hour") : elapsedMinutes < 10080 ? relative.format(-Math.floor(elapsedMinutes / 1440), "day") : parsed.toLocaleDateString(locale, { month: "short", day: "numeric" });
-  } catch { time.textContent = elapsedMinutes < 1 ? feedTranslate("now") : parsed.toLocaleDateString([], { month: "short", day: "numeric" }); }
-  time.title = parsed.toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
+  if (!window.danzstakTimeLabel?.paint(time, time?.dateTime)) time.textContent = feedTranslate("now"); // B4: one time label everywhere
 }
 
 function refreshCommentInterfaceLanguage(root = document) {
@@ -4026,6 +4026,30 @@ if (typeof window !== "undefined" && typeof window.addEventListener === "functio
   }
 }
 
+// Audit 36 B5: your own posts show your photo and your name, also when the post arrived without them: a post you have
+// just published (the server's reply carries neither), or one whose author lookup found no picture. Your initial only
+// when you have no photo.
+function fillOwnAuthor(post) {
+  if (post.dataset.isOwner !== "true" || post.dataset.ownAuthorFilled === "true") return;
+  post.dataset.ownAuthorFilled = "true";
+  loadCommentViewerProfile().then(profile => {
+    if (!post.isConnected) return;
+    const avatar = post.querySelector(".post-header .post-avatar"), author = post.querySelector(".post-header .post-author");
+    const name = String(profile.name || "").trim(), picture = String(profile.picture || "").trim();
+    if (name && author?.textContent.trim() === "You") {
+      author.textContent = name;
+      avatar?.setAttribute("aria-label", feedTranslate("Open {name} profile").replace("{name}", name));
+      const media = post.querySelector("img.post-media");
+      if (media) media.alt = feedTranslate("Photo shared by {name}").replace("{name}", name);
+    }
+    if (!avatar || avatar.querySelector("img")) return;
+    if (!picture) { if (name) avatar.textContent = name.charAt(0).toUpperCase(); return; }
+    const image = document.createElement("img"); image.src = picture; image.alt = ""; image.referrerPolicy = "no-referrer";
+    window.danzstakIdentityMedia?.install(image, { memberId: post.dataset.authorMemberId || "", name, picture });
+    avatar.replaceChildren(image);
+  });
+}
+
 function ensureCommentComposer(post) {
   const comments = post.querySelector(".comments"), input = comments?.querySelector(":scope > input, .comment-composer input");
   if (!comments || !input || input.closest(".comment-composer")) return;
@@ -4034,13 +4058,12 @@ function ensureCommentComposer(post) {
   composer.className = "comment-composer";
   const avatar = document.createElement("span");
   avatar.className = "comment-composer-avatar";
-  avatar.textContent = "D";
-  avatar.setAttribute("aria-hidden", "true");
+  avatar.setAttribute("aria-hidden", "true"); // B5: no DanzStak "D" while your profile loads; your photo or initial below
   loadCommentViewerProfile().then(profile => {
     if (!avatar.isConnected) return;
     if (profile.picture) {
       const image = document.createElement("img"); image.className = "comment-composer-avatar"; image.src = profile.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(image, profile); avatar.replaceWith(image);
-    } else avatar.textContent = String(profile.name || "D").charAt(0).toUpperCase();
+    } else avatar.textContent = String(profile.name || "").trim().charAt(0).toUpperCase();
   });
   const field = document.createElement("div");
   field.className = "comment-composer-field";
@@ -4838,7 +4861,7 @@ document.getElementById("feed").addEventListener("keydown", event => {
   event.stopImmediatePropagation();
   saveComment(post, event.target);
 }, true);
-document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addSaveButton(post); addPostDeleteButton(post); describePostControls(post); } else if (post !== reelsRail) post.remove(); });
+document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addSaveButton(post); addPostDeleteButton(post); describePostControls(post); fillOwnAuthor(post); } else if (post !== reelsRail) post.remove(); });
 
 function applyFriendWorkspacePresence(users) {
   if (!Array.isArray(users)) return;
@@ -4916,7 +4939,7 @@ function refreshFeedMediaWorkspace(records) {
 new MutationObserver(records => {
   for (const record of records) {
     record.addedNodes.forEach(node => {
-      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post") && node !== reelsRail) { if (hiddenPostIds.has(String(node.dataset.postId || ""))) { node.remove(); return; } addReactionButton(node); addShareButton(node); addSaveButton(node); addPostDeleteButton(node); describePostControls(node); placeReelsRail(); }
+      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post") && node !== reelsRail) { if (hiddenPostIds.has(String(node.dataset.postId || ""))) { node.remove(); return; } addReactionButton(node); addShareButton(node); addSaveButton(node); addPostDeleteButton(node); describePostControls(node); fillOwnAuthor(node); placeReelsRail(); }
       if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".comment")) addCommentDelete(node);
       if (node.nodeType === Node.ELEMENT_NODE) node.querySelectorAll?.(".comment").forEach(addCommentDelete);
     });

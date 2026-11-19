@@ -8,6 +8,7 @@
 (() => {
   const t = value => window.danzstakTranslate?.(value) || value;
   const icons = {
+    back: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>',
     bell: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
     sync: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg>',
     download: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>'
@@ -20,23 +21,39 @@
   }
 
   // ---- tool pages ----
+  // Audit 36 B1 (directive F6): every page's header becomes the same bar: [← back] logo, search box, bell, SYNC.
+  // A page that needs Back marks its back link with data-app-back; its page title (an h1 in the header) moves below.
   function mountToolBar(header) {
     if (header.classList.contains("ds-app-bar")) return;
     header.classList.add("ds-app-bar");
-    const brand = header.querySelector("a[href*='feed.html']") || header.querySelector("a");
-    if (brand) { brand.classList.add("ds-app-bar-brand"); brand.setAttribute("href", "feed.html?view=feed"); if (!brand.getAttribute("aria-label")) brand.setAttribute("aria-label", t("DanzStak home")); }
+    const back = header.querySelector("a[data-app-back]");
+    if (back) {
+      const label = back.getAttribute("aria-label") || back.textContent.trim() || "Back";
+      back.className = "ds-app-bar-icon ds-app-bar-back"; back.innerHTML = icons.back;
+      back.setAttribute("aria-label", t(label)); back.title = t(label);
+      header.prepend(back);
+    }
+    let brand = header.querySelector("a[href*='feed.html']:not([data-app-back]), a.brand, a.market-brand, a.store-brand");
+    if (!brand) { brand = document.createElement("a"); if (back) back.after(brand); else header.prepend(brand); }
+    brand.className = "ds-app-bar-brand"; brand.setAttribute("href", "feed.html?view=feed"); brand.setAttribute("aria-label", t("DanzStak home"));
+    brand.innerHTML = '<img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span>'; // one logo on every bar
+    header.querySelectorAll(":scope > h1").forEach(title => header.after(title));
+    header.querySelectorAll(":scope > a.home").forEach(link => link.remove()); // the logo already goes home
     const nav = header.querySelector("nav");
     if (nav && /bazaar|store\.html/.test(nav.innerHTML) && document.body.matches(".bazaar-page, :has(.market-header)")) {
       nav.classList.add("ds-app-tabs"); nav.setAttribute("role", "tablist");
       nav.querySelectorAll("a").forEach(link => link.setAttribute("role", "tab"));
       header.after(nav);
     } else if (nav) nav.classList.add("ds-app-bar-links");
+    // Any other loose header link (e.g. "Back to Settings") is replaced by the back arrow.
+    header.querySelectorAll(":scope > a:not(.ds-app-bar-brand):not(.ds-app-bar-back)").forEach(link => link.remove());
+    header.querySelectorAll(":scope > img").forEach(image => image.remove()); // a second, smaller logo (Tour Manager)
     const actions = document.createElement("div");
     actions.className = "ds-app-bar-actions";
     actions.append(iconLink("ds-app-bar-bell", "feed.html#notifications", "Notifications", icons.bell), iconLink("ds-app-bar-sync", "messages.html", "SYNC", icons.sync));
     header.appendChild(actions);
-    // top-search.js puts its search icon in the header; keep it first among the actions.
-    const adoptSearch = () => { const search = header.querySelector(".ds-top-search-button, .top-search-toggle, [data-top-search]"); if (search && search.parentElement !== actions) actions.prepend(search); return Boolean(search); };
+    // top-search.js puts its search box in the header: it sits between the logo and the icons, like Mix's.
+    const adoptSearch = () => { const search = header.querySelector(".ds-top-search-button, .top-search-toggle, [data-top-search]"); if (search && search.previousElementSibling !== brand) brand.after(search); return Boolean(search); };
     if (!adoptSearch()) new MutationObserver((records, observer) => { if (adoptSearch()) observer.disconnect(); }).observe(header, { childList: true, subtree: true });
   }
 
@@ -91,12 +108,24 @@
     else new MutationObserver((records, observer) => { if (document.querySelector(".install-app-button")) { observer.disconnect(); sync(); new MutationObserver(sync).observe(document.querySelector(".install-app-button"), { attributes: true, attributeFilter: ["hidden"] }); } }).observe(document.body, { childList: true });
   }
 
-  function start() {
+  // Public pages (Privacy, Terms) get the bar only for members who are signed in; visitors keep the plain legal header.
+  const signedInOnly = document.currentScript?.hasAttribute("data-signed-in-only");
+  async function signedIn() {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 5000);
+    try {
+      const response = await fetch("https://api.danzstak.com/auth/session", { credentials: "include", cache: "no-store", signal: controller.signal });
+      return response.ok && (await response.json().catch(() => ({}))).authenticated === true;
+    } catch { return false; }
+    finally { clearTimeout(timer); }
+  }
+
+  async function start() {
+    if (signedInOnly && !(await signedIn())) return;
     document.body.classList.add("ds-has-app-bar");
     const topbar = document.querySelector("header.topbar");
     if (topbar) { mountFeedBar(topbar); mountMenu(); return; }
     const header = document.querySelector("body > header");
     if (header) mountToolBar(header);
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true }); else start();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => void start(), { once: true }); else void start();
 })();

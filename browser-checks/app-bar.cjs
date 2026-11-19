@@ -1,83 +1,105 @@
 "use strict";
-// One top bar on every page (fix-it 18, owner 2026-11-17): logo, search, bell, SYNC — the same slim bar on Mix, Music HQ,
-// Events, Bazaar, Booking, EPK, Record shops, the shop and Moving Day. No Pivot and no orange install arrow in the bar;
-// both live in the Menu. Bazaar / My Shop are tabs under the bar. API mocked.
-// Run: DANZSTAK_BASE_URL=http://127.0.0.1:8141 node browser-checks/app-bar.cjs   (AUDIT_ONLY=1 SHOTS=before to report)
+// Audit 36 B1 (directive F6): one top bar on every DanzStak page (SYNC and the full-screen viewers keep their own;
+// Profile's cover header is F9's). Before: five different bars (Mix's search box; a bare search icon on the tool pages;
+// Product's and Event's white "Bazaar / My Shop" and "Events / SYNC" buttons; Tour Manager's "← Back to venue map";
+// Support's "Back to Settings" link; Mix's bar 1px shorter, 45px of dead space for a hidden install button).
+// Checks at 320/360/390/430px, signed in:
+// - every page has one bar: 59px, #121418, the same logo, a 44px search box (the Bazaar's searches the Bazaar, B10),
+//   bell and SYNC in the same place as on Mix;
+// - pages that need Back show ← first and it goes back to where it should; no stray header links remain;
+// - tapping the centre of the search box opens search; no sideways scroll;
+// - Privacy and Terms keep their plain header for visitors who are signed out.
+const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
-const fs = require("node:fs");
-const path = require("node:path");
 
-const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8141").replace(/\/$/, "");
-const prefix = process.env.SHOTS || "after";
-const output = path.resolve("docs/screenshots/app-bar");
-const ownerId = "11111111-1111-4111-8111-111111111111";
-const json = body => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
-const pages = [["mix", "/feed.html?view=feed"], ["hq", "/feed.html?view=hq"], ["bazaar", "/bazaar.html"], ["booking", "/booking.html"], ["epk", "/epk.html"], ["record-stores", "/record-stores.html"], ["store", "/store.html?manage=1"]];
-function fixture(p) {
-  if (p === "/auth/session") return { authenticated: true, user: { sub: ownerId, email: "artist@example.test" } };
-  if (p === "/profiles") return { profile: { memberId: ownerId, name: "Night Shift", handle: "nightshift", isOwner: true, cloudProfile: true } };
-  if (p === "/secure-posts") return { posts: [] };
-  if (p === "/stories") return { stories: [], reels: [] };
-  if (p === "/settings/posts") return { hiddenPostIds: [] };
-  if (p === "/record-store-workspace") return { release: {}, stores: [], revision: "" };
-  if (p === "/record-stores") return { stores: [] };
-  return {};
+const base = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8132").replace(/\/$/, "");
+const me = "11111111-1111-4111-8111-111111111111";
+const PAGES = [
+  ["feed.html?view=feed"], ["bazaar.html"], ["product.html?id=x"], ["store.html"], ["event.html?id=x"], ["epk.html"], ["booking.html"],
+  ["booking-selections.html", "booking.html"], ["record-stores.html"], ["moving-day.html"], ["support.html", "feed.html?view=settings"],
+  ["trusted-contacts.html", "booking.html"], ["privacy.html"], ["terms.html"]
+];
+
+async function open(browser, width, path, signedIn = true) {
+  const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
+  const page = await context.newPage(), errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.route("https://api.danzstak.com/**", route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const body = pathname === "/auth/session" ? (signedIn ? { authenticated: true, user: { sub: me, email: "night@danzstak.invalid" } } : { authenticated: false })
+      : (pathname === "/profiles" || pathname === "/profile") ? { profile: { memberId: me, name: "Night Shift", handle: "nightshift", username: "nightshift", isOwner: true, cloudProfile: true } } : {};
+    return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": base, "access-control-allow-credentials": "true" }, body: JSON.stringify(body) });
+  });
+  await page.goto(`${base}/${path}`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(1200);
+  return { context, page, errors };
 }
 
+const barState = page => page.evaluate(() => {
+  const shown = element => element && element.getClientRects().length && getComputedStyle(element).display !== "none";
+  const bars = [...document.querySelectorAll("header.ds-app-bar, header.topbar.ds-feed-bar")].filter(shown);
+  const bar = bars[0];
+  if (!bar) return { bars: 0 };
+  const box = element => { if (!shown(element)) return null; const r = element.getBoundingClientRect(); return { left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width), height: Math.round(r.height) }; };
+  const logo = bar.querySelector(".ds-app-bar-brand img, .logo img"), search = bar.querySelector(".ds-top-search-button, .ds-top-search-field, input.search");
+  const loose = [...bar.querySelectorAll(":scope > a")].filter(link => shown(link) && !link.matches(".ds-app-bar-brand, .ds-app-bar-back, .logo, .ds-app-bar-icon")).map(link => link.textContent.trim());
+  return {
+    bars: bars.length, top: Math.round(bar.getBoundingClientRect().top), height: Math.round(bar.getBoundingClientRect().height), background: getComputedStyle(bar).backgroundColor,
+    first: bar.querySelector(":scope > :is(a,button,input):not([hidden])")?.matches(".ds-app-bar-back") ? "back" : "logo",
+    logo: box(logo), search: box(search), bell: box(bar.querySelector(".header-notifications, .ds-app-bar-bell")), sync: box(bar.querySelector(".ds-app-bar-sync")),
+    loose, boxyButtons: [...bar.querySelectorAll("nav a")].filter(shown).length, overflow: document.documentElement.scrollWidth > innerWidth
+  };
+});
+
 (async () => {
-  fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({ channel: "msedge", headless: true });
-  const failures = [];
   try {
-    for (const width of (process.env.WIDTHS || "320,360,390,430").split(",").map(Number)) for (const [name, url] of pages) {
-      const label = `${name} ${width}px`;
-      const context = await browser.newContext({ viewport: { width, height: 760 }, serviceWorkers: "block", hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
-      const page = await context.newPage(), errors = [];
-      page.on("pageerror", error => errors.push(error.message));
-      await page.route("https://api.danzstak.com/**", route => route.fulfill(json(fixture(new URL(route.request().url()).pathname))));
-      await page.goto(baseUrl + url, { waitUntil: "domcontentloaded" });
-      await page.waitForTimeout(1200);
-      const bar = await page.evaluate(() => {
-        const header = document.querySelector("body > header, header.topbar");
-        if (!header) return null;
-        const visible = node => { if (!node) return false; const r = node.getBoundingClientRect(), cs = getComputedStyle(node); return r.width > 0 && r.height > 0 && cs.display !== "none" && cs.visibility !== "hidden"; };
-        const r = header.getBoundingClientRect();
-        const find = sel => [...header.querySelectorAll(sel)].find(visible) || null;
-        const brand = find("a[href*='feed.html'] img, .logo img, .ds-app-bar-brand img");
-        const search = find(".ds-top-search-button, .top-search-toggle, [data-top-search], input.search, input[type=search]");
-        const bell = find(".header-notifications, .ds-app-bar-bell");
-        const sync = find(".ds-app-bar-sync");
-        const pivot = [...document.querySelectorAll("#pivotButton, .pivot-header-button")].some(visible);
-        const install = [...document.querySelectorAll(".install-app-button")].some(visible);
-        const iconSizes = [bell, sync, search?.matches?.("input") ? null : search].filter(Boolean).map(n => { const b = n.getBoundingClientRect(); return Math.min(b.width, b.height); });
-        return { height: r.height, top: r.top, brand: Boolean(brand), search: Boolean(search), bell: Boolean(bell), sync: Boolean(sync), bellHref: bell?.getAttribute?.("href") || "", pivot, install, small: iconSizes.filter(s => s < 43.5).length, overflow: document.documentElement.scrollWidth > innerWidth, links: [...header.querySelectorAll("nav a")].filter(visible).map(a => a.textContent.trim()) };
-      });
-      if (!bar) { failures.push(`${label}: no top bar`); await context.close(); continue; }
-      for (const part of ["brand", "search", "bell", "sync"]) if (!bar[part]) failures.push(`${label}: top bar has no ${part}`);
-      if (bar.pivot) failures.push(`${label}: Pivot still takes header space`);
-      if (bar.install) failures.push(`${label}: the orange install arrow is still on screen`);
-      if (bar.height > 64) failures.push(`${label}: top bar is not slim (${Math.round(bar.height)}px)`);
-      if (bar.small) failures.push(`${label}: ${bar.small} top-bar icon(s) under 44px`);
-      if (bar.overflow) failures.push(`${label}: sideways overflow`);
-      if (bar.links.length) failures.push(`${label}: old header links still shown (${bar.links.join(", ")})`);
-      if (name === "bazaar") {
-        const tabs = await page.evaluate(() => { const t = document.querySelector(".ds-app-tabs"); return t ? [...t.querySelectorAll("a")].map(a => a.textContent.trim()) : []; });
-        if (tabs.join("|") !== "Bazaar|My Shop") failures.push(`${label}: Bazaar / My Shop are not tabs under the bar (${tabs.join("|")})`);
-      }
-      if (name === "mix") {
-        await page.evaluate(() => { const b = [...document.querySelectorAll("[aria-controls='mobileNavMenu']")].find(n => n.getBoundingClientRect().width > 0); b?.click(); });
+    for (const width of [320, 360, 390, 430]) {
+      let mix = null;
+      for (const [path, backTo] of PAGES) {
+        const label = `${width}px ${path}`;
+        const { context, page, errors } = await open(browser, width, path);
+        const state = await barState(page);
+        assert.equal(state.bars, 1, `${label}: exactly one top bar`);
+        assert.equal(state.top, 0, `${label}: the bar sits at the top`);
+        assert.ok(Math.abs(state.height - 59) <= 1, `${label}: the bar is 59px tall (got ${state.height})`);
+        assert.equal(state.background, "rgb(18, 20, 24)", `${label}: the bar is DanzStak ink`);
+        assert.ok(state.logo && state.logo.width === 34, `${label}: the same 34px logo ${JSON.stringify(state.logo)}`);
+        assert.ok(state.search && state.search.height === 44 && state.search.width >= 90, `${label}: a 44px search box ${JSON.stringify(state.search)}`);
+        assert.ok(state.bell?.width === 44 && state.sync?.width === 44, `${label}: 44px bell and SYNC`);
+        assert.deepEqual(state.loose, [], `${label}: no stray header links`);
+        assert.equal(state.boxyButtons, 0, `${label}: no boxy link buttons in the bar`);
+        assert.equal(state.overflow, false, `${label}: no sideways scroll`);
+        assert.equal(state.first, backTo ? "back" : "logo", `${label}: ${backTo ? "← first" : "the logo first"}`);
+        mix ||= state;
+        assert.ok(Math.abs(state.bell.left - mix.bell.left) <= 1 && Math.abs(state.sync.left - mix.sync.left) <= 1, `${label}: bell and SYNC sit where they sit on Mix ${JSON.stringify({ here: [state.bell.left, state.sync.left], mix: [mix.bell.left, mix.sync.left] })}`);
+        // Tap the centre of the search box: it opens search.
+        const search = page.locator("header .ds-top-search-button, header .ds-top-search-field, header input.search").first();
+        const box = await search.boundingBox();
+        await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
         await page.waitForTimeout(300);
-        const menu = await page.evaluate(() => ({ pivot: Boolean(document.querySelector("#mobileNavMenu [data-pivot-trigger]")), install: document.querySelector("#mobileNavMenu .menu-install") }));
-        if (!menu.pivot) failures.push(`${label}: Pivot is not in the Menu`);
-        if (!menu.install) failures.push(`${label}: no Install entry in the Menu`);
-        await page.keyboard.press("Escape");
+        const opened = await page.evaluate(() => Boolean(document.querySelector("dialog.ds-top-search[open]")) || document.activeElement?.matches?.("input.search, dialog.ds-top-search input, .ds-top-search-field input"));
+        assert.equal(opened, true, `${label}: tapping the search box opens search`);
+        if (backTo) {
+          await page.keyboard.press("Escape").catch(() => {});
+          await page.goto(`${base}/${path}`, { waitUntil: "domcontentloaded" });
+          await page.waitForTimeout(800);
+          const back = await page.locator("header .ds-app-bar-back svg").boundingBox();
+          await page.touchscreen.tap(back.x + back.width / 2, back.y + back.height / 2);
+          await page.waitForURL(url => `${url.pathname.split("/").pop()}${url.search}` === backTo, { timeout: 8000 });
+        }
+        assert.deepEqual(errors, [], `${label}: page errors ${errors.join(" | ")}`);
+        await context.close();
       }
-      if ([360, 390].includes(width)) await page.screenshot({ path: path.join(output, `${prefix}-${name}-${width}.png`), clip: { x: 0, y: 0, width, height: 200 } }).catch(() => {});
-      if (errors.length) failures.push(`${label}: page errors ${errors.join(" | ")}`);
-      await context.close();
+      for (const path of ["privacy.html", "terms.html"]) {
+        const { context, page } = await open(browser, width, path, false);
+        const plain = await page.evaluate(() => ({ bar: Boolean(document.querySelector("header.ds-app-bar")), search: Boolean(document.querySelector(".ds-top-search-button")), home: Boolean(document.querySelector("header a.home")) }));
+        assert.deepEqual(plain, { bar: false, search: false, home: true }, `${width}px ${path} signed out keeps its plain header`);
+        await context.close();
+      }
     }
-  } finally { await browser.close(); }
-  const unique = [...new Set(failures)];
-  if (unique.length) { console[process.env.AUDIT_ONLY ? "log" : "error"](`App bar: ${unique.length} problem(s)\n- ${unique.join("\n- ")}`); if (!process.env.AUDIT_ONLY) process.exitCode = 1; return; }
-  console.log("App bar checks passed: logo, search, bell and SYNC on every page, no Pivot or install arrow in the bar, slim, 44px icons, Bazaar tabs, Pivot and Install in the Menu.");
+    console.log(`App bar checks passed at 320, 360, 390, 430px on ${PAGES.length} pages: one 59px bar with the same logo, a 44px search box that opens search, bell and SYNC where they sit on Mix, ← first where a page needs Back; Privacy and Terms stay plain for visitors.`);
+  } finally {
+    await browser.close();
+  }
 })().catch(error => { console.error(error); process.exitCode = 1; });

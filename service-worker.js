@@ -1,15 +1,15 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v995";
+const CACHE = "danzstak-shell-v996";
 const SHELL = [
-  "/assets/offline.js", "/assets/identity-media.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
+  "/assets/offline.js", "/assets/identity-media.js", "/assets/time-label.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
   "/assets/icon-buttons.js", "/assets/icon-buttons.css", "/assets/mobile-design-system.css", "/assets/profile-app-header.css", "/assets/danzstak-original-feed.css", "/assets/responsive-media.js", "/assets/responsive-media.css",
   "/assets/media-tags.js",
   "/assets/post-sharing.js", "/assets/post-views.js",
   "/assets/profile-sharing.js",
   "/assets/facebook-import.js", "/assets/facebook-import.css", "/assets/facebook-import-worker.js", "/assets/facebook-import-core.js", "/assets/pivot.js", "/assets/pivot.css", "/assets/vendor/fflate-0.8.3.js",
-  "/assets/people-search.js", "/assets/top-search.js", "/assets/top-search.css", "/assets/buttons.css", "/assets/i18n-people.js", "/assets/app-bar.js", "/assets/app-bar.css", "/assets/site-chrome.js", "/assets/site-chrome.css",
+  "/assets/people-search.js", "/assets/top-search.js", "/assets/top-search.css", "/assets/buttons.css", "/assets/i18n-people.js", "/assets/app-bar.js", "/assets/app-tabs.js", "/assets/app-bar.css", "/assets/app-tabs.css", "/assets/site-chrome.js", "/assets/site-chrome.css",
   "/assets/mobile-keyboard.js",
   "/assets/languages.js", "/assets/brand-language-aliases.js", "/assets/i18n-music.js", "/assets/i18n.js",
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html", "/support.html", "/booking.html", "/booking-selections.html", "/booking-opt-out.html", "/booking-reply.html", "/answer.html", "/record-stores.html", "/epk.html", "/store.html", "/bazaar.html", "/moving-day.html", "/product.html", "/event.html",

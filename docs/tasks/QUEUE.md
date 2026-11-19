@@ -43,18 +43,18 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-A9 | Mix composer avatar opens your profile | 36 | PR (build/tribes-elder-join) |
 | T0-A10 | Menu → Photos/Videos show only your media (with 5a2) | 36 | PR #634 (train) |
 | T0-A10b | **Found in #634:** your own profile's Photos/Videos tabs show the Location / Work / Website "Not added" block above the grid; Photos and Videos are media only (5a2) — show that block on About only | 36, 5a2 | PR #634 (train) |
-| T0-B1 | One app bar on every page | 36 | TODO |
-| T0-B2 | One bottom tab bar, correct lit tab, on every signed-in page | 36 | TODO |
-| T0-B3 | One font set | 36 | TODO |
-| T0-B4 | One post component (Mix's) on Profile/Tribes/Saved | 36 | TODO |
-| T0-B5 | Your photo instead of "N" on your posts and composer | 36 | TODO |
-| T0-B6 | One button system (orange primary) | 36 | TODO |
+| T0-B1 | One app bar on every page (Profile's cover header is F9) | 36 | Train d (#642) |
+| T0-B2 | One bottom tab bar, correct lit tab, on every signed-in page (+ E11 one link scheme) | 36 | Train d (#642) |
+| T0-B3 | One font set | 36 | With the UI kit (week 2): the kit sets the one type scale (Archivo + JetBrains Mono); restyling the old CSS first would be done twice |
+| T0-B4 | One post component (Mix's) on Profile/Tribes/Saved | 36 | Dates done in train d (#642, one time label for posts and comments). The single post layout and icon row is the UI kit's post component (G3): Mix's post look is about 160 stacked `#feed > .post … !important` rules across 9 files |
+| T0-B5 | Your photo instead of "N" on your posts and composer | 36 | Train d (#642) |
+| T0-B6 | One button system (orange primary) | 36 | With the UI kit (week 2) |
 | T0-C1 | Tour Manager: no paywall | 36 | TODO |
 | T0-C2 | Tour Manager: never re-ask EPK info | 36 | TODO |
-| T0-B7 | Styled switches/selects/date/file pickers | 36 | TODO |
-| T0-B8 | Fluid pages: Tour Manager, Support, Settings, HQ | 36 | TODO |
-| T0-B9 | Landing page in DanzStak style | 36 | TODO |
-| T0-B10 | Bazaar images fill tiles; one search | 36 | TODO |
+| T0-B7 | Styled switches/selects/date/file pickers | 36 | With the UI kit (week 2: every web form matches, forms-match.cjs) |
+| T0-B8 | Fluid pages: Tour Manager, Support, Settings, HQ | 36 | With the UI kit (week 2, screen by screen) |
+| T0-B9 | Landing page in DanzStak style | 36 | With the UI kit (week 2) |
+| T0-B10 | Bazaar images fill tiles; one search | 36 | Train d (#642) |
 | T0-CD | Small fixes C3–C5, D1–D7 | 36 | TODO |
 | T2a | Tap any profile picture → that member's profile | CLAUDE.md "T2 checklist", 18 | PR #598 (train) |
 | T2b | No separate Dailies upload (Dailies tile never opens the photo picker) | CLAUDE.md "T2 checklist", 18 | PR #605 (train, with T0-A2) |

@@ -78,6 +78,15 @@ async function stateAt(page, count) {
   await page.waitForFunction(expected => document.querySelector("#storyViewer .story-viewer-count")?.textContent === expected, count, { timeout: 3000 }).catch(() => {});
   return viewerState(page);
 }
+// CI on #642 lost a tap on › even after waiting 3 s (it never reproduced locally). Record what the viewer received so a
+// failure says whether the tap's pointer, touch and click events arrived at all.
+const recordViewerEvents = page => page.evaluate(() => {
+  window.__viewerEvents = [];
+  const viewer = document.getElementById("storyViewer"), start = performance.now();
+  for (const type of ["touchstart", "touchend", "pointerdown", "pointerup", "pointercancel", "click"])
+    viewer.addEventListener(type, event => window.__viewerEvents.push(`${type}:${String(event.target.className || event.target.tagName).split(" ")[0]}@${Math.round(performance.now() - start)}`), true);
+});
+const viewerEvents = page => page.evaluate(() => (window.__viewerEvents || []).join(" "));
 
 (async () => {
   fs.mkdirSync(output, { recursive: true });
@@ -145,19 +154,33 @@ async function stateAt(page, count) {
       state = await viewerState(run.page);
       assert.deepEqual([state.caption, state.count, state.del, state.prev, state.next], ["Doors at 8", "1 / 3", true, false, true], `${label}: opens your newest Daily first`);
       assert.ok(state.smallestTarget >= 44, `${label}: viewer buttons are at least 44px (${state.smallestTarget})`);
+      await recordViewerEvents(run.page);
       if (width === 360 || width === 390) await run.page.screenshot({ path: path.join(output, `viewer-${width}.png`) });
       await touchSwipe(run.page, width * 0.8, width * 0.2, 400);
       state = await stateAt(run.page, "2 / 3");
       assert.deepEqual([state.caption, state.count, state.open], ["Merch table", "2 / 3", true], `${label}: a finger swipe left goes to the next Daily`);
       await run.page.locator(".story-viewer-next").tap();
       state = await stateAt(run.page, "3 / 3");
-      assert.deepEqual([state.caption, state.count, state.next, state.prev], ["Last call", "3 / 3", false, true], `${label}: › goes to the last Daily`);
+      assert.deepEqual([state.caption, state.count, state.next, state.prev], ["Last call", "3 / 3", false, true], `${label}: › goes to the last Daily (viewer events: ${await viewerEvents(run.page)})`);
       await touchSwipe(run.page, width * 0.2, width * 0.8, 400);
       state = await stateAt(run.page, "2 / 3");
       assert.deepEqual([state.caption, state.count], ["Merch table", "2 / 3"], `${label}: a finger swipe right goes back`);
       await run.page.keyboard.press("ArrowLeft");
       state = await stateAt(run.page, "1 / 3");
       assert.equal(state.count, "1 / 3", `${label}: arrow keys move too`);
+      // A mouse click on › steps exactly once (the release and the click are the same press), and a touch tap that
+      // brings pointer events but no click (what CI's lost tap on › did) still steps.
+      const nextBox = await run.page.locator(".story-viewer-next").boundingBox();
+      await run.page.mouse.click(nextBox.x + nextBox.width / 2, nextBox.y + nextBox.height / 2);
+      state = await stateAt(run.page, "2 / 3");
+      assert.equal(state.count, "2 / 3", `${label}: a mouse click on › steps once, not twice`);
+      await run.page.evaluate(() => {
+        const button = document.querySelector(".story-viewer-prev"), box = button.getBoundingClientRect(), at = { clientX: box.left + box.width / 2, clientY: box.top + box.height / 2, pointerId: 7, pointerType: "touch", isPrimary: true, bubbles: true };
+        button.dispatchEvent(new PointerEvent("pointerdown", at));
+        button.dispatchEvent(new PointerEvent("pointerup", at)); // and no click, as on CI
+      });
+      state = await stateAt(run.page, "1 / 3");
+      assert.equal(state.count, "1 / 3", `${label}: a tap whose click never comes still steps`);
       // Delete your own Daily from the viewer: the next one shows and the tile count drops.
       await run.page.locator(".story-viewer-delete").tap();
       await run.page.locator(".danzstak-confirm-dialog button[value=confirm]").tap();
