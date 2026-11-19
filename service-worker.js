@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v944";
+const CACHE = "danzstak-shell-v948";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -31,24 +31,32 @@ self.addEventListener("install", event => {
 
 self.addEventListener("activate", event => {
   event.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+    .then(keys => Promise.all(keys.filter(key => key !== CACHE && key !== SHARE_CACHE).map(key => caches.delete(key))))
+    .then(() => caches.open(SHARE_CACHE).then(dropExpiredShares)) // a share in progress survives an update; old ones go
     .then(() => self.clients.claim()));
 });
 
-// Task 32 (owner 2026-11-18): DanzStak in the phone's Share menu. A shared photo or video is kept for a few minutes in
-// a private cache on this phone, then Mix opens the composer with it attached; the member chooses to post. Photos and
-// videos only, never audio (CLAUDE.md: no music files). One file, like the composer.
-const SHARE_CACHE = "danzstak-share", SHARE_TYPES = /^(image\/(jpeg|png|webp|gif|heic|heif)|video\/(mp4|webm|quicktime))$/i, SHARE_MAX_BYTES = 100 * 1024 * 1024;
+// Task 32 (owner 2026-11-18): DanzStak in the phone's Share menu. A shared photo or video is kept for up to 10 minutes
+// in a private cache on this phone, then Mix opens the composer with it attached; the member chooses to post (assets/
+// share-receive.js deletes it once it is in the composer). Only types Mix can post (composer and posts API): no HEIC,
+// never audio (CLAUDE.md: no music files). The composer takes one photo or video, so the first usable file is kept.
+const SHARE_CACHE = "danzstak-share", SHARE_TTL_MS = 10 * 60 * 1000, SHARE_MAX_BYTES = 100 * 1024 * 1024;
+const SHARE_TYPES = /^(image\/(jpeg|png|webp|gif)|video\/(mp4|webm|quicktime))$/i;
+async function dropExpiredShares(cache) {
+  for (const key of await cache.keys()) { const at = Number(new URL(key.url).searchParams.get("at") || 0); if (!(Date.now() - at <= SHARE_TTL_MS)) await cache.delete(key); }
+}
 async function receiveShare(request) {
   try {
     const form = await request.formData();
-    const file = form.getAll("media").find(item => item && typeof item !== "string" && SHARE_TYPES.test(item.type) && item.size <= SHARE_MAX_BYTES);
+    const shared = form.getAll("media").filter(item => item && typeof item !== "string");
+    const usable = shared.filter(item => SHARE_TYPES.test(item.type) && item.size <= SHARE_MAX_BYTES);
+    const file = usable[0];
     const text = ["title", "text", "url"].map(key => String(form.get(key) || "").trim()).filter(Boolean).filter((v, i, all) => all.indexOf(v) === i).join(" ").slice(0, 2000);
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8), at = Date.now();
     const cache = await caches.open(SHARE_CACHE);
-    for (const key of await cache.keys()) { const at = Number(new URL(key.url).searchParams.get("at") || 0); if (Date.now() - at > 10 * 60 * 1000) await cache.delete(key); }
-    if (file) await cache.put(`/share-target/${id}/file?at=${Date.now()}`, new Response(file, { headers: { "content-type": file.type, "x-file-name": encodeURIComponent(file.name || "shared") } }));
-    await cache.put(`/share-target/${id}/meta?at=${Date.now()}`, new Response(JSON.stringify({ text, hasFile: Boolean(file), rejected: !file && form.getAll("media").length > 0 }), { headers: { "content-type": "application/json" } }));
+    await dropExpiredShares(cache);
+    if (file) await cache.put(`/share-target/${id}/file?at=${at}`, new Response(file, { headers: { "content-type": file.type, "x-file-name": encodeURIComponent(file.name || "shared") } }));
+    await cache.put(`/share-target/${id}/meta?at=${at}`, new Response(JSON.stringify({ text, hasFile: Boolean(file), extra: Math.max(0, usable.length - 1), rejected: shared.length - usable.length }), { headers: { "content-type": "application/json" } }));
     return Response.redirect(`/feed.html?share=${id}`, 303);
   } catch { return Response.redirect("/feed.html?share=failed", 303); }
 }
