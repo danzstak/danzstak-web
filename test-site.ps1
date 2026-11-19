@@ -542,9 +542,10 @@ if ($incomingCallsJs.Contains('if (drawer && !drawer.hidden) return;') -or
     -not $chatJs.Contains('if(!embeddedMode||autoAnswer||peer||pending)poll()')) {
   Add-Failure 'Calls: an open embedded conversation can hide incoming calls or compete with the parent call watcher'
 }
-$correctPublishingStatus = 'Publishing' + [char]0x2026
-if (-not $feed.Contains($correctPublishingStatus)) {
-  Add-Failure 'Stories: publishing status contains corrupted text encoding'
+# The Dailies "Publishing…" label went with the separate Daily upload (audit A2); keep guarding against mojibake.
+$corruptedEllipsis = [string][char]0x00E2 + [char]0x20AC + [char]0x00A6
+if ($feed.Contains($corruptedEllipsis)) {
+  Add-Failure 'Stories: feed text contains corrupted text encoding'
 }
 $directMessagesJs = Get-Content -LiteralPath (Join-Path $root 'assets\direct-messages.js') -Raw -Encoding utf8
 $feedEnhancementsJs = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
