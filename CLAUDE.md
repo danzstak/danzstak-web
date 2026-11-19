@@ -143,7 +143,18 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - **Follow** (queue item 15: a friend is two-way, a follow is one-way). Artist, venue, shop and Tribe pages lead with **Follow**. Profiles show "N followers · N following" (F9). Following adds their posts to Mix chronologically, never ranked.
   - Privacy: the member chooses who can tag them (everyone / friends / nobody) in Settings, and a tag only shows after review if they pick "review tags".
   - Checks: tag a friend and a place in the composer, see both on the post, the tagged friend gets a notification, Follow/Unfollow works and the counts update.
-- **The owner could do this on every page:** F8–F18 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
+- **F19. The picture box on a profile does something when tapped** (the band from F4). Owner 2026-11-19:
+  - **Shop cover:** "When users put a store cover photo in the second image box on their profile it should open that user's store. That should be the store front." The picture links to the member's storefront: their Shop tab with the products, or the shop page.
+  - **Any other photo**, e.g. their dog: "it should pop up to nothing more to see or something, but they can add a link to the photo if they wish, say to Bandcamp or somewhere."
+    - When editing the box, the owner can add an optional **link** (https only; Bandcamp, SoundCloud, their site…). Tapping then opens that link in a new tab with a small "leaving DanzStak" note.
+    - With no link, tapping opens the photo full screen (the F1 viewer). If the owner set a caption, it shows as one short line; otherwise there's no dead "nothing" pop-up.
+  - Checks: shop cover → storefront; photo with link → the link; plain photo → full-screen viewer; visitor and owner both.
+- **F20. Tapping your own picture on the Dailies tile goes to your profile.** Owner 2026-11-19: "When I click the profile image on Dailies it goes to this page for some reason. It should go to my profile page."
+  - Today it opens an old full-screen Daily (`docs/screenshots/owner-reference/dailies-own-tile-opened-wrong-2026-11-19.png`).
+  - **Own tile:** tapping your picture → `profile.html`. Only the small "watch" area or the tile's media opens your own Dailies.
+  - **Friend's tile:** the avatar/name → their profile; the media → their Dailies (F3/F15).
+  - Check: tapping the centre of your own avatar on the tile lands on your profile.
+- **The owner could do this on every page:** F8–F20 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
 ### Quality bar for Code (owner 2026-11-19: "tight code… make sure Code is doing quality work… effort is set to extra, so get Code to do extra… make it more Facebook-ish")
