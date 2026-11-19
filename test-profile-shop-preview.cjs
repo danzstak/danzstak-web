@@ -37,3 +37,10 @@ console.log("profile shop preview ok");
   assert.match(auth, /\["profileShowcaseKey", "showcase"\]/);
 }
 console.log("profile showcase checks ok");
+{
+  // Owner 2026-11-19: own profile had a shop button, a member's profile seen by a visitor didn't. Same icon for visitors.
+  assert.match(editor, /if \(profile\.isOwner !== true && viewingOtherProfile\) \{[\s\S]{0,400}shopManagementLink\.href = "#shop";[\s\S]{0,200}shopManagementLink\.hidden = false;/);
+  assert.match(editor, /event\.preventDefault\(\); \(moreTab \|\| tabs\.querySelector\('\[data-profile-tab="More"\]'\)\)\?\.click\(\);/, "it opens that member's Shop tab");
+  assert.match(editor, /if \(row && moreWrap\) row\.insertBefore\(shopManagementLink, moreWrap\);/, "before ⋯, after Message");
+  console.log("visitor shop button checks ok");
+}

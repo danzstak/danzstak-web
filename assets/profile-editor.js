@@ -1196,6 +1196,19 @@ async function configureProfileShop(profile = {}) {
     profileShop = data.shop;
     shopManagementLink.setAttribute("aria-label", "Manage my shop"); shopManagementLink.title = "Manage my shop";
     const moreTab = tabs.querySelector('[data-profile-tab="More"]'); if (moreTab) { moreTab.hidden = false; moreTab.textContent = "Shop"; }
+    // Owner 2026-11-19 (two screenshots): his own profile had a shop button, a member's shop profile seen by a visitor did
+    // not. Visitors get the same shop icon in the action row; it opens that member's Shop tab (the owner's opens Manage shop).
+    if (profile.isOwner !== true && viewingOtherProfile) {
+      const visitorLabel = `${profileTranslate("Open shop")}: ${profileShop.name || profile.name || ""}`.trim();
+      shopManagementLink.href = "#shop"; shopManagementLink.setAttribute("aria-label", visitorLabel); shopManagementLink.title = visitorLabel;
+      shopManagementLink.hidden = false;
+      if (!shopManagementLink.dataset.visitorShop) {
+        shopManagementLink.dataset.visitorShop = "true";
+        shopManagementLink.addEventListener("click", event => { event.preventDefault(); (moreTab || tabs.querySelector('[data-profile-tab="More"]'))?.click(); tabs.scrollIntoView({ behavior: "smooth", block: "start" }); });
+      }
+      const row = shopManagementLink.parentElement, moreWrap = row?.querySelector(".profile-more-wrap");
+      if (row && moreWrap) row.insertBefore(shopManagementLink, moreWrap);
+    }
     renderProfileShopPreview(profileShop, profile, moreTab);
     if (requestedProfileMoreSection() === "Shop" && tabs.dataset.initialized === "true") void openProfileMoreSection("Shop");
   } catch { /* A shop is optional; leave the tab hidden when unavailable. */ }
