@@ -53,11 +53,15 @@
   }
   function render(data) {
     current = { ...(current || {}), ...(data || {}) };
-    const pending = current.state === "pending", done = current.state === "verified" && !deviceChallenge;
+    // Owner 2026-11-19 (L2): a verified number is only "done" once THIS device is registered too; otherwise offer to finish here.
+    const deviceRegistered = window.danzstakSyncDeviceRegistered?.() === true, deviceOtp = current.deviceOtpRequired === true;
+    const pending = current.state === "pending", done = current.state === "verified" && !deviceChallenge && (deviceRegistered || !deviceOtp);
+    const finishHere = current.state === "verified" && !deviceChallenge && !done;
     numberForm.hidden = pending || done; codeForm.hidden = !pending; verified.hidden = !done;
     send.disabled = pending || done || current.providerAvailable !== true;
     if (done) message(`${t("Private phone registered to SYNC")} · ${current.maskedNumber}`, "verified");
     else if (pending) message(`${t("Enter the six-digit code sent to")} ${current.maskedNumber}.`);
+    else if (finishHere && current.providerAvailable) message(`${t("Your number is verified")} · ${current.maskedNumber || ""}. ${t("Send a code to finish on this device.")}`);
     else if (current.providerAvailable) message(deviceChallenge ? t("Enter a mobile number that can receive this device's one-time code.") : t("Enter a private mobile number. SYNC will text a six-digit code."));
     else message(t("SYNC verification texts aren't available yet. No text will be sent and no device will be marked verified."), "blocked");
     cooldown();
@@ -68,7 +72,7 @@
     catch(error) { message(error.message, "error"); numberForm.hidden = codeForm.hidden = verified.hidden = true; }
     finally { resolveReady(current); window.dispatchEvent(new CustomEvent("danzstak:phone-verification-ready")); }
   }
-  async function startDeviceOtp(challenge) {
+  async function startDeviceOtp(challenge, { keepNumber = false } = {}) {
     await phoneReady;
     if (!challenge || !/^[a-f0-9-]{36}$/.test(String(challenge.challengeId || "")) || !/^[A-Za-z0-9_-]{43}$/.test(String(challenge.challenge || ""))) throw new Error(t("Device registration challenge is invalid. Start again."));
     deviceChallenge = { challengeId:challenge.challengeId, challenge:challenge.challenge };
@@ -76,6 +80,7 @@
     title.textContent = t("Verify this device by SMS");
     intro.textContent = t("Every SYNC device must receive its own one-time code. The code is bound to this device registration and cannot enroll another device.");
     numberForm.hidden = false; codeForm.hidden = true; verified.hidden = true; code.value = "";
+    if (keepNumber) return;
     render({ state:"none", verified:false, maskedNumber:"" });
     section.scrollIntoView({ block:"start", behavior:"auto" });
     number.focus({ preventScroll:true });
@@ -85,7 +90,9 @@
     event.preventDefault(); send.disabled = true; message(t("Sending verification text…"));
     try {
       if (current?.providerAvailable !== true) throw new Error(t("SYNC verification texts aren't available yet. No text will be sent and no device will be marked verified."));
-      if (!deviceChallenge) await startDeviceOtp(await window.danzstakBeginCallingDeviceEnrollment());
+      // A fresh device challenge for every send (L2): never send a code bound to an expired challenge.
+      const challenge = await window.danzstakBeginCallingDeviceEnrollment();
+      if (!deviceChallenge || challenge.challengeId !== deviceChallenge.challengeId) await startDeviceOtp(challenge, { keepNumber:true });
       render(await request("/phone-verification/send", { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(enrollmentBody({countryCode:country.value,localNumber:number.value,languages:phoneLanguages()})) }));
       code.focus();
     }
@@ -119,6 +126,12 @@
     deviceChallenge = null;
     delete section.dataset.deviceEnrollment;
     render({ state:"verified", verified:true });
+  });
+  window.addEventListener("danzstak:call-device-ready", () => { if (current) render(); });
+  window.addEventListener("danzstak:device-registration-failed", event => {
+    deviceChallenge = null;
+    render({ state: current?.state === "verified" ? "verified" : "none" });
+    message(event.detail?.expired ? "That took a little long. Send a new code to finish on this device." : "This device could not be registered. Send a new code to try again.", "error");
   });
   document.addEventListener("DOMContentLoaded", load);
   window.danzstakPhoneVerificationReady = phoneReady;

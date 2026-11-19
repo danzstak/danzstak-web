@@ -8,7 +8,7 @@ const html=fs.readFileSync("messages.html","utf8"),feed=fs.readFileSync("feed.ht
 assert.match(template,/CallingDevicesTable:[\s\S]*TableName: DANZSTAK-CallingDevices[\s\S]*PointInTimeRecoveryEnabled: true[\s\S]*SSEEnabled: true/,"calling devices need retained encrypted recoverable storage");
 assert.match(template,/TimeToLiveSpecification:[\s\S]*AttributeName: expiresAt[\s\S]*Enabled: true/,"short-lived registration challenges need TTL cleanup");
 for(const route of ["POST /calls/devices/challenge","POST /calls/devices/register","GET /calls/devices","PATCH /calls/devices","DELETE /calls/devices"])assert.ok(template.includes(route),`${route} must be routed`);
-assert.match(template,/challengeHash:[\s\S]*expiresAt:[\s\S]*now\(\)\+300/,"enrollment challenge must be short-lived and stored only as a hash");
+assert.match(template,/challengeHash:[\s\S]*expiresAt:[\s\S]*now\(\)\+900/,"enrollment challenge lives as long as the SMS code (15 min) and is stored only as a hash");
 assert.match(template,/TransactWriteItemsCommand\(\{TransactItems:transaction/ ,"challenge, OTP grant consumption, and device creation must be atomic and replay-safe");
 assert.match(template,/DEVICE_SMS_OTP_REQUIRED==='true'[\s\S]*device_enrollment_grant[\s\S]*grant\.userId\?\.S!==user\.userId[\s\S]*deviceChallengeId[\s\S]*deviceChallengeHash/ ,"mandatory OTP must be server-enforced, account-bound, and challenge-bound");
 assert.match(template,/DEVICE_GRANT#\$\{grantId\}[\s\S]*ConditionExpression:'grantTokenHash = :token AND expiresAt > :now'/ ,"one-time SMS grants must be consumed with replay and expiry protection");
@@ -52,7 +52,7 @@ assert.match(chatCss,/\.messages-page\.sync-device-registered:not\(\.is-conversa
 assert.doesNotMatch(client,/if\(state\.required\)event\.preventDefault\(\)/,"call registration must not trap members or block text chat");
 assert.match(client,/close\?\.addEventListener\("click",\(\)=>dialog\.close\(\)\)/,"call registration must always provide a close path back to text chat");
 assert.doesNotMatch(client,/if\(!state\.registered\)openPanel/ ,"unregistered devices must not auto-open enrollment before text chat loads");
-assert.ok(feed.indexOf('assets/call-devices.js?v=15')<feed.indexOf('assets/incoming-calls.js?v=311'),"the feed must load the installation credential before its global incoming-call listener");
+assert.ok(feed.indexOf('assets/call-devices.js?v=16')<feed.indexOf('assets/incoming-calls.js?v=311'),"the feed must load the installation credential before its global incoming-call listener");
 assert.match(client,/api\("\/profiles"\)[\s\S]{0,220}callingAccountName|callingAccountName[\s\S]{0,220}api\("\/profiles"\)/,"device registration must load the private signed-in account label from the profile API");
 assert.match(incoming,/path\.startsWith\("\/calls\/"\)[\s\S]*globalThis\.danzstakCallingDeviceHeaders/,"the feed's incoming-call requests must authenticate the registered installation");
 assert.match(incoming,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*callDeviceRegistrationRequired = true/,"unregistered feed installations must stop wasteful incoming-call polling");
