@@ -134,6 +134,16 @@ const startingWorkspace = () => ({
       const buyHeight = await buyButton.evaluate(node => node.getBoundingClientRect().height);
       assert.ok(buyHeight >= 44, `${width}px credit purchase target is ${buyHeight}px`);
       await buyButton.click();
+      // Owner 2026-11-15 (Terms 8A): the "Before you pay" pop-up must be accepted first; nothing is bought until then,
+      // and its total is the price printed on the button.
+      const terms = page.locator("dialog.ds-terms-dialog");
+      await terms.waitFor({ state:"visible" });
+      assert.ok((await terms.textContent()).includes("Total: $1.50 (USD)"), `${width}px purchase pop-up total must match the button price`);
+      const proceed = terms.getByRole("button", { name:"Continue to payment" });
+      assert.equal(await proceed.isDisabled(), true, `${width}px Continue must wait for the terms checkbox`);
+      assert.equal(checkoutPayload, null, `${width}px credit checkout started before the purchase terms were accepted`);
+      await terms.getByRole("checkbox").check();
+      await proceed.click();
       await page.waitForURL("https://checkout.stripe.com/**");
       assert.deepEqual(checkoutPayload, { quantity:1 }, `${width}px venue recovery must buy exactly one email credit`);
 
