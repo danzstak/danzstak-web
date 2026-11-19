@@ -135,6 +135,13 @@
       if (screen) for (const name of ["--sync-wp-image", "--sync-wp-color"]) { const value = list?.style.getPropertyValue(name); if (value) screen.style.setProperty(name, value); else screen.style.removeProperty(name); }
     }
   }
+  // Everything that sits above the panel (status line, note, note box, sheets, your camera window) uses its real height.
+  function fitPanel() {
+    const panel = $("mediaControls");
+    if (!callKind() || !panel || panel.hidden) { document.body.style.removeProperty("--call-panel-h"); return; }
+    const top = panel.getBoundingClientRect().top;
+    if (top > 0) document.body.style.setProperty("--call-panel-h", `${Math.ceil(window.innerHeight - top)}px`);
+  }
   function clock() {
     const s = Math.max(0, Math.floor((Date.now() - connectedAt) / 1000));
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -210,9 +217,11 @@
     // State: call mode on/off, connection, track changes. A call that ends while minimised clears the bubble.
     new MutationObserver(() => {
       if (!callKind() && !document.body.dataset.callMinimised) { connectedAt = 0; $("callSheet")?.remove(); }
-      paintWho(); paintState(); refreshKeys();
+      paintWho(); paintState(); refreshKeys(); requestAnimationFrame(fitPanel);
     }).observe(document.body, { attributes: true, attributeFilter: ["data-call-mode", "data-sync-screen"] });
+    window.addEventListener("resize", () => requestAnimationFrame(fitPanel));
     new MutationObserver(() => {
+      requestAnimationFrame(fitPanel);
       if (!controls.hidden) return;
       connectedAt = 0; delete document.body.dataset.callMinimised; $("callBubble").hidden = true; $("callSheet")?.remove(); paintState();
     }).observe(controls, { attributes: true, attributeFilter: ["hidden"] });
