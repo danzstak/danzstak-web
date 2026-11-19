@@ -90,15 +90,10 @@
       <div id="routeDatesResult" class="route-dates-result" role="status" aria-live="polite"></div>
     </section>
     <section class="artist-workspace" aria-labelledby="artistWorkspaceTitle">
-      <h2 id="artistWorkspaceTitle">Your act, ready to pitch</h2>
-      <div class="artist-fields">
-        <label>Act name<input id="pitchArtist" maxlength="100" autocomplete="off"></label>
-        <label>Genres (comma separated)<input id="pitchGenre" maxlength="100" placeholder="Punk, rock"></label>
-        <label>Home town<input id="pitchHometown" maxlength="160"></label>
-        <div class="artist-epk-field"><label>Public EPK link<input id="pitchEpk" type="url" maxlength="600" placeholder="https://"></label><p class="hint"><button type="button" id="usePublishedEpk" class="inline-action">Use my published EPK</button> <span>or <a href="epk.html">build and publish one</a>.</span></p></div>
-        <label class="artist-pitch">Short pitch<textarea id="pitchSummary" maxlength="1000" placeholder="Describe your live show and relevant experience."></textarea></label>
-      </div>
-      <p>Match guidance uses your genres and the venue's listed categories. It does not establish availability or audience demand.</p>
+      <h2 id="artistWorkspaceTitle">Pitching with your EPK</h2>
+      <!-- Task 25 (owner 2026-11-18): Booking never re-asks for what the EPK has. Act details come from the published EPK. -->
+      <p id="pitchingAs" class="pitching-as">Pitches are built from your published EPK.</p>
+      <input type="hidden" id="pitchArtist"><input type="hidden" id="pitchGenre"><input type="hidden" id="pitchHometown"><input type="hidden" id="pitchEpk"><input type="hidden" id="pitchSummary">
       <div class="selection-actions booking-workspace-actions"><button id="saveBookingAccount" type="button" disabled>Save to account</button><a id="chooseVenuesNext" class="booking-next-action" href="booking.html">Choose venues</a><button id="loadBookingAccount" type="button" class="secondary">Reload account workspace</button></div>
       <p id="bookingAccountStatus" role="status" aria-live="polite">Loading your private account workspace…</p>
     </section>
@@ -118,9 +113,9 @@
   <script src="assets/booking-billing.js?v=9" defer></script>
   <script src="assets/booking-pipeline.js?v=1" defer></script>
   <script src="assets/booking-freshness.js?v=1" defer></script>
-  <script src="assets/booking-selections.js?v=33" defer></script>
+  <script src="assets/booking-selections.js?v=38" defer></script>
 <script src="assets/people-search.js?v=424" defer></script>
 <script src="assets/top-search.js?v=1" defer></script>
-<script src="assets/app-bar.js?v=1" defer></script>
+<script src="assets/app-bar.js?v=5" defer></script>
 </body>
 </html>

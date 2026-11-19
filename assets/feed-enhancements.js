@@ -831,7 +831,18 @@ function renderWorkspace(name) {
     tabs.className = "groups-tabs";
     tabs.setAttribute("role", "tablist");
     tabs.setAttribute("aria-label", "Tribe views");
-    let groupView = "discover";
+    let groupView = "discover", groupViewPicked = false;
+    // Audit A8 (2026-11-19): an Elder (or the Tribe's creator) is a member. The server's membership list doesn't always
+    // include Tribes you run, so mark them joined after every sync — an Elder never sees "Join" on their own Tribe —
+    // and open on Your Tribes once we know you have any, unless you already picked a tab.
+    function markRunTribesJoined() {
+      saved.GroupsJoined = saved.GroupsJoined || {};
+      for (const group of customGroups || []) if (group.isElder || group.isOwner) saved.GroupsJoined[group.id] = true;
+      if (!groupViewPicked && groupView !== "joined" && Object.values(saved.GroupsJoined).some(Boolean)) {
+        groupView = "joined";
+        Object.entries(viewButtons).forEach(([key, item]) => item.setAttribute("aria-selected", String(key === "joined")));
+      }
+    }
     const viewButtons = {};
     if (Object.values(saved.GroupsJoined || {}).some(Boolean)) groupView = "joined"; // owner 2026-11-18: opens on your Tribes, like Facebook Groups
     for (const [value, label] of [["joined", "Your Tribes"], ["discover", "Discover"]]) {
@@ -843,6 +854,7 @@ function renderWorkspace(name) {
       button.setAttribute("aria-selected", String(value === groupView));
       button.addEventListener("click", () => {
         groupView = value;
+        groupViewPicked = true;
         Object.entries(viewButtons).forEach(([key, item]) => item.setAttribute("aria-selected", String(key === value)));
         renderGroups();
       });
@@ -1383,6 +1395,7 @@ function renderWorkspace(name) {
         saved.CustomGroups = migration.pending;
         saved.GroupsJoined = saved.GroupsJoined || {};
         migration.joinedIds.forEach(id => { saved.GroupsJoined[id] = true; membershipChanges.set(id, true); });
+        markRunTribesJoined();
         writeSections(saved);
         renderGroups();
         if (window.danzstakPendingTribeId) {
@@ -1396,6 +1409,7 @@ function renderWorkspace(name) {
       .then(data => {
         if (!Array.isArray(data?.groupIds)) return;
         saved.GroupsJoined = Object.fromEntries([...data.groupIds.map(groupId => [groupId, true]), ...membershipChanges]);
+        markRunTribesJoined();
         writeSections(saved);
         renderGroups();
       })

@@ -20,10 +20,13 @@
     actions.prepend(friend);
     // Queue 5a3: one tap to add, tap "Requested" again to cancel; an incoming request opens Friends to answer it.
     const setState = state => {
-      friend.disabled = state === "friends";
+      // Audit E10 (2026-11-19): "Friends" was a dead, disabled button. Like Facebook it's "Friends ▾": tap for
+      // Unfriend / Block. 5a3: "Requested" cancels the request (POST /friends/cancel).
+      friend.disabled = false;
+      friend.setAttribute("aria-haspopup", state === "friends" ? "dialog" : "false");
       friend.dataset.icon = state === "friends" ? "person-check" : state === "requested" ? "clock" : "person-add";
-      const label = state === "friends" ? "Friends" : state === "requested" ? "Requested" : state === "incoming" ? "Respond in Friends" : "Add friend";
-      friend.textContent = label; friend.setAttribute("aria-label", state === "none" ? "Send friend request to " + name : state === "requested" ? "Cancel friend request to " + name : label); friend.title = friend.getAttribute("aria-label");
+      const label = state === "friends" ? "Friends ▾" : state === "requested" ? "Requested" : state === "incoming" ? "Respond in Friends" : "Add friend";
+      friend.textContent = label; friend.setAttribute("aria-label", state === "none" ? "Send friend request to " + name : state === "friends" ? "Friends with " + name + ". Friend options" : state === "requested" ? "Cancel friend request to " + name : label); friend.title = friend.getAttribute("aria-label");
       friend.classList.toggle("primary", state === "none");
       friend.dataset.state = state;
     };
@@ -51,6 +54,20 @@
           if (!response.ok && response.status !== 404) throw new Error("The request could not be cancelled. Try again.");
           setState("none"); window.danzstakShowFeedback?.("Friend request cancelled.");
         } catch (error) { setState("requested"); window.danzstakShowFeedback?.(error.message, { urgent: true }); }
+        return;
+      }
+      if (friend.dataset.state === "friends") {
+        const choice = await window.danzstakChoose?.(`You and ${name} are friends.`, { title: "Friend options", choices: [{ label: "Unfriend", value: "remove", danger: true }, { label: "Block", value: "block", danger: true }] });
+        if (!["remove", "block"].includes(choice)) return;
+        if (choice === "block" && !(await window.danzstakConfirm?.(`${name} won't be able to find you, message you or see your posts.`, { title: "Block " + name + "?", confirmLabel: "Block", danger: true }))) return;
+        friend.disabled = true;
+        try {
+          const response = await fetch(API + (choice === "block" ? "/friends/block" : "/friends/remove"), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ memberId: profile.memberId }) });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || (choice === "block" ? result.blocked !== true : result.removed !== true)) throw new Error(result.error || "");
+          setState("none");
+          window.danzstakShowFeedback?.(choice === "block" ? name + " is blocked." : "You and " + name + " are no longer friends.");
+        } catch (error) { setState("friends"); window.danzstakShowFeedback?.(window.danzstakFriendlyError?.(error, "That didn't go through. Try again in a moment.") || "That didn't go through. Try again in a moment.", { urgent: true }); }
         return;
       }
       friend.disabled = true; friend.textContent = "Sending…";
