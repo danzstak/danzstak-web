@@ -58,6 +58,11 @@ assert.match(code, /Export your collection instead[\s\S]*set one for all picked 
 
 // The way back: Start my shop, plus links in from My Shop and Moving Day; cached for offline.
 assert.match(page, /<a class="example-primary" href="store\.html\?manage=1">Start my shop<\/a>/);
+// One tab bar everywhere (release trains c-f): the example page uses the shared bar with Bazaar lit, and its go button is green.
+assert.match(page, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"><\/nav>/, "the shared tab bar fills the nav");
+assert.match(page, /assets\/app-tabs\.js\?v=\d+/); assert.doesNotMatch(page, /data-icon="store"/, "no hand-written tab bar");
+assert.match(fs.readFileSync("assets/app-tabs.js", "utf8"), /"shop-example\.html": "bazaar"/, "Bazaar is the lit tab");
+assert.match(fs.readFileSync("assets/shop-example.css", "utf8"), /\.example-primary\{[^}]*background:var\(--ds-btn-go,#15803d\)/, "go buttons are green (owner 2026-11-19)");
 assert.match(fs.readFileSync("store.html", "utf8"), /href="shop-example\.html">See example shops/);
 assert.match(fs.readFileSync("moving-day.html", "utf8"), /href="shop-example\.html\?shop=record"/);
 const sw = fs.readFileSync("service-worker.js", "utf8");

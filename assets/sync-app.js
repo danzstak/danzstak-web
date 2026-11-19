@@ -12,13 +12,17 @@
   const ua = navigator.userAgent || "";
   const isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const isAndroid = /Android/i.test(ua);
+  const isMacSafari = !isIOS && /Macintosh/.test(ua) && /Safari\//.test(ua) && !/Chrome|Chromium|CriOS|Edg|Firefox|OPR/.test(ua);
   const standalone = () => window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true;
 
-  // Which installed app is this window? A standalone window's first page tells: the SYNC app starts at /sync/.
+  // Which installed app is this window? A standalone window's first page tells: the SYNC app starts at /sync/. A SYNC icon
+  // (SYNC's own app, or DanzStak's SYNC shortcut dragged to the home screen) always opens /sync/?app=sync.
+  const startParams = new URLSearchParams(location.search);
+  const fromSyncIcon = inSyncApp && startParams.get("app") === "sync";
   let launchApp = "";
   try {
     launchApp = sessionStorage.getItem(LAUNCH_KEY) || "";
-    if (!launchApp && standalone()) { launchApp = inSyncApp ? "sync" : "danzstak"; sessionStorage.setItem(LAUNCH_KEY, launchApp); }
+    if (standalone() && (fromSyncIcon || !launchApp)) { launchApp = inSyncApp ? "sync" : "danzstak"; sessionStorage.setItem(LAUNCH_KEY, launchApp); }
   } catch { if (standalone()) launchApp = inSyncApp ? "sync" : "danzstak"; }
   const inInstalledSync = () => standalone() && launchApp === "sync";
   let knownInstalled = inInstalledSync();
@@ -52,7 +56,12 @@
     try { return (await navigator.getInstalledRelatedApps()).some(app => app?.platform === "webapp" && /\/sync\.webmanifest$/.test(String(app.url || ""))); }
     catch { return false; }
   }
-  const chromeIntent = () => `intent://${location.host}${HOME}?install=1#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(`${location.origin}${HOME}?install=1`)};end`;
+  // Sign-up's "Set up SYNC" (owner 2026-11-19: "it needs to be easy to verify the device and save the app"): SYNC's page
+  // with ?install=1&device=register saves the app first, then goes straight into verifying the number (call-devices.js
+  // waits for afterInstall()). An iPhone keeps a home-screen app's storage apart from Safari's, so there the number is
+  // verified inside the SYNC icon instead (its first open goes straight to it, below).
+  const verifyAfter = inSyncApp && startParams.get("install") === "1" && startParams.get("device") === "register";
+  const verifyInApp = isIOS && !standalone();
 
   // One state at a time, most certain first.
   function currentState() {
@@ -69,17 +78,21 @@
     added: ["SYNC is on your home screen", "Open it from the SYNC icon. Same account, no second login."],
     prompt: ["Get SYNC as its own app", "Its own icon on your home screen, straight to your chats. Same account, no second login."],
     "known-installed": ["SYNC is already on this phone", "Open it from the SYNC icon on your home screen."],
-    "other-app": ["Install SYNC from your browser", "Apps can't install other apps, so this step happens in your browser."],
+    // Inside the DanzStak app, Android saves SYNC from DanzStak's own icon: its SYNC shortcut opens SYNC inside DanzStak.
+    "other-app": isAndroid ? ["Save SYNC to your home screen", "SYNC opens inside DanzStak, straight to your chats."]
+      : ["Install SYNC from your browser", "Apps can't install other apps, so this step happens in your browser."],
     waiting: ["Get SYNC as its own app", "Getting SYNC ready…"],
     steps: ["Get SYNC as its own app", "Its own icon on your home screen, straight to your chats. Same account, no second login."]
   };
   function stepsFor(state) {
     if (state === "other-app") return isIOS
       ? ["Open danzstak.com/sync in Safari.", "Tap Share.", "Tap Add to Home Screen."]
-      : isAndroid ? [] : ["Open danzstak.com/sync in your browser.", "Use its install icon in the address bar, or its menu → Install SYNC."];
+      : isAndroid ? ["Press and hold the DanzStak icon on your home screen.", "Drag SYNC to an empty spot."]
+      : ["Open danzstak.com/sync in your browser.", "Use its install icon in the address bar, or its menu → Install SYNC."];
     if (state !== "steps") return [];
-    if (isIOS) return ["Tap Share.", "Tap Add to Home Screen."];
+    if (isIOS) return ["Tap Share.", "Tap Add to Home Screen.", ...(verifyAfter ? ["Open SYNC from your home screen to verify your number."] : [])];
     if (isAndroid) return ["Tap ⋮ at the top right of Chrome.", "Tap Install app (or Add to Home screen)."];
+    if (isMacSafari) return ["In Safari's menu bar, choose File → Add to Dock."];
     return ["Use the install icon in the address bar, or the browser menu → Install SYNC."];
   }
 
@@ -92,7 +105,7 @@
     dialog.innerHTML = '<header><h2 id="syncInstallTitle"></h2><button type="button" class="call-setup-close" data-icon="close"></button></header>'
       + '<div class="sync-install-body"><img class="sync-install-icon" src="assets/sync-icon-192.png?v=1" alt="" width="72" height="72">'
       + '<p class="sync-install-text" role="status"></p><ol class="sync-install-steps"></ol>'
-      + '<button type="button" class="sync-install-primary"></button><a class="sync-install-link" rel="noopener"></a></div>';
+      + '<button type="button" class="sync-install-primary"></button></div>';
     dialog.querySelector(".call-setup-close").addEventListener("click", () => dialog.close());
     dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
     dialog.addEventListener("close", () => clearTimeout(waitTimer));
@@ -111,12 +124,11 @@
     list.replaceChildren(...steps.map(step => { const item = document.createElement("li"); item.textContent = t(step); return item; }));
     list.hidden = !steps.length;
     const primary = dialog.querySelector(".sync-install-primary");
-    primary.hidden = state === "waiting" || state === "other-app";
-    primary.textContent = t(state === "prompt" ? "Install SYNC" : "Done");
+    primary.hidden = state === "waiting";
+    const next = state !== "prompt" && verifyAfter && !verifyInApp; // sign-up's flow carries on to the number
+    primary.textContent = t(state === "prompt" ? "Install SYNC" : next ? "Next: verify your number" : "Done");
+    primary.toggleAttribute("data-next", next);
     primary.dataset.action = state === "prompt" ? "install" : "close";
-    const link = dialog.querySelector(".sync-install-link");
-    link.hidden = !(state === "other-app" && isAndroid);
-    if (!link.hidden) { link.href = chromeIntent(); link.textContent = t("Open in Chrome to install"); }
   }
   async function primaryAction(event) {
     if (event.currentTarget.dataset.action !== "install" || !deferred) { dialog.close(); return; }
@@ -148,7 +160,7 @@
   const dismissals = () => { try { return Number(localStorage.getItem(OFFER_DISMISSED) || 0); } catch { return 0; } };
   const inCall = () => Boolean(document.body?.dataset.callMode) || /[?&](invite|invited|answer|callId)=/.test(location.search) || document.getElementById("incomingCall")?.hidden === false;
   function offerApp() {
-    if (inInstalledSync() || knownInstalled || added || dismissals() >= 2 || inCall() || offer?.open) return false;
+    if (inInstalledSync() || knownInstalled || added || dismissals() >= 2 || inCall() || offer?.open || verifyAfter) return false;
     if (!offer) {
       offer = document.createElement("dialog");
       offer.id = "syncAppOffer";
@@ -218,11 +230,24 @@
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(resume, 300), { once: true }); else setTimeout(resume, 300);
   }
 
-  window.danzstakSyncApp = Object.freeze({ openInstall, inSyncApp, home: HOME, offerApp, offerClosed: () => offerClosed });
+  // The SYNC icon's first open on a device that isn't verified yet goes straight to "verify your number", once.
+  const FIRST_RUN_KEY = "danzstak_sync_first_run";
+  if (inInstalledSync() && !inCall() && startParams.get("device") !== "register") {
+    let first = false;
+    try { first = localStorage.getItem(FIRST_RUN_KEY) !== "1"; localStorage.setItem(FIRST_RUN_KEY, "1"); } catch { /* optional */ }
+    if (first) { const params = new URLSearchParams(location.search); params.set("device", "register"); history.replaceState(history.state, "", `${HOME}?${params}${location.hash}`); }
+  }
+
+  // call-devices.js asks before it opens "verify your number" from ?device=register: after the install sheet, and not in
+  // iPhone Safari during sign-up's flow (the SYNC icon verifies instead).
+  let afterInstall = Promise.resolve(true);
+  window.danzstakSyncApp = Object.freeze({ openInstall, inSyncApp, home: HOME, offerApp, offerClosed: () => offerClosed, afterInstall: () => afterInstall });
   if (inSyncApp && new URLSearchParams(location.search).get("install") === "1") {
     const params = new URLSearchParams(location.search); params.delete("install");
     history.replaceState(history.state, "", `${HOME}${params.size ? `?${params}` : ""}${location.hash}`);
-    const start = () => openInstall();
+    let closed = () => {};
+    afterInstall = new Promise(resolve => { closed = () => resolve(!(verifyAfter && verifyInApp)); });
+    const start = () => { openInstall(); dialog.addEventListener("close", closed, { once: true }); };
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true }); else start();
   }
 })();

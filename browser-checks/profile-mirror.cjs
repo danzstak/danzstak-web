@@ -166,8 +166,8 @@ async function makeVideos(browser) {
       if (nav.note) failures.push(`${label}: instructional "only … can post" copy is shown`);
       if (width <= 700) {
         const header = nav.header.join(" ");
-        if (!/profile-back/.test(header) || !/profile-header-name/.test(header) || !/profile-search-toggle/.test(header)) failures.push(`${label}: top bar is not back / name / search (${header})`);
-        if (/brand|pivot-header-button|profile-header-search/.test(header)) failures.push(`${label}: top bar still shows ${header}`);
+        if (!/profile-back/.test(header) || !/profile-header-name/.test(header) || !/profile-search-toggle/.test(header) || !/ds-app-bar-pivot/.test(header)) failures.push(`${label}: top bar is not back / name / search / Pivot (${header})`);
+        if (/brand|profile-header-search/.test(header)) failures.push(`${label}: top bar still shows ${header}`);
         if (nav.headerName !== "Night Shift") failures.push(`${label}: top bar name "${nav.headerName}"`);
         if (nav.headerHeight > 60) failures.push(`${label}: top bar is not slim (${nav.headerHeight}px)`);
         if (nav.headerContrast.some(ratio => ratio < 4.5)) failures.push(`${label}: top bar name/icons are hard to see (contrast ${nav.headerContrast.map(r => r.toFixed(1)).join(", ")})`);
@@ -212,11 +212,11 @@ async function makeVideos(browser) {
         await tallImage.scrollIntoViewIfNeeded();
         await tallImage.click();
         await page.waitForTimeout(300);
-        const whole = await page.evaluate(() => { const v = document.querySelector("dialog[open] img"); if (!v) return null; const cs = getComputedStyle(v); return { fit: cs.objectFit, src: v.getAttribute("src") }; });
+        const whole = await page.evaluate(() => { const v = document.querySelector(".ds-media-viewer .ds-media-viewer-slide[aria-hidden=\"false\"] img"); if (!v) return null; const cs = getComputedStyle(v); return { fit: cs.objectFit, src: v.getAttribute("src") }; });
         if (!whole || whole.fit !== "contain" || !/tall\.svg/.test(whole.src || "")) failures.push(`${label}: tapping a photo does not open it whole and full screen ${JSON.stringify(whole)}`);
         else if ([360, 390].includes(width)) await page.screenshot({ path: path.join(output, `${prefix}-${who}-photo-${width}.png`) });
         if (whole) { await page.goBack(); await page.waitForTimeout(300); }
-        if (await page.evaluate(() => Boolean(document.querySelector("dialog[open]")))) failures.push(`${label}: Back does not close the photo`);
+        if (await page.evaluate(() => Boolean(document.querySelector("dialog[open], .ds-media-viewer")))) failures.push(`${label}: Back does not close the photo`);
       }
       await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(200);
       if ([360, 390].includes(width)) {
