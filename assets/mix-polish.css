@@ -109,8 +109,10 @@ body:has(#feed){background:var(--mix-surface)!important}
 .post-share-socials{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .post-share-social{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border:1px solid #e7e9ee;border-radius:999px;background:#fff;color:#121418;font:inherit;font-weight:700;font-size:13px;text-decoration:none;cursor:pointer}
 .post-share-social:hover,.post-share-social:focus-visible{border-color:#ff5a1f;color:#d9480f;outline:none}
-/* Tighter rhythm (owner 2026-11-16): 36px avatars, time + audience on one line, no idle gaps. */
-#feed > .post{padding:10px var(--mix-pad) 0!important}
+/* Tighter rhythm (owner 2026-11-16): 36px avatars, time + audience on one line, no idle gaps.
+   Vertical only: the side padding stays 12px on phones and 14px above 700px (rules above), matching each width's
+   --post-inline-padding so photos and videos bleed exactly to the card edge (they stuck out 2px per side above 700px). */
+#feed > .post{padding-top:10px!important;padding-bottom:0!important}
 #feed > .post .post-header{margin:0 0 6px!important;gap:8px!important}
 #feed > .post .post-avatar img{width:36px!important;height:36px!important}
 #feed > .post .post-author-details{display:grid!important;grid-template-columns:auto 1fr;column-gap:6px;row-gap:0;align-items:baseline}
