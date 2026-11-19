@@ -230,6 +230,7 @@ jobs:
             '.\browser-checks\sync-phone-setup.cjs'
             '.\browser-checks\device-reminder.cjs'
             '.\browser-checks\incoming-call-everywhere.cjs'
+            '.\browser-checks\profile-facepile.cjs'
           )
       - name: Stop static review server
         if: always()
