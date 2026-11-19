@@ -29,12 +29,17 @@ for (const language of languages) {
 for (const phrase of ["Write a comment…", "Add emoji to comment", "Post comment", "Most relevant ▾", "Newest ▾", "Reply", "Replying to ", "Cancel reply to "])
   assert.ok(feed.includes(phrase), `comment UI must retain the translatable source phrase: ${phrase}`);
 assert.match(feed, /function refreshCommentInterfaceLanguage\(root = document\)/, "existing comments must refresh when the account language changes");
-assert.match(feed, /new Intl\.RelativeTimeFormat\(locale/, "comment timestamps must follow the selected account language");
-assert.match(feed, /time\.title = parsed\.toLocaleString\(locale/, "comment timestamps must expose the full localized date and time");
+// B4: one time label for posts and comments (assets/time-label.js), in the account language, full date in the title.
+const timeLabel = fs.readFileSync("assets/time-label.js", "utf8");
+assert.match(feed, /function formatCommentTimestamp\(time\) \{\s*if \(!window\.danzstakTimeLabel\?\.paint\(time, time\?\.dateTime\)\)/, "comment timestamps must use the shared time label");
+assert.match(timeLabel, /const locale = document\.documentElement\.lang \|\| undefined;/, "time labels must follow the selected account language");
+assert.match(timeLabel, /new Intl\.NumberFormat\(locale, \{ style: "unit", unit, unitDisplay: "narrow" \}\)/, "short times must be localized (5m, 3h, 2d / 2g / 2j)");
+assert.match(timeLabel, /toLocaleString\(locale, \{ dateStyle: "medium", timeStyle: "short" \}\)/, "time labels must expose the full localized date and time");
+assert.match(html, /<script src="assets\/time-label\.js\?v=\d+"><\/script>/, "Mix must load the shared time label");
 assert.match(feed, /attributeFilter: \["lang"\]/, "comment translations must observe live language changes");
 assert.match(feed, /dataset\.replyName/, "member names must be preserved separately from translated interface copy");
 assert.match(html, /assets\/i18n\.js\?v=409/);
-assert.match(html, /assets\/feed-enhancements\.js\?v=586/);
+assert.match(html, /assets\/feed-enhancements\.js\?v=587/);
 assert.match(serviceWorker, /danzstak-shell-v995/);
 
 console.log("Comment localization checks passed: all 15 languages cover composing, sorting, named replies, accessibility labels, and live language changes.");

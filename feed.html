@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-LxeSNzcKYIAve/rSXlcRGNpeXVLZy5NpojgaVeXSwZA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-4hhIzg7V5NVM55eG+x/moAsXX1VHkTNgTHVQcPM56/4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -365,7 +365,8 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <link rel="stylesheet" href="assets/artist-hq.css?v=5">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=8" defer></script>
-<script src="assets/i18n-people.js?v=15" defer></script>
+<script src="assets/i18n-people.js?v=16" defer></script>
+<script src="assets/time-label.js?v=1"></script>
 <script src="assets/i18n-music.js?v=16" defer></script>
 <script src="assets/i18n.js?v=409" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
@@ -808,16 +809,6 @@ async function loadFriends() {
 
 // CREATE THE VISUAL DISPLAY OF A POST
 // Familiar feed timestamps: "now", "5m", "3h", "2d", then "Oct 25" (year only when different).
-function shortPostTime(date) {
-  const seconds = Math.max(0, (Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return "now";
-  if (seconds < 3600) return Math.floor(seconds / 60) + "m";
-  if (seconds < 86400) return Math.floor(seconds / 3600) + "h";
-  if (seconds < 604800) return Math.floor(seconds / 86400) + "d";
-  const sameYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString(undefined, sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" });
-}
-
 function createPostElement(content, author = "DanzStak member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorMemberId = "", commentPolicy = "everyone", editHistory = [], locationLabel = "", authorPicture = "", groupId = "", groupName = "") {
 
   const article = document.createElement("article");
@@ -852,18 +843,10 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   authorLabel.textContent = author;
   if (authorLabel.tagName === "A") authorLabel.href = authorProfileUrl;
 
+  const translateInterface = value => window.danzstakTranslate?.(value) || value;
   const time = document.createElement("div");
   time.className = "post-time";
-
-  const parsedDate = createdAt ? new Date(createdAt) : null;
-
-  time.textContent =
-    parsedDate && !Number.isNaN(parsedDate.getTime())
-      ? shortPostTime(parsedDate)
-      : "Just now";
-  if (parsedDate && !Number.isNaN(parsedDate.getTime())) time.title = parsedDate.toLocaleString();
-
-  const translateInterface = value => window.danzstakTranslate?.(value) || value;
+  if (!createdAt || !window.danzstakTimeLabel.paint(time, createdAt)) time.textContent = translateInterface("now"); // B4: one time label everywhere
   const audienceLabels = {
     public: "🌎 " + translateInterface("Public"),
     friends: "👥 " + translateInterface("Friends"),
@@ -928,8 +911,8 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
     media.src = mediaUrl;
     media.className = "post-media";
     media.loading = "lazy";
-    if (mediaType === "image") media.alt = translateInterface("Photo shared by " + author);
-    if (mediaType === "video") { media.controls = true; media.playsInline = true; media.setAttribute("aria-label", translateInterface("Video shared by " + author)); }
+    if (mediaType === "image") media.alt = translateInterface("Photo shared by {name}").replace("{name}", author);
+    if (mediaType === "video") { media.controls = true; media.playsInline = true; media.setAttribute("aria-label", translateInterface("Video shared by {name}").replace("{name}", author)); }
     article.appendChild(media);
   }
   article.append(actions, comments);
@@ -1698,7 +1681,8 @@ publishBtn.addEventListener("click", async () => {
         mediaUrl,
         mediaType,
         savedPost.postId,
-        true
+        true,
+        String(savedPost.userId || "") // B5: your member id (photo and name are filled in from your profile)
       )
     );
     window.dispatchEvent(new CustomEvent("danzstak:post-published", { detail: { postId: savedPost.postId, mediaUrl } }));
@@ -1938,7 +1922,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/invite-sharing.js?v=1" defer></script>
 <script src="assets/tribes-art.js?v=1" defer></script>
 <script src="assets/tribe-create.js?v=1" defer></script>
-<script src="assets/feed-enhancements.js?v=586" defer></script>
+<script src="assets/feed-enhancements.js?v=587" defer></script>
 <script src="assets/profile-onboarding.js?v=12" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/call-setup.js?v=2" defer></script>

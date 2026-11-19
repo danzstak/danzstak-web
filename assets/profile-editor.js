@@ -672,8 +672,11 @@ function profilePostCard(post) {
   const currentProfile = window.danzstakCurrentProfile || {};
   const header = document.createElement("header");
   header.className = "profile-post-header";
-  const authorPicture = String(post.authorPicture || currentProfile.picture || "").trim();
-  const authorName = String(post.authorName || currentProfile.name || "DanzStak member").trim() || "DanzStak member";
+  // B5: a post by the person whose profile this is may borrow their photo and name; someone else's post never does.
+  const postAuthorId = String(post.authorMemberId || post.userId || "");
+  const byProfileOwner = !postAuthorId || postAuthorId === String(currentProfile.memberId || "");
+  const authorPicture = String(post.authorPicture || (byProfileOwner ? currentProfile.picture : "") || "").trim();
+  const authorName = String(post.authorName || (byProfileOwner ? currentProfile.name : "") || "DanzStak member").trim() || "DanzStak member";
   const avatar = document.createElement(authorPicture ? "img" : "span");
   avatar.className = "profile-post-avatar";
   if (authorPicture) {
@@ -693,13 +696,12 @@ function profilePostCard(post) {
   const meta = document.createElement("div");
   meta.className = "profile-post-meta";
   const time = document.createElement("time");
-  const created = post.createdAt ? new Date(post.createdAt) : null;
-  time.textContent = created && !Number.isNaN(created.valueOf()) ? created.toLocaleString() : "Recent post";
+  if (!window.danzstakTimeLabel?.paint(time, post.createdAt)) time.textContent = profileTranslate("now"); // B4: "2d", as in Mix
   const audience = document.createElement("span");
   audience.textContent = post.audience === "private" ? "Just me" : post.audience === "friends" ? "Friends" : "Public";
   meta.append(time, document.createTextNode(" · "), audience);
   // T2a (owner 2026-11-18): the author's photo and name open their profile, like everywhere else (real links, 44px).
-  const authorId = String(post.authorMemberId || post.userId || currentProfile.memberId || "");
+  const authorId = postAuthorId || String(currentProfile.memberId || "");
   const ownWall = currentProfile.isOwner === true && (!authorId || authorId === String(currentProfile.memberId || ""));
   const authorHref = ownWall ? "profile.html" : /^[a-f0-9-]{36}$/i.test(authorId) ? "profile.html?member=" + encodeURIComponent(authorId) : "";
   if (authorHref) {
