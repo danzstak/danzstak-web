@@ -140,9 +140,11 @@ foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
   if (-not $markup.Contains($mediaOrigin)) { Add-Failure "${page}: signed AWS media origin is blocked by CSP" }
 }
 if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
-foreach ($dedicatedStoryControl in @('aria-label="Add a photo or video to Dailies"', 'createStoryInput.accept = "image/jpeg', 'dedicatedMedia: true', 'originalContentCertified: true', 'await loadStories()')) {
-  if (-not $feed.Contains($dedicatedStoryControl)) { Add-Failure "Stories: dedicated Your Story upload is incomplete: $dedicatedStoryControl" }
+# Audit A2 (owner 2026-11-19): Dailies come from posts; the Dailies tile never opens the photo picker.
+foreach ($dailiesTileControl in @('aria-label="Add a photo or video to Dailies"', 'if (ownDailies.length) { void openStoryViewer(ownDailies[0]); return; }', 'ownDailies = (data.stories || []).filter(story => story.isOwner);')) {
+  if (-not $feed.Contains($dailiesTileControl)) { Add-Failure "Dailies tile: viewer/composer behaviour is incomplete: $dailiesTileControl" }
 }
+if ($feed.Contains('createStoryInput')) { Add-Failure 'Dailies tile: still opens a separate photo picker' }
 $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
 $mediaVisibility = Get-Content -LiteralPath (Join-Path $root 'assets\media-visibility.js') -Raw -Encoding utf8
 if ($feedEnhancements.Contains('Reel saved on this device until cloud sync is available.') -or
