@@ -124,7 +124,8 @@ body.profile-page{background:#fff!important}
 .profile-add-bio:active{background:rgba(239,108,32,.22)}
 .profile-empty-wall{margin:0;padding:24px 16px;color:#5b6472;text-align:center;font-size:15px}
 /* About = vanity wall (owner 2026-11-18): the long-form story first, big; details as plain lines, no grey boxes. */
-.details{display:block!important;gap:0!important}
+.details:not([hidden]){display:block!important;gap:0!important}
+.details[hidden]{display:none!important} /* T0-A10b: the About details show on the About tab only */
 .profile-story{position:relative;margin:0 0 8px;padding:8px 0 20px;border-bottom:1px solid #e5e7eb}
 .profile-story-text{margin:0;padding:0 44px 0 0;color:#121418;font-size:clamp(20px,5.4vw,26px);font-weight:700;line-height:1.38;letter-spacing:-.01em;white-space:pre-line;overflow-wrap:anywhere}
 .profile-story-text::before{content:"\201C";display:block;height:.55em;color:#ff5a1f;font-size:2.4em;line-height:1}
