@@ -10,7 +10,7 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const devices = fs.readFileSync("assets/call-devices.js", "utf8");
 
 assert.match(devices, /const dialog=byId\("callingDevicesDialog"\);if\(dialog\)\{delete dialog\.dataset\.required;if\(dialog\.open\)dialog\.close\(\);\}window\.dispatchEvent\(new CustomEvent\("danzstak:call-device-registered"\)\)/, "registration closes its window on success, then announces it");
-assert.match(setup, /window\.addEventListener\("danzstak:call-device-registered", \(\) => setTimeout\(open, 250\)\);/);
+assert.match(setup, /window\.addEventListener\("danzstak:call-device-registered", \(\) => setTimeout\(async \(\) => \{ await window\.danzstakSyncApp\?\.offerClosed\?\.\(\); open\(\); \}, 250\)\);/, "setup opens after registration, once the SYNC own-app offer closes (T3)");
 assert.match(setup, /if \(dialog\?\.open\) return;/, "never restarts a running setup");
 assert.match(setup, /if \(localStorage\.getItem\(DONE_KEY\) === "1"\) return;/, "once per device");
 assert.match(setup, /if \(window\.danzstakCallSetup\?\.isComputer\) list\.push\(\{ id: "audio"/, "audio check step only on computers");
