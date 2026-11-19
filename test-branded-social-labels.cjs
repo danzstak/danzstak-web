@@ -15,9 +15,10 @@ const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 const terms = fs.readFileSync("terms.html", "utf8");
 const privacy = fs.readFileSync("privacy.html", "utf8");
 
-assert.match(feed, /<span>Dailies<\/span>/, "composer should use Dailies");
+// T0-A1 (owner 2026-11-18): no "Dailies" checkbox in the composer — every photo/video post goes to Dailies automatically.
+assert.doesNotMatch(feed, /id="shareToStory"/, "the composer has no Dailies opt-in");
 assert.doesNotMatch(feed, /<span>Story<\/span>/, "composer should not expose the old Story label");
-assert.match(feed, /<span>The Roll<\/span>/, "composer should use The Roll");
+assert.doesNotMatch(feed, /id="shareToReels"/, "the composer has no The Roll opt-in (T0-A1)");
 assert.match(messages, />Chats<\/button>.*>Calls<\/button>.*>Contacts<\/button>/, "SYNC should expose its three real product sections");
 assert.match(enhancements, /Add to The Roll/, "Roll action should use DanzStak branding");
 assert.match(enhancements, /Create Tribe/, "group creation should use Tribes branding");
@@ -45,8 +46,8 @@ assert.doesNotMatch(authApi, /"(?:Valid group|required group|Group not found|Onl
 assert.match(authApi, /storedDescription === "A new DanzStak community group\." \? "A new DanzStak Tribe\."/, "legacy default descriptions should be branded at read time without rewriting custom Tribe descriptions");
 
 // Compatibility contract: branding must not rename established API/storage hooks.
-assert.match(feed, /id="shareToStory"/, "story compatibility hook must remain");
-assert.match(feed, /id="shareToReels"/, "reel compatibility hook must remain");
+assert.match(feed, /if \(selectedMedia\?\.file && savedPost\?\.dailyCreated !== true\) \{/, "Dailies are automatic: the composer only uploads a Daily itself when the server did not add one (T0-A1)");
+assert.match(feed, /reel: mediaType === "video", originalContentCertified: true/, "every posted video goes to The Roll (T0-A1)");
 assert.match(enhancements, /name === "Groups"/, "group route compatibility must remain");
 assert.match(enhancements, /cloudReels/, "reel data compatibility must remain");
 

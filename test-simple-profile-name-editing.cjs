@@ -11,16 +11,17 @@ assert.match(editor, /Name people see/, "the primary field uses ordinary languag
 assert.match(editor, /Nome visibile agli altri/, "Italian members receive an understandable name label");
 assert.match(editor, /Username \(optional\)/, "the technical username is moved out of the required main path");
 assert.match(editor, /Non devi modificarlo per cambiare il nome visibile/, "Italian help explains that username changes are unnecessary");
-assert.match(editor, /profile-name-edit-hint/, "owners receive a visible shortcut beside their current name");
-assert.match(editor, /document\.getElementById\("profileName"\)\.addEventListener\("click"/, "tapping the visible name opens editing");
-assert.match(editor, /profileName\.setAttribute\("role", "button"\)/, "the clickable name is keyboard and assistive-technology discoverable");
+// Audit E8 (owner 2026-11-19, "2 edit profile"): the Edit button is the only way into Edit profile; the name is plain text.
+assert.doesNotMatch(editor, /profile-name-edit-hint|nameEditHint/, "no hidden \"tap your name\" shortcut");
+assert.doesNotMatch(editor, /document\.getElementById\("profileName"\)\.addEventListener\("click"/, "tapping the name does not open the editor");
+assert.doesNotMatch(editor, /profileName\.setAttribute\("role", "button"\)/, "the name is not a button");
+assert.match(editor, /function openNameEdit\(\)/, "?edit=identity still opens the editor at the name field");
 assert.match(editor, /profile\.handle = \(profile\.handle \|\| ""\)[\s\S]*window\.danzstakCurrentProfile\?\.handle/, "saving a visible name preserves the existing username automatically");
-assert.match(css, /profile-name-edit-hint/, "the direct name-edit shortcut has dedicated styling");
 for (const language of ['en','es','fr','de','pt','it','ko','ja','zh-Hans','zh-Hant','fil','hi','vi','th','id']) {
   assert.match(editor, new RegExp(`(?:^|\\s|[,{])(?:"${language}"|${language}):`), `${language} receives direct profile-editor copy`);
 }
 assert.equal((editor.match(/language:"/g) || []).length, 15, "every supported profile language localizes the visible language control");
 assert.match(editor, /resolveProfileLanguage/, "the editor resolves every supported locale explicitly");
-assert.match(profile, /profile-editor\.js\?v=496/, "the profile loads the simplified editor release");
+assert.match(profile, /profile-editor\.js\?v=505/, "the profile loads the simplified editor release");
 
-console.log("Simple profile-name editing checks passed: owners can tap their name and all 15 languages explain visible names without username jargon.");
+console.log("Simple profile-name editing checks passed: the Edit button is the one way in and all 15 languages explain visible names without username jargon.");
