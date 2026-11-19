@@ -5,21 +5,21 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#121418">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; style-src 'self'; script-src 'self'; img-src 'self' data: https:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; style-src 'self'; script-src 'self'; img-src 'self' data: blob: https:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
   <title>DanzStak Store</title>
   <meta name="description" content="Shop official DanzStak merchandise or open a member's physical-goods shop.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
   <link rel="stylesheet" href="assets/mobile-design-system.css?v=21">
   <link rel="stylesheet" href="assets/icon-buttons.css?v=5">
-  <link rel="stylesheet" href="assets/store.css?v=5">
+  <link rel="stylesheet" href="assets/store.css?v=7">
 <link rel="stylesheet" href="assets/top-search.css?v=1">
 <link rel="stylesheet" href="assets/app-bar.css?v=2">
 <link rel="stylesheet" href="assets/site-chrome.css?v=1">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
 <script src="assets/i18n-music.js?v=16" defer></script>
-<script src="assets/i18n-people.js?v=11" defer></script>
+<script src="assets/i18n-people.js?v=13" defer></script>
 <script src="assets/i18n.js?v=409" defer></script>
 </head>
 <body>
@@ -30,6 +30,7 @@
   </header>
   <main id="storeMain" class="store-main" tabindex="-1">
     <section class="store-hero" aria-labelledby="storeTitle">
+      <img id="storeCover" class="store-cover" alt="" hidden>
       <p class="store-eyebrow" id="storeEyebrow">Member shop</p>
       <h1 id="storeTitle">Shop</h1>
       <p id="storeDescription">Physical goods from a DanzStak member.</p>
@@ -38,6 +39,10 @@
 
     <p id="storeStatus" class="store-status" role="status" aria-live="polite">Loading store…</p>
     <section id="storeProducts" class="product-grid" aria-label="Store products"></section>
+    <section id="shopAlbum" class="shop-album" aria-labelledby="shopAlbumTitle" hidden>
+      <h2 id="shopAlbumTitle">Shop album</h2>
+      <div id="shopAlbumGrid" class="shop-album-grid"></div>
+    </section>
 
     <section id="shopManager" class="shop-manager" aria-labelledby="manageTitle" hidden>
       <div class="manager-heading"><div><p class="store-eyebrow">Your profile shop</p><h2 id="manageTitle">Open or edit your shop</h2></div><a href="profile.html">View profile</a></div>
@@ -49,13 +54,36 @@
         <label>Visibility<select id="shopStatus"><option value="draft">Private draft</option><option value="published">Published on my profile</option><option value="closed">Closed</option></select></label>
         <button type="submit">Save shop</button>
       </form>
+      <section id="shopPhotos" class="shop-photos" aria-labelledby="shopPhotosTitle">
+        <h2 id="shopPhotosTitle">Cover and album</h2>
+        <p id="shopPhotosHint" class="store-note">Name and save your shop first, then add photos from your phone.</p>
+        <div class="shop-cover-edit">
+          <img id="shopCoverPreview" class="shop-cover-preview" alt="Your shop cover" hidden>
+          <div class="shop-photo-actions">
+            <button id="chooseShopCover" type="button" class="store-secondary-action">Choose cover photo</button>
+            <button id="removeShopCover" type="button" class="store-secondary-action" hidden>Remove cover</button>
+          </div>
+          <input id="shopCoverInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+        </div>
+        <h3>Shop album</h3>
+        <div id="shopAlbumEditor" class="shop-album-grid"></div>
+        <button id="addAlbumPhotos" type="button" class="store-secondary-action">+ Add photos</button>
+        <input id="shopAlbumInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+      </section>
       <div id="productManager" hidden>
         <h2 id="productFormTitle">Add a physical product</h2>
         <form id="productForm" class="product-form">
           <input id="productId" type="hidden"><input id="productRevision" type="hidden">
           <label>Product name<input id="productTitle" maxlength="120" required></label>
           <label>Description<textarea id="productDescription" maxlength="2000" rows="4"></textarea></label>
-          <label>HTTPS image URL<input id="productImage" type="url" inputmode="url" placeholder="https://"></label>
+          <div class="product-photo-field">
+            <span class="product-photo-label">Product photo</span>
+            <img id="productPhotoPreview" class="product-photo-preview" alt="" hidden>
+            <button id="chooseProductPhoto" type="button" class="store-secondary-action">Choose photo</button>
+            <input id="productPhotoInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+            <input id="productImageKey" type="hidden">
+          </div>
+          <label>Or paste an image link (optional)<input id="productImage" type="url" inputmode="url" placeholder="https://"></label>
           <div class="product-numbers">
             <label>Price (USD)<input id="productPrice" inputmode="decimal" placeholder="25.00" required></label>
             <label>Shipping (USD)<input id="productShipping" inputmode="decimal" value="0.00" required><small>Must not exceed the item price.</small></label>
@@ -78,7 +106,7 @@
   </nav>
   <script src="assets/icon-buttons.js?v=14" defer></script>
   <script src="assets/friendly-error.js?v=1" defer></script>
-  <script src="assets/store.js?v=6" defer></script>
+  <script src="assets/store.js?v=8" defer></script>
   <script src="assets/payouts.js?v=1" defer></script>
 <script src="assets/people-search.js?v=424" defer></script>
 <script src="assets/top-search.js?v=1" defer></script>

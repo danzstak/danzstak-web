@@ -24,6 +24,14 @@
       observer.observe(document.documentElement, { childList: true, subtree: true });
     });
   }
+  // Resolves true once check() holds, false after ms (polled: the composer state is a plain global, not a DOM change).
+  function waitUntil(check, ms = 8000) {
+    return new Promise(resolve => {
+      const until = Date.now() + ms;
+      const tick = () => { if (check()) return resolve(true); if (Date.now() > until) return resolve(false); setTimeout(tick, 50); };
+      tick();
+    });
+  }
   async function dropExpired(cache) {
     for (const key of await cache.keys()) { const at = Number(new URL(key.url).searchParams.get("at") || 0); if (!(Date.now() - at <= TTL_MS)) await cache.delete(key); }
   }
@@ -66,7 +74,9 @@
       if (!input) { say("Open the post box and add your photo again.", true); return; }
       const transfer = new DataTransfer(); transfer.items.add(file); input.files = transfer.files;
       input.dispatchEvent(new Event("change", { bubbles: true }));
-      if (window.danzstakSelectedMedia?.file !== file) { say("Open the post box and add your photo again.", true); return; }
+      // media-scale.js holds a photo's change event while it shrinks it to 720p, then hands the composer a new, smaller
+      // file with the same name: wait for the composer, and match by name rather than by the original file object.
+      if (!(await waitUntil(() => window.danzstakSelectedMedia?.file?.name === file.name))) { say("Open the post box and add your photo again.", true); return; }
     }
     const box = await waitFor("#postText");
     if (box && meta.text && !box.value) { box.value = meta.text; box.dispatchEvent(new Event("input", { bubbles: true })); }

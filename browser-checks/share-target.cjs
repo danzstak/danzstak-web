@@ -58,6 +58,11 @@ async function share(page, files, text = "") {
   ]);
 }
 const shareCount = page => page.evaluate(async () => (await (await caches.open("danzstak-share")).keys()).length);
+// Polled from here: page.waitForFunction would treat an async predicate's Promise as already true.
+async function sharesCleared(page, ms) {
+  for (const until = Date.now() + ms; Date.now() < until; await page.waitForTimeout(100)) if ((await shareCount(page)) === 0) return;
+  throw new Error(`the shared file was still on the phone after ${ms} ms`);
+}
 const composer = page => page.evaluate(() => ({ text: document.getElementById("postText")?.value, media: window.danzstakSelectedMedia?.file?.name || "", kind: window.danzstakSelectedMedia?.kind || "", preview: Boolean(document.querySelector(".composer-media-preview img, .composer-media-preview video")), noRollCheckbox: !document.getElementById("shareToReels"), overflow: document.documentElement.scrollWidth > innerWidth, feedback: document.querySelector(".app-feedback, [data-app-feedback], .danzstak-feedback")?.textContent || "" }));
 
 (async () => {
@@ -70,12 +75,15 @@ const composer = page => page.evaluate(() => ({ text: document.getElementById("p
       let auth = { signedIn: true }, { context, page } = await open(browser, width, auth);
       await share(page, [{ b64: png, name: "IMG_2041.png", type: "image/png" }], "Last night at the Central");
       await page.waitForFunction(() => window.danzstakSelectedMedia?.file && !location.search.includes("share="), null, { timeout: 15000 });
+      // The hand-off ends when the shared file is cleared from the phone (after the text goes in; photo scaling,
+      // media-scale.js, makes the photo arrive a moment before the text).
+      await sharesCleared(page, 10000);
       let state = await composer(page);
       assert.equal(state.media, "IMG_2041.png", `${label}: the shared photo is attached`);
       assert.ok(state.kind === "image" && state.preview, `${label}: photo preview in the composer`);
       assert.equal(state.text, "Last night at the Central", `${label}: shared text in the box`);
       assert.equal(state.overflow, false, `${label}: no sideways scroll`);
-      await page.waitForFunction(async () => (await (await caches.open("danzstak-share")).keys()).length === 0, null, { timeout: 5000 });
+      await sharesCleared(page, 5000);
       assert.equal(await page.evaluate(() => sessionStorage.getItem("danzstak_pending_share")), null, `${label}: nothing pending`);
       if (shots) { await page.waitForTimeout(500); await page.screenshot({ path: path.join(output, `1-photo-in-composer-${width}.png`) }); }
 
@@ -105,8 +113,8 @@ const composer = page => page.evaluate(() => ({ text: document.getElementById("p
       auth.signedIn = true;
       await page.goto(`${baseUrl}/feed.html`, { waitUntil: "domcontentloaded" });
       await page.waitForFunction(() => window.danzstakSelectedMedia?.file?.name === "IMG_2042.png", null, { timeout: 15000 });
+      await sharesCleared(page, 5000); // the hand-off is over (the text goes in just after the scaled photo)
       assert.equal((await composer(page)).text, "Soundcheck", `${label}: after sign-in the text comes back too`);
-      await page.waitForFunction(async () => (await (await caches.open("danzstak-share")).keys()).length === 0, null, { timeout: 5000 });
       assert.equal(await page.evaluate(() => sessionStorage.getItem("danzstak_pending_share")), null);
       assert.deepEqual(page.errors, [], `${label}: page errors`);
       await context.close();

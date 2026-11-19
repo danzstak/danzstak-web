@@ -119,5 +119,8 @@ const png = name => new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])]
   assert.match(receive, /for \(const key of keys\) await cache\.delete\(key\); \/\/ it is in the composer now/);
   assert.match(receive, /sessionStorage/); assert.doesNotMatch(receive, /localStorage/, "a pending share lives only in this tab");
   assert.match(receive, /input\.dispatchEvent\(new Event\("change", \{ bubbles: true \}\)\)/, "the composer's own checks run on the shared file");
+  // media-scale.js replays a photo's change event later with a smaller copy: wait for the composer, match by name.
+  assert.match(receive, /await waitUntil\(\(\) => window\.danzstakSelectedMedia\?\.file\?\.name === file\.name\)/, "waits for the composer after photo scaling");
+  assert.doesNotMatch(receive, /danzstakSelectedMedia\?\.file !== file/, "never compares the original file object (media-scale.js swaps it)");
   console.log("Share target checks passed: manifest share_target (photos/videos Mix can post, no audio), files kept for the composer, audio and HEIC refused, first of several kept, 10-minute cleanup that survives updates, failures handled, composer hand-off waits for sign-in and never posts by itself.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
