@@ -416,3 +416,4 @@ a.notification-row--device{color:inherit;text-decoration:none;min-height:44px}
 .notification-row--device p{display:grid;gap:2px;margin:0}
 .notification-row--device strong{font-weight:800}
 .notification-row--device p span{color:var(--ds-muted,#5b6472);font-size:.92em}
+.notification-ds-link{display:flex;align-items:center;min-height:44px;margin:0 0 4px 64px;color:var(--ds-accent,#c2410c);font-weight:800;text-decoration:none}
