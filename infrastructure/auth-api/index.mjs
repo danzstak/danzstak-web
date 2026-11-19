@@ -60,6 +60,7 @@ import { enrichPromoter } from "./promoter-contact.mjs";
 import { bookingReplyNotice, bookingNoticeWrites } from "./booking-reply-notice.mjs";
 import { unopenedRefunds, unopenedRefundTransaction } from "./unopened-credit.mjs";
 import { isDirectoryEditor, parseTrustedContact, trustedContactItems, trustedContactUpdate, trustedPromotersNear, contactId as trustedContactId } from "./trusted-contacts.mjs";
+import { createArtistVerification, kitArtistName } from "./artist-verification.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -276,6 +277,8 @@ const tourManagerBilling = createTourManagerBilling({
   tableName: toursTable,
   env: stripeEnvironment,
   validateOutreachEpkLink: validateBookingOutreachEpkLink,
+  // Task 20: booking emails go out only for a verified act; replies stop while an EPK is on an impersonation hold.
+  verifyArtist: ({ userId, epkItem, purpose }) => artistVerificationService().gate({ userId, artistName: kitArtistName(epkItem), epkItem, purpose }),
   accountEmail: userId => accountForSub(userId),
   // Bell notification when a venue answers through the reply page (owner 2026-11-16).
   notifyBookingReply: async ({ artistId, outreachId, dedupe, action, preview, proposedDate, at }) => {
@@ -284,7 +287,7 @@ const tourManagerBilling = createTourManagerBilling({
     const notice = bookingReplyNotice({ tableName: engagementNotificationsTable, artistEmail, outreachId, dedupe, venueName: send?.venueName?.S, action, preview, proposedDate, at });
     if (notice) await db.send(new TransactWriteItemsCommand({ TransactItems: bookingNoticeWrites(notice, activityPushOutboxTable) })); // 16-F: bell + lock-screen push
   },
-  sendBookingEmail: async ({ userId, sendId, artistName, venueName, to, subject, message, replyToken }) => {
+  sendBookingEmail: async ({ userId, sendId, artistName, venueName, to, subject, message, replyToken, verified = false }) => {
     if (!/^[a-f0-9]{64}$/.test(replyToken || "")) throw new Error("Booking reply route is invalid");
     const safeArtistName = String(artistName || "Artist").replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) || "Artist";
     const replyTo = `${replyToken}@reply.danzstak.com`;
@@ -300,7 +303,7 @@ const tourManagerBilling = createTourManagerBilling({
       ReplyToAddresses: [replyTo],
       Content: { Simple: {
         Subject: { Data: subject, Charset: "UTF-8" },
-        Body: { Text: { Data: `${message}\n\nSent by ${artistName} using DanzStak Tour Manager.\nVenue: ${venueName}\nReply to this email to continue securely in the artist's DanzStak SYNC booking thread.`, Charset: "UTF-8" } }
+        Body: { Text: { Data: `${message}\n\nSent by ${artistName} using DanzStak Tour Manager.${verified ? "\nVerified artist on DanzStak." : ""}\nVenue: ${venueName}\nReply to this email to continue securely in the artist's DanzStak SYNC booking thread.`, Charset: "UTF-8" } }
       } }
     }));
     return { messageId: result.MessageId || "" };
@@ -4403,6 +4406,21 @@ const epkPublicPartition = "epk-public";
 const epkSharePartition = "epk-private-share";
 const epkOutreachPartition = "epk-outreach-share";
 const epkOutreachPrefix = "EPK#OUTREACH#";
+// Task 20: verify the artist before an EPK is public or pitched (routes under /epk/verify, gates below).
+// Built on first use, so code that only loads part of this file (tests, cold paths) never needs it.
+let artistVerificationInstance = null;
+const artistVerificationService = () => artistVerificationInstance ||= createArtistVerification({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand, DeleteItemCommand },
+  tableName: toursTable,
+  authenticate: getAuthenticatedUser,
+  accountEmail: userId => accountForSub(userId),
+  corsHeaders,
+  originAllowed: origin => allowedOrigins.has(origin),
+  isEditor: email => isDirectoryEditor(email, globalThis.process?.env?.DIRECTORY_EDITOR_EMAILS),
+  epkWorkspaceKey: epkWorkspaceId,
+  epkPublicPartition
+});
 
 const epkMediaRoles = new Set(["press-photo", "logo", "artwork", "press-clipping", "biography", "technical-rider", "hospitality-rider", "stage-plot", "other"]);
 const epkMediaPattern = ownerPrefix => new RegExp(`^epk/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`);
@@ -4671,6 +4689,12 @@ async function epkWorkspace(event, method) {
   const data = parseJsonBody(event), kit = cleanEpk(data?.kit, ownerPrefix), publish = data?.publish === true;
   if (!kit) return reply(400, { error: "Add an artist name and valid EPK details." });
   const existing = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
+  // Task 20: private drafts always save; the public EPK needs a verified act and no impersonation hold.
+  let verified = null;
+  if (publish) {
+    verified = await artistVerificationService().gate({ userId, artistName: kit.artistName, epkItem: existing.Item });
+    if (!verified.ok) return reply(403, { error: verified.message, verification: verified.status, hold: verified.hold === true });
+  }
   try { await validatedEpkMedia(kit.media); } catch (error) { return reply(error.statusCode || 422, { error: error.message }); }
   let publicId = /^[a-z0-9-]{3,64}$/.test(existing.Item?.publicId?.S || "") ? existing.Item.publicId.S : kit.artistName.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
   if (publicId.length < 3) publicId = randomUUID();
@@ -4700,12 +4724,17 @@ async function epkWorkspace(event, method) {
   await db.send(new TransactWriteItemsCommand({ TransactItems: [
     { Update: { TableName: toursTable, Key: ownerKey, UpdateExpression: ownerUpdate, ExpressionAttributeNames: { "#name": "name", "#plan": "plan" }, ExpressionAttributeValues: ownerValues } },
     publish
-      ? { Put: { TableName: toursTable, Item: { ...publicKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }
+      ? { Put: { TableName: toursTable, Item: { ...publicKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, ownerId: { S: userId }, updatedAt: { S: nowIso }, ...(verified?.verifiedAt ? { verifiedAt: { S: verified.verifiedAt }, verifiedMethod: { S: verified.method || "" } } : {}) } } }
       : { Delete: { TableName: toursTable, Key: publicKey } },
     ...(shareHash ? [{ Put: { TableName: toursTable, Item: { userId: { S: epkSharePartition }, tourId: { S: publicId }, name: { S: `${kit.artistName} private EPK` }, plan: { S: plan }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }] : [])
   ] }));
   const cleanup = await cleanupEpkMediaObjects(ownerKey, ownerPrefix, pendingMediaCleanup, [...retained]);
   return reply(200, { publicId, published: publish, updatedAt: nowIso, cleanupPending: cleanup.pending });
+}
+
+// Task 20: the small "Verified artist on DanzStak" mark, dated, with how the act showed control of its page.
+function verifiedMark(item) {
+  return item?.verifiedAt?.S ? { at: item.verifiedAt.S, method: item.verifiedMethod?.S || "" } : null;
 }
 
 async function publicEpk(event, publicId) {
@@ -4714,7 +4743,7 @@ async function publicEpk(event, publicId) {
   if (!allowedOrigins.has(event.headers?.origin) || !/^[a-z0-9-]{3,64}$/i.test(publicId)) return reply(404, { error: "EPK not found." });
   const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } } }));
   if (!result.Item) return reply(404, { error: "EPK not found." });
-  return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), true), updatedAt: result.Item.updatedAt?.S || "" });
+  return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), true), updatedAt: result.Item.updatedAt?.S || "", verified: verifiedMark(result.Item), publicId });
 }
 
 async function privateEpkShare(event, method, publicId = "") {
@@ -4785,7 +4814,11 @@ async function outreachEpkShare(event, method, shareId = "") {
     result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: shareId } }, ConsistentRead: true }));
     item = result.Item;
     if (!item || Number(item.expiresAt?.N || 0) <= now() || !epkOutreachTokenMatches(token, item.shareHash?.S || "")) return reply(404, { error: "This booking EPK link is invalid or has expired." });
+    // Task 20: venue links stop working while the artist's EPK is on an impersonation hold.
+    const ownerEpk = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: ownerId }, tourId: { S: epkWorkspaceId } }, ConsistentRead: true }));
+    if (ownerEpk.Item?.impersonationHold?.BOOL === true) return reply(404, { error: "This EPK is under review and not available right now." });
     return reply(200, {
+      verified: verifiedMark(item),
       kit: epkForViewer(JSON.parse(item.plan?.S || "{}"), true, false, item.allowPdf?.BOOL === true),
       private: true,
       bookingShare: true,
@@ -4811,6 +4844,8 @@ async function outreachEpkShare(event, method, shareId = "") {
     db.send(new GetItemCommand({ TableName: toursTable, Key: mapKey, ConsistentRead: true }))
   ]);
   if (!epkResult.Item || epkResult.Item.published?.BOOL !== true) return reply(409, { error: "Publish the EPK before creating a venue link." });
+  const verified = await artistVerificationService().gate({ userId, artistName: kitArtistName(epkResult.Item), epkItem: epkResult.Item });
+  if (!verified.ok && action !== "revoke") return reply(403, { error: verified.message, verification: verified.status, hold: verified.hold === true });
   let workspace = {}; try { workspace = JSON.parse(workspaceResult.Item?.plan?.S || "{}"); } catch { workspace = {}; }
   const venue = (workspace.venues || []).find(item => item?.venueKey === venueKey);
   if (!venue) return reply(404, { error: "Save this venue in the booking workspace first." });
@@ -4825,7 +4860,7 @@ async function outreachEpkShare(event, method, shareId = "") {
   }
   if (action !== "create") return reply(400, { error: "Choose create or revoke." });
   const token = randomValue(), newShareId = randomBytes(16).toString("hex"), shareHash = sha256(`epk-outreach:${token}`), createdAt = new Date().toISOString(), expiresAt = now() + 45 * 86400, allowPdf = data?.allowPdf === true;
-  const publicItem = { userId: { S: epkOutreachPartition }, tourId: { S: newShareId }, ownerId: { S: userId }, outreachId: { S: outreachId }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, plan: { S: epkResult.Item.plan?.S || "{}" }, shareHash: { S: shareHash }, epkUpdatedAt: { S: epkResult.Item.updatedAt?.S || createdAt }, allowPdf: { BOOL: allowPdf }, openCount: { N: "0" }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } };
+  const publicItem = { userId: { S: epkOutreachPartition }, tourId: { S: newShareId }, ownerId: { S: userId }, outreachId: { S: outreachId }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, plan: { S: epkResult.Item.plan?.S || "{}" }, shareHash: { S: shareHash }, epkUpdatedAt: { S: epkResult.Item.updatedAt?.S || createdAt }, allowPdf: { BOOL: allowPdf }, openCount: { N: "0" }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) }, ...(verified.verifiedAt ? { verifiedAt: { S: verified.verifiedAt }, verifiedMethod: { S: verified.method || "" } } : {}) };
   const ownerItem = { ...mapKey, outreachId: { S: outreachId }, shareId: { S: newShareId }, venueKey: { S: venueKey }, venueName: publicItem.venueName, allowPdf: { BOOL: allowPdf }, openCount: { N: "0" }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } };
   const transaction = [
     { Put: { TableName: toursTable, Item: publicItem } },
@@ -5305,7 +5340,7 @@ async function listTourPlans(event) {
   const reservedWorkspaceIds = new Set([bookingWorkspaceId, epkWorkspaceId, recordStoreWorkspaceId]);
   const tours = (result.Items || []).filter(item => {
     const id = item.tourId?.S || "";
-    return !reservedWorkspaceIds.has(id) && !id.startsWith("TOUR_MANAGER#");
+    return !reservedWorkspaceIds.has(id) && !id.startsWith("TOUR_MANAGER#") && !id.startsWith("ARTIST_VERIFICATION#");
   }).map(item => { let plan = {}; try { plan = JSON.parse(item.plan?.S || "{}"); } catch { /* Ignore malformed legacy data. */ } return { tourId: item.tourId?.S || "", name: item.name?.S || "Tour", updatedAt: item.updatedAt?.S || "", plan }; });
   return { statusCode: 200, headers, body: JSON.stringify({ tours }) };
 }
@@ -5782,6 +5817,7 @@ export const handler = async event => {
     if (method === "POST" && path === "/epk/qr") return await epkQr(event);
     if (method === "POST" && path === "/epk/share") return await privateEpkShare(event, method);
     if ((method === "GET" || method === "POST") && path === "/epk/outreach-share") return await outreachEpkShare(event, method);
+    if (path.startsWith("/epk/verify")) { const verification = await artistVerificationService().handle(event, method, path); if (verification) return verification; }
     const epkOutreachMatch = path.match(/^\/epk\/outreach\/([a-f0-9]{32})$/i);
     if (method === "POST" && epkOutreachMatch) return await outreachEpkShare(event, method, epkOutreachMatch[1].toLowerCase());
     const epkPublicMatch = path.match(/^\/epk\/public\/([a-z0-9-]{3,64})$/i);
