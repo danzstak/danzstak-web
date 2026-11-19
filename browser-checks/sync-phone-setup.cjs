@@ -49,6 +49,10 @@ async function shot(page, name) { try { await page.screenshot({ path: path.join(
       await page.waitForTimeout(400);
       if (!(await page.evaluate(() => document.getElementById("callingDevicesDialog").open))) failures.push(`${label}: registration window did not open`);
       await page.evaluate(async () => { await window.danzstakBeginCallingDeviceEnrollment(); window.dispatchEvent(new CustomEvent("danzstak:device-otp-confirmed", { detail: { deviceGrantId: "g-1", deviceGrantToken: "t".repeat(43) } })); });
+      // T3/F16 (#660): "Save the SYNC app to your home screen" comes first; "Set up this phone" waits for it.
+      const offered = await page.locator("#syncAppOffer[open]").waitFor({ timeout: 8000 }).then(() => true).catch(() => false);
+      if (!offered) failures.push(`${label}: the SYNC app offer did not show after registration`);
+      else await page.locator("#syncAppOffer .sync-offer-later").click();
       const opened = await page.waitForFunction(() => document.querySelector(".phone-setup-dialog")?.open, null, { timeout: 8000 }).then(() => true).catch(() => false);
       const regOpen = await page.evaluate(() => document.getElementById("callingDevicesDialog").open);
       if (regOpen) failures.push(`${label}: the registration window stayed open after success`);

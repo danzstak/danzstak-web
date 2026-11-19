@@ -14,7 +14,12 @@ for (const page of ["feed.html", "bazaar.html", "booking.html", "booking-selecti
 assert.ok(worker.includes('"/assets/app-bar.js"') && worker.includes('"/assets/app-bar.css"'));
 assert.match(js, /iconLink\("ds-app-bar-bell", "feed\.html#notifications", "Notifications"/, "bell opens notifications");
 assert.match(js, /iconLink\("ds-app-bar-sync", "messages\.html", "SYNC"/, "SYNC in the bar");
-assert.match(css, /header\.topbar #pivotButton,header\.topbar \.pivot-header-button\{display:none!important\}/, "Pivot leaves the header");
+// Directive F15j: Pivot is back in the bar (between Search and the bell), one orange icon; the Menu keeps it too.
+assert.match(js, /iconLink\("ds-app-bar-pivot", "feed\.html\?view=feed&pivot=open", "Pivot your data", icons\.pivot\), iconLink\("ds-app-bar-bell"/, "Pivot sits before the bell on every tool page");
+assert.match(css, /\.ds-app-bar-pivot svg\{color:#ff5a1f\}/, "Pivot is orange");
+assert.match(css, /grid-template-columns:40px minmax\(0,1fr\) 44px 44px 44px!important/, "Mix's phone bar has room for Pivot");
+const iconPaths = source => (source.match(/M3 12a9 9 0 0 1 9-9[^"]*"[\s\S]*?M8 16H3v5/) || [""])[0].match(/M[^"]+/g);
+assert.deepEqual(iconPaths(js), iconPaths(fs.readFileSync("assets/icon-buttons.js", "utf8")), "one Pivot icon: app-bar.js draws the same paths as icon-buttons.js");
 assert.match(css, /\.install-app-button\{display:none!important\}/, "the orange install arrow leaves the header");
 assert.match(js, /pivot\.setAttribute\("data-pivot-trigger", ""\);/, "Pivot is in the Menu");
 assert.match(js, /install\.querySelector\("\.menu-label"\)\.textContent = t\("Install DanzStak"\);/, "Install is in the Menu");

@@ -41,7 +41,8 @@
       const ring = window.danzstakSyncTones.startRing(audio, { durationMs: 3000 });
       setTimeout(() => { ring?.stop?.(); audio.close?.().catch?.(() => {}); }, 3100);
     }
-    window.danzstakShowFeedback?.(t(audio ? "Playing your ringtone for 3 seconds." : "This browser can't play sounds here."));
+    // F15e: a web page plays at the phone's media volume (it can't use the ringer volume), so say how to make it loudest.
+    window.danzstakShowFeedback?.(audio ? `${t("Playing your ringtone for 3 seconds.")} ${t("Turn up your phone's volume for the loudest ring.")}` : t("This browser can't play sounds here."));
   }
   const row = { id: "test-ringer", label: "Test ringer", hint: "Play your ringtone for 3 seconds", icon: "bell", order: 35, run: testRinger };
   function mount() { window.danzstakSyncSettings?.add?.(row); }

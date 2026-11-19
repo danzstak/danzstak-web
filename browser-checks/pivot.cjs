@@ -36,18 +36,14 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
       });
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       const pivot = page.locator("#pivotButton"); await pivot.waitFor({ state: "visible" }); await page.waitForTimeout(100);
-      assert.match(await pivot.textContent(), /Pivot/, `${width}px Pivot label must stay visible`);
+      assert.equal(await pivot.getAttribute("aria-label"), "Pivot your data", `${width}px Pivot icon keeps its name`);
       const header = await page.evaluate(() => {
         const search = document.querySelector(".topbar .search").getBoundingClientRect();
         const pivot = document.querySelector("#pivotButton").getBoundingClientRect();
         return { search: { left: search.left, right: search.right, width: search.width, height: search.height }, pivot: { left: pivot.left, right: pivot.right, width: pivot.width, height: pivot.height }, scrollWidth: document.documentElement.scrollWidth };
       });
       assert.ok(header.pivot.left >= header.search.right - .5, `${width}px Pivot must sit to the right of Search`);
-      assert.ok(header.pivot.height >= 38 && header.pivot.width >= (width <= 700 ? 60 : 44), `${width}px Pivot must remain readable and touchable: ${JSON.stringify(header.pivot)}`);
-      if (width < 700) {
-        const share = header.search.width / (header.search.width + header.pivot.width);
-        assert.ok(share >= .70 && share <= .82, `${width}px Search must occupy about three quarters of Search + Pivot: ${share}; ${JSON.stringify(header)}`);
-      }
+      assert.ok(header.pivot.height >= 44 && header.pivot.width >= 44, `${width}px Pivot must be a 44px target: ${JSON.stringify(header.pivot)}`);
       assert.ok(header.scrollWidth <= width, `${width}px Pivot header overflows`);
       await pivot.click(); const dialog = page.locator(".pivot-dialog"); await dialog.waitFor({ state: "visible" });
       assert.equal((await dialog.locator("h2").textContent()).trim(), "Moving Day");

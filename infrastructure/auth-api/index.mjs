@@ -1894,11 +1894,22 @@ async function getSecurePosts(event) {
       commentPolicy: item.commentPolicy?.S ?? "everyone",
       editHistory: postEditHistory(item),
       updatedAt: item.updatedAt?.S ?? "",
+      pinnedUntil: activePinUntil(item),
       createdAt: item.createdAt.S
-    }))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }));
 
-  return { statusCode: 200, headers, body: JSON.stringify({ posts }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ posts: orderMixPosts(posts) }) };
+}
+
+// F15b (owner 2026-11-19): the DanzStak welcome post stays first in Mix until its pinnedUntil date, then falls back into
+// its chronological place. Only the owner's CloudShell script (set-welcome-post.mjs) writes pinnedUntil; no API route
+// accepts it (updateSecurePost takes content, audience and comment policy only), so members can't pin.
+function activePinUntil(item, now = Date.now()) {
+  const until = Date.parse(item?.pinnedUntil?.S || "");
+  return Number.isFinite(until) && until > now ? new Date(until).toISOString() : "";
+}
+function orderMixPosts(posts) {
+  return [...posts].sort((a, b) => Number(Boolean(b.pinnedUntil)) - Number(Boolean(a.pinnedUntil)) || b.createdAt.localeCompare(a.createdAt));
 }
 
 async function postForEngagement(postId, userId) {
@@ -2039,8 +2050,9 @@ async function getEngagement(event) {
     const list = children.get(comment.parentCommentId) || []; list.push(comment); children.set(comment.parentCommentId, list);
   }
   const comments = [], appendThread = comment => { comments.push(comment); for (const reply of (children.get(comment.commentId) || []).sort((a,b) => a.createdAt.localeCompare(b.createdAt))) appendThread(reply); };
+  // Directive F1a (owner 2026-11-19): comments by time only (the app shows Newest or Oldest), never ranked by reactions.
   commentRecords.filter(comment => !comment.parentCommentId || !commentById.has(comment.parentCommentId))
-    .sort((a,b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
+    .sort((a,b) => a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
   return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments }) };
 }
 
@@ -5814,4 +5826,4 @@ export const handler = async event => {
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };
+export { activePinUntil, orderMixPosts, geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };

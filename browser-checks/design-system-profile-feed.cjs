@@ -75,7 +75,8 @@ function color(value) { return String(value || "").replace(/\s+/g, ""); }
         const media = post.querySelector(":scope > .feed-media-gallery, :scope > .danzstak-media-shell, :scope > .post-media");
         const postRect = post.getBoundingClientRect();
         const mediaRect = media.getBoundingClientRect();
-        const navButtons = [...document.querySelectorAll(".topnav button")];
+        // Phone targets: the shared bottom tab bar (app-tabs.js, audit 36 B2); Mix's .topnav is the desktop header nav.
+        const navButtons = innerWidth > 700 ? [...document.querySelectorAll(".topnav button")] : [...document.querySelectorAll("nav.ds-mobile-nav a")];
         return {
           documentWidth: document.documentElement.scrollWidth,
           brand: root.getPropertyValue("--ds-brand").trim(),
@@ -123,7 +124,8 @@ function color(value) { return String(value || "").replace(/\s+/g, ""); }
           avatarOverlapsCover: avatar.top < cover.getBoundingClientRect().bottom && avatar.bottom > cover.getBoundingClientRect().bottom,
           nameLeft: name.left,
           bioLeft: document.querySelector(".profile-bio").getBoundingClientRect().left,
-          nameAligned: Math.abs(name.left - document.querySelector(".profile-bio").getBoundingClientRect().left) <= 1,
+          // Directive F4 (owner 2026-11-19): the name sits to the right of the avatar (was: stacked under it, aligned with the bio).
+          nameAligned: name.left >= avatar.right + 4,
           detailCount: details.length,
           detailBackgrounds: details.map(item => getComputedStyle(item).backgroundColor),
           detailRadii: details.map(item => parseFloat(getComputedStyle(item).borderRadius)),

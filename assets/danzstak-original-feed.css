@@ -23,27 +23,10 @@ body.danzstak-original .logo {
 body.danzstak-original .topbar .search {
   border:1px solid rgba(255,255,255,.2);
   border-radius:12px;
-  background:#f8fafc;
+  background-color:#f8fafc;
   color:#172033;
   box-shadow:0 1px 0 rgba(255,255,255,.14),inset 0 1px 2px rgba(6,18,38,.06);
 }
-body.danzstak-original .pivot-header-button {
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  min-height:44px;
-  padding:8px 12px;
-  border:1px solid #ff8a48;
-  border-radius:12px;
-  background:var(--ds-accent);
-  color:#fff;
-  box-shadow:0 4px 14px rgba(239,108,32,.24);
-  font-weight:850;
-}
-body.danzstak-original .pivot-header-button:hover,
-body.danzstak-original .pivot-header-button:focus-visible {background:#ff7d32;color:#fff}
-body.danzstak-original .pivot-header-button .ds-action-icon {width:19px;height:19px}
 body.danzstak-original .topnav button {
   min-width:44px;
   min-height:44px;
@@ -383,24 +366,7 @@ body.danzstak-original .right :is(h3,h2) {
     border-bottom:2px solid var(--ds-accent);
   }
   body.danzstak-original .topbar .search {grid-column:2!important;width:100%!important}
-  body.danzstak-original .pivot-header-button {
-    grid-column:3;
-    width:100%;
-    min-width:60px;
-    min-height:38px;
-    height:38px;
-    gap:4px;
-    padding:6px;
-    border-radius:10px;
-    font-size:12px;
-  }
-  body.danzstak-original .pivot-header-button .ds-action-icon {width:14px;height:14px}
-  body.danzstak-original:has(> .install-app-button:not([hidden])) .topbar {
-    padding-right:max(52px,calc(env(safe-area-inset-right) + 44px))!important;
-  }
-  body.danzstak-original:has(> .install-app-button:not([hidden])) .topbar .search {
-    padding-right:11px!important;
-  }
+  /* (The install arrow left the header for Menu -> Install DanzStak, so the bar no longer reserves room for it.) */
   body.danzstak-original .topnav {grid-column:1/-1}
   body.danzstak-original .layout {
     display:block;

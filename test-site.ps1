@@ -114,15 +114,17 @@ if (-not $feed.Contains("frame-src 'self' https://www.youtube-nocookie.com")) {
 foreach ($uploadCleanupControl in @('async function discardUploadedMedia(mediaKey)', 'await discardUploadedMedia(uploadedStoryKey)', 'await discardUploadedMedia(uploadedPostKey)')) {
   if (-not $feed.Contains($uploadCleanupControl)) { Add-Failure "Media: failed publication leaves an orphaned upload: $uploadCleanupControl" }
 }
-foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Daily from "', 'open.addEventListener("click", () => openStoryViewer(story))')) {
+foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Daily from "', 'open.addEventListener("click", () => openStoryViewer(story, { sequence: visibleStories }))')) {
   if (-not $feed.Contains($storyAccessibilityControl)) { Add-Failure "Stories: open and delete controls are not separately accessible: $storyAccessibilityControl" }
 }
 $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
 foreach ($storyPreviewControl in @('storyCopy.className = "story-card-copy"', 'item.classList.add("story-video")', 'caption.textContent = storyDisplayCaption(story)')) {
   if (-not $feed.Contains($storyPreviewControl)) { Add-Failure "Stories: photo and video cards lack an identifiable preview: $storyPreviewControl" }
 }
-if (-not $feedEnhancementCss.Contains('.story.story-video::after{content:')) {
-  Add-Failure 'Stories: video cards lack a branded play fallback when no poster frame is available'
+# Directive F15a (owner 2026-11-19): no play icon on Dailies tiles ("just click on the video and it plays"); a video with no
+# poster frame shows the DanzStak gradient instead of a black box.
+if ($feedEnhancementCss.Contains('.story.story-video::after{content:') -or -not $feedEnhancementCss.Contains('.story.story-video video{background:linear-gradient(')) {
+  Add-Failure 'Stories: video tiles must show no play icon and keep the branded gradient when no poster frame is available'
 }
 if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
@@ -140,8 +142,9 @@ foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
   if (-not $markup.Contains($mediaOrigin)) { Add-Failure "${page}: signed AWS media origin is blocked by CSP" }
 }
 if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
-# Audit A2 (owner 2026-11-19): Dailies come from posts; the Dailies tile never opens the photo picker.
-foreach ($dailiesTileControl in @('aria-label="Add a photo or video to Dailies"', 'if (ownDailies.length) { void openStoryViewer(ownDailies[0]); return; }', 'ownDailies = (data.stories || []).filter(story => story.isOwner);')) {
+# Audit A2 (owner 2026-11-19): Dailies come from posts. The own tile opens your Dailies (swipe through them, #605) or
+# the post box, never a file picker.
+foreach ($dailiesTileControl in @('aria-label="Post a photo or video to your Dailies"', 'if (ownDailies.length) { void openStoryViewer(ownDailies[0], { sequence: ownDailies }); return; }', 'ownDailies = allStories.filter(story => story.isOwner === true);')) {
   if (-not $feed.Contains($dailiesTileControl)) { Add-Failure "Dailies tile: viewer/composer behaviour is incomplete: $dailiesTileControl" }
 }
 if ($feed.Contains('createStoryInput')) { Add-Failure 'Dailies tile: still opens a separate photo picker' }

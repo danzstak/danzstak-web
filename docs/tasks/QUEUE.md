@@ -41,22 +41,23 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-A7 | Booking Example / Find clubs dead; Leaflet served locally | 36 | Re-checked 2026-11-19: Example works (crawler could not see the textarea value), empty Find clubs uses the native required bubble, the map shows a message if Leaflet cannot load. Left: ship Leaflet in assets/vendor/ (this cloud session cannot download packages) |
 | T0-A8 | Tribes: Elder sees Join; open on Your Tribes | 36 | PR (build/tribes-elder-join) |
 | T0-A9 | Mix composer avatar opens your profile | 36 | PR (build/tribes-elder-join) |
-| T0-A10 | Menu → Photos/Videos show only your media (with 5a2) | 36 | TODO |
-| T0-B1 | One app bar on every page | 36 | TODO |
-| T0-B2 | One bottom tab bar, correct lit tab, on every signed-in page | 36 | TODO |
-| T0-B3 | One font set | 36 | TODO |
-| T0-B4 | One post component (Mix's) on Profile/Tribes/Saved | 36 | TODO |
-| T0-B5 | Your photo instead of "N" on your posts and composer | 36 | TODO |
-| T0-B6 | One button system (orange primary) | 36 | TODO |
-| T0-C1 | Tour Manager: no paywall | 36 | TODO |
-| T0-C2 | Tour Manager: never re-ask EPK info | 36 | TODO |
-| T0-B7 | Styled switches/selects/date/file pickers | 36 | TODO |
-| T0-B8 | Fluid pages: Tour Manager, Support, Settings, HQ | 36 | TODO |
-| T0-B9 | Landing page in DanzStak style | 36 | TODO |
-| T0-B10 | Bazaar images fill tiles; one search | 36 | TODO |
-| T0-CD | Small fixes C3–C5, D1–D7 | 36 | TODO |
-| T2a | Tap any profile picture → that member's profile | CLAUDE.md "T2 checklist", 18 | TODO |
-| T2b | No separate Dailies upload (Dailies tile never opens the photo picker) | CLAUDE.md "T2 checklist", 18 | TODO |
+| T0-A10 | Menu → Photos/Videos show only your media (with 5a2) | 36 | PR #634 (train) |
+| T0-A10b | **Found in #634:** your own profile's Photos/Videos tabs show the Location / Work / Website "Not added" block above the grid; Photos and Videos are media only (5a2) — show that block on About only | 36, 5a2 | PR #634 (train) |
+| T0-B1 | One app bar on every page (Profile's cover header is F9) | 36 | Train d (#642) |
+| T0-B2 | One bottom tab bar, correct lit tab, on every signed-in page (+ E11 one link scheme) | 36 | Train d (#642) |
+| T0-B3 | One font set | 36 | With the UI kit (week 2): the kit sets the one type scale (Archivo + JetBrains Mono); restyling the old CSS first would be done twice |
+| T0-B4 | One post component (Mix's) on Profile/Tribes/Saved | 36 | Dates done in train d (#642, one time label for posts and comments). The single post layout and icon row is the UI kit's post component (G3): Mix's post look is about 160 stacked `#feed > .post … !important` rules across 9 files |
+| T0-B5 | Your photo instead of "N" on your posts and composer | 36 | Train d (#642) |
+| T0-B6 | One button system (orange primary) | 36 | With the UI kit (week 2) |
+| T0-C1 | Tour Manager: no paywall | 36 | Train e (branch claude/modest-fermi-6r0jo1-train-e): no Buy form, price or "Paid" label; credits only when a send needs one; count + Refund an unused purchase stay |
+| T0-C2 | Tour Manager: never re-ask EPK info | 36 | Already done (task 25): "Pitching as … · View EPK · Edit in the EPK builder", act details from the published EPK. Verified 2026-11-19 |
+| T0-B7 | Styled switches/selects/date/file pickers | 36 | With the UI kit (week 2: every web form matches, forms-match.cjs) |
+| T0-B8 | Fluid pages: Tour Manager, Support, Settings, HQ | 36 | With the UI kit (week 2, screen by screen) |
+| T0-B9 | Landing page in DanzStak style | 36 | With the UI kit (week 2) |
+| T0-B10 | Bazaar images fill tiles; one search | 36 | Train d (#642) |
+| T0-CD | Small fixes C3–C5, D1–D7 | 36 | Train e: C5 "Music HQ" title, D2/D3 not-found pages with a way back, D5 Roll empty state lined up, D6 Unpublish only when published + trash icon (root cause: emoji variation selector), D7 shield icon. C3 already gone (verified). Moved: C4 Menu grid + Radio stations → F8 Menu pass with T2h/T2i; D1 Events form → F10; D4 Friends invite → F9 |
+| T2a | Tap any profile picture → that member's profile | CLAUDE.md "T2 checklist", 18 | PR #598 (train) |
+| T2b | No separate Dailies upload (Dailies tile never opens the photo picker) | CLAUDE.md "T2 checklist", 18 | PR #605 (train, with T0-A2) |
 | T2c | TAKE N counts photos and videos | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2d | Videos tab: poster frame, full avatar, readable dates | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2e | Media fills the column edge to edge everywhere | CLAUDE.md "T2 checklist", 18 | TODO |
@@ -77,7 +78,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 5a04 | **Tribe creation + Elder setup like Facebook Groups** (setup screen with live preview, Public/Private + Visible/Hidden, invite friends, Create → Elder, setup checklist, rules/questions/moderation; 5 PRs per the design's build order) | 29a (+29) | Step 1 PR #586 (create screen); steps 2–5 TODO |
 | 5a01 | **Share a phone photo to DanzStak** (Android Share menu → DanzStak → composer with the photo attached; Web Share Target) | 32 | TODO — WIP branch `build/share-target` to finish |
 | 5a02 | **SYNC auto-translate messages** (setting off by default; incoming messages shown in your language with "Show original"; Amazon Translate via Auth API, fail-closed) | 33 | TODO |
-| 5a1 | **Owner 2026-11-18 evening (top priority):** tap a video or photo anywhere → full screen, media only (no post text), swipe **vertically (up/down)** through **that member's** videos or photos (owner correction 2026-11-19); Back returns to the same spot in Mix/profile. Same viewer for Mix, profiles, Dailies, The Roll. | 18 ("Tap any photo or video anywhere"), CLAUDE.md "Owner directives 2026-11-18 (evening)" | TODO |
+| 5a1 | **Owner 2026-11-18 evening (top priority):** tap a video or photo anywhere → full screen, media only (no post text), swipe **vertically (up/down)** through **that member's** videos or photos (owner correction 2026-11-19); Back returns to the same spot in Mix/profile. Same viewer for Mix, profiles, Dailies, The Roll. | 18 ("Tap any photo or video anywhere"), CLAUDE.md "Owner directives 2026-11-18 (evening)" | PR #594 (#577 brought up to date with main, vertical swipe; merge #594, close #577) |
 | 5a2 | **Owner 2026-11-18 evening:** profile **Photos** and **Videos** tabs are media-only grids with **named albums** (concert, date, someone's wedding…): create/rename/visibility, upload many at once, choose which also get posted. Frontend first, then the album API. | 18 ("Profile Photos tab", "Profile Videos tab") | TODO |
 | 5a3 | **Owner 2026-11-18 evening:** Facebook-style **friends row** under the profile name (small overlapping friend photos + "N friends" / "Friends with things in common"); tap → Friends · Following · Things in common; tapping a friend's photo opens that friend's profile. | 18 ("Friends row under the profile header") | PR #572 (row + Friends screen + request/accepted notifications) |
 | 5a5 | **Bazaar item every 4th post in Mix, after The Roll** (server cursor + Mix slot card; see CLAUDE.md "Plan (Claude, 2026-11-18 night)" step 4) | 23b | TODO |
