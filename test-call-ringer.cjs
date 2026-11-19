@@ -337,7 +337,7 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
 
   // ---------- 11. Wiring and translations ----------
   for (const page of ["messages.html", "feed.html", "profile.html"]) { assert.match(read(page), /<script src="assets\/call-ringer\.js\?v=\d+" defer><\/script>/, `${page} loads the ringer`); assert.match(read(page), /assets\/call-ringer\.css\?v=\d+/); }
-  assert.match(worker, /"\/assets\/call-ringer\.js", "\/assets\/call-ringer\.css", "\/assets\/call-alerts\.js"/, "cached offline");
+  for (const file of ["/assets/call-ringer.js", "/assets/call-ringer.css", "/assets/call-alerts.js"]) assert.ok(worker.includes(`"${file}"`), `${file} cached offline`);
   // Kept from PR #578: louder rings, a louder default, and a Call alerts button that always answers.
   const setup = read("assets/call-setup.js");
   assert.match(tonesSource, /tone\.kind === "ring" && out\.createDynamicsCompressor/, "rings are compressed and lifted (owner: ring tones too quiet)");
