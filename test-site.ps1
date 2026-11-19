@@ -140,8 +140,9 @@ foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
   if (-not $markup.Contains($mediaOrigin)) { Add-Failure "${page}: signed AWS media origin is blocked by CSP" }
 }
 if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
-# Audit A2 (owner 2026-11-19): Dailies come from posts; the Dailies tile never opens the photo picker.
-foreach ($dailiesTileControl in @('aria-label="Add a photo or video to Dailies"', 'if (ownDailies.length) { void openStoryViewer(ownDailies[0]); return; }', 'ownDailies = (data.stories || []).filter(story => story.isOwner);')) {
+# Audit A2 (owner 2026-11-19): Dailies come from posts. The own tile opens your Dailies (swipe through them, #605) or
+# the post box, never a file picker.
+foreach ($dailiesTileControl in @('aria-label="Post a photo or video to your Dailies"', 'if (ownDailies.length) { void openStoryViewer(ownDailies[0], { sequence: ownDailies }); return; }', 'ownDailies = allStories.filter(story => story.isOwner === true);')) {
   if (-not $feed.Contains($dailiesTileControl)) { Add-Failure "Dailies tile: viewer/composer behaviour is incomplete: $dailiesTileControl" }
 }
 if ($feed.Contains('createStoryInput')) { Add-Failure 'Dailies tile: still opens a separate photo picker' }

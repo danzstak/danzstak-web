@@ -56,7 +56,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-B10 | Bazaar images fill tiles; one search | 36 | TODO |
 | T0-CD | Small fixes C3–C5, D1–D7 | 36 | TODO |
 | T2a | Tap any profile picture → that member's profile | CLAUDE.md "T2 checklist", 18 | TODO |
-| T2b | No separate Dailies upload (Dailies tile never opens the photo picker) | CLAUDE.md "T2 checklist", 18 | TODO |
+| T2b | No separate Dailies upload (Dailies tile never opens the photo picker) | CLAUDE.md "T2 checklist", 18 | PR #605 (with T0-A2) |
 | T2c | TAKE N counts photos and videos | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2d | Videos tab: poster frame, full avatar, readable dates | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2e | Media fills the column edge to edge everywhere | CLAUDE.md "T2 checklist", 18 | TODO |

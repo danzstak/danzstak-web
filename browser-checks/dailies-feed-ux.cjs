@@ -17,7 +17,7 @@ function fixture(url) {
   if (url.pathname === "/stories") return { dailyTakeCount: 5, stories: [{
     storyId: "daily-video-1", memberId: friendId, displayName: "The Extraordinarily Long Touring Artist Name", content: "Backstage rehearsal", mediaType: "video", mediaUrl: "", createdAt: "2026-11-05T12:30:00.000Z", isOwner: false
   }, {
-    storyId: "daily-owner-video", memberId: ownerId, displayName: "Long Dailies Creator Name", content: "Soundcheck", mediaType: "video", mediaUrl: "", createdAt: "2026-11-05T13:30:00.000Z", isOwner: true
+    storyId: "daily-video-2", memberId: "33333333-3333-4333-8333-333333333333", displayName: "Second Friend", content: "Soundcheck", mediaType: "video", mediaUrl: "", createdAt: "2026-11-05T13:30:00.000Z", isOwner: false
   }] };
   if (url.pathname === "/secure-posts") return { posts: [] };
   if (url.pathname === "/friends") return { friends: [] };
@@ -106,7 +106,8 @@ function fixture(url) {
       if (width < 700) {
         assert.ok(result.icons.every(icon => icon.svg && icon.height >= 38), `${width}px media controls are not usable: ${JSON.stringify(result.icons)}`);
         // Owner 2026-11-18: three tiles across, each a third of the screen (was a square, half-width card).
-        // Here two Dailies fill both slots beside the creator tile, so no placeholder is needed.
+        // Here two friends' Dailies fill both slots beside the creator tile, so no placeholder is needed. Your own Dailies
+        // live in your tile and are not repeated in the strip (#605).
         const third = (width - 4) / 3;
         assert.ok(Math.abs(result.creatorWidth - third) <= 2, `${width}px Dailies creator card is not a third of the screen (${result.creatorWidth}px, expected ${third.toFixed(1)}px)`);
         assert.ok(Math.abs(result.storyWidth - result.creatorWidth) <= 1 && Math.abs(result.storyHeight - result.creatorHeight) <= 1, `${width}px Dailies media card does not match the creator card (${result.storyWidth}x${result.storyHeight} vs ${result.creatorWidth}x${result.creatorHeight})`);
