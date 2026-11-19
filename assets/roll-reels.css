@@ -32,3 +32,10 @@
 .reels-rail:not(.roll-fullscreen) .reels-heading h3{font-size:15px!important;line-height:1.2!important}
 .reels-rail:not(.roll-fullscreen) .reels-list{padding:0 var(--mix-pad,12px) 2px!important;scroll-padding-inline:var(--mix-pad,12px)}
 .reels-rail .roll-open,.reels-rail .roll-add-toggle{display:none!important}
+/* T0-A3 (owner 2026-11-19): the full-screen Roll fills the screen edge to edge. The Roll is also a Mix ".post", and the
+   strip's own rules (mix-polish .reels-rail.post padding + negative list margins, the white .post card) still applied in
+   full screen: the video sat 10px low with its bottom cut off, and a grey bar showed above the header. The caption's
+   gradient now runs the full width; only its text keeps clear of the sound button. */
+.reels-rail.post.roll-fullscreen,.reels-rail.roll-fullscreen{padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#050508!important}
+.reels-rail.post.roll-fullscreen .reels-list,.reels-rail.roll-fullscreen .reels-list{margin:0!important;width:100%!important;max-width:none!important;padding:0!important}
+.reels-rail.roll-fullscreen .reel-details{right:0!important;padding-right:max(16px,var(--roll-safe-right,0px))!important}
