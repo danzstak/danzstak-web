@@ -356,6 +356,24 @@ Build order for Claude Code right now: **5a0 → 5a04 Tribe creation (design 29a
 
 Owner: "Make all the little things we've done so far work and look good so I can test them, in the PWA. When everything works, open accounts so friends can sign up and test. When users register devices, a pop-up says save SYNC as its own app." Order:
 
+**T0. Audit fixes first (owner 2026-11-19: "go through all pages and all buttons… so it flows as one webapp").** Full bug list, one line each with root cause where known: `docs/tasks/36-site-audit-2026-11-19.md` (32 screens and every button clicked at 390px, plus the owner's phone reports). Order, one PR per group:
+1. **A1–A3 (owner's phone bugs):**
+   - a posted video lands in Dailies and The Roll automatically, from **any** composer (server sets it; remove the opt-in checkboxes; backfill existing videos);
+   - Dailies tile never opens the photo picker;
+   - **only your own big profile picture on your profile opens the picker (to edit it); every other profile picture opens that member's profile**;
+   - The Roll keeps sound on when it opens full screen, and fills the screen;
+   - **A11** "+ bio" opens the long-bio editor, owner-only;
+   - **A12** remove the @username line under the profile name and put the friends row there (tap a friend's photo → that friend's posts);
+   - **A13** a shop storefront (shop name + rotating item preview + price) in the white space beside the profile picture, replacing the small shop button.
+2. **A4–A10 (broken in the audit):** Saved page crash, Record Stores crash, raw JS errors shown on the shop manager (add one friendly-error helper), Booking Example/Find clubs dead and Leaflet served locally, Elder sees "Join", composer avatar dead, Menu → Photos shows other people's photos.
+3. **B1–B3 one shell:** one app bar, one bottom tab bar with the right tab lit on every signed-in page, one font set.
+4. **B4–B6:** one post component everywhere, your own photo instead of "N", one button system.
+5. **C1–C2:** the Tour Manager has no paywall and never re-asks for EPK info.
+6. **B7–B10:** styled form controls, fluid pages instead of boxes, a DanzStak landing page, Bazaar images.
+7. **C3–C5 and D:** small fixes.
+
+Overlaps: A2 = T2a/T2b, A10 is part of 5a2, B10 includes T2g, C4 = T2h/T2i, D1 = T2f. Build each once and tick both.
+
 **T1. Finish what's open (one at a time, each tested in the installed PWA at 360/390px, then merged by the owner's review session):**
 - #577 full-screen media viewer (5a1), #575 Photos/Videos albums (5a2), #572 friends row (5a3): bring each up to date with main, fix conflicts, finish, browser-check, screenshots.
 - `build/share-target` (5a01): finish as described in the Builder log.
@@ -393,6 +411,7 @@ Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, tr
 
 ### Builder log (newest first)
 - 2026-11-19 01:22 UTC · Claude Code · T2a profile pictures → PR #598 (wall authors, SYNC list photo, online friends link to profiles; 44px tap areas; your own picture opens Change profile picture: this phone or your DanzStak photos; profile post box now shows your photo; + bio last in the row) · Next: T2b
+- 2026-11-19 02:00 UTC · Claude (planning chat) · full site audit (every page + button at 390px) + owner phone bugs → `docs/tasks/36-site-audit-2026-11-19.md`, plan T0 above, queue rows A1–D · Next: T0-A1
 - 2026-11-19 · Claude (planning chat) · owner: yes, the SYNC chat list may be kept on the phone → T2 checklist item 14 / queue T2n unblocked · Next: T1
 - 2026-11-19 · Claude (planning chat) · owner asked what's next → "T2 checklist" (16 fix-it items) added under the test-ready plan; queue rows T2a–T2p · Next: T1
 - 2026-11-19 00:45 UTC · Claude (planning chat) · owner: tap photo/video → full screen **vertical** swipe through that member's photos/videos (was horizontal); Dailies = horizontal swipe; The Roll = carousel swipe → plan steps 1 and 6 updated, queue 5a1/5a7 · Next: T1
