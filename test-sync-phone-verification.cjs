@@ -72,3 +72,13 @@ const { pathToFileURL } = require("node:url");
   assert.match(client, /resend\.addEventListener\("click", \(\) => \{[^}]*send\.disabled = current\?\.providerAvailable !== true/, "Resend brings back a Send button that works");
   console.log("Directive L2 registration checks passed.");
 }
+
+// The SYNC test-notification button and its reply are in the member's language (owner 2026-11-19: Italian tester saw English).
+{
+  const fs = require("node:fs"), assert = require("node:assert/strict");
+  const push = fs.readFileSync("assets/push-notifications.js", "utf8"), sync = fs.readFileSync("assets/i18n-sync.js", "utf8");
+  assert.doesNotMatch(push, /status\.textContent = "|status\.textContent = error\.message|: "No device has|`Sent to \$\{/, "test-notification replies go through t()");
+  for (const key of ["Send a test notification", "Sending…", "No device has notifications on yet. Allow notifications and try again.", "Sent to 1 device.", "Sent to {count} devices.", "This device will ring for calls when SYNC is closed.", "This device gets messages; register it to ring for calls when SYNC is closed.", "Notifications must be allowed for background alerts.", "Finish on this device", "That took a little long. We'll send a new code."])
+    assert.equal(sync.split(JSON.stringify(key) + ":").length - 1, 5, `"${key}" must be translated into it, fr, es, de and pt`);
+  console.log("SYNC test-notification localization checks passed.");
+}

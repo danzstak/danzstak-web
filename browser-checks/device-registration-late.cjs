@@ -5,6 +5,7 @@
 //   1. Send, wait 6 minutes, send again → a NEW challenge, and register uses it → registered.
 //   2. Register answers 409 DEVICE_CHALLENGE_EXPIRED → one-tap restart (number kept) → registered.
 //   3. Number verified but this device never registered → "Finish on this device" (centre tap) → code → registered.
+//   4. An incoming call pops the window once per session; the next page doesn't ("this page keeps coming up"); a tap still opens it.
 // Engines: Edge in CI (like the other checks), Chromium here; DANZSTAK_WEBKIT=1 adds WebKit where it is installed.
 const { chromium, webkit } = require("playwright");
 const assert = require("node:assert/strict");
@@ -68,13 +69,31 @@ async function scenario(browser, engine, width, mode) {
     if (p === "/calls/inbox") return route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ code: "CALL_DEVICE_REGISTRATION_REQUIRED" }) });
     return route.fulfill(json({}));
   });
-  await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${baseUrl}/messages.html${mode === "nag" ? "?device=register" : ""}`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => typeof window.danzstakOpenCallingDevices === "function" && window.danzstakSyncDeviceReady);
   await page.evaluate(() => window.danzstakSyncDeviceReady);
-  await page.evaluate(() => window.danzstakOpenCallingDevices());
   const dialog = page.locator("#callingDevicesDialog");
-  await dialog.waitFor({ state: "visible" });
   const tag = `${engine} ${width}px ${mode}`;
+  if (mode === "nag") {
+    // An incoming call on an unregistered device pops the window once per session, never on every page or call.
+    await page.evaluate(() => window.danzstakRequireCallingDevice({ incoming: true }));
+    await dialog.waitFor({ state: "visible" });
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "hidden" });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => typeof window.danzstakRequireCallingDevice === "function" && window.danzstakSyncDeviceReady);
+    await page.evaluate(() => window.danzstakSyncDeviceReady);
+    await page.evaluate(() => window.danzstakRequireCallingDevice({ incoming: true }));
+    await page.waitForTimeout(300);
+    assert.equal(await dialog.isVisible(), false, `${tag}: the registration window popped up again on the next page`);
+    assert.equal(new URL(page.url()).searchParams.has("device"), false, `${tag}: ?device=register left in the address`);
+    await page.evaluate(() => window.danzstakOpenCallingDevices());
+    await dialog.waitFor({ state: "visible" });
+    await context.close();
+    return;
+  }
+  await page.evaluate(() => window.danzstakOpenCallingDevices());
+  await dialog.waitFor({ state: "visible" });
 
   if (mode === "unfinished") {
     await page.locator("#syncPhoneFinish").waitFor({ state: "visible" });
@@ -131,7 +150,7 @@ async function scenario(browser, engine, width, mode) {
   try {
     for (const [engine, browser] of engines)
       for (const width of widths)
-        for (const mode of ["late", "expired", "unfinished"]) await scenario(browser, engine, width, mode);
-    console.log(`device-registration-late: ${engines.map(([name]) => name).join(", ")} at ${widths.join("/")}px · late send, expired challenge and unfinished device all register`);
+        for (const mode of ["late", "expired", "unfinished", "nag"]) await scenario(browser, engine, width, mode);
+    console.log(`device-registration-late: ${engines.map(([name]) => name).join(", ")} at ${widths.join("/")}px · late send, expired challenge and unfinished device all register; the window pops up once per session`);
   } finally { for (const [, browser] of engines) await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });
