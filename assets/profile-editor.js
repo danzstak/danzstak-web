@@ -137,6 +137,25 @@ function setProfileDetail(id, value) {
   target.closest(".detail").hidden = viewingOtherProfile && !text;
 }
 
+// About = the member's vanity wall (owner 2026-11-18): their long-form story first, big, then the details.
+const storyBlock = document.createElement("section");
+storyBlock.className = "profile-story";
+storyBlock.hidden = true;
+const storyText = document.createElement("blockquote");
+storyText.className = "profile-story-text";
+storyText.setAttribute("data-no-translate", "");
+storyBlock.append(storyText);
+// Owner 2026-11-19: "get rid of the bio button" — "+ bio" and the story pencil only opened Edit profile again.
+// The long bio is written in Edit profile ("Your story") and shows here.
+details.appendChild(storyBlock);
+function renderProfileStory(profile = {}) {
+  const story = String(profile.story || "").trim(), owner = profile.isOwner === true && !viewingOtherProfile;
+  storyText.textContent = story;
+  storyText.hidden = !story;
+  storyBlock.hidden = !story;
+  if (story) window.danzstakLinkifyUserText?.(storyText);
+}
+
 detail("Location", "profileLocation");
 detail("Work", "profileWork");
 detail("Website", "profileWebsite");
@@ -157,12 +176,6 @@ shopManagementLink.setAttribute("role", "button"); shopManagementLink.dataset.ic
 shopManagementLink.hidden = viewingOtherProfile;
 actions.appendChild(shopManagementLink);
 bioElement.insertAdjacentElement("afterend", actions);
-const nameEditHint = document.createElement("button");
-nameEditHint.type = "button";
-nameEditHint.className = "profile-name-edit-hint";
-nameEditHint.textContent = profileEditorWords.tap;
-nameEditHint.hidden = true;
-handleElement.insertAdjacentElement("afterend", nameEditHint);
 
 const mediaTools = document.createElement("div");
 mediaTools.className = "profile-media-tools";
@@ -754,7 +767,7 @@ function profileWallComposer(profile) {
     button.addEventListener("click", handler);
     shortcuts.appendChild(button);
   };
-  addShortcut("Add a video", "video", () => { mediaInput.accept = "video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
+  // Audit E9 (2026-11-19): one Photo/video button. "Add a video" opened the same picker as the button beside it.
   addShortcut("Add a photo or video", "image", () => { mediaInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
   const eventLink = document.createElement("a");
   eventLink.className = "profile-create-shortcut";
@@ -927,10 +940,14 @@ async function loadProfileFriends() {
   if (viewingOtherProfile) { tabMessage.textContent = "This member’s friend list is private."; return; }
   tabMessage.textContent = "Loading friends…";
   try {
-    const [friendsResult, directoryResult] = await Promise.allSettled([
+    const [friendsResult, directoryResult, everyoneResult] = await Promise.allSettled([
       profileFetch(profileApi + "/friends", { credentials: "include", cache: "no-store" }),
-      profileFetch(profileApi + "/calls/directory", { credentials: "include", cache: "no-store" })
+      profileFetch(profileApi + "/calls/directory", { credentials: "include", cache: "no-store" }),
+      // Owner 2026-11-18: "I'm still not able to see all the users that have signed up." Everyone on DanzStak, online first.
+      profileFetch(profileApi + "/people?all=1", { credentials: "include", cache: "no-store" })
     ]);
+    const everyoneResponse = everyoneResult.status === "fulfilled" ? everyoneResult.value : null;
+    const everyoneData = everyoneResponse?.ok ? await everyoneResponse.json().catch(() => null) : null;
     const response = friendsResult.status === "fulfilled" ? friendsResult.value : null;
     if (!response?.ok) throw new Error("Friends could not be loaded");
     const data = await response.json();
@@ -964,10 +981,12 @@ async function loadProfileFriends() {
     // Owner 2026-11-17: pending requests live on the Friends tab too — incoming to answer, sent ones marked "Request sent".
     appendProfileFriendRequests(data.incoming, "incoming");
     appendProfileFriendRequests(data.outgoing, "outgoing");
-    // Members online now (not already friends), like a familiar "active now" list.
-    const onlineMembers = onlineDirectory.filter(user => !friendEmails.has(String(user.email || "").toLowerCase()) && /^[a-f0-9-]{36}$/.test(String(user.memberId || "")));
+    // Everyone else on DanzStak (not already friends), online first. Falls back to "Online now" if the member list is unavailable.
+    const friendIds = new Set((data.friends || []).map(friend => String(friend.memberId || "")));
+    const everyone = Array.isArray(everyoneData?.users) ? everyoneData.users.filter(user => user.friendStatus !== "friends" && !friendIds.has(String(user.memberId || "")) && /^[a-f0-9-]{36}$/.test(String(user.memberId || ""))) : null;
+    const onlineMembers = everyone || onlineDirectory.filter(user => !friendEmails.has(String(user.email || "").toLowerCase()) && /^[a-f0-9-]{36}$/.test(String(user.memberId || "")));
     if (onlineMembers.length) {
-      const onlineHeading = document.createElement("h3"); onlineHeading.className = "profile-friends-heading"; onlineHeading.textContent = `Online now · ${onlineMembers.length}`;
+      const onlineHeading = document.createElement("h3"); onlineHeading.className = "profile-friends-heading"; onlineHeading.textContent = everyone ? `Everyone on DanzStak · ${onlineMembers.length}` : `Online now · ${onlineMembers.length}`;
       const onlineGrid = document.createElement("div"); onlineGrid.className = "profile-friend-grid";
       for (const member of onlineMembers) {
         const link = document.createElement("a"); link.className = "profile-friend-card"; link.href = "profile.html?member=" + encodeURIComponent(member.memberId);
@@ -975,8 +994,9 @@ async function loadProfileFriends() {
         if (member.picture) { avatar.src = member.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
         else { avatar.textContent = (member.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
         const copy = document.createElement("span"); const name = document.createElement("strong"); name.textContent = member.name || "DanzStak member";
-        const availability = document.createElement("small"); availability.textContent = "Online";
-        const status = document.createElement("span"); status.className = "profile-friend-presence online"; status.title = "Online"; status.setAttribute("aria-hidden", "true");
+        const isOnline = everyone ? member.online === true : true;
+        const availability = document.createElement("small"); availability.textContent = isOnline ? "Online" : (member.handle ? "@" + member.handle : "");
+        const status = document.createElement("span"); status.className = isOnline ? "profile-friend-presence online" : "profile-friend-presence"; status.title = isOnline ? "Online" : "Offline"; status.setAttribute("aria-hidden", "true");
         copy.append(name, availability); link.append(avatar, copy, status); onlineGrid.appendChild(link);
       }
       tabMessage.append(onlineHeading, onlineGrid);
@@ -1293,6 +1313,7 @@ panel.innerHTML = '<h2>' + profileEditorWords.heading + '</h2>' +
   '<details class="profile-edit-section profile-username"><summary>' + profileEditorWords.advanced + '</summary><div class="profile-edit-section-body"><label>' + profileEditorWords.handle + '<input name="handle" minlength="3" maxlength="24" pattern="[A-Za-z0-9._]+"><small>' + profileEditorWords.handleHelp + '</small></label></div></details>' +
   '<details class="profile-edit-section"><summary>More profile details</summary><div class="profile-edit-section-body">' +
   '<label>Bio<textarea name="bio" maxlength="160"></textarea></label>' +
+  '<label>Your story<textarea name="story" maxlength="2000" rows="8" placeholder="Where you came from, what you make, the shows that mattered. This is your About page."></textarea><small>Up to 2000 characters. Shown big on your About tab.</small></label>' +
   '<label>Location<input name="location" maxlength="80"></label>' +
   '<label>Work<input name="work" maxlength="100"></label>' +
   '<label>Website<input name="website" type="text" inputmode="url" maxlength="200" placeholder="yourband.com"></label></div></details>' +
@@ -1365,11 +1386,12 @@ function applyProfile(profile) {
   // Owner 2026-11-19: no "+ bio" button in the profile header — it duplicated Edit profile ("4 of those 5 buttons do
   // the same thing") and once leaked to visitors. The long-form bio is added from the About tab (#556).
   window.danzstakLinkifyUserText?.(bioElement);
+  renderProfileStory(profile);
   setProfileDetail("profileLocation", profile.location);
   setProfileDetail("profileWork", profile.work);
   renderProfileWebsite(profile.website);
   document.getElementById("profileWebsite").closest(".detail").hidden = viewingOtherProfile && !String(profile.website || "").trim();
-  details.hidden = viewingOtherProfile && ![...details.querySelectorAll(".detail")].some(box => !box.hidden);
+  details.hidden = viewingOtherProfile && storyBlock.hidden && ![...details.querySelectorAll(".detail")].some(box => !box.hidden);
   const name = document.getElementById("profileName").textContent.trim();
   const avatar = document.getElementById("profileInitial");
   if (profile.picture) { avatar.style.backgroundImage = `url("${profile.picture}")`; avatar.classList.add("has-photo"); avatar.textContent = ""; }
@@ -1396,6 +1418,7 @@ editButton.addEventListener("click", () => {
   panel.elements.name.value = profile.name || document.getElementById("profileName").textContent;
   panel.elements.handle.value = profile.handle || handleElement.textContent.replace(/^@/, "");
   panel.elements.bio.value = profile.bio || "";
+  panel.elements.story.value = profile.story || "";
   panel.elements.location.value = profile.location || "";
   panel.elements.work.value = profile.work || "";
   panel.elements.website.value = profile.website || "";
@@ -1405,15 +1428,13 @@ editButton.addEventListener("click", () => {
   panel.hidden = false;
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
 });
-nameEditHint.addEventListener("click", () => {
+// Audit E8 (2026-11-19): the Edit button is the only way into Edit profile. The name is plain text again (it used to be
+// a hidden "Tap your name to change it" button, a third way in). ?edit=identity still opens the editor at the name.
+function openNameEdit() {
   editButton.click();
   requestAnimationFrame(() => panel.elements.name.focus({ preventScroll: true }));
-});
+}
 panel.elements.website.addEventListener("input", () => panel.elements.website.setCustomValidity(""));
-document.getElementById("profileName").addEventListener("click", () => {
-  if (viewingOtherProfile || editButton.hidden) return;
-  nameEditHint.click();
-});
 
 panel.querySelector("[data-cancel]").addEventListener("click", () => { panel.hidden = true; repositioning = false; finishReposition.hidden = true; coverElement.classList.remove("repositioning"); repositionButton.classList.remove("active"); repositionButton.textContent = "Reposition Cover"; });
 panel.addEventListener("submit", async event => {
@@ -1464,17 +1485,6 @@ function applyLoadedProfile(profile = {}) {
   if (profile.isOwner === true) {
     viewingOtherProfile = false;
     editButton.hidden = false;
-    nameEditHint.hidden = true; // owner 2026-11-16: no "tap your name" instruction; the name is tappable
-    const profileName = document.getElementById("profileName");
-    profileName.classList.add("profile-name-editable");
-    profileName.tabIndex = 0;
-    profileName.setAttribute("role", "button");
-    profileName.setAttribute("aria-label", profileEditorWords.tap);
-    profileName.addEventListener("keydown", event => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      nameEditHint.click();
-    }, { once: false });
     mediaTools.hidden = false;
     const requestedEdit = new URLSearchParams(location.search).get("edit");
     if (["identity", "privacy"].includes(requestedEdit) && panel.dataset.routeOpened !== "true") {
