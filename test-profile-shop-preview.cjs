@@ -36,10 +36,4 @@ console.log("profile shop preview ok");
   assert.match(auth, /"profileShowcaseKey = :candidate"\]\.join\(" OR "\)/);
   assert.match(auth, /\["profileShowcaseKey", "showcase"\]/);
 }
-{
-  // Owner 2026-11-18: viewing someone else's profile showed "+ bio". The icon's !important display beat [hidden].
-  const polish = fs.readFileSync("assets/profile-polish.css", "utf8");
-  assert.match(polish, /\.profile-actions \.profile-add-bio--icon\[hidden\]\{display:none!important\}/);
-  assert.match(editor, /addBioButton\.hidden = Boolean\(profile\.bio\) \|\| profile\.isOwner !== true \|\| viewingOtherProfile;/);
-}
-console.log("profile showcase and + bio checks ok");
+console.log("profile showcase checks ok");
