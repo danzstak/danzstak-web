@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
 
-const widths = [320, 360, 390, 430, 1024];
+const widths = [320, 360, 390, 414, 430, 1024];
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const friendId = "22222222-2222-4222-8222-222222222222";
 const output = path.resolve("docs/screenshots/issue-49");
@@ -83,6 +83,8 @@ function fixture(url) {
           creatorHeight: creatorRect.height,
           storyWidth: storyRect.width,
           storyHeight: storyRect.height,
+          placeholderCount: document.querySelectorAll("#storiesRail .story-placeholder").length,
+          railOverflow: document.querySelector("#storiesRail").scrollWidth - document.querySelector("#storiesRail").clientWidth,
           longNameHeight: longNameRect.height,
           longNameInside: longNameRect.left >= creatorRect.left - 1 && longNameRect.right <= document.querySelector('.story[data-story-id="daily-video-1"]').getBoundingClientRect().right + 1,
           fullNameLabel: nameMore?.getAttribute("aria-label") || ""
@@ -103,9 +105,13 @@ function fixture(url) {
       assert.deepEqual(result.icons.map(icon => icon.label), ["Photo", "Video"]);
       if (width < 700) {
         assert.ok(result.icons.every(icon => icon.svg && icon.height >= 38), `${width}px media controls are not usable: ${JSON.stringify(result.icons)}`);
-        assert.ok(Math.abs(result.creatorWidth - result.creatorHeight) <= 1, `${width}px Dailies creator card is not square`);
-        assert.ok(Math.abs(result.storyWidth - result.storyHeight) <= 1, `${width}px Dailies media card is not square`);
-        assert.ok(result.creatorWidth >= 148, `${width}px Dailies profile tile is smaller than the profile treatment`);
+        // Owner 2026-11-18: three tiles across, each a third of the screen (was a square, half-width card).
+        // Here two Dailies fill both slots beside the creator tile, so no placeholder is needed.
+        const third = (width - 4) / 3;
+        assert.ok(Math.abs(result.creatorWidth - third) <= 2, `${width}px Dailies creator card is not a third of the screen (${result.creatorWidth}px, expected ${third.toFixed(1)}px)`);
+        assert.ok(Math.abs(result.storyWidth - result.creatorWidth) <= 1 && Math.abs(result.storyHeight - result.creatorHeight) <= 1, `${width}px Dailies media card does not match the creator card (${result.storyWidth}x${result.storyHeight} vs ${result.creatorWidth}x${result.creatorHeight})`);
+        assert.equal(result.placeholderCount, 0, `${width}px Dailies strip shows placeholders although two Dailies fill it`);
+        assert.ok(result.railOverflow <= 1, `${width}px three-tile Dailies strip scrolls sideways (${result.railOverflow}px)`);
       }
       assert.ok(result.longNameHeight > 20 && result.longNameInside, `${width}px creator name is clipped or escapes its tile`);
       assert.match(result.fullNameLabel, /The Extraordinarily Long Touring Artist Name/, `${width}px long name has no expanded affordance`);
