@@ -470,6 +470,7 @@ Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, tr
 
 ### Builder log (newest first)
 - 2026-11-19 09:20 UTC · Claude Code (manager) · #600 merged; Eroticon video put in The Roll + today's Dailies directly in DynamoDB; IAM policy + Auth API deploy left for the owner session (cloud session may not change IAM); "Manager's plan" written above · Next: land #602, #604, #599, #603, then T0-A2
+- 2026-11-19 01:45 UTC · Claude Code · T0-A1 · PR #602 posted photos/videos go to Dailies (24 h) and videos to The Roll automatically from every composer (server-side), checkboxes removed; owner: deploy Auth API (managed policy DanzStakPostDailies) then `node infrastructure/auth-api/backfill-video-reels.mjs --apply` · Next: T0-A2
 - 2026-11-19 · Claude Code (owner live session) · re-tapped every control on 30 screens on main → `docs/tasks/36` section E; new T0-E1 (Mix Comment icon dead), E8–E10; A11/A12/A13/A1 now PRs #600/#600+#572/#599/#601 · Next: T0-E1
 - 2026-11-19 02:00 UTC · Claude (planning chat) · full site audit (every page + button at 390px) + owner phone bugs → `docs/tasks/36-site-audit-2026-11-19.md`, plan T0 above, queue rows A1–D · Next: T0-A1
 - 2026-11-19 · Claude (planning chat) · owner: yes, the SYNC chat list may be kept on the phone → T2 checklist item 14 / queue T2n unblocked · Next: T1
