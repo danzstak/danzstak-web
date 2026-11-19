@@ -4,7 +4,7 @@
   const status = document.getElementById("syncNetworkNumberStatus");
   const buy = document.getElementById("buySyncNetworkNumber");
   if (!status || !buy) return;
-  let loading = false;
+  let loading = false, wantsNumber = new URLSearchParams(location.search).get("ds") === "1";
 
   async function request(path, options = {}) {
     const controller = new AbortController();
@@ -25,6 +25,8 @@
     status.textContent = active ? `Your private SYNC alias is ${data.alias}.` : data?.checkoutAvailable === false ? "DS number Test Mode checkout is not available on this build." : "No DS number is assigned to this account yet.";
     buy.hidden = active || data?.checkoutAvailable === false;
     buy.disabled = false;
+    // Arrived from the "No phone number? Get a DS number" notification: show the button.
+    if (wantsNumber && !buy.hidden) { wantsNumber = false; buy.scrollIntoView({ block: "center" }); buy.focus({ preventScroll: true }); }
   }
 
   async function load() {
