@@ -116,7 +116,7 @@ bioElement.className = "profile-bio";
 bioElement.hidden = true;
 handleElement.insertAdjacentElement("afterend", bioElement);
 
-function detail(label, id) {
+function detail(label, id, parent = details) {
   const box = document.createElement("div");
   box.className = "detail";
   const title = document.createElement("span");
@@ -127,7 +127,7 @@ function detail(label, id) {
   value.id = id;
   value.textContent = "Not added";
   box.append(title, value);
-  details.appendChild(box);
+  parent.appendChild(box);
 }
 
 function setProfileDetail(id, value) {
@@ -156,8 +156,12 @@ function renderProfileStory(profile = {}) {
   if (story) window.danzstakLinkifyUserText?.(storyText);
 }
 
-detail("Location", "profileLocation");
-detail("Work", "profileWork");
+// Owner 2026-11-19: Location and Work share one line (two columns), then Website.
+const locationWork = document.createElement("div");
+locationWork.className = "detail-pair";
+details.appendChild(locationWork);
+detail("Location", "profileLocation", locationWork);
+detail("Work", "profileWork", locationWork);
 detail("Website", "profileWebsite");
 
 const actions = document.createElement("div");
