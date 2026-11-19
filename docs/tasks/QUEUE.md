@@ -20,18 +20,19 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 3 | One phone verification across the same person's accounts (up to 10) | owner 2026-11-17 | PR #405 (merged) |
 | 4 | (Owner 2026-11-17: a two-device **video call worked well** — Chrome/computer ↔ phone. Keep it working.) SYNC 16-A: native shell + layout (messages scroll under the header, nothing cut off, keyboard) | 16 | PR #411 + #413 |
 | 5 | SYNC 16-C: button system, SYNC first, then site-wide (no "HTML-looking" buttons) | 16 | PR #423 (SYNC), site sweep #455 → #464 |
+| T | **TEST-READY FIRST (owner 2026-11-19):** CLAUDE.md "Plan: test-ready for the owner and friends" T1 finish open PRs → T2 works-and-looks-good sweep in the installed PWA → T3 SYNC own-app pop-up after device registration → T4 invite testers + docs/TESTING.md. No new features until T1–T3 are done. | CLAUDE.md test-ready plan | TODO |
 | 5a00 | **Incoming SYNC calls must ring** (owner 2026-11-18 phone test: calls connect, no ringer). Foreground ringtone via `<audio>` + vibration with audio unlock, background push that rings/vibrates and re-notifies while ringing, "Test ringer" row, call-alerts prompt | 31 | PR #578 (foreground ring + vibration + tap prompt + Test ringer; server re-notify while ringing still TODO) |
 | 5a0 | **Text button in SYNC calls (owner 2026-11-18, do first):** 5th button in the call controls opens a text box; Send shows the note over the other person's video until they close it (existing WebRTC data channel, no server) | 30 | PR #585 |
 | 5a03 | **"Get SYNC as its own app" installs a SYNC icon on the home screen** (own `/sync/` scope so Android installs it next to DanzStak) | 34 | PR #591 |
 | 5a04 | **Tribe creation + Elder setup like Facebook Groups** (setup screen with live preview, Public/Private + Visible/Hidden, invite friends, Create → Elder, setup checklist, rules/questions/moderation; 5 PRs per the design's build order) | 29a (+29) | Step 1 PR #586 (create screen); steps 2–5 TODO |
 | 5a01 | **Share a phone photo to DanzStak** (Android Share menu → DanzStak → composer with the photo attached; Web Share Target) | 32 | TODO — WIP branch `build/share-target` to finish |
 | 5a02 | **SYNC auto-translate messages** (setting off by default; incoming messages shown in your language with "Show original"; Amazon Translate via Auth API, fail-closed) | 33 | TODO |
-| 5a1 | **Owner 2026-11-18 evening (top priority):** tap a video or photo anywhere → full screen, media only (no post text), swipe **horizontally** through **that member's** videos or photos; Back returns to the same spot in Mix/profile. Same viewer for Mix, profiles, Dailies, The Roll. | 18 ("Tap any photo or video anywhere"), CLAUDE.md "Owner directives 2026-11-18 (evening)" | TODO |
+| 5a1 | **Owner 2026-11-18 evening (top priority):** tap a video or photo anywhere → full screen, media only (no post text), swipe **vertically (up/down)** through **that member's** videos or photos (owner correction 2026-11-19); Back returns to the same spot in Mix/profile. Same viewer for Mix, profiles, Dailies, The Roll. | 18 ("Tap any photo or video anywhere"), CLAUDE.md "Owner directives 2026-11-18 (evening)" | TODO |
 | 5a2 | **Owner 2026-11-18 evening:** profile **Photos** and **Videos** tabs are media-only grids with **named albums** (concert, date, someone's wedding…): create/rename/visibility, upload many at once, choose which also get posted. Frontend first, then the album API. | 18 ("Profile Photos tab", "Profile Videos tab") | TODO |
 | 5a3 | **Owner 2026-11-18 evening:** Facebook-style **friends row** under the profile name (small overlapping friend photos + "N friends" / "Friends with things in common"); tap → Friends · Following · Things in common; tapping a friend's photo opens that friend's profile. | 18 ("Friends row under the profile header") | TODO |
 | 5a5 | **Bazaar item every 4th post in Mix, after The Roll** (server cursor + Mix slot card; see CLAUDE.md "Plan (Claude, 2026-11-18 night)" step 4) | 23b | TODO |
 | 5a6 | **Shop skin part 2 + product page** (task 23 items 2–7, product page with the 5a1 viewer; seller fields in `marketplace.mjs`) | 23, CLAUDE.md plan step 5 | TODO |
-| 5a7 | **Dailies card carousel** on the 5a1 viewer | 18 ("Full-screen Dailies viewer") | TODO |
+| 5a7 | **Dailies horizontal swipe (left/right, like stories) + The Roll carousel in Mix (Roll video full screen swipes up/down like Reels)** (owner 2026-11-19) | 18 ("Full-screen Dailies viewer") | TODO |
 | 5a8 | **Share sheet rebuild** (one bottom sheet, 16-C buttons, every page) | 18 ("Share post box"), 17 | TODO |
 | 5a9 | **Tribes like Facebook Groups** (directory cards, Tribe page with cover, members row, Join/Invite, tabs Discussion · Featured · Members · Events · Media · About, Elder tools, private join requests; see CLAUDE.md plan step 8) | 29 | TODO |
 | 5a4 | Profile composer shows the member's own photo, never "D" | owner 2026-11-18 | PR #570 (merged) |
@@ -70,4 +71,4 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 **Blocked on the owner:**
 - AWS support case: Bedrock quotas at 0, and SMS sandbox / Notify rejected.
 
-- Twilio upgrade from Trial before real members register.
+- ~~Twilio upgrade from Trial~~ done by the owner (2026-11-19).
