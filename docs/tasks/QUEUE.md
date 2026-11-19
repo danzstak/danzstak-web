@@ -25,11 +25,11 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-A1 | **Owner bug:** posted video not in Dailies/The Roll → automatic from every composer (server-side), remove opt-in checkboxes, backfill | 36 | MERGED #602 (owner: deploy Auth API) |
 | T0-A2 | **Owner bug:** Dailies tile opens the photo picker; only your own big profile picture edits; every other avatar opens that profile | 36 | TODO |
 | T0-A3 | **Owner bug:** The Roll full screen loses sound (carry the sound choice over) + fill the screen | 36 | TODO |
-| T0-A11 | ~~+ bio opens the long-bio editor~~ Owner (later 2026-11-19): no + bio button at all; Edit profile owner-only; Edit · Shop · Share row | 36 | PR #600 |
+| T0-A11 | ~~+ bio opens the long-bio editor~~ Owner (later 2026-11-19): no + bio button at all; Edit profile owner-only; Edit · Shop · Share row | 36 | MERGED #600 |
 | T0-A12 | **Owner:** remove @username under the profile name; friends row there; tap a friend's photo → their posts | 36, 5a3 | PR #600 (@username hidden) + PR #572 (facepile, needs `/friends/of` deploy) |
-| T0-A13 | **Owner:** shop storefront beside the profile picture (shop name + item preview + price → Shop tab), replaces the shop icon button | 36 | PR #599 |
-| T0-A4 | Saved page crash (`volatilePostPreferences` used before declared) | 36 | TODO |
-| T0-A5 | Record Stores crash + endless loading | 36 | TODO |
+| T0-A13 | **Owner:** shop storefront beside the profile picture (shop name + item preview + price → Shop tab), replaces the shop icon button | 36 | MERGED #599 |
+| T0-A4 | Saved page crash (`volatilePostPreferences` used before declared) | 36 | PR #607 |
+| T0-A5 | Record Stores crash + endless loading | 36 | PR #607 |
 | T0-A6 | Shop manager shows a raw JS error; shared friendly-error helper; Save shop feedback (+ E2 Trusted contacts raw error, E4 Events/Support/Shop silent forms) | 36 | TODO |
 | T0-E8 | Remove "Tap your name to change it" and the tap-name-to-edit path; Edit button is the only way in (C3) | 36 E8 | TODO |
 | T0-E9 | One Photo/video button in the profile and Mix composers (no duplicate media buttons) | 36 E9 | TODO |
