@@ -30,6 +30,8 @@ import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/clien
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { PinpointSMSVoiceV2Client, SendNotifyTextMessageCommand } from "@aws-sdk/client-pinpoint-sms-voice-v2";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import { createMediaCdn, createMediaInvalidator } from "./media-cdn.mjs";
+import { createRequire } from "node:module";
 import {
   GeoPlacesClient,
   GeocodeCommand,
@@ -62,6 +64,23 @@ import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUp
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
+// Task 38: every media delete also drops CloudFront's cached copy. The CloudFront SDK ships with the Lambda Node.js
+// runtime (loaded through createRequire, so no new package); without MEDIA_CDN_DISTRIBUTION_ID this does nothing.
+const mediaCdnInvalidate = (() => {
+  try {
+    const { CloudFrontClient, CreateInvalidationCommand } = createRequire(import.meta.url)("@aws-sdk/client-cloudfront");
+    const client = new CloudFrontClient({ region: "us-east-1", maxAttempts: 3 });
+    return createMediaInvalidator({ distributionId: process.env.MEDIA_CDN_DISTRIBUTION_ID, send: command => client.send(command), CreateInvalidationCommand });
+  } catch { return async () => false; }
+})();
+{
+  const send = s3.send.bind(s3);
+  s3.send = async (command, ...rest) => {
+    const result = await send(command, ...rest);
+    if (command instanceof DeleteObjectCommand && command.input?.Key) mediaCdnInvalidate([command.input.Key]).catch(() => {});
+    return result;
+  };
+}
 // SES us-east-1 has production access (us-west-1 is still in the SES sandbox and can only mail verified addresses).
 const ses = new SESv2Client({ region: "us-east-1" });
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
@@ -124,6 +143,11 @@ const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
 const siteUrl = process.env.SITE_URL;
 const mediaBucket = process.env.MEDIA_BUCKET;
+// Task 38: media through CloudFront with cacheable signed URLs once MEDIA_CDN_DOMAIN and the signing key exist; S3 until then.
+const mediaCdn = createMediaCdn({
+  domain: process.env.MEDIA_CDN_DOMAIN,
+  loadSecret: async () => (await secretsManager.send(new GetSecretValueCommand({ SecretId: process.env.MEDIA_CDN_SECRET_NAME || "danzstak/cloudfront/media-signing-key" }))).SecretString
+});
 
 const callbackUrl = "https://api.danzstak.com/auth/callback";
 const allowedOrigin = "https://danzstak.com";
@@ -476,6 +500,8 @@ const encodeAws = value => encodeURIComponent(value).replace(/[!'()*]/g, charact
 const hmac = (key, value, encoding) => createHmac("sha256", key).update(value).digest(encoding);
 function signedMediaUrl(key, expires = 900, responseHeaders = {}) {
   if (!mediaBucket || !key) return "";
+  // Viewing media goes through the CDN (same URL for hours, so it caches); downloads with a filename stay on S3.
+  if (!Object.keys(responseHeaders).length) { const cdn = mediaCdn.url(key); if (cdn) return cdn; }
   const region = process.env.AWS_REGION, access = process.env.AWS_ACCESS_KEY_ID, secret = process.env.AWS_SECRET_ACCESS_KEY, token = process.env.AWS_SESSION_TOKEN;
   const date = new Date(), stamp = date.toISOString().replace(/[:-]|\.\d{3}/g, ""), day = stamp.slice(0, 8), scope = `${day}/${region}/s3/aws4_request`;
   const host = `${mediaBucket}.s3.${region}.amazonaws.com`, uri = "/" + key.split("/").map(encodeAws).join("/");
@@ -5564,6 +5590,7 @@ async function removePersonalPhone(event) {
 export const handler = async event => {
   const method = event?.requestContext?.http?.method;
   const path = event?.rawPath;
+  await mediaCdn.ready().catch(() => false);
 
   try {
     if (Array.isArray(event?.Records) && event.Records.some(record => record?.EventSource === "aws:sns")) {
