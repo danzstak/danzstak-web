@@ -290,6 +290,10 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 
 **SYNC contacts and invites (owner, 2026-11-18).** Like WhatsApp: on Android the member picks people from the phone's own contacts; DanzStak matches members with "People who have my number can find me on SYNC" on (on by default like WhatsApp, shown on the registration screen, can be turned off any time), compares keyed hashes, stores nothing and never shows a number. Anyone not found gets an invite from the member's own SMS/WhatsApp/share sheet: "<Name> is inviting you to SYNC up on DanzStak"; after sign-up they land in a chat with the inviter. Group chats get invite links. iPhone and computers use invite links and @username search. The standalone SYNC app has its own short sign-up (mobile number → SMS code → name + @username) that registers the device and creates the DanzStak account in one go, so chat-only people join without visiting the main site. Spec: `docs/tasks/24-sync-contacts-and-invites.md`.
 
+## Media CDN (owner 2026-11-19: "build the CDN" — "takes 10 sec with one user", "needs a proper cdn")
+
+**Claude Code: build `docs/tasks/38-media-cdn.md` next (queue row CDN), one PR per step.** Today every photo/video loads straight from the S3 bucket in us-west-1 with a brand-new signed URL each time, so nothing is ever cached and Italy waits ~10 s. Fix: CloudFront in front of the media bucket (private, Origin Access Control, signed URLs from a trusted key group), signed URLs with a fixed expiry window so the same URL repeats and caches, CDN host in CSP and the service-worker cache, `/stories` without full-table scans or per-author Cognito calls, Lambdas at 1024 MB. Videos at 720p follow (task 37). Stays serverless (Lambda/DynamoDB/S3): no containers, Kubernetes, pm2 or Redis. The owner session creates the signing key pair (private key only in Secrets Manager `danzstak/cloudfront/media-signing-key`) and deploys.
+
 ## Owner directives added 2026-11-15
 
 - **SYNC = 80% WhatsApp, 20% DanzStak.** Familiar WhatsApp layout and behavior (chat list, thread, sent/delivered/read ticks, typing, reply/forward/edit/delete, voice notes, calls, groups) in the places people expect; DanzStak brand colors and music-native cards in chat (EPK, show/ticket stub, release sleeve, venue pitch), booking replies in SYNC, Tribe group chats. Plan order: SMS OTP worldwide + DanzStak Network number registration → ticks + typing → reply/forward/edit/delete → push notifications → music cards → end-to-end encryption → in-network DanzStak numbers.
@@ -323,6 +327,72 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 - **SYNC signup = DanzStak membership (owner, 2026-11-18).** Signing up for SYNC makes the person a DanzStak member: one account, one identity, no separate SYNC account. A member who joins through SYNC lands in SYNC after signup (the conversation they were invited to, or the chat list), with Mix one tap away. Someone invited to a call just wants to answer it: the invite link shows who is calling and **Answer**; answering creates the account, asks for name/@username and the SMS code, then connects the call. The caller sees "Waiting for … to join" instead of a ring timeout; if the call is gone, the new member lands on a missed call with **Call back**. Spec: `docs/tasks/24-answer-to-join.md`.
 - **No ChatGPT/Codex references.** Remove ChatGPT, OpenAI and Codex references and dependencies from the repository, scripts and branch/deploy names; DanzStak is built with Claude.
 
+## Manager's plan (owner 2026-11-19: "why do I have to micro-manage Claude — you should be the manager of the project")
+
+**Claude Code runs this project. The owner sets direction and tests on his phone; he should never have to say "do it", "plan it" or "merge it".** Every Claude Code run follows this section, then `docs/tasks/QUEUE.md`.
+
+**Goal right now: test-ready.**
+- Every screen a tester touches works and looks finished in the installed PWA at 360 and 390px.
+- Then friends sign up and test (T4).
+- No new features until the T0 rows are done.
+
+**Each run, in this order:**
+1. **Land what's ready.** For every open PR from Claude Code:
+   - If it's behind main, merge main into it (bump versions with `scripts/bump-versions.cjs`; take the higher number).
+   - If CI is green and its browser check passes, **merge it**. The owner gave permission on 2026-11-19.
+   - Never merge StakGuard work or anything marked "needs owner".
+   - Close a PR that another merged PR supersedes, with one line saying which.
+2. **Build the first `TODO` row in QUEUE.md.**
+   - Reproduce the bug in a real browser at phone width first, and fix the root cause.
+   - Add the check that would have caught it. **Tap the centre of icons**, not the button box: the dead Comment icon slipped past every test that clicked by locator.
+   - Screenshot before and after at 360 and 390px, then open the PR.
+3. **If something can only be done on the owner's computer** (Auth API or call-signaling deploys, IAM, Stripe keys), add it to the **Owner-session box** below with the exact command. Don't stop the queue for it.
+4. **Write one Builder log line** (below) and message the owner **only** for something he must do or see.
+
+**Order of work** (QUEUE.md has the rows; the audit with root causes is `docs/tasks/36-site-audit-2026-11-19.md`):
+1. **Ready PRs:**
+   - #602 (posted photos/videos go to Dailies and The Roll automatically; supersedes #601, so close #601);
+   - #604 (Comment icon);
+   - #599 (shop beside the profile picture);
+   - #603 (this plan).
+2. **T0 bugs**, in queue order:
+   - A2 (Dailies tile opens the photo picker; avatars open profiles);
+   - A4 (Saved page crash);
+   - A5 (Record Stores crash);
+   - A6 together with E2 and E4 (raw errors shown to members; forms that fail silently);
+   - A7 (Booking: dead buttons; serve Leaflet locally);
+   - A8 (Tribes: an Elder sees "Join");
+   - A9 (Mix composer avatar does nothing);
+   - E8 (the only way into Edit profile is the Edit button);
+   - E9 (one Photo/video button);
+   - E10 (Friends ▾ on visitor profiles);
+   - A10 (Menu → Photos/Videos show only your media);
+   - B1–B10 (one app bar, one tab bar, one font set, one post component, one button system);
+   - C1–C5, then D.
+3. **T1: finish the open feature PRs**, one at a time, each brought up to date with main and checked at phone widths:
+   - #594 / #577 (full-screen media viewer; keep one, close the other);
+   - #575 (albums);
+   - #572 (friends facepile; needs the call-signaling `/friends/of` deploy);
+   - #593 (share a phone photo to DanzStak);
+   - #591 (SYNC as its own app);
+   - #598 (avatars open profiles).
+4. **T2 sweep**, then T3 (SYNC own-app pop-up after device registration) and T4 (invite testers, `docs/TESTING.md`).
+
+**Done means:** a fresh account can sign up, post a photo and a video (it lands in Dailies and The Roll), comment, open a profile, use the Bazaar, start a SYNC chat and log out, at 360/390px, with **no raw errors, no dead buttons and no duplicate buttons**.
+
+### Owner-session box (things only the owner's computer can do)
+- **2026-11-19, owner travelling — do these from AWS CloudShell (us-west-1), nothing saved locally.** The CDN signing key already exists (`danzstak/cloudfront/media-signing-key`, CloudFront public key `danzstak-media-signing`).
+  0. **Done 2026-11-19 12:03 UTC:** call-signaling deployed with the CDN (`dk7kawr758jtd.cloudfront.net`, distribution `E1IHQF8SMWIYPH`, `MediaCdnServe=false`), TAKE fix live; backfill ran (18 Dailies, 14 Roll videos, 1 TAKE raised). Steps 1–2 below are done.
+  1. **(done) Deploy call-signaling with the CDN** (also ships #619's TAKE-count fix and #555): CloudShell → `git clone --depth 1 https://github.com/danzstak/danzstak-web.git && cd danzstak-web`, then
+     `ID=$(aws cloudfront list-public-keys --query "PublicKeyList.Items[?Name=='danzstak-media-signing'].Id | [0]" --output text); BUCKET=$(aws cloudformation describe-stack-resource --region us-west-1 --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query StackResourceDetail.PhysicalResourceId --output text); aws cloudformation deploy --region us-west-1 --stack-name DANZSTAK-Call-Signaling --template-file infrastructure/call-signaling/template.yaml --s3-bucket "$BUCKET" --s3-prefix deploy-artifacts --capabilities CAPABILITY_NAMED_IAM --parameter-overrides MediaSigningPublicKeyId=$ID MediaCdnServe=false --no-execute-changeset`
+     → review the change set (adds MediaKeyGroup, MediaOriginAccessControl, MediaCachePolicy, MediaResponseHeadersPolicy, MediaDistribution; modifies MediaBucketPolicy, SignalingRole, SignalingFunction) → `aws cloudformation execute-change-set` with the printed ARN. CloudFront takes ~5–15 min. Then give Claude Code the `MediaCdnDomain` output for task 38 step 3 (CSP + service worker); only after step 3 is live, redeploy with `MediaCdnServe=true` and set the Auth API `MEDIA_CDN_DOMAIN` / `MEDIA_CDN_DISTRIBUTION_ID`.
+  2. **Fill Dailies / The Roll / TAKE for testing (#619):** in the same clone, `cd infrastructure/auth-api && npm ci --ignore-scripts && cd ../.. && node infrastructure/auth-api/backfill-dailies-from-posts.mjs` (dry run, counts only) then `... --apply`. Dailies made this way last 24 h.
+  3. **Deploy the Auth API** (`./aws-deploy-auth-api.ps1`, owner computer) for the server half of #618 (Bazaar scrambled) and the CDN code; until then the Bazaar is mixed in the browser only.
+- **Deploy the Auth API after #602 merges:** `./aws-deploy-auth-api.ps1`. It also creates and attaches the IAM policy `DanzStakPostDailies`; the cloud session isn't allowed to change IAM. Until then, new posts still reach The Roll, and Mix adds the Daily from the browser.
+- **Done 2026-11-19 by Claude Code:** Eroticon's video post (the only video missing `reel`) is now in The Roll, and it has a Daily until 21:06 UTC today. The `backfill-video-reels.mjs` run isn't needed for existing posts.
+- **Deploy call-signaling** for #572 (`/friends/of`) and #555 (everyone list) once they merge.
+- **Deploy the Auth API for the AI EPK (#567)**, then merge it.
+
 ## Hand-off: Claude Code builds, Claude plans (owner 2026-11-18)
 
 **Owner, 2026-11-19 00:10 (final): one coder only. Claude Code codes; Claude (the planning chat) only plans and writes the plan here. "It takes four times longer to fix mistakes than to do it right the first time" — read the spec, build it right, test it in a real browser at phone widths before opening the PR.**
@@ -344,7 +414,7 @@ Goal for the next builds: **DanzStak should feel like a finished, familiar phone
 7. **5a8 Share sheet rebuild** (fix-it 18 "Share post box looks broken") as one bottom sheet with the 16-C buttons; then server-rendered share previews (task 17).
 8. **5a9 Tribes like Facebook Groups** (owner 2026-11-18; full spec `docs/tasks/29-tribes-like-groups.md`, built from the owner's Groups brief on DanzStak's own AWS stack, no Express/Socket.io). Directory: cards with the Tribe's picture, name, member count + small member photos, Join. Tribe page: full-width cover (Elders change it), name, Public/Private · N members, row of member photos, Join / Invite / ⋮; tabs **Discussion · Featured · Members · Events · Media · About**; composer "Write something…"; chronological posts with the same post component and the 5a1 viewer; Members tab with Elders (admins) and moderators first, Elders can approve requests, remove posts, mute or remove members; Events tab pulls the Tribe's shows/in-stores; About with rules. Join requests for private Tribes. Phone first, no ranking. **Tribes home looks like Facebook Groups** (owner screenshot 2026-11-18): Tribes title + / search / ⋮; pills For you · Your Tribes · Your activity · Discover; "Your Tribes" rows with picture, role · members or "25+ new posts ●", pin; then a chronological "Latest from your Tribes" feed (spec 29 "Tribes home"). **Members create Tribes** (owner correction): no built-in category Tribes; "+ Create Tribe" asks name → category → city → Public/Private → cover; categories are only a Discover filter and a label. **Create flow like Facebook** (owner 2026-11-18): name with live preview → category/city → Public/Private (+ Visible/Hidden; Private→Public locked) → invite friends → Create → creator is Elder → "Finish setting up your Tribe" checklist (invite, cover, description, welcome post) → Elder tools (rule templates, up to 3 join questions, optional Elder assist rules). Spec 29; **full design with flowchart, DynamoDB schema and API: `docs/tasks/29a-tribe-creation-design.md`** (owner: current stack, UI + backend, no extra constraints).
 
-Owner-session only (not Claude Code): deploy the Auth API for AI EPK (#567) and new routes; fix the Stripe test keys; SYNC chat-list cache decision.
+Owner-session only (not Claude Code): deploy the Auth API for AI EPK (#567) and new routes; fix the Stripe test keys. (SYNC chat-list cache: owner said yes 2026-11-19.)
 
 9. **5a00 Incoming calls ring** (spec 31, PR #578). **5a0 Text button in calls** (spec 30): 5th call button, note over the other person's video until they close it. **5a01 Share a phone photo to DanzStak** (spec 32): DanzStak in the Android Share menu → composer with the photo attached → it posts and lands in the "Phone photos" album.
 
@@ -356,11 +426,47 @@ Build order for Claude Code right now: **5a0 → 5a04 Tribe creation (design 29a
 
 Owner: "Make all the little things we've done so far work and look good so I can test them, in the PWA. When everything works, open accounts so friends can sign up and test. When users register devices, a pop-up says save SYNC as its own app." Order:
 
+**T0. Audit fixes first (owner 2026-11-19: "go through all pages and all buttons… so it flows as one webapp").** Full bug list, one line each with root cause where known: `docs/tasks/36-site-audit-2026-11-19.md` (32 screens and every button clicked at 390px, plus the owner's phone reports). Order, one PR per group:
+1. **A1–A3 (owner's phone bugs):**
+   - a posted video lands in Dailies and The Roll automatically, from **any** composer (server sets it; remove the opt-in checkboxes; backfill existing videos);
+   - Dailies tile never opens the photo picker;
+   - **only your own big profile picture on your profile opens the picker (to edit it); every other profile picture opens that member's profile**;
+   - The Roll keeps sound on when it opens full screen, and fills the screen;
+   - **A11** "+ bio" opens the long-bio editor, owner-only;
+   - **A12** remove the @username line under the profile name and put the friends row there (tap a friend's photo → that friend's posts);
+   - **A13** a shop storefront (shop name + rotating item preview + price) in the white space beside the profile picture, replacing the small shop button.
+2. **A4–A10 (broken in the audit):** Saved page crash, Record Stores crash, raw JS errors shown on the shop manager (add one friendly-error helper), Booking Example/Find clubs dead and Leaflet served locally, Elder sees "Join", composer avatar dead, Menu → Photos shows other people's photos.
+3. **B1–B3 one shell:** one app bar, one bottom tab bar with the right tab lit on every signed-in page, one font set.
+4. **B4–B6:** one post component everywhere, your own photo instead of "N", one button system.
+5. **C1–C2:** the Tour Manager has no paywall and never re-asks for EPK info.
+6. **B7–B10:** styled form controls, fluid pages instead of boxes, a DanzStak landing page, Bazaar images.
+7. **C3–C5 and D:** small fixes.
+
+Overlaps: A2 = T2a/T2b, A10 is part of 5a2, B10 includes T2g, C4 = T2h/T2i, D1 = T2f. Build each once and tick both.
+
 **T1. Finish what's open (one at a time, each tested in the installed PWA at 360/390px, then merged by the owner's review session):**
 - #577 full-screen media viewer (5a1), #575 Photos/Videos albums (5a2), #572 friends row (5a3): bring each up to date with main, fix conflicts, finish, browser-check, screenshots.
 - `build/share-target` (5a01): finish as described in the Builder log.
 
 **T2. "Works and looks good" sweep (the owner tests from the installed app):** walk every screen a tester touches, in the installed PWA at 360 and 390px, signed in as a new member: sign up → name/@username → Mix (Dailies, composer with own photo, post photo/video, The Roll) → profile (Posts/About/Friends/Photos/Videos/Shop, + bio, edit profile) → Tribes (create, open, post) → Bazaar (Eroticon items, open product) → Events → Music HQ / EPK builder → SYNC (chat list, thread, send text, call + ring + Text note, Call alerts, Test ringer) → Menu → Log out. For every broken or "'97-looking" thing: add a line to `docs/tasks/18-fix-it.md`, fix the root cause, add a check. No new features in this pass. Done when a fresh account can do the whole walk without help and every screen looks finished.
+
+**T2 checklist (Claude, 2026-11-19) — the open fix-it items in `docs/tasks/18-fix-it.md`, in this order, one small PR each, inside the T2 sweep:**
+1. **Tap any profile picture → that member's profile** (post authors, comments, friends rows, search, SYNC list/thread, Tribes members).
+2. **No separate Dailies upload:** the Dailies tile opens the viewer (own Dailies) or the composer, never the photo picker; every posted photo/video goes to Dailies automatically.
+3. **TAKE N counts every Dailies item** (photos and videos), lifetime, never decreasing.
+4. **Videos tab:** poster frame instead of a black box, full avatar, dates like "Nov 18" (no US-only `mm/dd/yyyy`).
+5. **Media fills the column edge to edge** in Mix, profiles, Tribes, Roll previews and SYNC; never stretched.
+6. **Events: "Post an event" is its own screen** (+ in the Events header), styled file picker, locale date picker (reuse PR #486 if it still applies).
+7. **Bazaar: one search** (the shared top bar), Bazaar / My Shop as tabs, empty state = one line + "+ Sell something".
+8. **Menu = familiar full-screen grid:** profile row on top, 2-column shortcut tiles (Friends, Tribes, Photos, Events, Bazaar, Music HQ, Record shops, **Radio stations**, Your data, Settings), Log out at the bottom.
+9. **Radio stations:** a simple directory page (name, city, genre, website, booking contact) in Music HQ and the Menu; start with an empty state + "Suggest a station"; no scraped data.
+10. **Share sheet tidy** until 5a8: one bottom sheet, no wall of text, styled buttons.
+11. **Site-wide buttons** outside SYNC use the 16-C button system (no browser-default buttons anywhere a tester can see).
+12. **About tab** = one fluid page (no three grey boxes), hide empty fields for visitors.
+13. **SYNC (DS) number at the top of the SYNC device window**, owner-only.
+14. **SYNC chat list opens instantly** from a copy kept on the phone (**owner approved 2026-11-19**): names, photos, last-message preview, time and unread count only, stored per account; show it at once and refresh in the background. Cleared on Log out, on account switch and on Delete everything; never stores codes, phone numbers or call data. No more "Loading saved chats…".
+15. **Plan only, no code yet:** bundle step (one JS + one CSS per page, versioned) — write `docs/tasks/35-bundle-step.md` with the approach, risks and test plan for owner approval.
+16. **Plan only:** server-rendered share previews (Open Graph) for profiles/posts/EPKs/events — part of task 17, needs an Auth API/Lambda@Edge route the owner session deploys.
 
 **T3. SYNC as its own app (5a03 + owner 2026-11-19):** spec 34, plus: **right after a device registers** (the SMS code succeeds), show a one-time pop-up: "Make SYNC its own app — get a SYNC icon on your home screen, straight to your chats" with **Add SYNC to home screen** (uses the install prompt from SYNC's own `/sync/` scope; iPhone shows the Share → Add to Home Screen steps) and **Not now**. Never shown again once installed or dismissed twice.
 
@@ -374,6 +480,16 @@ Owner: "Make all the little things we've done so far work and look good so I can
 Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, translate), Twilio upgrade, Stripe test keys, live testing on two real phones.
 
 ### Builder log (newest first)
+- 2026-11-19 12:20 UTC · Claude Code (owner live, CloudShell) · CDN deployed (dk7kawr758jtd.cloudfront.net) + backfill run; #627 backfill arg fix; CDN step 3 PR (CSP + app photo cache + log-out clear) · Next: switch the CDN on (CloudShell: verify a signed URL, MediaCdnServe=true, Auth API env + policy)
+- 2026-11-19 11:55 UTC · Claude Code (owner live session, owner said "handle everything" before a flight) · merged #622 (CDN steps 1–2); release train #626 = #616 + #620 + #618 + #619; CDN signing key created by the owner in CloudShell; call-signaling CDN deploy + backfill left in the Owner-session box (the cloud session can't upload the template to S3 or read member data) · Next: CDN step 3 once the MediaCdnDomain exists
+- 2026-11-19 11:20 UTC · Claude Code (owner live session) · owner: "build the CDN" → spec `docs/tasks/38-media-cdn.md`, queue row CDN first; also opened #616 About one line, #618 Bazaar scrambled, #619 TAKE count + Dailies/Roll backfill script, #620 photos 720p · Next: CDN step 1
+- 2026-11-19 10:55 UTC · Claude Code · browser-check triage (test files only) · PR #617 · 8 stale checks updated to the owner's current designs; found 3 product bugs: full-screen Roll shifted 10px/bottom clipped (T0-A3), Mix media 2px past its card above 700px, venue selection dead without unpkg Leaflet (T0-A7). **CI hides failures:** pwsh only fails a step on the last `node` line, 9 checks fail under Edge while CI is green · Next: fix those 3 bugs, then make review.yml enforce every check
+- 2026-11-19 09:20 UTC · Claude Code (manager) · #600 merged; Eroticon video put in The Roll + today's Dailies directly in DynamoDB; IAM policy + Auth API deploy left for the owner session (cloud session may not change IAM); "Manager's plan" written above · Next: land #602, #604, #599, #603, then T0-A2
+- 2026-11-19 01:45 UTC · Claude Code · T0-A1 · PR #602 posted photos/videos go to Dailies (24 h) and videos to The Roll automatically from every composer (server-side), checkboxes removed; owner: deploy Auth API (managed policy DanzStakPostDailies) then `node infrastructure/auth-api/backfill-video-reels.mjs --apply` · Next: T0-A2
+- 2026-11-19 · Claude Code (owner live session) · re-tapped every control on 30 screens on main → `docs/tasks/36` section E; new T0-E1 (Mix Comment icon dead), E8–E10; A11/A12/A13/A1 now PRs #600/#600+#572/#599/#601 · Next: T0-E1
+- 2026-11-19 02:00 UTC · Claude (planning chat) · full site audit (every page + button at 390px) + owner phone bugs → `docs/tasks/36-site-audit-2026-11-19.md`, plan T0 above, queue rows A1–D · Next: T0-A1
+- 2026-11-19 · Claude (planning chat) · owner: yes, the SYNC chat list may be kept on the phone → T2 checklist item 14 / queue T2n unblocked · Next: T1
+- 2026-11-19 · Claude (planning chat) · owner asked what's next → "T2 checklist" (16 fix-it items) added under the test-ready plan; queue rows T2a–T2p · Next: T1
 - 2026-11-19 00:45 UTC · Claude (planning chat) · owner: tap photo/video → full screen **vertical** swipe through that member's photos/videos (was horizontal); Dailies = horizontal swipe; The Roll = carousel swipe → plan steps 1 and 6 updated, queue 5a1/5a7 · Next: T1
 - 2026-11-19 00:40 UTC · Claude (planning chat) · owner: Twilio is upgraded (paid), not Trial; plan T4 updated · Next: T1
 - 2026-11-19 00:25 UTC · Claude Code · T1: #577 media viewer merged with main on claude/media-viewer → PR #594 (supersedes #577; 389/389, viewer check 320–430px) · Next: T1 #575 albums, then #572 friends row

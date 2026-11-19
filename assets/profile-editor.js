@@ -115,13 +115,8 @@ bioElement.className = "profile-bio";
 // gets one small "+ bio" icon that opens the editor.
 bioElement.hidden = true;
 handleElement.insertAdjacentElement("afterend", bioElement);
-const addBioButton = document.createElement("button");
-addBioButton.type = "button"; addBioButton.className = "profile-add-bio"; addBioButton.hidden = true;
-addBioButton.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 5v14M5 12h14"/></svg><span>bio</span>';
-addBioButton.setAttribute("aria-label", profileTranslate("Add a bio")); addBioButton.title = addBioButton.getAttribute("aria-label");
-bioElement.insertAdjacentElement("afterend", addBioButton);
 
-function detail(label, id) {
+function detail(label, id, parent = details) {
   const box = document.createElement("div");
   box.className = "detail";
   const title = document.createElement("span");
@@ -132,7 +127,7 @@ function detail(label, id) {
   value.id = id;
   value.textContent = "Not added";
   box.append(title, value);
-  details.appendChild(box);
+  parent.appendChild(box);
 }
 
 function setProfileDetail(id, value) {
@@ -142,8 +137,31 @@ function setProfileDetail(id, value) {
   target.closest(".detail").hidden = viewingOtherProfile && !text;
 }
 
-detail("Location", "profileLocation");
-detail("Work", "profileWork");
+// About = the member's vanity wall (owner 2026-11-18): their long-form story first, big, then the details.
+const storyBlock = document.createElement("section");
+storyBlock.className = "profile-story";
+storyBlock.hidden = true;
+const storyText = document.createElement("blockquote");
+storyText.className = "profile-story-text";
+storyText.setAttribute("data-no-translate", "");
+storyBlock.append(storyText);
+// Owner 2026-11-19: "get rid of the bio button" — "+ bio" and the story pencil only opened Edit profile again.
+// The long bio is written in Edit profile ("Your story") and shows here.
+details.appendChild(storyBlock);
+function renderProfileStory(profile = {}) {
+  const story = String(profile.story || "").trim(), owner = profile.isOwner === true && !viewingOtherProfile;
+  storyText.textContent = story;
+  storyText.hidden = !story;
+  storyBlock.hidden = !story;
+  if (story) window.danzstakLinkifyUserText?.(storyText);
+}
+
+// Owner 2026-11-19: Location and Work share one line (two columns), then Website.
+const locationWork = document.createElement("div");
+locationWork.className = "detail-pair";
+details.appendChild(locationWork);
+detail("Location", "profileLocation", locationWork);
+detail("Work", "profileWork", locationWork);
 detail("Website", "profileWebsite");
 
 const actions = document.createElement("div");
@@ -162,12 +180,6 @@ shopManagementLink.setAttribute("role", "button"); shopManagementLink.dataset.ic
 shopManagementLink.hidden = viewingOtherProfile;
 actions.appendChild(shopManagementLink);
 bioElement.insertAdjacentElement("afterend", actions);
-const nameEditHint = document.createElement("button");
-nameEditHint.type = "button";
-nameEditHint.className = "profile-name-edit-hint";
-nameEditHint.textContent = profileEditorWords.tap;
-nameEditHint.hidden = true;
-handleElement.insertAdjacentElement("afterend", nameEditHint);
 
 const mediaTools = document.createElement("div");
 mediaTools.className = "profile-media-tools";
@@ -759,7 +771,7 @@ function profileWallComposer(profile) {
     button.addEventListener("click", handler);
     shortcuts.appendChild(button);
   };
-  addShortcut("Add a video", "video", () => { mediaInput.accept = "video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
+  // Audit E9 (2026-11-19): one Photo/video button. "Add a video" opened the same picker as the button beside it.
   addShortcut("Add a photo or video", "image", () => { mediaInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
   const eventLink = document.createElement("a");
   eventLink.className = "profile-create-shortcut";
@@ -821,7 +833,8 @@ function profileWallComposer(profile) {
         mediaType = ticket.mediaType;
         uploadedMediaKey = mediaKey;
       }
-      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType };
+      // T0-A1: every posted video goes to The Roll (the server also adds Dailies by itself).
+      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType, reel: mediaType === "video" };
       if (!profile.isOwner) body.profileMemberId = profile.memberId;
       const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({}));
@@ -872,7 +885,11 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
       tabMessage.appendChild(note);
       if (!posts.length) { const empty = document.createElement("p"); empty.textContent = collection === "memories" ? "No memories from this day yet." : "No featured posts to show yet."; tabMessage.appendChild(empty); }
     }
-    for (const post of posts) tabMessage.appendChild(profilePostCard(post));
+    // Owner 2026-11-18: the Videos tab is videos only (no captions, likes or comments); tap → full-screen vertical player.
+    // Owner 2026-11-18: Photos the same way: photos only, tap → full screen, scroll through all of them.
+    const videoGrid = mediaOnly && (mediaType === "video" || mediaType === "image") && window.danzstakProfileVideos ? window.danzstakProfileVideos.createGrid({ kind: mediaType }) : null;
+    const addVideo = item => { if (!videoGrid) return false; videoGrid.add(item); if (videoGrid.items.length && !videoGrid.element.isConnected) tabMessage.appendChild(videoGrid.element); return true; };
+    for (const post of posts) if (!addVideo({ mediaUrl: post.mediaUrl, content: post.content || "", refresh: () => refreshProfilePostMedia(post) })) tabMessage.appendChild(profilePostCard(post));
     if (mediaOnly && mediaType !== "image") {
       const params = new URLSearchParams();
       const profileMemberId = String(window.danzstakCurrentProfile?.memberId || "");
@@ -883,7 +900,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
         const refreshed = await refreshedResponse.json().catch(() => ({}));
         return refreshed.mediaUrl || "";
       };
-      const profileVideoCard = mediaUrl => profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl, refreshMedia: refreshProfileVideo });
+      const profileVideoCard = mediaUrl => addVideo({ mediaUrl, content: "Profile video", refresh: refreshProfileVideo }) ? videoGrid.element : profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl, refreshMedia: refreshProfileVideo });
       const videoResponse = await profileFetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" });
       if (version !== profileTabVersion) return;
       if (!videoResponse.ok && videoResponse.status !== 404) throw new Error("Profile video is temporarily unavailable.");
@@ -891,7 +908,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
         const stored = await videoResponse.json();
         if (version !== profileTabVersion) return;
         if (stored.mediaUrl) {
-          tabMessage.appendChild(profileVideoCard(stored.mediaUrl));
+          { const card = profileVideoCard(stored.mediaUrl); if (!card.isConnected) tabMessage.appendChild(card); }
         } else if (stored.mediaKey && !viewingOtherProfile) {
           const viewResponse = await profileFetch(profileApi + "/stories", {
             method: "POST", credentials: "include", cache: "no-store",
@@ -901,7 +918,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
           if (viewResponse.ok) {
             const view = await viewResponse.json();
             if (version !== profileTabVersion) return;
-            tabMessage.appendChild(profileVideoCard(view.mediaUrl));
+            { const card = profileVideoCard(view.mediaUrl); if (!card.isConnected) tabMessage.appendChild(card); }
           }
         }
       }
@@ -925,10 +942,14 @@ async function loadProfileFriends() {
   if (viewingOtherProfile) { tabMessage.textContent = "This member’s friend list is private."; return; }
   tabMessage.textContent = "Loading friends…";
   try {
-    const [friendsResult, directoryResult] = await Promise.allSettled([
+    const [friendsResult, directoryResult, everyoneResult] = await Promise.allSettled([
       profileFetch(profileApi + "/friends", { credentials: "include", cache: "no-store" }),
-      profileFetch(profileApi + "/calls/directory", { credentials: "include", cache: "no-store" })
+      profileFetch(profileApi + "/calls/directory", { credentials: "include", cache: "no-store" }),
+      // Owner 2026-11-18: "I'm still not able to see all the users that have signed up." Everyone on DanzStak, online first.
+      profileFetch(profileApi + "/people?all=1", { credentials: "include", cache: "no-store" })
     ]);
+    const everyoneResponse = everyoneResult.status === "fulfilled" ? everyoneResult.value : null;
+    const everyoneData = everyoneResponse?.ok ? await everyoneResponse.json().catch(() => null) : null;
     const response = friendsResult.status === "fulfilled" ? friendsResult.value : null;
     if (!response?.ok) throw new Error("Friends could not be loaded");
     const data = await response.json();
@@ -962,10 +983,12 @@ async function loadProfileFriends() {
     // Owner 2026-11-17: pending requests live on the Friends tab too — incoming to answer, sent ones marked "Request sent".
     appendProfileFriendRequests(data.incoming, "incoming");
     appendProfileFriendRequests(data.outgoing, "outgoing");
-    // Members online now (not already friends), like a familiar "active now" list.
-    const onlineMembers = onlineDirectory.filter(user => !friendEmails.has(String(user.email || "").toLowerCase()) && /^[a-f0-9-]{36}$/.test(String(user.memberId || "")));
+    // Everyone else on DanzStak (not already friends), online first. Falls back to "Online now" if the member list is unavailable.
+    const friendIds = new Set((data.friends || []).map(friend => String(friend.memberId || "")));
+    const everyone = Array.isArray(everyoneData?.users) ? everyoneData.users.filter(user => user.friendStatus !== "friends" && !friendIds.has(String(user.memberId || "")) && /^[a-f0-9-]{36}$/.test(String(user.memberId || ""))) : null;
+    const onlineMembers = everyone || onlineDirectory.filter(user => !friendEmails.has(String(user.email || "").toLowerCase()) && /^[a-f0-9-]{36}$/.test(String(user.memberId || "")));
     if (onlineMembers.length) {
-      const onlineHeading = document.createElement("h3"); onlineHeading.className = "profile-friends-heading"; onlineHeading.textContent = `Online now · ${onlineMembers.length}`;
+      const onlineHeading = document.createElement("h3"); onlineHeading.className = "profile-friends-heading"; onlineHeading.textContent = everyone ? `Everyone on DanzStak · ${onlineMembers.length}` : `Online now · ${onlineMembers.length}`;
       const onlineGrid = document.createElement("div"); onlineGrid.className = "profile-friend-grid";
       for (const member of onlineMembers) {
         const link = document.createElement("a"); link.className = "profile-friend-card"; link.href = "profile.html?member=" + encodeURIComponent(member.memberId);
@@ -973,8 +996,9 @@ async function loadProfileFriends() {
         if (member.picture) { avatar.src = member.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
         else { avatar.textContent = (member.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
         const copy = document.createElement("span"); const name = document.createElement("strong"); name.textContent = member.name || "DanzStak member";
-        const availability = document.createElement("small"); availability.textContent = "Online";
-        const status = document.createElement("span"); status.className = "profile-friend-presence online"; status.title = "Online"; status.setAttribute("aria-hidden", "true");
+        const isOnline = everyone ? member.online === true : true;
+        const availability = document.createElement("small"); availability.textContent = isOnline ? "Online" : (member.handle ? "@" + member.handle : "");
+        const status = document.createElement("span"); status.className = isOnline ? "profile-friend-presence online" : "profile-friend-presence"; status.title = isOnline ? "Online" : "Offline"; status.setAttribute("aria-hidden", "true");
         copy.append(name, availability); link.append(avatar, copy, status); onlineGrid.appendChild(link);
       }
       tabMessage.append(onlineHeading, onlineGrid);
@@ -1064,6 +1088,124 @@ function renderProfileShop(shop = {}, profile = {}) {
   return root;
 }
 
+// Owner 2026-11-18 (profile screenshot): "The big white space should be the user's shop with a preview."
+// The empty space beside the avatar, under the cover, shows the shop name and up to 3 product photos; tapping it
+// opens the Shop tab. Only items for sale with a photo; nothing is shown when there are none.
+function renderProfileShopPreview(shop = {}, profile = {}, shopTab = null) {
+  document.querySelector(".profile-shop-preview")?.remove();
+  const items = (shop?.products || []).filter(item => item.available && item.imageUrl).slice(0, 3);
+  const avatar = document.getElementById("profileInitial");
+  if (!avatar) return null;
+  // Owner 2026-11-18: no shop items → the space holds a photo the member picks ("a picture of their dog or
+  // something"); the owner is asked to fill it (photo or shop). Visitors see the photo, or nothing.
+  if (!items.length) return renderProfileShowcase(shop, profile);
+  const preview = document.createElement("button");
+  preview.type = "button"; preview.className = "profile-shop-preview";
+  const name = String(shop.name || profile.name || "").trim();
+  preview.setAttribute("aria-label", `${profileTranslate("Open shop")}: ${name}`);
+  const label = document.createElement("span"); label.className = "profile-shop-preview-label";
+  const title = document.createElement("strong"); title.textContent = name; title.setAttribute("data-no-translate", "");
+  const kicker = document.createElement("span"); kicker.textContent = `${profileTranslate("Shop")} ›`;
+  label.append(kicker, title);
+  const strip = document.createElement("span"); strip.className = "profile-shop-preview-items"; strip.setAttribute("aria-hidden", "true");
+  for (const item of items) {
+    const image = document.createElement("img"); image.src = item.imageUrl; image.alt = ""; image.loading = "lazy"; image.decoding = "async"; image.referrerPolicy = "no-referrer";
+    image.addEventListener("error", () => image.remove(), { once: true });
+    strip.append(image);
+  }
+  preview.append(label, strip);
+  preview.addEventListener("click", () => {
+    const tab = shopTab || tabs.querySelector('[data-profile-tab="More"]');
+    tab?.click();
+    tabs.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  avatar.insertAdjacentElement("afterend", preview);
+  placeProfileShopPreview(preview);
+  return preview;
+}
+
+function renderProfileShowcase(shop, profile = {}) {
+  document.querySelector(".profile-shop-preview")?.remove();
+  const avatar = document.getElementById("profileInitial");
+  const owner = profile.isOwner === true && !viewingOtherProfile;
+  const photo = String(profile.showcase || "").trim();
+  if (!avatar || (!photo && !owner)) return null;
+  const box = document.createElement("div");
+  box.className = "profile-shop-preview profile-showcase";
+  const picker = document.createElement("input");
+  picker.type = "file"; picker.accept = "image/jpeg,image/png,image/webp,image/gif"; picker.hidden = true;
+  picker.setAttribute("aria-label", profileTranslate("Choose a photo for this space"));
+  const save = async changes => {
+    box.setAttribute("aria-busy", "true");
+    try {
+      const saved = await saveCloudProfile(changes);
+      const next = { ...(window.danzstakCurrentProfile || profile), ...(saved || {}) };
+      window.danzstakCurrentProfile = next;
+      renderProfileShowcase(shop, next);
+    } catch (error) { showProfileFeedback?.(error.message || profileTranslate("That photo could not be saved."), { urgent: true }); box.removeAttribute("aria-busy"); }
+  };
+  picker.addEventListener("change", async () => {
+    const file = picker.files?.[0]; picker.value = "";
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type) || file.size > 15 * 1024 * 1024) { showProfileFeedback?.(profileTranslate("Choose a JPG, PNG, WebP or GIF photo up to 15 MB."), { urgent: true }); return; }
+    box.setAttribute("aria-busy", "true");
+    try { const mediaKey = await uploadCloudMedia(file); await save({ showcaseKey: mediaKey }); }
+    catch (error) { showProfileFeedback?.(error.message || profileTranslate("That photo could not be uploaded."), { urgent: true }); box.removeAttribute("aria-busy"); }
+  });
+  if (photo) {
+    const image = document.createElement("img"); image.className = "profile-showcase-photo"; image.src = photo; image.alt = profileTranslate("Photo chosen by this member"); image.decoding = "async"; image.referrerPolicy = "no-referrer";
+    image.addEventListener("error", () => image.remove(), { once: true });
+    box.append(image);
+    if (owner) {
+      const tools = document.createElement("span"); tools.className = "profile-showcase-tools";
+      const change = document.createElement("button"); change.type = "button"; change.className = "profile-showcase-change"; change.dataset.icon = "edit";
+      change.setAttribute("aria-label", profileTranslate("Change this photo")); change.title = change.getAttribute("aria-label");
+      change.addEventListener("click", () => picker.click());
+      const remove = document.createElement("button"); remove.type = "button"; remove.className = "profile-showcase-remove"; remove.dataset.icon = "trash";
+      remove.setAttribute("aria-label", profileTranslate("Remove this photo")); remove.title = remove.getAttribute("aria-label");
+      remove.addEventListener("click", () => void save({ showcaseKey: "" }));
+      tools.append(change, remove);
+      box.prepend(tools);
+      window.danzstakIcons?.enhance?.(tools);
+    }
+  } else {
+    const add = document.createElement("button"); add.type = "button"; add.className = "profile-showcase-add";
+    add.innerHTML = '<span class="profile-shop-preview-plus" aria-hidden="true">+</span>';
+    const text = document.createElement("span"); text.className = "profile-shop-preview-label";
+    const kicker = document.createElement("span"); kicker.textContent = profileTranslate("Fill this space");
+    const line = document.createElement("strong"); line.textContent = profileTranslate("Add a photo: your dog, your rig, anything");
+    text.append(kicker, line); add.prepend(text);
+    add.addEventListener("click", () => picker.click());
+    const shopLink = document.createElement("a"); shopLink.className = "profile-showcase-shop"; shopLink.href = "store.html?manage=1";
+    shopLink.textContent = profileTranslate(shop ? "or add a shop item" : "or open your shop");
+    box.append(add, shopLink);
+  }
+  box.append(picker);
+  avatar.insertAdjacentElement("afterend", box);
+  placeProfileShopPreview(box);
+  return box;
+}
+
+// Sit in the white space under the cover, never on top of the cover photo.
+function placeProfileShopPreview(preview) {
+  // Owner 2026-11-19 (screenshot): the box sat on top of the member's name. It now starts right where the cover photo
+  // ends and is sized to the space between the cover and the name, so the name always shows in full.
+  const place = () => {
+    const cover = document.querySelector(".cover"), box = preview.offsetParent, name = document.getElementById("profileName");
+    if (!cover || !box) return;
+    const coverBottom = cover.getBoundingClientRect().bottom, boxTop = box.getBoundingClientRect().top;
+    preview.style.top = Math.max(0, Math.round(coverBottom - boxTop) + 4) + "px";
+    const avatar = document.getElementById("profileInitial");
+    if (avatar) preview.style.left = Math.round(avatar.getBoundingClientRect().right - box.getBoundingClientRect().left + 12) + "px"; // clear of the round photo and its ring
+    const room = name ? Math.floor(name.getBoundingClientRect().top - coverBottom - 4 - 8) : 84;
+    preview.style.setProperty("--showcase-room", Math.max(40, Math.min(room, 96)) + "px");
+    preview.classList.toggle("is-tight", room < 72);
+  };
+  place(); requestAnimationFrame(place);
+  if (!window.__danzstakShopPreviewResize) { window.__danzstakShopPreviewResize = true; window.addEventListener("resize", () => { const current = document.querySelector(".profile-shop-preview"); if (current) current.dispatchEvent(new Event("danzstak:place")); }); }
+  preview.addEventListener("danzstak:place", place);
+}
+
 async function loadProfileShop() {
   const version = profileTabVersion;
   tabMessage.textContent = "Loading shop…";
@@ -1084,12 +1226,26 @@ async function configureProfileShop(profile = {}) {
   try {
     const endpoint = profile.isOwner === true ? "/marketplace/shop" : `/marketplace/shop/${encodeURIComponent(profile.memberId)}`;
     const response = await profileFetch(profileApi + endpoint, { credentials:"include", cache:"no-store" });
-    if (!response.ok) return;
+    if (!response.ok) { if (response.status === 404) renderProfileShowcase(null, profile); return; }
     const data = await response.json().catch(() => ({}));
-    if (!data.shop) return;
+    if (!data.shop) { renderProfileShowcase(null, profile); return; }
     profileShop = data.shop;
     shopManagementLink.setAttribute("aria-label", "Manage my shop"); shopManagementLink.title = "Manage my shop";
     const moreTab = tabs.querySelector('[data-profile-tab="More"]'); if (moreTab) { moreTab.hidden = false; moreTab.textContent = "Shop"; }
+    // Owner 2026-11-19 (two screenshots): his own profile had a shop button, a member's shop profile seen by a visitor did
+    // not. Visitors get the same shop icon in the action row; it opens that member's Shop tab (the owner's opens Manage shop).
+    if (profile.isOwner !== true && viewingOtherProfile) {
+      const visitorLabel = `${profileTranslate("Open shop")}: ${profileShop.name || profile.name || ""}`.trim();
+      shopManagementLink.href = "#shop"; shopManagementLink.setAttribute("aria-label", visitorLabel); shopManagementLink.title = visitorLabel;
+      shopManagementLink.hidden = false;
+      if (!shopManagementLink.dataset.visitorShop) {
+        shopManagementLink.dataset.visitorShop = "true";
+        shopManagementLink.addEventListener("click", event => { event.preventDefault(); (moreTab || tabs.querySelector('[data-profile-tab="More"]'))?.click(); tabs.scrollIntoView({ behavior: "smooth", block: "start" }); });
+      }
+      const row = shopManagementLink.parentElement, moreWrap = row?.querySelector(".profile-more-wrap");
+      if (row && moreWrap) row.insertBefore(shopManagementLink, moreWrap);
+    }
+    renderProfileShopPreview(profileShop, profile, moreTab);
     if (requestedProfileMoreSection() === "Shop" && tabs.dataset.initialized === "true") void openProfileMoreSection("Shop");
   } catch { /* A shop is optional; leave the tab hidden when unavailable. */ }
 }
@@ -1171,6 +1327,7 @@ panel.innerHTML = '<h2>' + profileEditorWords.heading + '</h2>' +
   '<details class="profile-edit-section profile-username"><summary>' + profileEditorWords.advanced + '</summary><div class="profile-edit-section-body"><label>' + profileEditorWords.handle + '<input name="handle" minlength="3" maxlength="24" pattern="[A-Za-z0-9._]+"><small>' + profileEditorWords.handleHelp + '</small></label></div></details>' +
   '<details class="profile-edit-section"><summary>More profile details</summary><div class="profile-edit-section-body">' +
   '<label>Bio<textarea name="bio" maxlength="160"></textarea></label>' +
+  '<label>Your story<textarea name="story" maxlength="2000" rows="8" placeholder="Where you came from, what you make, the shows that mattered. This is your About page."></textarea><small>Up to 2000 characters. Shown big on your About tab.</small></label>' +
   '<label>Location<input name="location" maxlength="80"></label>' +
   '<label>Work<input name="work" maxlength="100"></label>' +
   '<label>Website<input name="website" type="text" inputmode="url" maxlength="200" placeholder="yourband.com"></label></div></details>' +
@@ -1235,18 +1392,20 @@ function renderProfileWebsite(value) {
 function applyProfile(profile) {
   if (profile.name) document.getElementById("profileName").textContent = profile.name;
   if (profile.handle) handleElement.textContent = "@" + profile.handle;
+  // Owner 2026-11-19 (A12): no @username line under the name; the friends facepile (#572) sits there instead.
+  // The element stays (hidden) because the editor reads the handle from it.
+  handleElement.hidden = true;
   bioElement.textContent = profile.bio || "";
   bioElement.hidden = !profile.bio;
-  addBioButton.hidden = Boolean(profile.bio) || profile.isOwner !== true || viewingOtherProfile;
-  // Owner 2026-11-18: "+ bio" is the 5th icon in the action row (edit · shop · share · people · bio), not its own line.
-  const profileActionRow = document.querySelector(".profile-actions");
-  if (profileActionRow && addBioButton.parentElement !== profileActionRow) { addBioButton.classList.add("ds-icon-button", "profile-add-bio--icon"); profileActionRow.appendChild(addBioButton); }
+  // Owner 2026-11-19: no "+ bio" button in the profile header — it duplicated Edit profile ("4 of those 5 buttons do
+  // the same thing") and once leaked to visitors. The long-form bio is added from the About tab (#556).
   window.danzstakLinkifyUserText?.(bioElement);
+  renderProfileStory(profile);
   setProfileDetail("profileLocation", profile.location);
   setProfileDetail("profileWork", profile.work);
   renderProfileWebsite(profile.website);
   document.getElementById("profileWebsite").closest(".detail").hidden = viewingOtherProfile && !String(profile.website || "").trim();
-  details.hidden = viewingOtherProfile && ![...details.querySelectorAll(".detail")].some(box => !box.hidden);
+  details.hidden = viewingOtherProfile && storyBlock.hidden && ![...details.querySelectorAll(".detail")].some(box => !box.hidden);
   const name = document.getElementById("profileName").textContent.trim();
   const avatar = document.getElementById("profileInitial");
   if (profile.picture) { avatar.style.backgroundImage = `url("${profile.picture}")`; avatar.classList.add("has-photo"); avatar.textContent = ""; }
@@ -1264,12 +1423,16 @@ function applyProfile(profile) {
   }
 }
 
-addBioButton.addEventListener("click", () => { editButton.click(); setTimeout(() => { const field = document.querySelector(".edit-profile-panel [name='bio']"); const section = field?.closest("details"); if (section) section.open = true; field?.focus(); field?.scrollIntoView({ block: "center" }); }, 200); });
+// Only the account holder can open or save the editor (owner 2026-11-18: "when I click on it I can edit a profile
+// that is not mine" — the form filled with the other member's details and Save would have written them to your own).
+const canEditThisProfile = () => !viewingOtherProfile && window.danzstakCurrentProfile?.isOwner !== false;
 editButton.addEventListener("click", () => {
+  if (!canEditThisProfile()) return;
   const profile = window.danzstakCurrentProfile?.cloudProfile ? window.danzstakCurrentProfile : savedProfile();
   panel.elements.name.value = profile.name || document.getElementById("profileName").textContent;
   panel.elements.handle.value = profile.handle || handleElement.textContent.replace(/^@/, "");
   panel.elements.bio.value = profile.bio || "";
+  panel.elements.story.value = profile.story || "";
   panel.elements.location.value = profile.location || "";
   panel.elements.work.value = profile.work || "";
   panel.elements.website.value = profile.website || "";
@@ -1279,19 +1442,18 @@ editButton.addEventListener("click", () => {
   panel.hidden = false;
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
 });
-nameEditHint.addEventListener("click", () => {
+// Audit E8 (2026-11-19): the Edit button is the only way into Edit profile. The name is plain text again (it used to be
+// a hidden "Tap your name to change it" button, a third way in). ?edit=identity still opens the editor at the name.
+function openNameEdit() {
   editButton.click();
   requestAnimationFrame(() => panel.elements.name.focus({ preventScroll: true }));
-});
+}
 panel.elements.website.addEventListener("input", () => panel.elements.website.setCustomValidity(""));
-document.getElementById("profileName").addEventListener("click", () => {
-  if (viewingOtherProfile || editButton.hidden) return;
-  nameEditHint.click();
-});
 
 panel.querySelector("[data-cancel]").addEventListener("click", () => { panel.hidden = true; repositioning = false; finishReposition.hidden = true; coverElement.classList.remove("repositioning"); repositionButton.classList.remove("active"); repositionButton.textContent = "Reposition Cover"; });
 panel.addEventListener("submit", async event => {
   event.preventDefault();
+  if (!canEditThisProfile()) { panel.hidden = true; return; }
   if (!panel.reportValidity()) return;
   const profile = Object.fromEntries(new FormData(panel).entries());
   if (String(profile.website || "").trim()) {
@@ -1337,17 +1499,6 @@ function applyLoadedProfile(profile = {}) {
   if (profile.isOwner === true) {
     viewingOtherProfile = false;
     editButton.hidden = false;
-    nameEditHint.hidden = true; // owner 2026-11-16: no "tap your name" instruction; the name is tappable
-    const profileName = document.getElementById("profileName");
-    profileName.classList.add("profile-name-editable");
-    profileName.tabIndex = 0;
-    profileName.setAttribute("role", "button");
-    profileName.setAttribute("aria-label", profileEditorWords.tap);
-    profileName.addEventListener("keydown", event => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      nameEditHint.click();
-    }, { once: false });
     mediaTools.hidden = false;
     const requestedEdit = new URLSearchParams(location.search).get("edit");
     if (["identity", "privacy"].includes(requestedEdit) && panel.dataset.routeOpened !== "true") {

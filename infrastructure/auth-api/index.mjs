@@ -30,6 +30,8 @@ import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/clien
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { PinpointSMSVoiceV2Client, SendNotifyTextMessageCommand } from "@aws-sdk/client-pinpoint-sms-voice-v2";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import { createMediaCdn, createMediaInvalidator } from "./media-cdn.mjs";
+import { createRequire } from "node:module";
 import {
   GeoPlacesClient,
   GeocodeCommand,
@@ -62,6 +64,23 @@ import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUp
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
+// Task 38: every media delete also drops CloudFront's cached copy. The CloudFront SDK ships with the Lambda Node.js
+// runtime (loaded through createRequire, so no new package); without MEDIA_CDN_DISTRIBUTION_ID this does nothing.
+const mediaCdnInvalidate = (() => {
+  try {
+    const { CloudFrontClient, CreateInvalidationCommand } = createRequire(import.meta.url)("@aws-sdk/client-cloudfront");
+    const client = new CloudFrontClient({ region: "us-east-1", maxAttempts: 3 });
+    return createMediaInvalidator({ distributionId: process.env.MEDIA_CDN_DISTRIBUTION_ID, send: command => client.send(command), CreateInvalidationCommand });
+  } catch { return async () => false; }
+})();
+{
+  const send = s3.send.bind(s3);
+  s3.send = async (command, ...rest) => {
+    const result = await send(command, ...rest);
+    if (command instanceof DeleteObjectCommand && command.input?.Key) mediaCdnInvalidate([command.input.Key]).catch(() => {});
+    return result;
+  };
+}
 // SES us-east-1 has production access (us-west-1 is still in the SES sandbox and can only mail verified addresses).
 const ses = new SESv2Client({ region: "us-east-1" });
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
@@ -124,6 +143,11 @@ const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
 const siteUrl = process.env.SITE_URL;
 const mediaBucket = process.env.MEDIA_BUCKET;
+// Task 38: media through CloudFront with cacheable signed URLs once MEDIA_CDN_DOMAIN and the signing key exist; S3 until then.
+const mediaCdn = createMediaCdn({
+  domain: process.env.MEDIA_CDN_DOMAIN,
+  loadSecret: async () => (await secretsManager.send(new GetSecretValueCommand({ SecretId: process.env.MEDIA_CDN_SECRET_NAME || "danzstak/cloudfront/media-signing-key" }))).SecretString
+});
 
 const callbackUrl = "https://api.danzstak.com/auth/callback";
 const allowedOrigin = "https://danzstak.com";
@@ -305,7 +329,9 @@ const marketplace = createMarketplace({
   authenticate: getAuthenticatedUser,
   corsHeaders,
   tableName: marketplaceTable,
-  env: process.env
+  env: process.env,
+  mediaOwnerPrefix: userId => mediaOwnerPrefixForUser(userId),
+  signMedia: key => signedMediaUrl(key, 3600)
 });
 const ticketing = createTicketing({
   db,
@@ -474,6 +500,8 @@ const encodeAws = value => encodeURIComponent(value).replace(/[!'()*]/g, charact
 const hmac = (key, value, encoding) => createHmac("sha256", key).update(value).digest(encoding);
 function signedMediaUrl(key, expires = 900, responseHeaders = {}) {
   if (!mediaBucket || !key) return "";
+  // Viewing media goes through the CDN (same URL for hours, so it caches); downloads with a filename stay on S3.
+  if (!Object.keys(responseHeaders).length) { const cdn = mediaCdn.url(key); if (cdn) return cdn; }
   const region = process.env.AWS_REGION, access = process.env.AWS_ACCESS_KEY_ID, secret = process.env.AWS_SECRET_ACCESS_KEY, token = process.env.AWS_SESSION_TOKEN;
   const date = new Date(), stamp = date.toISOString().replace(/[:-]|\.\d{3}/g, ""), day = stamp.slice(0, 8), scope = `${day}/${region}/s3/aws4_request`;
   const host = `${mediaBucket}.s3.${region}.amazonaws.com`, uri = "/" + key.split("/").map(encodeAws).join("/");
@@ -1583,15 +1611,15 @@ async function cleanupProfileMediaObjects(accountEmail, keys) {
         TableName: settingsTable,
         Key: { userEmail: { S: accountEmail } },
         UpdateExpression: "SET profileMediaCleanupClaim = :claim, profileMediaCleanupClaimKey = :candidate, profileMediaCleanupClaimExpiresAt = :expires",
-        ConditionExpression: "contains(profileMediaCleanup, :candidate) AND (attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now) AND (attribute_not_exists(profileAvatarKey) OR profileAvatarKey <> :candidate) AND (attribute_not_exists(profileCoverKey) OR profileCoverKey <> :candidate) AND (attribute_not_exists(profileVideoKey) OR profileVideoKey <> :candidate)",
+        ConditionExpression: "contains(profileMediaCleanup, :candidate) AND (attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now) AND (attribute_not_exists(profileAvatarKey) OR profileAvatarKey <> :candidate) AND (attribute_not_exists(profileCoverKey) OR profileCoverKey <> :candidate) AND (attribute_not_exists(profileVideoKey) OR profileVideoKey <> :candidate) AND (attribute_not_exists(profileShowcaseKey) OR profileShowcaseKey <> :candidate)",
         ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key }, ":expires": { N: String(claimExpiresAt) }, ":now": { N: String(now()) } }
       }));
     } catch (error) {
       if (error.name === "ConditionalCheckFailedException") {
-        const current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: accountEmail } }, ConsistentRead: true, ProjectionExpression: "profileAvatarKey, profileCoverKey, profileVideoKey, profileMediaCleanup" }));
-        const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileVideoKey?.S].filter(Boolean));
+        const current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: accountEmail } }, ConsistentRead: true, ProjectionExpression: "profileAvatarKey, profileCoverKey, profileVideoKey, profileShowcaseKey, profileMediaCleanup" }));
+        const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileVideoKey?.S, current.Item?.profileShowcaseKey?.S].filter(Boolean));
         if (active.has(key)) {
-          const activeConditions = ["profileAvatarKey = :candidate", "profileCoverKey = :candidate", "profileVideoKey = :candidate"].join(" OR ");
+          const activeConditions = ["profileAvatarKey = :candidate", "profileCoverKey = :candidate", "profileVideoKey = :candidate", "profileShowcaseKey = :candidate"].join(" OR ");
           try {
             await db.send(new UpdateItemCommand({
               TableName: settingsTable,
@@ -1681,11 +1709,11 @@ async function setProfileVideo(event) {
     try { await s3.send(new HeadObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey })); }
     catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded profile video was not found." }) }; }
   }
-  const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, mediaKey].filter(Boolean));
+  const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileShowcaseKey?.S, mediaKey].filter(Boolean));
   const pendingProfileMedia = [...new Set([...(current.Item?.profileMediaCleanup?.SS || []), replacedKey].filter(candidate => candidate && !active.has(candidate)))];
   const expressionValues = { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
   const conditions = ["attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now"];
-  for (const [field, token] of [["profileAvatarKey", "avatar"], ["profileCoverKey", "cover"], ["profileVideoKey", "oldVideo"]]) {
+  for (const [field, token] of [["profileAvatarKey", "avatar"], ["profileCoverKey", "cover"], ["profileVideoKey", "oldVideo"], ["profileShowcaseKey", "showcase"]]) {
     const value = current.Item?.[field]?.S || "";
     if (value) { expressionValues[`:${token}`] = { S: value }; conditions.push(`${field} = :${token}`); }
     else conditions.push(`attribute_not_exists(${field})`);
@@ -2353,7 +2381,9 @@ async function createSecurePost(event) {
   const audience = requestedGroupId ? "group" : requestedAudience;
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
-  const reel = mediaType === "video" && data.reel === true;
+  // T0-A1 (owner 2026-11-18): every posted video goes into The Roll and stays there, from ANY composer — not only when a
+  // client ticked a box. Facebook imports keep their history out of The Roll unless the member asks.
+  const reel = mediaType === "video" && (!facebookImport || data.reel === true);
   if (sharedSource && (mediaKey || mediaType || reel)) return {statusCode:400,headers,body:JSON.stringify({error:"Shared posts reference the original media."})};
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
@@ -2423,6 +2453,27 @@ async function createSecurePost(event) {
     return { statusCode: 200, headers, body: JSON.stringify({ postId, deduplicated: true, createdAt: existing.Item.createdAt.S }) };
   }
 
+  // T0-A1: every posted photo or video also goes into the member's Dailies for 24 hours, automatically. The Daily points at
+  // the post's own media (no second upload); the Stories cleanup only deletes files under stories/, so the post's photo is
+  // never removed with it, and deleting the post removes this Daily (linked by mediaKey). Tribe posts keep their Tribe
+  // privacy: their Daily is visible only to the poster. A Daily that cannot be written never fails the post itself.
+  let daily = null;
+  if (mediaKey && !facebookImport && !sharedSource) {
+    const storyId = randomUUID(), expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
+    try {
+      await db.send(new PutItemCommand({
+        TableName: storiesTable,
+        Item: { storyId: { S: storyId }, userEmail: { S: userEmail }, content: { S: content.slice(0, 5000) || "Story" }, audience: { S: audience === "group" ? "private" : audience }, mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, postId: { S: postId }, fromPost: { BOOL: true }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } },
+        ConditionExpression: "attribute_not_exists(storyId)"
+      }));
+      daily = { storyId, expiresAt };
+      // The clapper's TAKE N counts the member's lifetime Dailies videos (same rule as a Daily added directly).
+      if (mediaType === "video") await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :one", ExpressionAttributeValues: { ":one": { N: "1" }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count not updated", { postId, error: error.name }));
+    } catch (error) {
+      console.error("Post Daily could not be created", { postId, error: error.name });
+    }
+  }
+
   return {
     statusCode: 201,
     headers,
@@ -2430,6 +2481,8 @@ async function createSecurePost(event) {
       postId,
       userId,
       userEmail,
+      dailyCreated: Boolean(daily),
+      ...(daily ? { daily } : {}),
       profileOwnerMemberId: profileOwnerId,
       content,
       audience,
@@ -5537,6 +5590,7 @@ async function removePersonalPhone(event) {
 export const handler = async event => {
   const method = event?.requestContext?.http?.method;
   const path = event?.rawPath;
+  await mediaCdn.ready().catch(() => false);
 
   try {
     if (Array.isArray(event?.Records) && event.Records.some(record => record?.EventSource === "aws:sns")) {

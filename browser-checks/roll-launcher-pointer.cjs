@@ -34,7 +34,7 @@ function fixture(url) {
   if (url.pathname === "/notifications" || url.pathname === "/engagement-notifications") return { notifications: [] };
   if (url.pathname === "/messages/conversations") return { conversations: [] };
   if (url.pathname === "/settings/presence") return { dataSaver: false };
-  if (url.pathname === "/profiles" || url.pathname === "/profile") return { profile: { memberId: "11111111-1111-4111-8111-111111111111", name: "Roll Test Artist", isOwner: true } };
+  if (url.pathname === "/profiles" || url.pathname === "/profile") return { profile: { memberId: "11111111-1111-4111-8111-111111111111", name: "Roll Test Artist", handle: "rolltestartist", isOwner: true } };
   return {};
 }
 
@@ -96,12 +96,15 @@ async function pointerOwner(page, selector) {
           backgroundImage:style.backgroundImage
         };
       });
-      assert.ok(Math.abs(linkedPreview.stage.height - linkedPreview.stage.width * 9 / 16) <= 2, `${width}px linked Roll preview does not match its 16:9 provider: ${JSON.stringify(linkedPreview)}`);
-      assert.ok(Math.abs(linkedPreview.player.width - linkedPreview.stage.width) <= 2, `${width}px linked Roll player does not fill the stage width: ${JSON.stringify(linkedPreview)}`);
-      assert.ok(Math.abs(linkedPreview.player.height - linkedPreview.stage.height) <= 2, `${width}px linked Roll player does not fill the ratio-matched stage: ${JSON.stringify(linkedPreview)}`);
+      // The Roll strip (owner 2026-11-16, assets/roll-reels.css): same-size 9:16 tiles; a linked landscape video keeps its
+      // 16:9 player, fills the tile width and sits centered on the tile's dark ground.
+      assert.ok(Math.abs(linkedPreview.stage.width - linkedPreview.card.width) <= 1 && Math.abs(linkedPreview.stage.height - linkedPreview.card.height) <= 1, `${width}px linked Roll stage does not fill its tile: ${JSON.stringify(linkedPreview)}`);
+      assert.ok(Math.abs(linkedPreview.card.height - linkedPreview.card.width * 16 / 9) <= 2, `${width}px Roll tile is not 9:16: ${JSON.stringify(linkedPreview)}`);
+      assert.ok(Math.abs(linkedPreview.player.width - linkedPreview.stage.width) <= 2, `${width}px linked Roll player does not fill the tile width: ${JSON.stringify(linkedPreview)}`);
+      assert.ok(Math.abs(linkedPreview.player.height - linkedPreview.player.width * 9 / 16) <= 2, `${width}px linked Roll player is not its 16:9 provider ratio: ${JSON.stringify(linkedPreview)}`);
+      assert.ok(Math.abs((linkedPreview.player.top + linkedPreview.player.bottom) / 2 - (linkedPreview.stage.top + linkedPreview.stage.bottom) / 2) <= 2, `${width}px linked Roll player is not vertically centered: ${JSON.stringify(linkedPreview)}`);
       assert.ok(linkedPreview.stage.top >= -1 && linkedPreview.stage.bottom <= height + 1, `${width}px linked Roll video cannot be seen in one device viewport: ${JSON.stringify(linkedPreview)}`);
-      assert.equal(linkedPreview.backgroundColor, "rgb(5, 7, 12)", `${width}px linked Roll stage is not using the dark media canvas`);
-      assert.match(linkedPreview.backgroundImage, /danzstak-score-pattern\.svg/, `${width}px linked Roll stage is missing the subtle music texture`);
+      assert.equal(linkedPreview.backgroundColor, "rgb(11, 11, 12)", `${width}px linked Roll tile is not on the dark Roll ground`);
 
       await page.locator('.reel-media-stage[data-video-layout="portrait"]').evaluate(stage => stage.scrollIntoView({ block:"center", inline:"center" }));
       const portraitPreview = await page.locator('.reel-media-stage[data-video-layout="portrait"]').evaluate(stage => {
@@ -152,20 +155,18 @@ async function pointerOwner(page, selector) {
         await page.waitForFunction(() => !document.querySelector(".story-viewer")?.open);
       }
 
-      const launcher = page.locator(".roll-open");
-      await launcher.scrollIntoViewIfNeeded();
+      // Tight frame (owner 2026-11-16, assets/roll-reels.css): the Roll header is the title only, no launcher button; every
+      // tile is its own full-tile trigger that opens The Roll full screen.
+      assert.equal(await page.locator(".reels-rail:not(.roll-fullscreen) .roll-open").isVisible(), false, `${width}px Roll header shows an extra launcher control`);
+      const preview = page.locator(".reel-fullscreen-trigger").first();
+      await preview.scrollIntoViewIfNeeded();
       await page.waitForTimeout(50);
-      const headerHit = await pointerOwner(page, ".roll-open");
-      const previewBox = await page.locator(".reel-fullscreen-trigger").first().evaluate(control => {
-        const box = control.getBoundingClientRect();
-        return { top: box.top, bottom: box.bottom };
-      });
-      assert.equal(headerHit.ownsCenter, true, `${width}px Roll header launcher is covered by ${headerHit.hit}: ${JSON.stringify({ headerHit, previewBox })}`);
-      assert.ok(previewBox.top >= headerHit.box.bottom, `${width}px per-video fullscreen control overlaps the Roll header launcher: ${JSON.stringify({ headerHit, previewBox })}`);
+      const previewHit = await pointerOwner(page, ".reel-fullscreen-trigger");
+      assert.equal(previewHit.ownsCenter, true, `${width}px per-video Roll launcher is covered by ${previewHit.hit}: ${JSON.stringify(previewHit)}`);
       await page.screenshot({ path: path.join(output, `roll-launcher-${width}.png`) });
 
       const pageBeforeFullscreen = await page.evaluate(() => ({ href: location.href, scrollY }));
-      await launcher.click();
+      await preview.click();
       await page.locator(".reels-rail.roll-fullscreen").waitFor();
       await page.evaluate(() => history.back());
       await page.locator(".reels-rail:not(.roll-fullscreen)").waitFor();
@@ -177,11 +178,8 @@ async function pointerOwner(page, selector) {
       await page.locator(".roll-close").click();
       await page.locator(".reels-rail:not(.roll-fullscreen)").waitFor();
 
-      const preview = page.locator(".reel-fullscreen-trigger").first();
       await preview.scrollIntoViewIfNeeded();
       await page.waitForTimeout(50);
-      const previewHit = await pointerOwner(page, ".reel-fullscreen-trigger");
-      assert.equal(previewHit.ownsCenter, true, `${width}px per-video Roll launcher is covered by ${previewHit.hit}: ${JSON.stringify(previewHit)}`);
       await preview.click();
       await page.locator(".reels-rail.roll-fullscreen").waitFor();
       const fullscreenCloseHit = await pointerOwner(page, ".roll-fullscreen .roll-close");

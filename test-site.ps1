@@ -128,7 +128,7 @@ if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTick
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
   if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }
 }
-foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()', 'Confirm that you created this Daily')) {
+foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()')) {
   if (-not $feed.Contains($preUploadCertification)) { Add-Failure "Copyright: upload can begin before explicit certification: $preUploadCertification" }
 }
 foreach ($drawerAccessibility in @('aria-controls="messageDrawer"', 'aria-expanded="false"', 'drawer.setAttribute("role", "dialog")', 'event.key === "Escape"', 'launcher.setAttribute("aria-expanded", "true")')) {
@@ -140,9 +140,11 @@ foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
   if (-not $markup.Contains($mediaOrigin)) { Add-Failure "${page}: signed AWS media origin is blocked by CSP" }
 }
 if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
-foreach ($dedicatedStoryControl in @('aria-label="Add a photo or video to Dailies"', 'createStoryInput.accept = "image/jpeg', 'dedicatedMedia: true', 'originalContentCertified: true', 'await loadStories()')) {
-  if (-not $feed.Contains($dedicatedStoryControl)) { Add-Failure "Stories: dedicated Your Story upload is incomplete: $dedicatedStoryControl" }
+# Audit A2 (owner 2026-11-19): Dailies come from posts; the Dailies tile never opens the photo picker.
+foreach ($dailiesTileControl in @('aria-label="Add a photo or video to Dailies"', 'if (ownDailies.length) { void openStoryViewer(ownDailies[0]); return; }', 'ownDailies = (data.stories || []).filter(story => story.isOwner);')) {
+  if (-not $feed.Contains($dailiesTileControl)) { Add-Failure "Dailies tile: viewer/composer behaviour is incomplete: $dailiesTileControl" }
 }
+if ($feed.Contains('createStoryInput')) { Add-Failure 'Dailies tile: still opens a separate photo picker' }
 $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
 $mediaVisibility = Get-Content -LiteralPath (Join-Path $root 'assets\media-visibility.js') -Raw -Encoding utf8
 if ($feedEnhancements.Contains('Reel saved on this device until cloud sync is available.') -or
@@ -208,8 +210,12 @@ if ($feedEnhancements.Contains('Event saved locally:') -or $feedEnhancements.Con
 foreach ($required in @('/engagement?postId=', '/reactions', '/comments', 'loadEngagement(post)', 'saveComment(post, event.target)', '/engagement-notifications/read')) {
   if (-not $feedEnhancements.Contains($required)) { Add-Failure "Durable feed engagement is missing: $required" }
 }
-foreach ($reelRequirement in @('id="shareToReels"', 'reel: mediaType === "video" && publishToReels', 'danzstak:posts-loaded')) {
+# T0-A1 (owner 2026-11-18): every posted video goes into The Roll automatically; no opt-in checkbox.
+foreach ($reelRequirement in @('reel: mediaType === "video", originalContentCertified: true', 'danzstak:posts-loaded')) {
   if (-not $feed.Contains($reelRequirement)) { Add-Failure "Uploaded-video Reels workflow is missing: $reelRequirement" }
+}
+foreach ($retiredOptIn in @('id="shareToReels"', 'id="shareToStory"')) {
+  if ($feed.Contains($retiredOptIn)) { Add-Failure "Mix composer still asks to opt in to Dailies / The Roll: $retiredOptIn" }
 }
 foreach ($reelRequirement in @('post.reel === true', 'loadInternalReels', 'reel.internal')) {
   if (-not $feedEnhancements.Contains($reelRequirement)) { Add-Failure "Internal Reels rendering is missing: $reelRequirement" }
@@ -453,7 +459,7 @@ foreach ($accessibilityFeature in @('tabs.setAttribute("role", "tablist")', 'but
   if (-not $profileEditorJs.Contains($accessibilityFeature)) { Add-Failure "Profile tab keyboard accessibility is missing: $accessibilityFeature" }
 }
 foreach ($profilePresenceFeature in @(
-  'const [friendsResult, directoryResult] = await Promise.allSettled([',
+  'const [friendsResult, directoryResult, everyoneResult] = await Promise.allSettled([',
   'user.online === true',
   'profile-friend-presence online',
   'status.setAttribute("aria-hidden", "true")'
@@ -536,9 +542,10 @@ if ($incomingCallsJs.Contains('if (drawer && !drawer.hidden) return;') -or
     -not $chatJs.Contains('if(!embeddedMode||autoAnswer||peer||pending)poll()')) {
   Add-Failure 'Calls: an open embedded conversation can hide incoming calls or compete with the parent call watcher'
 }
-$correctPublishingStatus = 'Publishing' + [char]0x2026
-if (-not $feed.Contains($correctPublishingStatus)) {
-  Add-Failure 'Stories: publishing status contains corrupted text encoding'
+# The Dailies "Publishing…" label went with the separate Daily upload (audit A2); keep guarding against mojibake.
+$corruptedEllipsis = [string][char]0x00E2 + [char]0x20AC + [char]0x00A6
+if ($feed.Contains($corruptedEllipsis)) {
+  Add-Failure 'Stories: feed text contains corrupted text encoding'
 }
 $directMessagesJs = Get-Content -LiteralPath (Join-Path $root 'assets\direct-messages.js') -Raw -Encoding utf8
 $feedEnhancementsJs = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
@@ -675,15 +682,14 @@ foreach ($workspaceRouting in @('const workspaceRoutes = new Map(', 'history.pus
 foreach ($workspaceAccessibility in @('control.setAttribute("aria-current", "page")', 'featureHeading.tabIndex = -1', 'featureHeading.focus({ preventScroll: true })')) {
   if (-not $feedEnhancements.Contains($workspaceAccessibility)) { Add-Failure "Feed workspaces do not announce navigation accessibly: $workspaceAccessibility" }
 }
-foreach ($workspaceDestination in @('href="#friends"', 'href="#photos"', 'href="#videos"', 'href="#events"', 'href="#settings"')) {
+# Owner 2026-11-18: Photos and Videos live on the profile tabs, not in the main menu.
+if ($feed.Contains('data-feature="Photos"') -or $feed.Contains('data-feature="Videos"')) { Add-Failure "Photos and Videos must not be in the main menu" }
+foreach ($workspaceDestination in @('href="#friends"', 'href="#events"', 'href="#settings"')) {
   if (-not $feed.Contains($workspaceDestination)) { Add-Failure "Feed workspace has no durable navigation destination: $workspaceDestination" }
 }
-$termsMenuIndex = $feed.IndexOf('<a href="terms.html"><span class="menu-icon"')
-$androidMenuIndex = $feed.IndexOf('data-app-platform="android"')
-$appleMenuIndex = $feed.IndexOf('data-app-platform="apple"')
-$logoutMenuIndex = $feed.IndexOf('<button type="button" class="menu-action logout-menu-link" data-logout><span class="menu-icon"')
-if ($termsMenuIndex -lt 0 -or $androidMenuIndex -lt $termsMenuIndex -or $appleMenuIndex -lt $androidMenuIndex -or $logoutMenuIndex -lt $appleMenuIndex) {
-  Add-Failure 'Feed navigation: Android and Apple app links are not stacked beneath Terms of Service and above Logout'
+# Owner 2026-11-18: one Menu → Install DanzStak item (app-bar.js); no separate Android/Apple menu links.
+if ($feed.Contains('data-app-platform="android"') -or $feed.Contains('data-app-platform="apple"')) {
+  Add-Failure 'Feed navigation: separate Android/Apple install links are back in the menu'
 }
 if ($feed.Contains('This DanzStak section is being prepared.') -or $feed.Contains('const featureCopy =')) {
   Add-Failure 'Feed workspaces still run the retired placeholder click handler before the functional router'

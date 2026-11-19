@@ -12,7 +12,7 @@ $productionDeploy = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-deplo
 foreach ($releaseStep in @('DANZSTAK-Engagement', 'aws-deploy-auth-api.ps1', '$EngagementTemplate', 'test-live-security.ps1')) {
   if (-not $productionDeploy.Contains($releaseStep)) { throw "Production workflow omits required backend release step: $releaseStep" }
 }
-foreach ($reelPersistence in @('reel: item.reel?.BOOL === true', 'const reel = mediaType === "video" && data.reel === true', 'reel: { BOOL: true }')) {
+foreach ($reelPersistence in @('reel: item.reel?.BOOL === true', 'const reel = mediaType === "video" && (!facebookImport || data.reel === true)', 'reel: { BOOL: true }')) {
   if (-not $authApi.Contains($reelPersistence)) { throw "Auth API does not persist uploaded-video Reel selection: $reelPersistence" }
 }
 foreach ($groupPersistence in @('async function listGroups(event)', 'async function createGroup(event)', 'async function deleteGroup(event)', 'data.communityStandards !== true', 'Only the Tribe founder can delete it', 'groupId: { S: id }, joinedAt: { S: createdAt }')) {
