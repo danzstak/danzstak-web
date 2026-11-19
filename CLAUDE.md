@@ -469,6 +469,7 @@ Overlaps: A2 = T2a/T2b, A10 is part of 5a2, B10 includes T2g, C4 = T2h/T2i, D1 =
 Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, translate), Twilio upgrade, Stripe test keys, live testing on two real phones.
 
 ### Builder log (newest first)
+- 2026-11-19 UTC · Claude Code · test fix (no queue row) · `browser-checks/dailies-empty-clapper.cjs` and `dailies-feed-ux.cjs` now check the owner's 2026-11-18 three-tile Dailies strip (own tile a third of the screen, two placeholders ending in ACTION! when empty) instead of the retired full-width/square tile; both pass on main at 320–430px · Next: the first TODO in QUEUE.md
 - 2026-11-19 09:20 UTC · Claude Code (manager) · #600 merged; Eroticon video put in The Roll + today's Dailies directly in DynamoDB; IAM policy + Auth API deploy left for the owner session (cloud session may not change IAM); "Manager's plan" written above · Next: land #602, #604, #599, #603, then T0-A2
 - 2026-11-19 01:45 UTC · Claude Code · T0-A1 · PR #602 posted photos/videos go to Dailies (24 h) and videos to The Roll automatically from every composer (server-side), checkboxes removed; owner: deploy Auth API (managed policy DanzStakPostDailies) then `node infrastructure/auth-api/backfill-video-reels.mjs --apply` · Next: T0-A2
 - 2026-11-19 · Claude Code (owner live session) · re-tapped every control on 30 screens on main → `docs/tasks/36` section E; new T0-E1 (Mix Comment icon dead), E8–E10; A11/A12/A13/A1 now PRs #600/#600+#572/#599/#601 · Next: T0-E1
