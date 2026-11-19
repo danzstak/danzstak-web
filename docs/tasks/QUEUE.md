@@ -21,6 +21,32 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 4 | (Owner 2026-11-17: a two-device **video call worked well** — Chrome/computer ↔ phone. Keep it working.) SYNC 16-A: native shell + layout (messages scroll under the header, nothing cut off, keyboard) | 16 | PR #411 + #413 |
 | 5 | SYNC 16-C: button system, SYNC first, then site-wide (no "HTML-looking" buttons) | 16 | PR #423 (SYNC), site sweep #455 → #464 |
 | T | **TEST-READY FIRST (owner 2026-11-19):** CLAUDE.md "Plan: test-ready for the owner and friends" T1 finish open PRs → T2 works-and-looks-good sweep in the installed PWA → T3 SYNC own-app pop-up after device registration → T4 invite testers + docs/TESTING.md. No new features until T1–T3 are done. | CLAUDE.md test-ready plan | TODO |
+| T0-A1 | **Owner bug:** posted video not in Dailies/The Roll → automatic from every composer (server-side), remove opt-in checkboxes, backfill | 36 | TODO |
+| T0-A2 | **Owner bug:** Dailies tile opens the photo picker; only your own big profile picture edits; every other avatar opens that profile | 36 | TODO |
+| T0-A3 | **Owner bug:** The Roll full screen loses sound (carry the sound choice over) + fill the screen | 36 | TODO |
+| T0-A11 | **Owner bug:** + bio opens the long-bio editor (not Edit profile); only the account holder sees it | 36 | TODO |
+| T0-A12 | **Owner:** remove @username under the profile name; friends row there; tap a friend's photo → their posts | 36, 5a3 | TODO |
+| T0-A13 | **Owner:** shop storefront beside the profile picture (shop name + item preview + price → Shop tab), replaces the shop icon button | 36 | TODO |
+| T0-A4 | Saved page crash (`volatilePostPreferences` used before declared) | 36 | TODO |
+| T0-A5 | Record Stores crash + endless loading | 36 | TODO |
+| T0-A6 | Shop manager shows a raw JS error; shared friendly-error helper; Save shop feedback | 36 | TODO |
+| T0-A7 | Booking Example / Find clubs dead; Leaflet served locally | 36 | TODO |
+| T0-A8 | Tribes: Elder sees Join; open on Your Tribes | 36 | TODO |
+| T0-A9 | Mix composer avatar opens your profile | 36 | TODO |
+| T0-A10 | Menu → Photos/Videos show only your media (with 5a2) | 36 | TODO |
+| T0-B1 | One app bar on every page | 36 | TODO |
+| T0-B2 | One bottom tab bar, correct lit tab, on every signed-in page | 36 | TODO |
+| T0-B3 | One font set | 36 | TODO |
+| T0-B4 | One post component (Mix's) on Profile/Tribes/Saved | 36 | TODO |
+| T0-B5 | Your photo instead of "N" on your posts and composer | 36 | TODO |
+| T0-B6 | One button system (orange primary) | 36 | TODO |
+| T0-C1 | Tour Manager: no paywall | 36 | TODO |
+| T0-C2 | Tour Manager: never re-ask EPK info | 36 | TODO |
+| T0-B7 | Styled switches/selects/date/file pickers | 36 | TODO |
+| T0-B8 | Fluid pages: Tour Manager, Support, Settings, HQ | 36 | TODO |
+| T0-B9 | Landing page in DanzStak style | 36 | TODO |
+| T0-B10 | Bazaar images fill tiles; one search | 36 | TODO |
+| T0-CD | Small fixes C3–C5, D1–D7 | 36 | TODO |
 | T2a | Tap any profile picture → that member's profile | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2b | No separate Dailies upload (Dailies tile never opens the photo picker) | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2c | TAKE N counts photos and videos | CLAUDE.md "T2 checklist", 18 | TODO |
