@@ -71,4 +71,4 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 **Blocked on the owner:**
 - AWS support case: Bedrock quotas at 0, and SMS sandbox / Notify rejected.
 
-- Twilio upgrade from Trial before real members register.
+- ~~Twilio upgrade from Trial~~ done by the owner (2026-11-19).
