@@ -363,7 +363,8 @@ Owner: "Make all the little things we've done so far work and look good so I can
    - **only your own big profile picture on your profile opens the picker (to edit it); every other profile picture opens that member's profile**;
    - The Roll keeps sound on when it opens full screen, and fills the screen;
    - **A11** "+ bio" opens the long-bio editor, owner-only;
-   - **A12** remove the @username line under the profile name and put the friends row there (tap a friend's photo → that friend's posts).
+   - **A12** remove the @username line under the profile name and put the friends row there (tap a friend's photo → that friend's posts);
+   - **A13** a shop storefront (shop name + rotating item preview + price) in the white space beside the profile picture, replacing the small shop button.
 2. **A4–A10 (broken in the audit):** Saved page crash, Record Stores crash, raw JS errors shown on the shop manager (add one friendly-error helper), Booking Example/Find clubs dead and Leaflet served locally, Elder sees "Join", composer avatar dead, Menu → Photos shows other people's photos.
 3. **B1–B3 one shell:** one app bar, one bottom tab bar with the right tab lit on every signed-in page, one font set.
 4. **B4–B6:** one post component everywhere, your own photo instead of "N", one button system.
