@@ -22,7 +22,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 5 | SYNC 16-C: button system, SYNC first, then site-wide (no "HTML-looking" buttons) | 16 | PR #423 (SYNC), site sweep #455 → #464 |
 | T | **TEST-READY FIRST (owner 2026-11-19):** CLAUDE.md "Plan: test-ready for the owner and friends" T1 finish open PRs → T2 works-and-looks-good sweep in the installed PWA → T3 SYNC own-app pop-up after device registration → T4 invite testers + docs/TESTING.md. No new features until T1–T3 are done. | CLAUDE.md test-ready plan | TODO |
 | T0-A1 | **Owner bug:** posted video not in Dailies/The Roll → automatic from every composer (server-side), remove opt-in checkboxes, backfill | 36 | TODO |
-| T0-A2 | **Owner bug:** Dailies tile opens the photo picker; only your own big profile picture edits; every other avatar opens that profile | 36 | IN PROGRESS (Claude Code) |
+| T0-A2 | **Owner bug:** Dailies tile opens the photo picker; only your own big profile picture edits; every other avatar opens that profile | 36 | PR #605 (Dailies tile; avatars in #598) |
 | T0-A3 | **Owner bug:** The Roll full screen loses sound (carry the sound choice over) + fill the screen | 36 | TODO |
 | T0-A11 | **Owner bug:** + bio opens the long-bio editor (not Edit profile); only the account holder sees it | 36 | TODO |
 | T0-A12 | **Owner:** remove @username under the profile name; friends row there; tap a friend's photo → their posts | 36, 5a3 | TODO |
@@ -48,7 +48,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-B10 | Bazaar images fill tiles; one search | 36 | TODO |
 | T0-CD | Small fixes C3–C5, D1–D7 | 36 | TODO |
 | T2a | Tap any profile picture → that member's profile | CLAUDE.md "T2 checklist", 18 | TODO |
-| T2b | No separate Dailies upload (Dailies tile never opens the photo picker) | CLAUDE.md "T2 checklist", 18 | TODO |
+| T2b | No separate Dailies upload (Dailies tile never opens the photo picker) | CLAUDE.md "T2 checklist", 18 | PR #605 (with T0-A2) |
 | T2c | TAKE N counts photos and videos | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2d | Videos tab: poster frame, full avatar, readable dates | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2e | Media fills the column edge to edge everywhere | CLAUDE.md "T2 checklist", 18 | TODO |

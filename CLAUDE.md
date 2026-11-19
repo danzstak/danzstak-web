@@ -410,6 +410,7 @@ Overlaps: A2 = T2a/T2b, A10 is part of 5a2, B10 includes T2g, C4 = T2h/T2i, D1 =
 Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, translate), Twilio upgrade, Stripe test keys, live testing on two real phones.
 
 ### Builder log (newest first)
+- 2026-11-19 09:08 UTC · Claude Code · T0-A2 + T2b · PR #605 Dailies tile never opens the photo picker: opens your Dailies full screen (finger swipe, ‹ ›, delete) or the Mix post box; strip = your tile + friends' (avatar half of A2 is #598). Note: #601 and #602 both fix T0-A1, merge one (#602 is server-side per spec 36) · Next: T0-A3
 - 2026-11-19 02:00 UTC · Claude (planning chat) · full site audit (every page + button at 390px) + owner phone bugs → `docs/tasks/36-site-audit-2026-11-19.md`, plan T0 above, queue rows A1–D · Next: T0-A1
 - 2026-11-19 · Claude (planning chat) · owner: yes, the SYNC chat list may be kept on the phone → T2 checklist item 14 / queue T2n unblocked · Next: T1
 - 2026-11-19 · Claude (planning chat) · owner asked what's next → "T2 checklist" (16 fix-it items) added under the test-ready plan; queue rows T2a–T2p · Next: T1
