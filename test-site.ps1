@@ -212,8 +212,12 @@ if ($feedEnhancements.Contains('Event saved locally:') -or $feedEnhancements.Con
 foreach ($required in @('/engagement?postId=', '/reactions', '/comments', 'loadEngagement(post)', 'saveComment(post, event.target)', '/engagement-notifications/read')) {
   if (-not $feedEnhancements.Contains($required)) { Add-Failure "Durable feed engagement is missing: $required" }
 }
-foreach ($reelRequirement in @('id="shareToReels"', 'reel: mediaType === "video" && publishToReels', 'danzstak:posts-loaded')) {
+# T0-A1 (owner 2026-11-18): every posted video goes into The Roll automatically; no opt-in checkbox.
+foreach ($reelRequirement in @('reel: mediaType === "video", originalContentCertified: true', 'danzstak:posts-loaded')) {
   if (-not $feed.Contains($reelRequirement)) { Add-Failure "Uploaded-video Reels workflow is missing: $reelRequirement" }
+}
+foreach ($retiredOptIn in @('id="shareToReels"', 'id="shareToStory"')) {
+  if ($feed.Contains($retiredOptIn)) { Add-Failure "Mix composer still asks to opt in to Dailies / The Roll: $retiredOptIn" }
 }
 foreach ($reelRequirement in @('post.reel === true', 'loadInternalReels', 'reel.internal')) {
   if (-not $feedEnhancements.Contains($reelRequirement)) { Add-Failure "Internal Reels rendering is missing: $reelRequirement" }

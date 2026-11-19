@@ -1106,7 +1106,7 @@ function renderWorkspace(name) {
               if (!uploadResponse.ok) throw new Error("Media upload failed");
               mediaKey = ticket.mediaKey; mediaType = ticket.mediaType; uploadedMediaKey = mediaKey;
             }
-            const response = await postActionFetch("/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: content || "Shared media", groupId: group.id, mediaKey, mediaType, originalContentCertified: true }) });
+            const response = await postActionFetch("/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: content || "Shared media", groupId: group.id, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true }) });
             const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || "Post could not be shared with this Tribe");
             uploadedMediaKey = ""; input.value = ""; checkbox.checked = false; clearSelectedMedia(); status.textContent = "Posted to " + group.name + ".";
             if (typeof window.loadPosts === "function") await window.loadPosts(); renderTribePosts(group, feed);
@@ -4549,23 +4549,15 @@ function placeReelsRail() {
 
 // Composer offers The Roll for a pasted video link too (owner 2026-11-16), not only uploaded videos.
 (() => {
-  const text = document.getElementById("postText"), toggle = document.getElementById("shareToReels"), publish = document.getElementById("publishBtn");
-  if (!text || !toggle || !publish) return;
+  // T0-A1 (owner 2026-11-18): automatic, like uploaded videos — no checkbox. A post with an approved video link adds it.
+  const text = document.getElementById("postText"), publish = document.getElementById("publishBtn");
+  if (!text || !publish) return;
   const linkedVideo = () => { for (const token of text.value.split(/\s+/)) { const url = approvedVideoUrl(token.replace(/[),.!?]+$/, "")); if (url) return url; } return null; };
-  let offeredFor = "";
-  text.addEventListener("input", () => {
-    if (window.danzstakSelectedMedia) return;
-    const url = linkedVideo();
-    toggle.disabled = !url;
-    if (url && offeredFor !== url.href) { toggle.checked = true; offeredFor = url.href; toggle.closest("label")?.removeAttribute("title"); }
-    if (!url) { toggle.checked = false; offeredFor = ""; }
-  });
   let pending = null;
-  publish.addEventListener("click", () => { pending = !window.danzstakSelectedMedia && toggle.checked && document.getElementById("originalContentCertification")?.checked ? linkedVideo() : null; }, true);
+  publish.addEventListener("click", () => { pending = !window.danzstakSelectedMedia && document.getElementById("originalContentCertification")?.checked ? linkedVideo() : null; }, true);
   window.addEventListener("danzstak:post-published", async event => {
     const url = pending; pending = null;
     if (!url || event.detail?.mediaUrl) return;
-    toggle.checked = false; toggle.disabled = true; offeredFor = "";
     try {
       const response = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: url.href, rightsCertified: true }) });
       const result = await response.json().catch(() => ({}));
