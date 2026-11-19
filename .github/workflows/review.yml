@@ -173,6 +173,9 @@ jobs:
           node .\browser-checks\booking-sync.cjs http://127.0.0.1:8132
           node .\browser-checks\artist-hq.cjs http://127.0.0.1:8132
           node .\browser-checks\comment-icon-tap.cjs
+          node .\browser-checks\profile-friends-menu.cjs
+          node .\browser-checks\profile-one-edit.cjs
+          node .\browser-checks\tribes-elder-joined.cjs
           node .\browser-checks\dailies-tile-no-picker.cjs
           node .\browser-checks\load-crashes.cjs
           node .\browser-checks\friendly-errors.cjs
