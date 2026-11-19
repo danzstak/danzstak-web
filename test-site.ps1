@@ -156,7 +156,7 @@ if ($feedEnhancements.Contains('Reel saved on this device until cloud sync is av
 }
 if (-not $feedEnhancements.Contains('rightsCertified: true')) { Add-Failure 'External Reel submissions omit rights attestation' }
 $pushClient = Get-Content -LiteralPath (Join-Path $root 'assets\push-notifications.js') -Raw -Encoding utf8
-foreach ($pushRenewalBehavior in @('async function renewExistingSubscription()', 'Notification.permission !== "granted"', 'registration.pushManager.getSubscription()', 'sessionStorage.getItem("danzstak_push_synced")', 'await api("/push/subscribe"', 'setTimeout(renewExistingSubscription, 2000)')) {
+foreach ($pushRenewalBehavior in @('async function renewExistingSubscription(', 'Notification.permission !== "granted"', 'registration.pushManager.getSubscription()', 'const SYNC_KEY = "danzstak_push_synced"', 'sessionStorage.getItem(SYNC_KEY)', 'await api("/push/subscribe"', 'setTimeout(renewExistingSubscription, 2000)', 'addEventListener("danzstak:call-device-ready"')) {
   if (-not $pushClient.Contains($pushRenewalBehavior)) { Add-Failure "Push alerts: an approved browser subscription can expire server-side without renewal: $pushRenewalBehavior" }
 }
 foreach ($notificationRecoveryBehavior in @('const notificationController = new AbortController()', 'setTimeout(() => notificationController.abort(), 10000)', 'signal: notificationController.signal', 'error.textContent = feedTranslate("Notifications could not be loaded.")', 'retry.addEventListener("click", () => renderWorkspace("Notifications"))', 'clearTimeout(notificationTimeout)')) {

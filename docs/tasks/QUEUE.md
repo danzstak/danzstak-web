@@ -1,6 +1,7 @@
 # DanzStak build queue
 
-**Claude Code: CLAUDE.md "★ THE DIRECTIVE" (owner 2026-11-19) comes first — its fix list F1–F7 and CDN plan C1–C4 replace the order below until done.**
+**Claude Code: CLAUDE.md "★ THE DIRECTIVE" (owner 2026-11-19) comes first — its fix list replaces the order below until done. Start with L2 (device registration: calls are broken for testers), then L1.**
+- **L2 hints from the owner's session (not built; Code builds it):** the two places to change in `infrastructure/call-signaling/template.yaml` `createDeviceChallenge` are `expiresAt:{N:String(now()+300)}` and the returned `expiresAt:now()+300`; `test-call-device-registration.cjs` pins the 300 s value. In `assets/call-devices.js`, `beginEnrollment()` reuses `state.pendingChallenge` with no age check and `finishRegistration()` clears it only after success. In `assets/phone-verification.js`, `render()` shows the "registered" state (only Remove) whenever the number is verified and no `deviceChallenge` is set, even when `danzstakSyncDeviceRegistered()` is false: that's the dead end. Pop-up sources to rate-limit: `incoming-calls.js` (per call, lines ~136 and ~178), `call-invite.js`, and `?device=register` in the URL (clear it with `history.replaceState` after opening).
 
 **Claude Code:** read this file at the start of every session and after every PR you open.
 1. Take the **first** item whose status is `TODO`, set it to `IN PROGRESS (Claude Code)`, and commit that change on your branch.

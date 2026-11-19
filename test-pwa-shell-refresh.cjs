@@ -50,7 +50,7 @@ for (const [file, expected] of [
   ["epk.html", "assets/mobile-design-system.css?v=22"],
   ["profile.html", "assets/mobile-design-system.css?v=22"],
   ["record-stores.html", "assets/mobile-design-system.css?v=22"],
-  ["feed.html", "assets/feed-enhancements.css?v=527"],
+  ["feed.html", "assets/feed-enhancements.css?v=528"],
   ["feed.html", "assets/pwa.js?v=432"],
   ["messages.html", "assets/pwa.js?v=432"],
   ["profile.html", "assets/pwa.js?v=432"],

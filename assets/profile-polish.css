@@ -6,7 +6,7 @@
   width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;
   border:1px solid #e7e9ee!important;border-radius:12px!important;background:#fff!important;color:#121418!important;
 }
-.profile-actions > :is(button,a).ds-icon-button:first-child{background:#ff5a1f!important;border-color:#ff5a1f!important;color:#0b0b0c!important}
+.profile-actions > :is(button,a).ds-icon-button:first-child{background:var(--ds-btn-go,#15803d)!important;border-color:var(--ds-btn-go,#15803d)!important;color:#fff!important}
 .profile-actions > :is(button,a).ds-icon-button:focus-visible{outline:2px solid #ff5a1f;outline-offset:2px}
 .profile-actions .ds-action-icon{width:20px;height:20px}
 .profile-name-edit-hint{display:none!important}

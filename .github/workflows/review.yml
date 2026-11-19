@@ -94,6 +94,7 @@ jobs:
             '.\browser-checks\call-video-two-party.cjs'
             '.\browser-checks\call-audio-output.cjs'
             '.\browser-checks\foreground-call-ringtone.cjs'
+            '.\browser-checks\ringer-loudness.cjs'
             '.\browser-checks\sync-thread-style.cjs'
             '.\browser-checks\message-read-receipt.cjs'
             '.\browser-checks\mix-portrait-preview.cjs'
@@ -104,7 +105,6 @@ jobs:
             '.\browser-checks\roll-fullscreen-sound.cjs'
             '.\browser-checks\media-viewer.cjs'
             '.\browser-checks\dailies-strip-clean.cjs'
-            '.\browser-checks\ringer-loudness.cjs'
             '.\browser-checks\dailies-empty-clapper.cjs'
             '.\browser-checks\dailies-feed-ux.cjs'
           )

@@ -15,8 +15,8 @@ for (const kind of [".ds-btn-icon{", ".ds-btn-primary{", ".ds-btn-tonal{", ".ds-
 assert.match(css, /\.ds-btn-icon,\.ds-btn-primary,\.ds-btn-tonal,\.ds-btn-text\{[^}]*-webkit-tap-highlight-color:transparent[^}]*border:0[^}]*text-transform:none/, "every kind drops the tap highlight, borders and uppercase");
 assert.match(css, /\.ds-btn-icon:active\{[^}]*transform:scale\(\.9\d\)/, "icon buttons get a subtle press scale");
 assert.match(css, /prefers-reduced-motion:reduce/, "press motion respects reduced motion");
-// Primary fill keeps white text readable (contrast of #c2410c on white is about 5.2:1).
-assert.match(css, /--ds-btn-primary:#c2410c/, "primary fill stays the readable dark orange");
+// Primary (go) fill is green and keeps white text readable (#15803d on white is about 5.0:1).
+assert.match(css, /--ds-btn-go:#15803d;[\s\S]*--ds-btn-primary:var\(--ds-btn-go\);/, "owner 2026-11-19: go buttons are green (white text about 5.0:1)");
 
 // SYNC mapping: icon buttons have no border or resting fill; send is a round primary that rests grey when empty.
 assert.match(css, /body\.messages-page \.chat-heading-actions>button,[\s\S]*?border:0!important;border-radius:50%!important;background:transparent!important/, "SYNC icon buttons: no border, no resting fill");

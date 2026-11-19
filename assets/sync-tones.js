@@ -24,15 +24,14 @@
     "pop": { name: "Pop", kind: "message", period: 0.5, notes: [[0, 0.12, 660, "sine", 0.8, 990]] },
     "rimshot": { name: "Rimshot", kind: "message", period: 0.5, notes: [[0, 0.06, 900, "triangle", 0.6], [0, 0.04, 5000, "noise", 0.5], [0.14, 0.05, 1200, "triangle", 0.4]] }
   };
-  // F15e (owner 2026-11-19: "the ringer on SYNC should be 10 dB louder minimum"). Measured first: the old chain already
-  // peaked at +3 to +6 dBFS (clipping), yet through a phone speaker most rings were quiet (-17 to -33 LUFS) because their
-  // energy sat at 45-480 Hz, below what a phone speaker plays (and the compressor's own make-up gain is why it clipped).
-  // Rings now: sub-bass cut, gentle saturation (harmonics in the 1-4 kHz band a phone speaker plays), a presence lift,
-  // then a soft limiter whose curve can never exceed PEAK (-1.4 dBFS), however hard it is driven.
-  // browser-checks/ringer-loudness.cjs measures every ring against the recorded old levels.
-  const RING_CHAIN = { highpassHz: 800, drive: 16, presenceHz: 3000, presenceDb: 14, push: 8, peak: 0.8 };
-  const tanhCurve = (amount, ceiling) => { const curve = new Float32Array(4097); for (let i = 0; i < curve.length; i++) curve[i] = ceiling * Math.tanh((i / 2048 - 1) * amount) / Math.tanh(amount); return curve; };
-  const saturation = tanhCurve(1.6, 1), softLimit = tanhCurve(2.5, RING_CHAIN.peak);
+  const RING_MAKEUP_GAIN = 3.2, RING_DRIVE = 24, RING_HIGHPASS_HZ = 600, RING_CEILING = 0.97; // see the loud chain in play()
+  const curves = {};
+  function ringCurve(kind) {
+    if (curves[kind]) return curves[kind];
+    const n = 2049, curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = kind === "tanh" ? Math.tanh(x * 3) / Math.tanh(3) : Math.max(-RING_CEILING, Math.min(RING_CEILING, x)); }
+    return (curves[kind] = curve);
+  }
   const DEFAULTS = { ring: "classic", message: "pop", ringVibrate: true, messageVibrate: true, contacts: {} };
   let ctx = null, active = null, previewTimer = null;
 
@@ -94,16 +93,19 @@
     // Owner 2026-11-18: "the ring tones are quiet". Rings go through a compressor and make-up gain so a phone speaker
     // plays them loud without clipping (message tones stay gentle).
     let loudChain = null;
-    if (tone.kind === "ring" && out.createWaveShaper) {
+    if (tone.kind === "ring" && out.createDynamicsCompressor) {
       try {
-        const lowCut = out.createBiquadFilter(); lowCut.type = "highpass"; lowCut.frequency.value = RING_CHAIN.highpassHz; lowCut.Q.value = 0.7;
-        const drive = out.createGain(); drive.gain.value = RING_CHAIN.drive;
-        const shaper = out.createWaveShaper(); shaper.curve = saturation; shaper.oversample = "4x";
-        const presence = out.createBiquadFilter(); presence.type = "peaking"; presence.frequency.value = RING_CHAIN.presenceHz; presence.Q.value = 0.8; presence.gain.value = RING_CHAIN.presenceDb;
-        const push = out.createGain(); push.gain.value = RING_CHAIN.push / 2.2; // presence can lift peaks to about x2.2
-        const limiter = out.createWaveShaper(); limiter.curve = softLimit; limiter.oversample = "none"; // no oversampling filter: it overshoots the ceiling
-        master.connect(lowCut).connect(drive).connect(shaper).connect(presence).connect(push).connect(limiter).connect(out.destination);
-        loudChain = [lowCut, drive, shaper, presence, push, limiter];
+        // Owner 2026-11-19: "real quiet, turn it up at least 10 dB". Phone speakers barely play below ~400 Hz, where most
+        // ring notes sit, so: cut the lows, saturate (tanh) to put harmonics in the 1–5 kHz band the speaker and ear hear
+        // best, compress, lift, and hard-limit just under full scale so nothing clips at the output.
+        const hp = out.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = RING_HIGHPASS_HZ;
+        const drive = out.createGain(); drive.gain.value = RING_DRIVE;
+        const shaper = out.createWaveShaper(); shaper.curve = ringCurve("tanh"); shaper.oversample = "4x";
+        const comp = out.createDynamicsCompressor(); comp.threshold.value = -24; comp.knee.value = 4; comp.ratio.value = 12; comp.attack.value = 0.002; comp.release.value = 0.1;
+        const makeup = out.createGain(); makeup.gain.value = RING_MAKEUP_GAIN;
+        const limiter = out.createWaveShaper(); limiter.curve = ringCurve("limit");
+        master.connect(hp); hp.connect(drive); drive.connect(shaper); shaper.connect(comp); comp.connect(makeup); makeup.connect(limiter); limiter.connect(out.destination);
+        loudChain = [hp, drive, shaper, comp, makeup, limiter];
       } catch { loudChain = null; }
     }
     if (!loudChain) master.connect(out.destination);
