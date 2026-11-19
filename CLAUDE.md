@@ -20,6 +20,7 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
 5. **Message the owner only** for something he must do (a deploy he must run, a decision), with numbered steps and the shell named (**CloudShell** or **PowerShell**) on every command.
 
 ### Fix list (in this order)
+- **F0. CI green on main first.** Since #625 every check counts. `browser-checks/call-audio-output.cjs` and `browser-checks/original-feed-art-direction.cjs` time out in CI (seen on #632, a docs-only PR). Fix the root cause or the stale check; never skip one.
 - **F1. Tap a photo or video → full screen.** The owner says it still doesn't work, because the viewer never merged. **#594 is green and ready.** Bring it up to date with main and merge it first, then check on the live app: Mix, Tribes, profile Posts, and the Photos/Videos tabs.
 - **F2. The Roll keeps the sound choice.** Owner: "each video I have to turn the audio on." Once sound is on, the next Roll video stays audible, whether reached by scroll or auto-advance; mute carries over the same way; never two audible players. Browser check with real playback. Root cause is likely `media-visibility.js` session sound (`sessionSound`) reset or not applied on the next card.
 - **F3. Dailies scrolling doesn't work** (owner's phone). Reproduce with touch at 360/390px, fix the root cause, and add a check that swipes both the strip and the full-screen Dailies. Land #605 (tile never opens the picker), #609 and #587 in the same train.
@@ -37,6 +38,21 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - #593 share a phone photo;
   - #591 SYNC as its own app;
   - #580 ringer part 2.
+- **F8. Modern look, every page.** Owner 2026-11-19: "This is janky… kids these days know what a dope site looks like… if it looks like something an 8th grader could build they won't use it."
+  - **Example, Notifications.** Today: a big black "View post" button under every row, full dates, heavy cards (`docs/screenshots/owner-reference/notifications-danzstak-2026-11-19.png`). Target, the familiar pattern (`notifications-familiar-reference-2026-11-19.png`, layout only, DanzStak colours and brand):
+    - big title with search in the header;
+    - **New** / **Earlier** sections;
+    - unread rows on a soft tinted background;
+    - a 56px avatar with a small round **type badge** (like, comment, friend, Tribe, shop, ticket) in DanzStak colours;
+    - **bold names** in one running sentence, then a relative time ("12h", "3d");
+    - a ⋯ menu per row (mark read, turn off, delete);
+    - the **whole row is tappable** (no "View post" buttons);
+    - no boxes, hairlines only, phone-width spacing.
+  - **Then the same pass on every screen a tester touches**, in T2-walk order (Mix, profile, Tribes, Bazaar, Events, Music HQ/EPK, SYNC, Menu, Settings):
+    - no default browser controls, no big black text buttons where an icon or a tappable row is the norm;
+    - one type scale, relative times, consistent 44px targets;
+    - subtle motion (≤150 ms press/fade), skeletons instead of "Loading…" text.
+  - Screenshot before and after at 360/390px for each screen. Spec to write first: `docs/tasks/39-modern-look.md` (tokens, components, the per-screen list).
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
 ### CDN plan (task 38)
@@ -47,6 +63,7 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - The app keeps CDN photos and clears them on log out.
   - **Call-signaling serves CDN URLs** (`MediaCdnServe=true`): Dailies, avatars, SYNC media.
   - Verified: signed links return 200, a second load is faster (edge cache), and an unsigned link returns 403.
+- **Owner: "keep making the CDN so it's fast"**: C1–C4 run alongside F1–F8 in the same trains.
 - **C1. Mix posts and The Roll through the CDN.**
   - Land #631: the Auth API deploy script runs in CloudShell, attaches the `DanzStakMediaCdn` policy and sets `MEDIA_CDN_DOMAIN`.
   - Then the owner runs, in **CloudShell**: `cd ~/danzstak-web && git pull -q && pwsh ./aws-deploy-auth-api.ps1`. This also ships the server half of the Bazaar scramble (#618).
