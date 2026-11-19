@@ -43,6 +43,13 @@ const posts = [{
   viewCount: 42
 }];
 
+// The API route records each write asynchronously, after the click has resolved: wait until it arrives instead of
+// reading the list right after the click (that raced under load).
+async function awaitWrite(page, writes, count, label) {
+  for (let attempt = 0; attempt < 100 && writes.length < count; attempt += 1) await page.waitForTimeout(50);
+  assert.ok(writes.length >= count, `${label} never reached the API`);
+}
+
 const engagement = {
   reactionCounts: { Like: 2, Fire: 1 },
   myReaction: "",
@@ -138,6 +145,7 @@ const engagement = {
         return {
           overflow: document.documentElement.scrollWidth > innerWidth,
           tabs: tabs && { height: tabs.height, labels: [...document.querySelectorAll(".profile-tabs button")].map(button => button.textContent.trim()) },
+          composerEdges: composer && [composer.left, composer.right],
           composerMargins: composer && [getComputedStyle(document.querySelector(".profile-wall-composer")).marginTop, getComputedStyle(document.querySelector(".profile-wall-composer")).marginBottom],
           createAvatar: createAvatar && [createAvatar.width, createAvatar.height],
           createInput: createInput && [createInput.height, getComputedStyle(document.querySelector(".profile-create-opener")).borderRadius],
@@ -158,9 +166,14 @@ const engagement = {
       assert.equal(geometry.overflow, false, `${width}px Profile interactions overflow horizontally`);
       assert.equal(Math.round(geometry.tabs.height), 44, `${width}px profile tabs are not 44px high`);
       assert.deepEqual(geometry.tabs.labels, ["Posts", "About", "Friends", "Photos", "Videos", "More"]);
-      assert.deepEqual(geometry.composerMargins, ["8px", "8px"]);
+      // Fix-it 18 (owner 2026-11-17, assets/profile-polish.css): on a phone the composer is part of one continuous wall,
+      // edge to edge with no gaps; wider screens keep the 8px rhythm.
+      if (width <= 560) {
+        assert.deepEqual(geometry.composerMargins, ["0px", "0px"], `${width}px profile composer must sit flush in the wall`);
+        assert.ok(Math.abs(geometry.composerEdges[0]) <= 1 && Math.abs(geometry.composerEdges[1] - width) <= 1, `${width}px profile composer is not edge to edge: ${JSON.stringify(geometry.composerEdges)}`);
+      } else assert.deepEqual(geometry.composerMargins, ["8px", "8px"]);
       assert.deepEqual(geometry.createAvatar.map(Math.round), [36, 36]);
-      assert.equal(Math.round(geometry.createInput[0]), 36);
+      assert.equal(Math.round(geometry.createInput[0]), 44, `${width}px composer opener is not the 44px button-system target`); // 16-C (owner 2026-11-17)
       assert.equal(geometry.createInput[1], "20px");
       assert.equal(Math.round(geometry.shortcutsHeight), 40);
       assert.deepEqual(geometry.shortcutLabels, ["Add a photo or video", "Add an event"]); // icon buttons (owner 2026-11-16) keep accessible names
@@ -175,16 +188,21 @@ const engagement = {
 
       if (width === 390) {
         await page.screenshot({ path: path.join(output, "profile-comments-390.png"), fullPage: true });
+        const reactionCount = reactionWrites.length;
         await card.locator(".profile-post-like").click();
+        await awaitWrite(page, reactionWrites, reactionCount + 1, `${width}px Like`);
         assert.deepEqual(reactionWrites.at(-1), { postId, reaction: "Like" });
         await card.locator(".profile-post-comment").click();
         const input = card.locator(".profile-comment-input");
         await input.fill("A new top-level comment");
+        const commentCount = commentWrites.length;
         await card.locator(".profile-comment-send").click();
+        await awaitWrite(page, commentWrites, commentCount + 1, `${width}px comment`);
         assert.deepEqual(commentWrites.at(-1), { postId, content: "A new top-level comment" });
         await card.locator(".profile-comment:not(.profile-comment-reply)").getByRole("button", { name: "Reply" }).click();
         await input.fill("A nested reply");
         await card.locator(".profile-comment-send").click();
+        await awaitWrite(page, commentWrites, commentCount + 2, `${width}px reply`);
         assert.deepEqual(commentWrites.at(-1), { postId, content: "A nested reply", parentCommentId: commentId });
         await card.locator(".profile-post-share").click();
         await page.locator(".post-share-dialog[open]").waitFor();
@@ -192,12 +210,18 @@ const engagement = {
         await page.locator(".profile-create-opener").click();
         await page.locator(".profile-create-form textarea").fill("A working profile post");
         await page.locator(".profile-wall-certify input").check();
+        const postCount = postWrites.length;
         await page.locator('.profile-create-form button[type="submit"]').click();
+        await awaitWrite(page, postWrites, postCount + 1, `${width}px profile post`);
         assert.equal(postWrites.at(-1).content, "A working profile post");
         assert.equal(postWrites.at(-1).originalContentCertified, true);
         assert.equal(postWrites.at(-1).audience, "public");
         await page.locator('[data-profile-tab="Photos"]').click();
-        await page.locator(".profile-post-media").first().waitFor();
+        // Photos is a media-only 3-column grid of square tiles (plan 5a2, owner 2026-11-18), not post cards.
+        const photoTile = page.locator(".profile-photo-grid .profile-photo-tile").first();
+        await photoTile.locator("img").waitFor();
+        const tileBox = await photoTile.boundingBox();
+        assert.ok(tileBox && Math.abs(tileBox.width - tileBox.height) <= 1 && Math.abs(tileBox.width - width / 3) <= 4, `${width}px Photos tile is not a square third of the screen: ${JSON.stringify(tileBox)}`);
         // Owner 2026-11-16: Featured, Memories and Media are gone; Friends is a top tab; More only appears for a Shop.
         assert.equal(await page.locator('[data-profile-tab="More"]').isHidden(), true);
         await page.locator('[data-profile-tab="Friends"]').click();

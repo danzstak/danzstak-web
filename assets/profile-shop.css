@@ -43,3 +43,19 @@
 .profile-showcase-shop{display:inline-flex;align-items:center;min-height:32px;color:#c2410c;font-size:12px;font-weight:700}
 .profile-showcase[aria-busy=true]{opacity:.6}
 @media(max-width:600px){.profile-showcase-photo{width:min(100%,150px);height:72px}}
+
+/* Owner 2026-11-19: never over the name — the box starts where the cover ends and fits the space above the name. */
+.profile-shop-preview{max-height:var(--showcase-room,84px);overflow:visible}
+.profile-showcase-photo{height:var(--showcase-room,84px)!important;max-height:var(--showcase-room,84px)}
+.profile-shop-preview.is-tight .profile-shop-preview-items img{width:32px;height:32px}
+.profile-shop-preview.is-tight{gap:2px}
+.profile-showcase .profile-showcase-tools{flex-direction:row;align-self:flex-end}
+.profile-showcase .profile-showcase-tools button{width:36px;height:36px;min-height:36px}
+.profile-shop-preview.is-tight .profile-shop-preview-label strong{font-size:12px}
+.profile-shop-preview.is-tight .profile-shop-preview-plus{flex-basis:36px;width:36px;height:36px;font-size:20px}
+/* "Fill this space" prompt stays inside the room above the name: top-aligned, the hint line clamps to 2 lines,
+   and when the room is tight only "Fill this space", the + and the shop link remain. */
+.profile-showcase{align-items:flex-start;max-height:var(--showcase-room,84px)}
+.profile-showcase-add .profile-shop-preview-label strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;line-height:1.25}
+.profile-shop-preview.is-tight .profile-showcase-add .profile-shop-preview-label strong{display:none}
+.profile-showcase-shop{min-width:0;min-height:36px;font-size:11px;line-height:1.2;text-align:right}

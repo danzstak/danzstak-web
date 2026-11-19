@@ -12,16 +12,17 @@ assert.match(template, /story:profileString\(item,'profileStory',2000\)/);
 // Editor: a real textarea, filled when the editor opens.
 assert.match(editor, /<textarea name="story" maxlength="2000" rows="8"/);
 assert.match(editor, /panel\.elements\.story\.value = profile\.story \|\| "";/);
-// About: story first; owner-only edit/add; visitors never see an empty block.
-assert.ok(editor.indexOf("details.appendChild(storyBlock)") < editor.indexOf('detail("Location", "profileLocation")'), "story sits above the details");
-assert.match(editor, /storyEdit\.hidden = !story \|\| !owner;/);
-assert.match(editor, /storyAdd\.hidden = Boolean\(story\) \|\| !owner;/);
-assert.match(editor, /storyBlock\.hidden = !story && !owner;/);
+// About: story first; written in Edit profile (no separate + bio button, owner 2026-11-19).
+assert.ok(editor.indexOf("details.appendChild(storyBlock)") < editor.indexOf('detail("Location", "profileLocation"'), "story sits above the details");
+assert.doesNotMatch(editor, /storyAdd|storyEdit|profile-story-add/, "owner 2026-11-19: no + bio button (it only opened Edit profile)");
+assert.match(editor, /storyBlock\.hidden = !story;/, "no empty story block for anyone");
 assert.match(editor, /storyText\.setAttribute\("data-no-translate", ""\)/, "the member's own words are never machine-translated");
 assert.match(editor, /renderProfileStory\(profile\);/);
 // Look: big pull-quote, no grey boxes, 44px targets.
 assert.match(css, /\.profile-story-text\{[^}]*font-size:clamp\(20px,5\.4vw,26px\)[^}]*white-space:pre-line/);
 assert.match(css, /\.details \.detail\{[^}]*border:0!important[^}]*background:transparent!important/);
-assert.match(css, /\.profile-story-edit\{[^}]*width:44px;height:44px/);
-assert.match(css, /\.profile-story-add\{[^}]*min-height:44px/);
+// Owner 2026-11-19: Location and Work on one line.
+assert.match(editor, /detail\("Location", "profileLocation", locationWork\);\r?\ndetail\("Work", "profileWork", locationWork\);/);
+assert.match(css, /\.details \.detail-pair\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+assert.match(css, /\.details \.detail-pair:has\(>\.detail\[hidden\]\)\{grid-template-columns:minmax\(0,1fr\)\}/, "a visitor sees one full-width item when only one is filled");
 console.log("profile story ok");
