@@ -168,6 +168,19 @@ const viewerEvents = page => page.evaluate(() => (window.__viewerEvents || []).j
       await run.page.keyboard.press("ArrowLeft");
       state = await stateAt(run.page, "1 / 3");
       assert.equal(state.count, "1 / 3", `${label}: arrow keys move too`);
+      // A mouse click on › steps exactly once (the release and the click are the same press), and a touch tap that
+      // brings pointer events but no click (what CI's lost tap on › did) still steps.
+      const nextBox = await run.page.locator(".story-viewer-next").boundingBox();
+      await run.page.mouse.click(nextBox.x + nextBox.width / 2, nextBox.y + nextBox.height / 2);
+      state = await stateAt(run.page, "2 / 3");
+      assert.equal(state.count, "2 / 3", `${label}: a mouse click on › steps once, not twice`);
+      await run.page.evaluate(() => {
+        const button = document.querySelector(".story-viewer-prev"), box = button.getBoundingClientRect(), at = { clientX: box.left + box.width / 2, clientY: box.top + box.height / 2, pointerId: 7, pointerType: "touch", isPrimary: true, bubbles: true };
+        button.dispatchEvent(new PointerEvent("pointerdown", at));
+        button.dispatchEvent(new PointerEvent("pointerup", at)); // and no click, as on CI
+      });
+      state = await stateAt(run.page, "1 / 3");
+      assert.equal(state.count, "1 / 3", `${label}: a tap whose click never comes still steps`);
       // Delete your own Daily from the viewer: the next one shows and the tile count drops.
       await run.page.locator(".story-viewer-delete").tap();
       await run.page.locator(".danzstak-confirm-dialog button[value=confirm]").tap();
