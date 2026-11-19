@@ -1,5 +1,7 @@
 # DanzStak build queue
 
+**Claude Code: CLAUDE.md "★ THE DIRECTIVE" (owner 2026-11-19) comes first — its fix list F1–F7 and CDN plan C1–C4 replace the order below until done.**
+
 **Claude Code:** read this file at the start of every session and after every PR you open.
 1. Take the **first** item whose status is `TODO`, set it to `IN PROGRESS (Claude Code)`, and commit that change on your branch.
 2. Build it as described in its spec, open the PR against main, and set the status to `PR #<n>`. **Don't merge or deploy.**

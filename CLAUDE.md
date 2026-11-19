@@ -2,6 +2,60 @@
 
 Read this first, every session. **Claude Code: your work list is `docs/tasks/QUEUE.md`. Take the first `TODO` item, open a PR, mark it, and move on (see the instructions at the top of that file).** Then read `docs/SESSION-HANDOFF.md` (latest progress and open items), then `docs/OWNER-DIRECTIVES.md` (priorities and task specs) and `instructions/` (the full product spec the owner wants built). Then read `README.md` (mission, independence rules, product boundary), `docs/DANZSTAK-DESIGN-SYSTEM.md`, and `docs/QUALITY-ASSURANCE-POLICY.md`. Those rules still apply.
 
+## ★ THE DIRECTIVE (owner 2026-11-19, supersedes every other order in this file and in QUEUE.md until it is done)
+
+Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these things — the UX is not good and users will not use the site. Main keeps moving. Make one big directive for Code, then test it all, and test it again. When two agents are coding, things get messed up."
+
+### Rules
+1. **One coder.** Only Claude Code (the builder session) writes code, merges and runs deploy steps. The planning chat and any live owner session **plan only** and write here. Never push to a branch another session is working on.
+2. **One release train at a time.** Work on one branch `train/<date>`. Bring the listed PRs and fixes into it in the order below, fix conflicts once, bump versions once (`scripts/bump-versions.cjs`, one shell number). Open one PR to main. Merge only when CI is green. Nothing else merges while a train is open.
+3. **Test it all, then test it again.**
+   - (a) Before merging: `node scripts/run-all-tests.cjs` plus every browser check the train touches, at 320/360/390/430px, **tapping the centre of icons**, not the button box.
+   - (b) After Amplify publishes: re-run the same browser checks against the live site (`DANZSTAK_BASE_URL=https://danzstak.com`) and walk the T2 flow. Check the published service worker version.
+   - If (b) fails, fixing it comes before anything else.
+4. **No new features** until the fix list below is done. Each fix gets a check that would have caught it.
+5. **Message the owner only** for something he must do (a deploy he must run, a decision), with numbered steps and the shell named (**CloudShell** or **PowerShell**) on every command.
+
+### Fix list (in this order)
+- **F1. Tap a photo or video → full screen.** The owner says it still doesn't work, because the viewer never merged. **#594 is green and ready.** Bring it up to date with main and merge it first, then check on the live app: Mix, Tribes, profile Posts, and the Photos/Videos tabs.
+- **F2. The Roll keeps the sound choice.** Owner: "each video I have to turn the audio on." Once sound is on, the next Roll video stays audible, whether reached by scroll or auto-advance; mute carries over the same way; never two audible players. Browser check with real playback. Root cause is likely `media-visibility.js` session sound (`sessionSound`) reset or not applied on the next card.
+- **F3. Dailies scrolling doesn't work** (owner's phone). Reproduce with touch at 360/390px, fix the root cause, and add a check that swipes both the strip and the full-screen Dailies. Land #605 (tile never opens the picker), #609 and #587 in the same train.
+- **F4. The photo/shop box beside the avatar fills the free space.** #629 stopped it covering the name. Now:
+  - It grows to fill all unused space: down to the avatar's bottom or the action row when the name text doesn't reach under it.
+  - It shrinks again when the name gets longer or the screen narrower.
+  - The image scales to fill the box (`object-fit: cover`).
+  - Recompute on resize and on name change.
+  - Extend `browser-checks/profile-showcase-fit.cjs`: a short name gives a tall box; a long name puts the box above the name.
+- **F5. Every profile picture opens that member's profile** (#598).
+- **F6. The rest of the audit**, `docs/tasks/36-site-audit-2026-11-19.md`, in its order: A4–A10, E8–E10, B1–B10 (one app bar, one tab bar, one font set, one post component, one button system), C1–C5, D.
+- **F7. Finish the open feature PRs**, one per train after F1–F6:
+  - #575 albums;
+  - #572 friends row (needs the call-signaling `/friends/of` deploy);
+  - #593 share a phone photo;
+  - #591 SYNC as its own app;
+  - #580 ringer part 2.
+- Then the **T2 sweep**, T3 and T4 (test-ready plan below).
+
+### CDN plan (task 38)
+- **Done (2026-11-19):**
+  - CloudFront `dk7kawr758jtd.cloudfront.net` (distribution `E1IHQF8SMWIYPH`, private bucket via Origin Access Control, trusted key group).
+  - Signing key in Secrets Manager `danzstak/cloudfront/media-signing-key`.
+  - Pages allow the CDN host.
+  - The app keeps CDN photos and clears them on log out.
+  - **Call-signaling serves CDN URLs** (`MediaCdnServe=true`): Dailies, avatars, SYNC media.
+  - Verified: signed links return 200, a second load is faster (edge cache), and an unsigned link returns 403.
+- **C1. Mix posts and The Roll through the CDN.**
+  - Land #631: the Auth API deploy script runs in CloudShell, attaches the `DanzStakMediaCdn` policy and sets `MEDIA_CDN_DOMAIN`.
+  - Then the owner runs, in **CloudShell**: `cd ~/danzstak-web && git pull -q && pwsh ./aws-deploy-auth-api.ps1`. This also ships the server half of the Bazaar scramble (#618).
+  - Verify: Mix image URLs are on the CDN host and identical across two loads; deleting a post invalidates its media.
+- **C2. Faster API.**
+  - `GET /stories` without a full-table Scan (GSI or per-member query).
+  - Author names from `DanzStak-ProfileNames` instead of Cognito per author.
+  - Lambdas at 1024 MB (call-signaling template plus `aws-deploy-auth-api.ps1`).
+- **C3. Videos at 720p** (task 37 part 2). This needs the owner's go-ahead for the MediaConvert cost.
+- **C4. Measure.** After the first visit, Mix's first screen should load in under 2 s on 4G, from Italy and San Francisco. Record the numbers in the PR.
+- Full spec: `docs/tasks/38-media-cdn.md`.
+
 ## What DanzStak is
 
 **Above all, DanzStak is an EPK and booking agent. An artist builds an EPK, sends it to clubs and venues, and gets booked. Everything else (Pivot, Mix, SYNC, Tribes, Record Stores) supports that or brings people to it. When priorities conflict, EPK and booking win.**
@@ -480,6 +534,7 @@ Overlaps: A2 = T2a/T2b, A10 is part of 5a2, B10 includes T2g, C4 = T2h/T2i, D1 =
 Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, translate), Twilio upgrade, Stripe test keys, live testing on two real phones.
 
 ### Builder log (newest first)
+- 2026-11-19 13:05 UTC · Claude Code (owner live) · owner: "stop coding, plan" → **★ THE DIRECTIVE** at the top of this file (one coder, one release train, test twice; fix list F1–F7; CDN C1–C4). Call-signaling now serves the CDN; #594 viewer green but blocked by main moving · Next: F1 (#594)
 - 2026-11-19 12:20 UTC · Claude Code · CI enforcement · merged #617, #623 (6 stale checks + 3 flakes), #624 (alerts banner on phones, Mix media bleed above 700px); PR #625: review.yml and the regression suite run every check through `scripts/run-checks.ps1` (keeps going, then fails and names each failed check; covered by `test-run-checks.ps1` and `test-review-workflow.cjs`). **Rule for everyone: add new checks to a `run-checks.ps1 -Checks @(...)` list, never as bare `node` lines.** Owner decisions open: purchase pop-up totals leave out the buyer fee ($0.75 unlock, $1.50 email vs the 2026-11-16 all-in prices); `call-devices.js` startup can overwrite a credential another tab just saved · Next: T0-A3 (The Roll full screen: sound + fill; #617 found the full-screen Roll shifted 10px with its bottom cut off)
 - 2026-11-19 12:20 UTC · Claude Code (owner live, CloudShell) · CDN deployed (dk7kawr758jtd.cloudfront.net) + backfill run; #627 backfill arg fix; CDN step 3 PR (CSP + app photo cache + log-out clear) · Next: switch the CDN on (CloudShell: verify a signed URL, MediaCdnServe=true, Auth API env + policy)
 - 2026-11-19 11:55 UTC · Claude Code (owner live session, owner said "handle everything" before a flight) · merged #622 (CDN steps 1–2); release train #626 = #616 + #620 + #618 + #619; CDN signing key created by the owner in CloudShell; call-signaling CDN deploy + backfill left in the Owner-session box (the cloud session can't upload the template to S3 or read member data) · Next: CDN step 3 once the MediaCdnDomain exists
