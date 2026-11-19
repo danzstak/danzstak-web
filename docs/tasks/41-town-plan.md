@@ -29,3 +29,6 @@ Earlier directive (2026-11-15) this completes: "After a show is booked, DanzStak
 - 2 shop + 2 station requests use no credit; a 3rd uses one; the ad-quote follow-up appears after a decline or 5 days (clock injected).
 - A confirmed interview appears on the Tour Manager day sheet in time order, and a clash is flagged.
 - HQ In-stores/Radio buttons open the town plan; nothing is a dead button.
+
+## Scene news (owner 2026-11-19)
+Confirmed gigs, in-stores and radio spots become scene news cards in the Mix slot rotation and entries in Events and the tour calendar, unless the band turns off "Announce on DanzStak" for that booking. See CLAUDE.md F15i.
