@@ -44,7 +44,7 @@
   }
   async function archiveProduct(product) {
     if (!confirm(`Remove ${product.title} from your shop? Existing order records are kept.`)) return;
-    try { await request(`/marketplace/products/${encodeURIComponent(product.id)}`, {method:"DELETE"}); status.textContent = `${product.title} removed.`; await load(); } catch (error) { status.textContent = error.message; }
+    try { await request(`/marketplace/products/${encodeURIComponent(product.id)}`, {method:"DELETE"}); status.textContent = `${product.title} removed.`; await load(); } catch (error) { status.textContent = window.danzstakFriendlyError?.(error, "Your shop could not be loaded or saved. Try again in a moment.") ?? "Your shop could not be loaded or saved. Try again in a moment."; }
   }
   function renderProducts(shop) {
     products.replaceChildren();
@@ -67,7 +67,7 @@
   }
   function showShop(shop) {
     currentShop = shop; byId("storeTitle").textContent=shop.name; byId("storeDescription").textContent=shop.description || (shop.official ? "Official DanzStak merchandise." : "Physical goods from this DanzStak member."); byId("storeEyebrow").textContent=shop.official ? "Official store" : "Member shop"; document.title=`${shop.name} | DanzStak`; renderProducts(shop);
-    if(managing) { byId("shopName").value=shop.name; byId("shopDescription").value=shop.description; byId("shopStatus").value=shop.status; productManager.hidden=false; }
+    if(managing) { byId("shopName").value=shop.name||""; byId("shopDescription").value=shop.description||""; byId("shopStatus").value=shop.status||"draft"; productManager.hidden=false; }
   }
   async function load() {
     // Owner 2026-11-15: there is no official DanzStak Store — the Bazaar is the one commerce destination.
@@ -76,18 +76,18 @@
     else if(!memberId) byId("manageShopLink").hidden=false;
     const path=managing?"/marketplace/shop":memberId?`/marketplace/shop/${encodeURIComponent(memberId)}`:"/marketplace/store";
     status.textContent="Loading store…";
-    try { const data=await request(path); showShop(data.shop); status.textContent=data.shop.products.length?`${data.shop.products.length} product${data.shop.products.length===1?"":"s"}.`:"No products are available right now."; }
+    try { const data=await request(path); if(!data?.shop){ const missing=new Error("No shop yet"); missing.status=404; throw missing; } data.shop.products=Array.isArray(data.shop.products)?data.shop.products:[]; showShop(data.shop); status.textContent=data.shop.products.length?`${data.shop.products.length} product${data.shop.products.length===1?"":"s"}.`:"No products are available right now."; }
     catch(error) {
       if(managing && error.status===404) { currentShop=null; products.replaceChildren(); productManager.hidden=true; status.textContent="Name your shop to open a private draft. Publish it only when it is ready."; return; }
       if(!memberId && !managing && error.status===404) { byId("storeTitle").textContent="DanzStak Store"; products.replaceChildren(); status.textContent="The official store is being stocked. No products are available right now."; return; }
-      status.textContent=error.message;
+      status.textContent=window.danzstakFriendlyError?.(error, "Your shop could not be loaded or saved. Try again in a moment.") ?? "Your shop could not be loaded or saved. Try again in a moment.";
     }
   }
 
   byId("shopForm").addEventListener("submit", async event => {
-    event.preventDefault(); status.textContent="Saving shop…";
+    event.preventDefault(); if(!byId("shopName").value.trim()){ status.textContent="Give your shop a name first."; byId("shopName").focus(); return; } status.textContent="Saving shop…";
     try { const data=await request("/marketplace/shop",{method:"PUT",body:JSON.stringify({name:byId("shopName").value,description:byId("shopDescription").value,status:byId("shopStatus").value})}); currentShop=data.shop; productManager.hidden=false; status.textContent=data.shop.status==="published"?"Shop published on your profile.":"Shop saved as a private draft."; await load(); }
-    catch(error){ status.textContent=error.message; }
+    catch(error){ status.textContent=window.danzstakFriendlyError?.(error, "Your shop could not be loaded or saved. Try again in a moment.") ?? "Your shop could not be loaded or saved. Try again in a moment."; }
   });
   byId("productForm").addEventListener("submit", async event => {
     event.preventDefault(); const price=cents(byId("productPrice").value),shipping=cents(byId("productShipping").value); if(price===null||shipping===null){status.textContent="Enter prices in dollars and cents, for example 25.00.";return;}
@@ -95,7 +95,7 @@
     const id=byId("productId").value, payload={title:byId("productTitle").value,description:byId("productDescription").value,imageUrl:byId("productImage").value,priceCents:price,shippingCents:shipping,inventory:Number(byId("productInventory").value),status:byId("productStatus").value,productType:"physical"}; if(id) payload.revision=Number(byId("productRevision").value);
     status.textContent=id?"Saving product…":"Adding product…";
     try { await request(id?`/marketplace/products/${encodeURIComponent(id)}`:"/marketplace/products",{method:id?"PATCH":"POST",body:JSON.stringify(payload)}); resetProductForm(); status.textContent=id?"Product updated.":"Product added."; await load(); }
-    catch(error){status.textContent=error.message;}
+    catch(error){status.textContent=window.danzstakFriendlyError?.(error, "Your shop could not be loaded or saved. Try again in a moment.") ?? "Your shop could not be loaded or saved. Try again in a moment.";}
   });
   byId("cancelProductEdit").addEventListener("click",resetProductForm);
   byId("productPrice").addEventListener("input",updateFeePreview);
