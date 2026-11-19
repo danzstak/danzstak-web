@@ -11,7 +11,7 @@ assert.match(tribes, /\.group-card-cover:not\(\.has-photo\)::after\{position:abs
 assert.doesNotMatch(tribes, /\.group-card-cover\{[^}]*;background:#121418!important/, "no background shorthand that wipes a Tribe picture");
 assert.match(feed, /if \(group\.coverUrl\) \{ cover\.style\.backgroundImage = `url\(/, "Tribe directory box shows the Tribe's own picture");
 // Superseded later on 2026-11-18 (owner: "+ bio" was redundant with Edit profile and showed to visitors): removed.
-assert.match(editor, /addBioButton\.hidden = true;\n\s*addBioButton\.remove\(\);/, "+ bio is gone");
+assert.match(editor, /addBioButton\.hidden = true;\r?\n\s*addBioButton\.remove\(\);/, "+ bio is gone");
 assert.match(editor, /if \(profile\.isOwner && profile\.picture\) installCompactAvatar\(profile\);/, "profile composer fetches the owner photo when missing");
 assert.doesNotMatch(editor, /compactAvatar\.textContent = "D";/, "never the DanzStak D in the profile composer");
 console.log("Owner evening checks passed: logout to landing, centred Tribe initials and pictures, + bio as the 5th icon.");
