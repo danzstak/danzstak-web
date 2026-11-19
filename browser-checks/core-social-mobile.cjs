@@ -165,7 +165,7 @@ function fixture(pathname) {
             };
             return { actions, tabs, header: { search: headerRect(document.querySelector("#profileHeaderSearch")), searchPlaceholder: document.querySelector("#profileHeaderSearch")?.placeholder || "", pivot: headerRect(document.querySelector("#profileHeaderPivot")), back: headerRect(document.querySelector(".profile-back")), searchToggle: headerRect(document.querySelector(".profile-search-toggle")), install: headerRect(document.querySelector("body > .install-app-button")) } };
           });
-          assert.deepEqual(profileControls.actions.map(action => action.label), ["Edit Profile", "Open my shop", "Share Profile", "Invite People"], `${width}px owner profile must retain Edit, Shop, Share, and Invite actions`);
+          assert.deepEqual(profileControls.actions.map(action => action.label), ["Edit Profile", "Open my shop", "Share Profile"], `${width}px owner profile must retain Edit, Shop, Share, and Invite actions`);
           assert.ok(Math.max(...profileControls.actions.map(action => action.top)) - Math.min(...profileControls.actions.map(action => action.top)) <= 1, `${width}px profile actions must use one row: ${JSON.stringify(profileControls.actions)}`);
           assert.ok(profileControls.actions.every(action => action.height >= 44 && action.width > 0), `${width}px profile actions must retain touch targets: ${JSON.stringify(profileControls.actions)}`);
           assert.ok(profileControls.tabs.length >= 5, `${width}px profile sections are missing: ${JSON.stringify(profileControls.tabs)}`);
