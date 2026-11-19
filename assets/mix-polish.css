@@ -58,6 +58,7 @@
 .feed-more-marker{height:96px;margin:0 var(--mix-pad,12px) 12px;border-radius:12px;background:linear-gradient(90deg,#ececea 25%,#f6f6f4 50%,#ececea 75%) 0 0/200% 100%;animation:feed-skeleton 1.2s linear infinite}
 @keyframes feed-skeleton{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.feed-more-marker{animation:none}}
+.post-pinned{grid-column:1/-1;justify-self:start;margin-top:2px;padding:1px 6px;border-radius:4px;background:rgba(255,90,31,.12);color:#9a3412;font:600 11px/1.4 var(--ds-mono,"JetBrains Mono",ui-monospace,monospace);letter-spacing:.04em;text-transform:uppercase} /* F15b */
 .feed-caught-up{margin:0;padding:20px 16px 28px;color:var(--mix-muted,#667085);font:600 12px/1.4 var(--ds-mono,"JetBrains Mono",ui-monospace,monospace);letter-spacing:.06em;text-align:center;text-transform:uppercase}
 .roll-add-toggle.ds-icon-button{width:40px;min-width:40px;height:40px;padding:0;border-radius:50%;display:grid;place-items:center}
 

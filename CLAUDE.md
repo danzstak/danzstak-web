@@ -725,6 +725,10 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 **Done means:** a fresh account can sign up, post a photo and a video (it lands in Dailies and The Roll), comment, open a profile, use the Bazaar, start a SYNC chat and log out, at 360/390px, with **no raw errors, no dead buttons and no duplicate buttons**.
 
 ### Owner-session box (things only the owner's computer can do)
+- **F15b pinned welcome post (after train e merges; CloudShell, us-west-1):**
+  1. **CloudShell:** `cd ~/danzstak-web && git pull -q && pwsh ./aws-deploy-auth-api.ps1` (Mix puts a pinned post first; the same deploy as C1).
+  2. **CloudShell:** `cd ~/danzstak-web/infrastructure/auth-api && npm ci --ignore-scripts && cd ../.. && node infrastructure/auth-api/set-welcome-post.mjs` (dry run: lists the welcome post's id, writes nothing).
+  3. **CloudShell:** `node infrastructure/auth-api/set-welcome-post.mjs --apply --post <the id from step 2>` (new tight text that says Tribe, pinned until 20 Jan 2027; the old text stays in the post's edit history).
 - **2026-11-19, owner travelling — do these from AWS CloudShell (us-west-1), nothing saved locally.** The CDN signing key already exists (`danzstak/cloudfront/media-signing-key`, CloudFront public key `danzstak-media-signing`).
   0. **Done 2026-11-19 12:03 UTC:** call-signaling deployed with the CDN (`dk7kawr758jtd.cloudfront.net`, distribution `E1IHQF8SMWIYPH`, `MediaCdnServe=false`), TAKE fix live; backfill ran (18 Dailies, 14 Roll videos, 1 TAKE raised). Steps 1–2 below are done.
   1. **(done) Deploy call-signaling with the CDN** (also ships #619's TAKE-count fix and #555): CloudShell → `git clone --depth 1 https://github.com/danzstak/danzstak-web.git && cd danzstak-web`, then
