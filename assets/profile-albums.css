@@ -1,0 +1,45 @@
+/* Queue 5a2: Albums row and album pages on the profile Photos and Videos tabs. Phone first, hairlines not boxes. */
+.profile-albums{margin:0 0 10px;padding:4px 0 10px;border-bottom:1px solid var(--ds-border,#e4e8ef)}
+.profile-albums-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px}
+.profile-albums-head h3{margin:0;font-size:16px;color:var(--ds-ink,#172033)}
+.profile-albums-new{min-height:44px;padding:0 12px;border:0;border-radius:999px;background:#eef2f7;color:var(--ds-ink,#172033);font:inherit;font-weight:800;cursor:pointer}
+.profile-albums-strip{display:flex;gap:10px;overflow-x:auto;padding:8px 12px 2px;scroll-snap-type:x proximity;scrollbar-width:none}
+.profile-albums-strip::-webkit-scrollbar{display:none}
+.profile-album-tile{flex:0 0 112px;display:grid;gap:2px;padding:0;border:0;background:none;color:inherit;text-align:left;font:inherit;cursor:pointer;scroll-snap-align:start}
+.profile-album-cover{display:block;width:112px;height:112px;overflow:hidden;border-radius:12px;background:#dfe6ee;border:2px solid transparent}
+.profile-album-cover img,.profile-album-cover video{width:100%;height:100%;object-fit:cover;display:block}
+.profile-album-cover.is-empty{background:repeating-linear-gradient(135deg,#eef2f7 0 10px,#e3e8ef 10px 20px)}
+.profile-albums .profile-album-tile,.profile-albums .profile-album-tile[aria-pressed=true],.profile-albums .profile-album-tile:hover{min-height:0;background:none;box-shadow:none}
+.profile-album-tile.is-selected .profile-album-cover{border-color:var(--ds-accent,#ef6c20)}
+.profile-album-tile strong{overflow:hidden;color:var(--ds-ink,#172033);font-size:14px;white-space:nowrap;text-overflow:ellipsis}
+.profile-album-tile small{overflow:hidden;color:var(--ds-muted,#667085);font-size:12px;white-space:nowrap;text-overflow:ellipsis}
+.profile-album-tile:focus-visible .profile-album-cover{outline:2px solid var(--ds-accent,#ef6c20);outline-offset:2px}
+.profile-album-page{padding:0 0 12px}
+.profile-album-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px;padding:4px 12px 8px}
+.profile-album-title h3{margin:0;font-size:20px;color:var(--ds-ink,#172033)}
+.profile-album-title p{margin:2px 0 0;color:var(--ds-muted,#667085);font-size:14px}
+.profile-album-actions,.profile-album-bar,.profile-album-dialog-actions{display:flex;gap:8px;flex-wrap:wrap}
+.profile-album-actions button,.profile-album-bar button,.profile-album-dialog button{min-height:44px;padding:0 14px;border:0;border-radius:10px;background:#eef2f7;color:var(--ds-ink,#172033);font:inherit;font-weight:800;cursor:pointer}
+.profile-album-page button.primary,.profile-album-dialog button.primary{background:var(--ds-btn-go,#15803d);color:#fff}
+.profile-album-page button.primary:active,.profile-album-dialog button.primary:active{background:var(--ds-btn-go-press,#166534)}
+.profile-album-page button.danger,.profile-album-dialog button.danger{background:#fdecea;color:#b42318}
+.profile-album-page button:disabled{opacity:.5;cursor:not-allowed}
+.profile-album-status{margin:0 12px 6px;font-size:14px;font-weight:700}
+.profile-album-status:empty{display:none}
+.profile-album-empty,.profile-album-note{margin:10px 12px;color:var(--ds-muted,#667085);font-size:14px}
+.profile-album-select{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px}
+.profile-album-pick{position:relative;aspect-ratio:1/1;padding:0;border:0;background:#dfe6ee;cursor:pointer}
+.profile-album-pick img,.profile-album-pick video{width:100%;height:100%;object-fit:cover;display:block}
+.profile-album-pick[aria-pressed=true]::after{content:"✓";position:absolute;inset:6px 6px auto auto;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ds-accent,#ef6c20);color:#fff;font-weight:900}
+.profile-album-pick[aria-pressed=true] img,.profile-album-pick[aria-pressed=true] video{opacity:.7}
+.profile-album-bar{position:sticky;bottom:72px;justify-content:space-between;padding:10px 12px;background:var(--ds-canvas,#fff);border-top:1px solid var(--ds-border,#e4e8ef)}
+.profile-album-dialog{width:min(100% - 24px,420px);padding:18px;border:0;border-radius:16px}
+.profile-album-dialog::backdrop{background:#121418a6}
+.profile-album-dialog h2{margin:0 0 12px;font-size:20px}
+.profile-album-dialog label{display:grid;gap:4px;margin:0 0 10px;font-size:14px;font-weight:800}
+.profile-album-dialog input,.profile-album-dialog select{min-height:44px;padding:0 12px;border:1px solid var(--ds-border-strong,#c5cfdd);border-radius:10px;font:inherit}
+.profile-album-dialog-actions{justify-content:flex-end;margin-top:6px}
+.profile-album-delete{margin-top:14px;width:100%}
+.profile-album-error{margin:0 0 6px;color:#b42318;font-size:14px;font-weight:700}
+.profile-album-error:empty{display:none}
+[data-album-hidden]{display:none!important}

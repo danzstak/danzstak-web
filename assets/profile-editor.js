@@ -1107,7 +1107,9 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
     }
     // Fix-it 18: an empty wall says so in one friendly line, below the composer and any Dailies.
     if (!posts.length && !mediaOnly && collection === "posts" && tabMessage.childElementCount) { const empty = document.createElement("p"); empty.className = "profile-empty-wall"; empty.textContent = profileTranslate("No posts yet"); tabMessage.appendChild(empty); return; }
-    if (!posts.length && !tabMessage.childElementCount) { tabMessage.textContent = mediaOnly ? `No ${mediaType === "image" ? "photos" : mediaType === "video" ? "videos" : "photos or videos"} to show yet.` : "No posts to show yet."; return; }
+    if (!posts.length && !tabMessage.childElementCount) { tabMessage.textContent = mediaOnly ? `No ${mediaType === "image" ? "photos" : mediaType === "video" ? "videos" : "photos or videos"} to show yet.` : "No posts to show yet."; if (!mediaOnly) return; }
+    // Queue 5a2 (an empty grid still gets the Albums row: photos can live only in albums): the Photos and Videos tabs get the Albums row and album pages (assets/profile-albums.js).
+    if (mediaOnly && version === profileTabVersion && typeof CustomEvent === "function") window.dispatchEvent(new CustomEvent("danzstak:profile-media-tab", { detail: { mediaType, container: tabMessage } }));
   } catch (error) {
     if (version !== profileTabVersion) return;
     if (tabMessage.childElementCount) {
