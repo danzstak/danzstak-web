@@ -47,7 +47,7 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - #593 share a phone photo;
   - #591 SYNC as its own app;
   - #580 ringer part 2.
-- **F8. Modern look, every page.** Owner 2026-11-19: "This is janky… kids these days know what a dope site looks like… if it looks like something an 8th grader could build they won't use it."
+- **F8. Modern look, every page.** Owner 2026-11-19: "This is janky… kids these days know what a dope site looks like… if it looks like something an 8th grader could build they won't use it." **Built on the UI kit below** (Tailwind + Flowbite + Lucide + Fluent Emoji, the "Backstage" look, every form matching).
   - **Example, Notifications.** Today: a big black "View post" button under every row, full dates, heavy cards (`docs/screenshots/owner-reference/notifications-danzstak-2026-11-19.png`). Target, the familiar pattern (`notifications-familiar-reference-2026-11-19.png`, layout only, DanzStak colours and brand):
     - big title with search in the header;
     - **New** / **Earlier** sections;
@@ -152,8 +152,8 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - **Shop cover:** "When users put a store cover photo in the second image box on their profile it should open that user's store. That should be the store front." The picture links to the member's storefront: their Shop tab with the products, or the shop page.
   - **Any other photo**, e.g. their dog: "it should pop up to nothing more to see or something, but they can add a link to the photo if they wish, say to Bandcamp or somewhere."
     - When editing the box, the owner can add an optional **link** (https only; Bandcamp, SoundCloud, their site…). Tapping then opens that link in a new tab with a small "leaving DanzStak" note.
-    - With no link, tapping opens the photo full screen (the F1 viewer). If the owner set a caption, it shows as one short line; otherwise there's no dead "nothing" pop-up.
-  - Checks: shop cover → storefront; photo with link → the link; plain photo → full-screen viewer; visitor and owner both.
+    - With no link (owner 2026-11-19: "F19 not full screen. Full box", then "it opens the image full screen and then users can close it… yes that works"): **in the profile the photo fills its whole box**, edge to edge with the saved focal point (F12), never letterboxed. **A tap opens it full screen** in the shared viewer (F1), and ✕, swipe down or system Back closes it and returns to the profile at the same spot.
+  - Checks: shop cover → storefront; photo with link → the link; plain photo → fills its whole box in the profile, a tap opens it full screen, closing returns to the same spot; visitor and owner both.
 - **F20. Tapping your own picture on the Dailies tile goes to your profile.** Owner 2026-11-19: "When I click the profile image on Dailies it goes to this page for some reason. It should go to my profile page."
   - Today it opens an old full-screen Daily (`docs/screenshots/owner-reference/dailies-own-tile-opened-wrong-2026-11-19.png`).
   - **Own tile:** tapping your picture → `profile.html`. Only the small "watch" area or the tile's media opens your own Dailies.
@@ -174,8 +174,41 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - **The slider is automated; users don't touch it** (owner: "a mix between 2 photos… the slider is automated, users don't touch the slider"). On the post, both photos sit in one frame and a divider with a round ⇄ badge **sweeps left and right on its own**: an easing loop of about 4 s, pausing a moment on each side, so viewers see the mix between the two. Labels "Then: Nov 19, 2018" and "Now" sit in the corners.
   - The loop plays only while the post is at least 50% visible, and stops (showing the split) with `prefers-reduced-motion` or data saver. A tap opens full screen (F1), with both photos side by side.
   - Same aspect rules as F22.
+- **F24. Gift codes the owner hands out** (owner 2026-11-19: "I will need a couple AI Shop Manager, a few translations for SYNC and a few AI for EPK that I can distribute"). Needed before doors open.
+  - The owner creates **single-use gift codes** for: **AI EPK** (one EPK), **AI Shop Manager** (the AI shop: setup + up to 10 listings), **SYNC Translation** (30 minutes). Each code grants exactly what the paid product grants, through the **same entitlement code path** the Stripe webhook uses (no second system), with `source: "gift"` and no charge.
+  - **Owner-only creation:** an owner page (`ops.html` → Gift codes) for members in the Cognito group `danzstak-owner`, checked on the server. Pick product + how many (max 25 per batch) + expiry (default 60 days) → a list of codes and share links (`https://danzstak.com/?gift=CODE`) to copy or share.
+  - **Redeem:** the link or Menu → **Redeem a code**, signed in. One code, one account, once. Codes are long and random (≥ 80 bits, readable alphabet), stored only as a keyed hash, rate-limited (10 tries/hour per account and per IP), and never logged in full.
+  - The owner sees each code's status (unused / redeemed by @username on date / expired) and can cancel unused codes.
+  - This is the owner's approved exception to "entitlements only from the Stripe webhook": gift entitlements only from an owner-created, hashed, single-use code. Update `test-payment-boundary.cjs` to allow exactly that and nothing else.
+  - Checks: create 3 codes as owner; a non-owner gets 403; redeem one → the product unlocks; a second redeem of the same code fails; an expired or cancelled code fails; the code never appears in logs.
+- **F25. Owner dashboards to monitor the site** (owner 2026-11-19: "I will also need dashboards so I can monitor the site"). Needed before doors open.
+  - **Ops page** (`ops.html`, owner-only, server-checked, phone first, UI kit): today and 7 days for: new sign-ups against the 25-account cap and the waitlist; members active today; posts, photos, videos; Dailies and Roll counts; SYNC devices registered, texts sent (Twilio), calls; Tribes, events, shop listings; test-mode purchases by product; gift codes issued/redeemed; error reports from the app ("tell us what's broken" plus friendly-error counts); CDN cache hit rate. Counts only: no messages, phone numbers or private data. One Auth API route `GET /ops/summary` reads counters, never full-table scans on each load.
+  - **CloudWatch dashboard `DanzStak-Live`** (in the templates, deployed by the owner in CloudShell): Lambda errors, duration p95, throttles and cold starts for the Auth API and call-signaling; API Gateway 4xx/5xx; DynamoDB throttles; CloudFront requests, cache hit rate, 4xx/5xx; SES bounces/complaints.
+  - **Alarms → push and email to the owner** (SNS): 5xx above 1% for 5 minutes, any Lambda error spike, SES complaint rate, Twilio send failures, a sign-up surge.
+  - Checks: the ops page renders at 360/390px with sample data; a non-owner gets 403; the template validates and names every alarm.
+- **F26. Live checks Claude can run.** This cloud session can't reach `danzstak.com` (its network blocks the host), so the live tests run in GitHub Actions: a `live-check.yml` workflow (on a schedule every 30 minutes, after each push to main, and on demand) runs `scripts/verify-live-pwa.cjs` and the public browser checks against `https://danzstak.com` at 360/390px. It confirms the published service-worker version matches main, and uploads screenshots as artifacts. A failure opens or updates one GitHub issue "Live check failing" (the owner gets a push through F25's alarms).
 - **The owner could do this on every page:** F8–F22 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
+
+### UI kit: Tailwind + Flowbite + Lucide + Fluent Emoji (owner 2026-11-19: "do it so it's not so HTML", "pick a dope look", "match all the web forms", "get an icon and emoji kit")
+Every screen in the F8 pass and the G3 clean-up is rebuilt on this kit. **Rebuild one screen at a time and delete that screen's old CSS in the same PR**, so no screen has two styles fighting.
+- **The kit** (all free and open source; pin exact versions; the files and licences are kept in `assets/vendor/`; nothing loads from a CDN, so CSP stays `'self'`):
+  - **Tailwind CSS v4** (MIT) builds **one CSS file**, `assets/ds.css`. Add a root `package.json` with `@tailwindcss/cli` (dev only) and `npm run css`. **Commit the built `ds.css`** so Amplify publishes it as it is today (no Amplify build change). Add `test-ds-css-build.cjs`: rebuilding gives the same file as the one committed.
+  - **Flowbite 3** (MIT, free version only, not Pro) for the pieces: bottom sheets/drawers, modals, tabs, dropdowns/⋯ menus, toasts, toggles, the datepicker and the file dropzone. Take its markup and classes; its JS goes in `assets/vendor/flowbite.min.js` only where a page uses it.
+  - **Lucide** (ISC) icons: one SVG sprite, `assets/icons.svg`, with only the icons we use (`<svg><use href="assets/icons.svg#heart">`). Outline 1.75 stroke, 24px (20px in rows). It replaces every text-only button and mixed icon set. Each icon keeps an accessible name.
+  - **Fluent Emoji** (MIT): self-hosted SVGs of only the emoji we use, in `assets/emoji/`. 3D style for the reaction bar, the Feeling picker and empty states; Flat style at 20px or smaller. Every device then sees the same emoji. Typed emoji in text stay the phone's own.
+- **The look: "Backstage"** (dope, familiar, DanzStak). Tailwind's theme reads the existing `--ds-*` tokens (`assets/mobile-design-system.css`), so there is one source of colour:
+  - **Day** (default): white content, `#F4F4F2` canvas, ink `#0B0B0C`, hazard orange `#FF5A1F` as the **only** accent (primary buttons, active tab, unread dot, focus ring); silver `#C9CCD1` hairlines. No stock social-network blue.
+  - **Night** (follows the phone's dark mode, plus a switch in Settings): `#0B0B0C` ground, `#151517` surfaces, the same orange with a soft glow on the primary button.
+  - **Type:** Archivo (body 15/22, titles 22–28 at 800 weight, width 110%); JetBrains Mono for small labels, times and counts (11–12px, uppercase, tracked). One type scale only.
+  - **Shape:** primary buttons are pills (44px high); cards and sheets have 16px corners; avatars are round; media are square-cornered edge to edge. Hairlines, not boxes. Shadows only on things that float (sheets, menus, toasts).
+  - **App bars:** frosted glass (`backdrop-blur`, 85% surface) and sticky. The bottom tab bar has Lucide icons, labels and an orange dot under the active tab.
+  - **Motion:** 150 ms press scale (0.97) and fade; sheets slide up in 220 ms; skeleton shimmer instead of "Loading…". All motion is off with `prefers-reduced-motion`.
+  - **Music-native touches** (the 20%): ticket-stub cards for shows, sleeve cards for releases, a laminate for the EPK, a mono "SCENE / TAKE" label style, and a subtle grain on covers.
+- **Every web form matches** (owner: "match all the web forms"). One form component set, used everywhere (sign-up, profile edit, composer, Create event, shop manager, Booking, EPK, SYNC registration, Settings, checkout pop-ups):
+  - floating-label text fields; a select replaced by a tap-to-pick sheet; a toggle switch instead of a checkbox for settings; radio rows as tappable list rows; the Flowbite datepicker plus native `type=date/time` on phones; a dropzone instead of "Choose File"; char counters; inline error text under the field (through `friendly-error.js` and i18n); one disabled style; 44px targets; a visible orange focus ring.
+  - Check `browser-checks/forms-match.cjs`: it opens every page with a form at 320/360/390/430px in Day and Night and fails on any native-looking control (default `appearance`, browser-default border or button), any form field outside the shared classes, or a label overlapping its value.
+- Write the full token table, the component list (app bar, tab bar, post, button, list row, sheet, form fields, cards) and the order the screens are rebuilt in `docs/tasks/39-modern-look.md` **before building**. Start with Notifications, then Create event, then the shop manager (they are the owner's worst examples), then the T2-walk order. Update `docs/DANZSTAK-DESIGN-SYSTEM.md` to point at the kit.
 
 ### Quality bar for Code (owner 2026-11-19: "tight code… make sure Code is doing quality work… effort is set to extra, so get Code to do extra… make it more Facebook-ish")
 - **More familiar.** On every screen, compare against the owner's reference screenshots in `docs/screenshots/owner-reference/`: same places, same patterns, same density. Only the DanzStak colours, fonts, logo and music details differ. When in doubt, do it the way the familiar app does.
@@ -196,12 +229,12 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
 Owner: "When you make all the fixes I want you to open it for 25 accounts so we can test… I need all products working and tested."
 
 Work through these in order. Each gate must pass before the next one starts.
-- **G1. Code finishes the fix list** F0–F15 and the CDN steps C1–C2. It tests each fix once (suite plus browser checks at 320/360/390/430px, tapping icon centres).
+- **G1. Code finishes the fix list** F0–F22 plus F24–F26 (gift codes, dashboards, live checks) and the CDN steps C1–C2. It tests each fix once (suite plus browser checks at 320/360/390/430px, tapping icon centres).
 - **G2. Claude does two full sweeps from start to finish**, separately, on the live installed PWA at 360 and 390px:
   - **The route:** sign up as a new member → name/@username → SYNC device registration → Mix (Dailies, composer, post a photo and a video, The Roll, the full-screen viewer) → profile (every tab, edit, pictures repositioned) → Friends → Tribes (create, post, Elder tools) → Events (create one) → Bazaar (browse, product, checkout in test mode) → Music HQ (EPK build/publish, Booking pitch in test mode, Tour Manager) → SYNC (chat, call, ring, Text note) → Notifications → Menu → Settings / Your data (export) → Log out.
   - **On every screen:** every button is tapped and must work and land on the right screen, with no raw errors, no dead or duplicate buttons, and nothing that looks unfinished.
   - **Findings:** each problem goes into a new fix list (F16+) here. Code fixes them, then the sweep repeats.
-- **G3. Code clean-up pass: new, working code, no old code.** Owner: "Have Code update the code so there is no old code; it should all be new and working code. If the old code is creating problems, overwrite it." Where an old layer causes bugs (stacked override CSS, duplicate handlers, legacy fallbacks, old screens behind flags), **replace it with one clean implementation** instead of patching on top. Keep behaviour that is covered by checks, and keep the checks passing. Remove broken or untranslated strings, half-finished screens, dead code and duplicate CSS and JS. Make one component per job: app bar, tab bar, post, button, sheet, list row. Delete unused assets. Code gets tight, not clunky. No behaviour changes without a check.
+- **G3. Code clean-up pass: new, working code, no old code.** Owner: "Have Code update the code so there is no old code; it should all be new and working code. If the old code is creating problems, overwrite it." Where an old layer causes bugs (stacked override CSS, duplicate handlers, legacy fallbacks, old screens behind flags), **replace it with one clean implementation** instead of patching on top. Keep behaviour that is covered by checks, and keep the checks passing. Remove broken or untranslated strings, half-finished screens, dead code and duplicate CSS and JS. Make one component per job: app bar, tab bar, post, button, sheet, list row, all on the UI kit (Tailwind + Flowbite + Lucide). Delete the old CSS files as each screen moves over. Delete unused assets. Code gets tight, not clunky. No behaviour changes without a check.
 - **G4. Claude tests again before doors open.** One more full sweep (G2 route) plus the full suite and every browser check against the live site.
 - **G5. Every page modern, every button works and goes to the right place** (the F8–F15 standard), confirmed screen by screen with before/after screenshots in `docs/screenshots/launch/`.
 - **G6. Every product works and is tested end to end in Stripe Test Mode:**
@@ -215,6 +248,18 @@ Work through these in order. Each gate must pass before the next one starts.
   - A "Beta — tell us what's broken" link in Menu.
   - `docs/TESTING.md` for testers.
   - The owner gets a push when doors open, and again at 10 and 25 accounts.
+
+### Road to doors open: Christmas 2026 (owner 2026-11-19: "test this and test some more, I would like to open doors by Christmas. I will get a few users going.")
+Target: **doors open (G7) on Wednesday 23 December 2026**, with two days of margin before Christmas. Each week ends with a release train, and Claude's two test passes run on it before the next week starts.
+- **Week 1, 19–26 Nov:** F0 (CI green, flaky checks fixed at the root), F1–F7, C1–C2, F26 live checks.
+- **Week 2, 27 Nov–3 Dec:** UI kit set up (Tailwind build, icons, emoji, forms), then F8 Notifications, F10 Create event, F21 shop manager, F9 profile and Friends.
+- **Week 3, 4–10 Dec:** F11–F20, F22, F24 gift codes, F25 dashboards.
+- **Week 4, 11–17 Dec:** G2 two full sweeps with grades; G3 clean-up; G6 every product in Stripe test mode (including redeeming each gift code).
+- **Week 5, 18–22 Dec:** fixes from the sweeps; G4 final sweep; every screen and product graded A; G5 screenshots.
+- **23 Dec:** G7 doors open for 25 accounts; the owner sends invites and gift codes.
+- **F23 Then/Now** comes after doors open unless every other item is done early.
+- **Owner jobs before doors open:** the Auth API and call-signaling deploys (CloudShell, numbered steps), fixing the Stripe test keys, and choosing how many gift codes of each kind.
+- If a week slips, Claude says so in the Builder log and to the owner the same day, with what moves. Doors never open on a grade below A.
 
 ### Grading: outstanding, not just passing (owner 2026-11-19)
 Owner: "Everything we texted about is in there to do… make sure it's all checked and graded, not just passing but outstanding student material."
