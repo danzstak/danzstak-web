@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v976";
+const CACHE = "danzstak-shell-v977";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -33,13 +33,36 @@ self.addEventListener("install", event => {
 
 self.addEventListener("activate", event => {
   event.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+    .then(keys => Promise.all(keys.filter(key => key !== CACHE && key !== MEDIA_CACHE).map(key => caches.delete(key))))
     .then(() => self.clients.claim()));
 });
+
+const MEDIA_CDN_ORIGIN = "https://dk7kawr758jtd.cloudfront.net";
+const MEDIA_CACHE = "danzstak-media-v1", MEDIA_MAX_ENTRIES = 400, MEDIA_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+async function cdnImage(request, url) {
+  const cache = await caches.open(MEDIA_CACHE), key = url.origin + url.pathname;
+  const hit = await cache.match(key);
+  if (hit && Date.now() - Number(hit.headers.get("x-danzstak-cached") || 0) < MEDIA_MAX_AGE_MS) return hit;
+  try {
+    const response = await fetch(request);
+    if (response.ok && response.type !== "opaque") {
+      const headers = new Headers(response.headers); headers.set("x-danzstak-cached", String(Date.now()));
+      const body = await response.clone().blob();
+      await cache.put(key, new Response(body, { status: 200, headers }));
+      const keys = await cache.keys();
+      if (keys.length > MEDIA_MAX_ENTRIES) await Promise.all(keys.slice(0, keys.length - MEDIA_MAX_ENTRIES).map(old => cache.delete(old)));
+    }
+    return response;
+  } catch (error) { if (hit) return hit; throw error; }
+}
 
 self.addEventListener("fetch", event => {
   const request = event.request;
   const url = new URL(request.url);
+  // Task 38: photos from the media CDN are immutable (a new upload = a new key), so the app keeps them by path: the signed
+  // query changes every few hours but the picture never does. Images only (videos stream with Range requests and rely on
+  // the browser's HTTP cache); capped and aged out so the phone never fills up.
+  if (request.method === "GET" && url.origin === MEDIA_CDN_ORIGIN && request.destination === "image") { event.respondWith(cdnImage(request, url)); return; }
   if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/auth/")) return;
   if (request.mode === "navigate") {
     event.respondWith(fetch(request).then(response => {
@@ -77,6 +100,7 @@ async function refreshAppShell() {
 self.addEventListener("message", event => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
   if (event.data?.type === "REFRESH_SHELL" && event.data?.allow !== false) event.waitUntil(refreshAppShell());
+  if (event.data?.type === "CLEAR_MEDIA_CACHE") event.waitUntil(caches.delete(MEDIA_CACHE)); // log out / account switch
 });
 
 self.addEventListener("push", event => {
