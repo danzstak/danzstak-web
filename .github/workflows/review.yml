@@ -172,6 +172,7 @@ jobs:
           node .\browser-checks\booking-route-dates.cjs
           node .\browser-checks\booking-sync.cjs http://127.0.0.1:8132
           node .\browser-checks\artist-hq.cjs http://127.0.0.1:8132
+          node .\browser-checks\comment-icon-tap.cjs
       - name: Stop static review server
         if: always()
         shell: pwsh
