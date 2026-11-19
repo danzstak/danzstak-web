@@ -821,11 +821,14 @@ function profileWallComposer(profile) {
         mediaType = ticket.mediaType;
         uploadedMediaKey = mediaKey;
       }
-      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType };
+      // Owner 2026-11-18: every video you post goes into The Roll automatically (Mix already did; the profile composer didn't).
+      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType, reel: mediaType === "video" };
       if (!profile.isOwner) body.profileMemberId = profile.memberId;
       const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "The post could not be published.");
+      // ...and every photo or video you post on your own wall also goes into your Dailies for 24 hours.
+      if (mediaKey && profile.isOwner && ["image", "video"].includes(mediaType)) void profileFetch(profileApi + "/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey, mediaType, content: body.content === "Shared media" ? "" : body.content, audience: audience.value, fromPost: true, originalContentCertified: true }) }).catch(() => {});
       uploadedMediaKey = "";
       closeForm();
       showProfileFeedback("Posted to this profile.");
