@@ -29,6 +29,23 @@
     if (post.dataset.isOwner === "true") return "member:self";
     return "name:" + (post.querySelector(".post-author")?.textContent || "").trim();
   }
+  // Directive F1 (owner 2026-11-19, phone: "It should be able to vertically swipe to see the rest of the videos in that
+  // profile"): every photo or video of that member, not only the ones drawn on the page (Mix draws 12 posts at a time).
+  // The page's full post list supplies the rest, in the same order: Mix's danzstakMixPosts (hidden posts left out), the profile's
+  // danzstakProfilePosts. A drawn one keeps its element (its link may have been refreshed); shared posts belong to their
+  // original author and are left out.
+  function fromPosts(element, kind, key) {
+    const postId = element.closest?.("[data-post-id]")?.dataset.postId || "";
+    const posts = key === "profile" ? globalThis.danzstakProfilePosts : globalThis.danzstakMixPosts;
+    if (!postId || !Array.isArray(posts) || !(key === "profile" || key.startsWith("member:"))) return null;
+    const member = key.slice(7);
+    const owned = post => key === "profile" ? post.byProfileOwner === true : member === "self" ? post.isOwner === true : String(post.authorMemberId || post.userId || "") === member;
+    const mine = posts.filter(post => post?.mediaUrl && post.mediaType === kind && !post.sharedPostId && owned(post));
+    const index = mine.findIndex(post => String(post.postId) === postId);
+    if (index < 0) return null;
+    const drawn = new Map([...document.querySelectorAll(OPENERS)].filter(item => kindOf(item) === kind && !item.closest(SKIP)).map(item => [item.closest("[data-post-id]")?.dataset.postId, item]));
+    return { items: mine.map(post => drawn.has(String(post.postId)) ? itemFor(drawn.get(String(post.postId))) : { type: kind, src: post.mediaUrl, alt: post.content || "" }), index };
+  }
   function collect(element) {
     const kind = kindOf(element), key = ownerKey(element);
     if (key === "single") return { list: [element], index: 0 };
@@ -250,11 +267,15 @@
   }
 
   addEventListener("popstate", () => { if (viewer && history.state?.danzstakMediaViewer !== true) close({ fromHistory: true }); });
+  // A modal keeps focus: nothing (e.g. the mouse events a touch tap sends after it opened the viewer) moves focus behind it.
+  document.addEventListener("focusin", event => { if (viewer && !viewer.root.contains(event.target)) viewer.root.querySelector(".ds-media-viewer-close")?.focus({ preventScroll: true }); }, true);
 
   function itemFor(element) {
     return { type: kindOf(element), src: sourceOf(element), alt: element.getAttribute("alt") || element.getAttribute("aria-label") || "" };
   }
   function openFrom(element) {
+    const all = element.closest?.(".feed-media-gallery") ? null : fromPosts(element, kindOf(element), ownerKey(element));
+    if (all) return open(all.items, all.index, { origin: element });
     const { list, index } = collect(element);
     return open(list.map(itemFor), index, { origin: element });
   }
@@ -263,12 +284,31 @@
     if (!element || element.closest(SKIP) || !sourceOf(element)) return null;
     return element;
   };
+  // On a phone a tap on a video with native controls brings pointer and touch events but no click (the controls take
+  // it; seen in media-viewer-all.cjs), so a short touch tap opens the viewer when the finger lifts. A finger that moves
+  // (a scroll) or stays down (a long press to save a photo) does not; the click that may follow is the same tap.
+  let press = null, openedByTapAt = -Infinity;
+  document.addEventListener("pointerdown", event => {
+    const element = event.pointerType !== "mouse" && event.isPrimary && !viewer ? opener(event.target) : null;
+    press = element ? { element, id: event.pointerId, x: event.clientX, y: event.clientY, at: performance.now() } : null;
+  }, true);
+  document.addEventListener("pointercancel", () => { press = null; }, true);
+  document.addEventListener("pointerup", event => {
+    const tap = press; press = null;
+    if (!tap || tap.id !== event.pointerId || viewer) return;
+    if (Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 10 || performance.now() - tap.at > 600) return;
+    openedByTapAt = performance.now();
+    openFrom(tap.element);
+  }, true);
+  // That tap is done: no mouse events or click after it (they would toggle the player behind or pull focus out).
+  document.addEventListener("touchend", event => { if (performance.now() - openedByTapAt < 150) event.preventDefault(); }, { capture: true, passive: false });
   // Capture phase so the tap opens the viewer instead of toggling the small inline player.
   document.addEventListener("click", event => {
     if (event.button !== 0 || event.defaultPrevented) return;
     const element = opener(event.target);
     if (!element) return;
     event.preventDefault(); event.stopPropagation();
+    if (performance.now() - openedByTapAt < 700) return; // the same tap already opened it
     openFrom(element);
   }, true);
   document.addEventListener("keydown", event => {

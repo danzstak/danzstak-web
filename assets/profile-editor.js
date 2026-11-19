@@ -1001,6 +1001,8 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
     if (version !== profileTabVersion) return;
     const profileMemberId = String(window.danzstakCurrentProfile?.memberId || "");
     let posts = window.danzstakProfileCollections.select(data.posts || [], collection, "", !viewingOtherProfile, new Date(), profileMemberId);
+    // F1: the media viewer swipes through every photo/video this member posted, not only the drawn ones.
+    window.danzstakProfilePosts = posts.map(post => ({ ...post, byProfileOwner: String(post.userId || "") === profileMemberId }));
     if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType) && (!mediaType || post.mediaType === mediaType));
     tabMessage.replaceChildren();
     if (collection === "posts" && !mediaOnly && window.danzstakCurrentProfile && typeof profileWallComposer === "function") tabMessage.appendChild(profileWallComposer(window.danzstakCurrentProfile)); if (collection === "posts" && !mediaOnly) window.danzstakProfileDailies?.mount(tabMessage, profileMemberId);

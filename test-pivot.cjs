@@ -37,7 +37,7 @@ assert.match(worker, /\/assets\/pivot\.js/);
 assert.match(worker, /\/assets\/pivot\.css/);
 assert.match(profile, /assets\/pivot\.css\?v=3/);
 assert.match(profile, /assets\/pivot\.js\?v=4/);
-assert.match(profile, /assets\/profile-editor\.js\?v=513/);
+assert.match(profile, /assets\/profile-editor\.js\?v=514/);
 assert.match(profileEditor, /Pivot — Moving Day/);
 assert.match(profileEditor, /id="profilePivotButton"[^>]*data-pivot-trigger[^>]*data-icon-layout="label"/);
 assert.match(profileEditor, /Open Moving Day/);

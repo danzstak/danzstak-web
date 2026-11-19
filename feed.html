@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-iWcSAhJOdTUb3BWFRq+UsfXN5x+Ij10h0j+hWO2Dbg4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-wQ6RJJuR+6oltkepVaGNTxtJ103oKmxjKUm4MOxw2AI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -1384,6 +1384,7 @@ async function loadPosts() {
       typeof post.content === "string" &&
       !(post.postId && hiddenPostIds.has(String(post.postId)))
     );
+    window.danzstakMixPosts = visiblePosts; // F1: the media viewer swipes through all of a member's media, drawn or not
     const feedBatchSize = 12;
     let renderedPostCount = 0;
     // F15c (owner 2026-11-19: "take away that downward arrow… just make the Mix flow"): about one screen before the end of
@@ -1935,7 +1936,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 </dialog>
 <footer class="site-ownership">&copy; 2026 DanzStak LLC. All rights reserved.<br>User content belongs to its creators.</footer>
 <script src="assets/media-visibility.js?v=403" defer></script>
-<script src="assets/media-viewer.js?v=2" defer></script>
+<script src="assets/media-viewer.js?v=3" defer></script>
 <script src="assets/responsive-media.js?v=3" defer></script>
 <script src="assets/media-fit.js?v=3" defer></script>
 <script src="assets/link-preview-cards.js?v=4" defer></script>
