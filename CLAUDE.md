@@ -749,6 +749,11 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 **Done means:** a fresh account can sign up, post a photo and a video (it lands in Dailies and The Roll), comment, open a profile, use the Bazaar, start a SYNC chat and log out, at 360/390px, with **no raw errors, no dead buttons and no duplicate buttons**.
 
 ### Owner-session box (things only the owner's computer can do)
+- **Call-signaling deploy for F4c (earlier profile pictures) and the Dailies post id (train e, after it merges; CloudShell, us-west-1):** the same change-set deploy as step 1 under "2026-11-19, owner travelling", keeping `MediaCdnServe=true` (the CDN is on).
+  1. **CloudShell:** `cd ~/danzstak-web && git pull -q`
+  2. **CloudShell:** `ID=$(aws cloudfront list-public-keys --query "PublicKeyList.Items[?Name=='danzstak-media-signing'].Id | [0]" --output text); BUCKET=$(aws cloudformation describe-stack-resource --region us-west-1 --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query StackResourceDetail.PhysicalResourceId --output text); aws cloudformation deploy --region us-west-1 --stack-name DANZSTAK-Call-Signaling --template-file infrastructure/call-signaling/template.yaml --s3-bucket "$BUCKET" --s3-prefix deploy-artifacts --capabilities CAPABILITY_NAMED_IAM --parameter-overrides MediaSigningPublicKeyId=$ID MediaCdnServe=true --no-execute-changeset`
+  3. Review the change set: it should add `ProfilePicturesRoute` and `DeleteProfilePictureRoute` and modify `SignalingFunction`, nothing else. Then **CloudShell:** `aws cloudformation execute-change-set --change-set-name <the printed ARN>`.
+  4. From then on a changed profile picture keeps the old one (history starts at the deploy; pictures changed before it were already cleaned up).
 - **F15b pinned welcome post (after train e merges; CloudShell, us-west-1):**
   1. **CloudShell:** `cd ~/danzstak-web && git pull -q && pwsh ./aws-deploy-auth-api.ps1` (Mix puts a pinned post first; the same deploy as C1).
   2. **CloudShell:** `cd ~/danzstak-web/infrastructure/auth-api && npm ci --ignore-scripts && cd ../.. && node infrastructure/auth-api/set-welcome-post.mjs` (dry run: lists the welcome post's id, writes nothing).

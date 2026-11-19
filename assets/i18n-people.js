@@ -4,6 +4,15 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+// Directive F4c: profile picture history (profile-editor.js)
+"Past profile pictures": "Immagini del profilo precedenti",
+"No past profile pictures yet.": "Ancora nessuna immagine del profilo precedente.",
+"Delete this picture": "Elimina questa immagine",
+"Delete this picture everywhere?": "Eliminare questa immagine ovunque?",
+"It is removed from DanzStak, including from your past profile pictures. Screenshots and copies saved outside DanzStak can't be recalled.": "Viene rimossa da DanzStak, anche dalle tue immagini del profilo precedenti. Screenshot e copie salvate fuori da DanzStak non si possono recuperare.",
+"Picture deleted.": "Immagine eliminata.",
+"That picture couldn't be deleted. Try again.": "Non è stato possibile eliminare l'immagine. Riprova.",
+"Profile pictures of {name}": "Immagini del profilo di {name}",
 // Directive F1a: full-screen rail and comments sheet (media-actions.js)
 "Like": "Mi piace",
 "Remove like": "Togli Mi piace",
@@ -106,6 +115,15 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+// Directive F4c: profile picture history (profile-editor.js)
+"Past profile pictures": "Anciennes photos de profil",
+"No past profile pictures yet.": "Pas encore d'anciennes photos de profil.",
+"Delete this picture": "Supprimer cette photo",
+"Delete this picture everywhere?": "Supprimer cette photo partout ?",
+"It is removed from DanzStak, including from your past profile pictures. Screenshots and copies saved outside DanzStak can't be recalled.": "Elle est retirée de DanzStak, y compris de vos anciennes photos de profil. Les captures d'écran et copies enregistrées hors de DanzStak ne peuvent pas être récupérées.",
+"Picture deleted.": "Photo supprimée.",
+"That picture couldn't be deleted. Try again.": "Impossible de supprimer cette photo. Réessayez.",
+"Profile pictures of {name}": "Photos de profil de {name}",
 // Directive F1a: full-screen rail and comments sheet (media-actions.js)
 "Like": "J'aime",
 "Remove like": "Retirer J'aime",
@@ -208,6 +226,15 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+// Directive F4c: profile picture history (profile-editor.js)
+"Past profile pictures": "Fotos de perfil anteriores",
+"No past profile pictures yet.": "Aún no hay fotos de perfil anteriores.",
+"Delete this picture": "Eliminar esta foto",
+"Delete this picture everywhere?": "¿Eliminar esta foto en todas partes?",
+"It is removed from DanzStak, including from your past profile pictures. Screenshots and copies saved outside DanzStak can't be recalled.": "Se elimina de DanzStak, también de tus fotos de perfil anteriores. Las capturas y copias guardadas fuera de DanzStak no se pueden recuperar.",
+"Picture deleted.": "Foto eliminada.",
+"That picture couldn't be deleted. Try again.": "No se pudo eliminar la foto. Inténtalo de nuevo.",
+"Profile pictures of {name}": "Fotos de perfil de {name}",
 // Directive F1a: full-screen rail and comments sheet (media-actions.js)
 "Like": "Me gusta",
 "Remove like": "Quitar Me gusta",

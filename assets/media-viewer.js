@@ -57,7 +57,8 @@
   }
 
   let viewer = null;
-  function open(items, startIndex = 0, { origin = null } = {}) {
+  // axis "x": swipe left/right through the items (a member's profile pictures, directive F4c); the default is up/down.
+  function open(items, startIndex = 0, { origin = null, axis = "y" } = {}) {
     items = (items || []).filter(item => item && item.src && ["image", "video"].includes(item.type));
     if (!items.length) return false;
     if (viewer) close({ fromHistory: false, silent: true });
@@ -66,7 +67,7 @@
     globalThis.danzstakMediaCoordinator?.pauseAll?.();
 
     const root = document.createElement("div");
-    root.className = "ds-media-viewer";
+    root.className = axis === "x" ? "ds-media-viewer ds-media-viewer--x" : "ds-media-viewer";
     root.setAttribute("role", "dialog");
     root.setAttribute("aria-modal", "true");
     root.setAttribute("aria-label", translate(items[0].type === "video" ? "Videos, full screen" : "Photos, full screen"));
@@ -105,7 +106,7 @@
     });
     root.append(track, counter, closeButton);
 
-    const state = { root, track, slides, items, index: Math.min(Math.max(0, startIndex), items.length - 1), scrollY, scrollX, origin, history: false, zoom: { scale: 1, x: 0, y: 0 } };
+    const state = { root, track, slides, items, axis: axis === "x" ? "x" : "y", index: Math.min(Math.max(0, startIndex), items.length - 1), scrollY, scrollX, origin, history: false, zoom: { scale: 1, x: 0, y: 0 } };
     viewer = state;
     document.documentElement.classList.add("ds-media-viewer-open");
     document.body.appendChild(root);
@@ -128,7 +129,7 @@
     state.index = Math.min(Math.max(0, index), state.items.length - 1);
     resetZoom(state);
     state.track.style.transition = animate ? "transform .26s cubic-bezier(.2,.8,.2,1)" : "none";
-    state.track.style.transform = `translate3d(0,${-state.index * 100}%,0)`; // owner 2026-11-19: vertical, like Reels
+    state.track.style.transform = state.axis === "x" ? `translate3d(${-state.index * 100}%,0,0)` : `translate3d(0,${-state.index * 100}%,0)`; // owner 2026-11-19: vertical, like Reels
     state.slides.forEach((slide, i) => {
       slide.setAttribute("aria-hidden", String(i !== state.index));
       const video = slide.querySelector("video");
@@ -214,11 +215,15 @@
       if (!start) return;
       const dx = event.clientX - start.x, dy = event.clientY - start.y;
       if (state.zoom.scale > 1) { state.zoom.x = start.zx + dx; state.zoom.y = start.zy + dy; applyZoom(state, false); return; }
-      if (!axis && Math.hypot(dx, dy) > 8) axis = Math.abs(dx) > Math.abs(dy) ? "x" : state.index === 0 && dy > 0 ? "close" : "y";
-      if (axis === "y") {
-        const edge = state.index === state.items.length - 1 && dy < 0;
+      // "nav" moves along the viewer's axis; "close" is a swipe down (on the first item when the viewer is vertical).
+      if (!axis && Math.hypot(dx, dy) > 8) {
+        const horizontal = Math.abs(dx) > Math.abs(dy);
+        axis = state.axis === "x" ? (horizontal ? "nav" : dy > 0 ? "close" : "none") : (horizontal ? "none" : state.index === 0 && dy > 0 ? "close" : "nav");
+      }
+      if (axis === "nav") {
+        const along = state.axis === "x" ? dx : dy, edge = (state.index === state.items.length - 1 && along < 0) || (state.index === 0 && along > 0), shift = edge ? along / 3 : along;
         track.style.transition = "none";
-        track.style.transform = `translate3d(0,calc(${-state.index * 100}% + ${edge ? dy / 3 : dy}px),0)`;
+        track.style.transform = state.axis === "x" ? `translate3d(calc(${-state.index * 100}% + ${shift}px),0,0)` : `translate3d(0,calc(${-state.index * 100}% + ${shift}px),0)`;
       } else if (axis === "close") {
         const slide = state.slides[state.index];
         slide.style.transition = "none";
@@ -233,9 +238,9 @@
       if (!start) return;
       const dx = event.clientX - start.x, dy = event.clientY - start.y, elapsed = Math.max(1, Date.now() - start.t);
       const was = start; start = null;
-      if (axis === "y") {
-        const fast = Math.abs(dy) / elapsed > .45;
-        const step = Math.abs(dy) > height() * .15 || fast ? (dy < 0 ? 1 : -1) : 0;
+      if (axis === "nav") {
+        const along = state.axis === "x" ? dx : dy, size = state.axis === "x" ? root.clientWidth || window.innerWidth : height();
+        const step = Math.abs(along) > size * .15 || Math.abs(along) / elapsed > .45 ? (along < 0 ? 1 : -1) : 0;
         show(state.index + step);
         return;
       }

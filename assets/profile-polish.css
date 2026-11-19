@@ -180,4 +180,8 @@ body.profile-page{background:#fff!important}
 .profile-photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
 .profile-photo-sheet .profile-photo-tile{position:relative;min-height:0;aspect-ratio:1;padding:0;overflow:hidden;border-radius:4px;background:#e9ebee}
 .profile-photo-tile img{width:100%;height:100%;object-fit:cover;display:block}
+/* Past profile pictures (F4c): Delete sits in the tile's corner, a 44px target. */
+.profile-past-delete{position:absolute;top:2px;right:2px;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:rgb(11 11 12/.72);color:#fff;cursor:pointer}
+.profile-past-delete:focus-visible{outline:2px solid #ff5a1f;outline-offset:1px}
+.profile-past-delete .ds-action-icon{width:20px;height:20px}
 .profile-photo-sheet button:focus-visible{outline:3px solid #ff5a1f;outline-offset:2px}

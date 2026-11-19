@@ -25,8 +25,9 @@ assert.match(profileCss, /\.profile-post-avatar-link::after\{content:"";position
 assert.match(profileCss, /\.profile-page a\.profile-comment-avatar::after\{content:"";position:absolute;inset:-6px;border-radius:50%\}/);
 // Owner 2026-11-19: your own profile picture opens "Change profile picture" (this phone or your DanzStak photos);
 // someone else's does not; the post box always shows your picture (installed after it is in the row).
-assert.match(profileEditor, /function markAvatarEditable\(on\)/);
-assert.match(profileEditor, /function applyLoadedProfile\(profile = \{\}\) \{\n  markAvatarEditable\(profile\.isOwner === true\);/);
+assert.match(profileEditor, /function markAvatarEditable\(on, profile = window\.danzstakCurrentProfile\)/);
+assert.match(profileEditor, /function applyLoadedProfile\(profile = \{\}\) \{\n  markAvatarEditable\(profile\.isOwner === true, profile\);/);
+assert.match(profileEditor, /else if \(viewingOtherProfile && window\.danzstakCurrentProfile\?\.picture\) void openProfilePictures\(\);/, "a visitor's tap opens the member's pictures (F4c)");
 assert.match(profileEditor, /else if \(choice === "phone"\) \{ sheet\.close\(\); profilePhotoMediaButton\("avatar", "Change Profile Photo"\)\?\.click\(\); \}/);
 assert.match(profileEditor, /const profile = await uploadCloudProfileMedia\(new File\(\[jpeg\], "profile-picture\.jpg", \{ type: "image\/jpeg" \}\), "avatarKey"\);/);
 assert.match(profileEditor, /compact\.append\(compactAvatar, opener\);\n  if \(profile\.isOwner && profile\.picture\) installCompactAvatar\(profile\);/, "the composer photo is installed after the placeholder is in the row");

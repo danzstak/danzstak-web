@@ -123,7 +123,7 @@ function judge(label, rows) {
       await page.locator("#profileInitial").click();
       await page.locator(".profile-photo-sheet[open]").waitFor({ timeout: 3000 });
       const sheet = await page.evaluate(() => { const d = document.querySelector(".profile-photo-sheet"), r = d.getBoundingClientRect(); return { title: d.querySelector("h2").textContent, choices: [...d.querySelectorAll(".profile-photo-choices button")].filter(b => !b.hidden).map(b => b.textContent), fits: r.left >= 0 && r.right <= innerWidth + 0.5 && r.bottom <= innerHeight + 0.5, tall: [...d.querySelectorAll("button")].filter(b => !b.hidden && b.offsetParent).every(b => b.getBoundingClientRect().height >= 44) }; });
-      assert.deepEqual(sheet.choices, ["Choose from this phone", "Choose from your DanzStak photos", "Remove profile picture"], `${label} own profile: the change-picture choices`);
+      assert.deepEqual(sheet.choices, ["Choose from this phone", "Choose from your DanzStak photos", "Past profile pictures", "Remove profile picture"], `${label} own profile: the change-picture choices (F4c adds Past profile pictures)`);
       assert.ok(sheet.title === "Change profile picture" && sheet.fits && sheet.tall, `${label} own profile: the sheet fits with 44px buttons`);
       if (shots) await page.screenshot({ path: path.join(output, `own-picture-sheet-${width}.png`) });
       // From this phone: the existing photo flow (rights check, then the phone's picker).

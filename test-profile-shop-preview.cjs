@@ -31,7 +31,7 @@ console.log("profile shop preview ok");
   assert.match(template, /mediaFields=\{avatarKey:'profileAvatarKey',coverKey:'profileCoverKey',showcaseKey:'profileShowcaseKey'\}/);
   assert.match(template, /showcase:profileMediaUrl\(item,'profileShowcaseKey'\)/);
   assert.match(template, /\['profileShowcaseKey','expectedShowcase'\]/);
-  assert.match(template, /AND \(attribute_not_exists\(profileShowcaseKey\) OR profileShowcaseKey <> :candidate\)'/);
+  assert.match(template, /AND \(attribute_not_exists\(profileShowcaseKey\) OR profileShowcaseKey <> :candidate\) AND \(attribute_not_exists\(profileAvatarHistory\) OR NOT contains\(profileAvatarHistory, :candidate\)\)'/); // F4c: never a past profile picture
   assert.match(auth, /AND \(attribute_not_exists\(profileShowcaseKey\) OR profileShowcaseKey <> :candidate\)"/);
   assert.match(auth, /"profileShowcaseKey = :candidate"\]\.join\(" OR "\)/);
   assert.match(auth, /\["profileShowcaseKey", "showcase"\]/);

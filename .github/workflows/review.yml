@@ -215,6 +215,7 @@ jobs:
             '.\browser-checks\media-viewer-all.cjs'
             '.\browser-checks\pivot-header.cjs'
             '.\browser-checks\video-rail-comments.cjs'
+            '.\browser-checks\profile-pictures.cjs'
             '.\browser-checks\tour-manager-no-paywall.cjs'
             '.\browser-checks\not-found-pages.cjs'
             '.\browser-checks\epk-actions.cjs'

@@ -291,14 +291,20 @@ addRemoveImageButton("Remove Cover Photo", "cover", document.querySelector(".cov
 const profilePhotoWords = {
   change: "Change profile picture", phone: "Choose from this phone", danzstak: "Choose from your DanzStak photos",
   remove: "Remove profile picture", cancel: "Cancel", pick: "Pick a photo", none: "No photos posted yet. Choose one from this phone.",
-  saving: "Setting your profile picture…", done: "Profile picture updated.", failed: "That photo can't be used right now. Choose it from this phone instead."
+  saving: "Setting your profile picture…", done: "Profile picture updated.", failed: "That photo can't be used right now. Choose it from this phone instead.",
+  past: "Past profile pictures", pastNone: "No past profile pictures yet.", deletePast: "Delete this picture", deleteTitle: "Delete this picture everywhere?",
+  deleteText: "It is removed from DanzStak, including from your past profile pictures. Screenshots and copies saved outside DanzStak can't be recalled.",
+  deleted: "Picture deleted.", deleteFailed: "That picture couldn't be deleted. Try again.", pictures: "Profile pictures of {name}"
 };
 let profilePhotoSheet = null;
-function markAvatarEditable(on) {
+// The big picture is a button: your own opens Change profile picture; someone else's opens their pictures (F4c) when
+// they have one.
+function markAvatarEditable(on, profile = window.danzstakCurrentProfile) {
   const avatar = document.getElementById("profileInitial");
   if (!avatar) return;
   avatar.classList.toggle("profile-avatar-editable", on);
-  if (on) { avatar.tabIndex = 0; avatar.setAttribute("role", "button"); avatar.setAttribute("aria-label", profileTranslate(profilePhotoWords.change)); avatar.removeAttribute("aria-hidden"); }
+  const label = on ? profileTranslate(profilePhotoWords.change) : profile?.picture ? profileTranslate(profilePhotoWords.pictures).replace("{name}", String(profile.name || "").trim()) : "";
+  if (label) { avatar.tabIndex = 0; avatar.setAttribute("role", "button"); avatar.setAttribute("aria-label", label); avatar.removeAttribute("aria-hidden"); }
   else { avatar.removeAttribute("tabindex"); avatar.removeAttribute("role"); avatar.removeAttribute("aria-label"); avatar.setAttribute("aria-hidden", "true"); }
 }
 function profilePhotoMediaButton(field, label) {
@@ -353,12 +359,59 @@ async function showDanzStakPhotos(sheet) {
     grid.append(tile);
   }
 }
+// Directive F4c (owner 2026-11-19): "when a user clicks on the profile picture that is not the account owner they should
+// be able to do a horizontal swipe to see previous profile pictures; if it's the account owner it should open to edit".
+// A visitor's tap opens the member's pictures full screen, newest first, swiping sideways ("1 / N", ✕ / swipe down / Back
+// close it). Until the server keeps a history (call-signaling deploy) the list is the current picture alone.
+async function openProfilePictures() {
+  const profile = window.danzstakCurrentProfile || {}, avatar = document.getElementById("profileInitial");
+  const alt = profileTranslate(profilePhotoWords.pictures).replace("{name}", String(profile.name || "").trim());
+  let items = profile.picture ? [{ type: "image", src: profile.picture, alt }] : [];
+  try {
+    const query = profile.isOwner ? "" : "?member=" + encodeURIComponent(String(profile.memberId || ""));
+    const response = await profileFetch(profileApi + "/profiles/pictures" + query, { credentials: "include", cache: "no-store" });
+    const pictures = response.ok ? (await response.json()).pictures || [] : [];
+    if (pictures.length) items = pictures.map(picture => ({ type: "image", src: picture.url, alt }));
+  } catch { /* the current picture alone */ }
+  if (items.length) window.danzstakMediaViewer?.open(items, 0, { origin: avatar, axis: "x" });
+}
+// The owner's past pictures, each with Delete (Delete everywhere rules: confirmed, and copies outside can't be recalled).
+async function showPastPictures(sheet) {
+  const grid = sheet.querySelector(".profile-photo-grid"), status = sheet.querySelector(".profile-photo-status");
+  sheet.querySelector(".profile-photo-choices").hidden = true;
+  grid.hidden = false; grid.replaceChildren(); status.textContent = "";
+  let pictures = [];
+  try {
+    const response = await profileFetch(profileApi + "/profiles/pictures", { credentials: "include", cache: "no-store" });
+    pictures = response.ok ? ((await response.json()).pictures || []).filter(picture => !picture.current) : [];
+  } catch { /* falls through to the empty line */ }
+  if (!pictures.length) { status.textContent = profileTranslate(profilePhotoWords.pastNone); return; }
+  for (const picture of pictures) {
+    const tile = document.createElement("div");
+    tile.className = "profile-photo-tile profile-past-picture";
+    const image = document.createElement("img"); image.src = picture.url; image.alt = ""; image.loading = "lazy"; image.referrerPolicy = "no-referrer";
+    const remove = document.createElement("button");
+    remove.type = "button"; remove.className = "profile-past-delete"; remove.dataset.icon = "trash";
+    remove.setAttribute("aria-label", profileTranslate(profilePhotoWords.deletePast)); remove.title = remove.getAttribute("aria-label");
+    remove.addEventListener("click", async () => {
+      if (!(await window.danzstakConfirm(profileTranslate(profilePhotoWords.deleteText), { title: profileTranslate(profilePhotoWords.deleteTitle), confirmLabel: profileTranslate(profilePhotoWords.deletePast), danger: true }))) return;
+      remove.disabled = true;
+      const response = await profileFetch(profileApi + "/profiles/pictures?id=" + encodeURIComponent(picture.id), { method: "DELETE", credentials: "include" }).catch(() => null);
+      if (!response?.ok) { remove.disabled = false; status.textContent = profileTranslate(profilePhotoWords.deleteFailed); return; }
+      tile.remove();
+      status.textContent = profileTranslate(grid.children.length ? profilePhotoWords.deleted : profilePhotoWords.pastNone);
+    });
+    tile.append(image, remove);
+    grid.append(tile);
+  }
+  window.danzstakIcons?.enhance?.(grid);
+}
 function openProfilePhotoSheet() {
   if (viewingOtherProfile) return;
   if (!profilePhotoSheet) {
     const sheet = document.createElement("dialog");
     sheet.className = "profile-photo-sheet"; sheet.setAttribute("aria-labelledby", "profilePhotoSheetTitle");
-    sheet.innerHTML = '<h2 id="profilePhotoSheetTitle"></h2><div class="profile-photo-choices"><button type="button" data-choice="phone"></button><button type="button" data-choice="danzstak"></button><button type="button" data-choice="remove" class="is-danger"></button></div>'
+    sheet.innerHTML = '<h2 id="profilePhotoSheetTitle"></h2><div class="profile-photo-choices"><button type="button" data-choice="phone"></button><button type="button" data-choice="danzstak"></button><button type="button" data-choice="past"></button><button type="button" data-choice="remove" class="is-danger"></button></div>'
       + '<p class="profile-photo-status" role="status"></p><div class="profile-photo-grid" hidden></div><button type="button" data-choice="cancel" class="profile-photo-cancel"></button>';
     sheet.addEventListener("click", event => {
       if (event.target === sheet) { sheet.close(); return; }
@@ -367,13 +420,14 @@ function openProfilePhotoSheet() {
       else if (choice === "phone") { sheet.close(); profilePhotoMediaButton("avatar", "Change Profile Photo")?.click(); }
       else if (choice === "remove") { sheet.close(); profilePhotoMediaButton("avatar", "Remove Profile Photo")?.click(); }
       else if (choice === "danzstak") void showDanzStakPhotos(sheet);
+      else if (choice === "past") void showPastPictures(sheet);
     });
     document.body.appendChild(sheet);
     profilePhotoSheet = sheet;
   }
   const sheet = profilePhotoSheet;
   sheet.querySelector("h2").textContent = profileTranslate(profilePhotoWords.change);
-  for (const [choice, key] of [["phone", "phone"], ["danzstak", "danzstak"], ["remove", "remove"], ["cancel", "cancel"]]) sheet.querySelector(`[data-choice="${choice}"]`).textContent = profileTranslate(profilePhotoWords[key]);
+  for (const [choice, key] of [["phone", "phone"], ["danzstak", "danzstak"], ["past", "past"], ["remove", "remove"], ["cancel", "cancel"]]) sheet.querySelector(`[data-choice="${choice}"]`).textContent = profileTranslate(profilePhotoWords[key]);
   sheet.querySelector('[data-choice="remove"]').hidden = !window.danzstakCurrentProfile?.picture;
   sheet.querySelector(".profile-photo-choices").hidden = false;
   const grid = sheet.querySelector(".profile-photo-grid"); grid.hidden = true; grid.replaceChildren();
@@ -382,8 +436,9 @@ function openProfilePhotoSheet() {
 }
 {
   const avatar = document.getElementById("profileInitial");
-  avatar?.addEventListener("click", () => { if (avatar.classList.contains("profile-avatar-editable")) openProfilePhotoSheet(); });
-  avatar?.addEventListener("keydown", event => { if ((event.key === "Enter" || event.key === " ") && avatar.classList.contains("profile-avatar-editable")) { event.preventDefault(); openProfilePhotoSheet(); } });
+  const tapAvatar = () => { if (avatar.classList.contains("profile-avatar-editable")) openProfilePhotoSheet(); else if (viewingOtherProfile && window.danzstakCurrentProfile?.picture) void openProfilePictures(); };
+  avatar?.addEventListener("click", tapAvatar);
+  avatar?.addEventListener("keydown", event => { if ((event.key === "Enter" || event.key === " ") && avatar.getAttribute("role") === "button") { event.preventDefault(); tapAvatar(); } });
   if (!viewingOtherProfile) markAvatarEditable(true);
 }
 const coverElement = document.querySelector(".cover");
@@ -1633,7 +1688,7 @@ if (!viewingOtherProfile) {
   try { applyProfileMedia(JSON.parse(localStorage.getItem(profileMediaKey) || "{}")); } catch { /* Ignore corrupt local drafts. */ }
 }
 function applyLoadedProfile(profile = {}) {
-  markAvatarEditable(profile.isOwner === true); // owner 2026-11-19: only your own picture is tappable to change
+  markAvatarEditable(profile.isOwner === true, profile); // owner 2026-11-19: only your own picture is tappable to change
   if (profile.isOwner === true) {
     viewingOtherProfile = false;
     editButton.hidden = false;
