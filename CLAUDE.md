@@ -119,8 +119,38 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - Each new visit (app open, sign-in, return after more than 30 min) shows friends' Dailies in a new fair order, never the same first tile twice in a row. The member's own tile stays pinned left.
   - On load the tiles slide in with a short spring: overshoot about 6px, settle within 400ms, staggered 40ms. No motion with `prefers-reduced-motion`.
   - Check: two visits give different orders and the own tile stays first.
-- **The owner could do this on every page:** F8–F15 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
+- **F16. SYNC installs as its own app, offered right after verification.** Owner 2026-11-19 (phone):
+  - **Problem:** "When I save SYNC as standalone it does not save to my desktop." The app drawer shows no SYNC icon (`docs/screenshots/owner-reference/sync-not-installed-app-drawer-2026-11-19.png`).
+  - **Wanted:** "When users verify their device it should also give the option there, right under the verification text: Save app to desktop."
+  - **Root cause to confirm first:** SYNC shares the main app's scope and manifest, so Android treats it as the same installed PWA. #591 (`/sync/` scope + its own manifest/start_url/icons) is not merged yet. Land #591 in a train and verify on a real Android phone that a separate **SYNC** icon appears.
+  - **Then:** the moment verification succeeds, a **pop-up** appears: "Save the SYNC app to your home screen", with **Save app** (the install prompt) and **Not now**. The owner says either works; do both. After "Not now", the same **"Add SYNC to home screen"** button stays directly under the "This device is verified" text. It uses SYNC's own `beforeinstallprompt`; iPhone shows the Share → Add to Home Screen steps. It is hidden once installed. Opening the icon goes straight to the chat list.
+  - **Check:** the manifest scope and id differ from the main app; the button appears right after verification; the install prompt fires.
+- **F17. SYNC wallpaper picker: the boxes are bigger than what's in them.** Owner 2026-11-19: "The box is bigger than the fill. See the mistakes." Screenshot: `docs/screenshots/owner-reference/sync-wallpaper-picker-danzstak-2026-11-19.png`.
+  - Today: the wallpaper thumbnails don't fill their grid cells, and the selected tile shows two outlines (an orange ring on the thumbnail plus a grey box around a larger grey cell). The cells aren't even either.
+  - Target:
+    - a 3-column grid of identical 9:16 tiles that fill their cell edge to edge, with the label under each;
+    - **one** selection ring that hugs the tile, plus a small check;
+    - the "Your photo / Camera / Default" buttons as equal tiles of the same height;
+    - colour swatches in one even row.
+  - Check: every tile's image rect equals its cell rect, there is one selection ring, and there is no horizontal overflow at 320–430px.
+  - Apply the same "fill = box" rule to every picker and grid (Tribe art, shop images, album covers).
+- **The owner could do this on every page:** F8–F17 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
+
+### Quality bar for Code (owner 2026-11-19: "tight code… make sure Code is doing quality work… effort is set to extra, so get Code to do extra… make it more Facebook-ish")
+- **More familiar.** On every screen, compare against the owner's reference screenshots in `docs/screenshots/owner-reference/`: same places, same patterns, same density. Only the DanzStak colours, fonts, logo and music details differ. When in doubt, do it the way the familiar app does.
+- **Tight code.**
+  - One shared component per job, no copy-paste variants.
+  - No `!important` stacking to win fights; fix the cause.
+  - No dead code, no unused assets, no magic pixel offsets that aren't measured.
+  - Every string goes through the translation layer: every word must be in the visitor's own language (owner 2026-11-16).
+- **Extra effort on every PR.**
+  - Read the spec and the owner's words twice.
+  - Before opening the PR, review your own diff line by line.
+  - Run the full suite and the touched browser checks at all four widths, and look at your own screenshots.
+  - List what you did not verify.
+  - A fix without a check that would have caught the bug is unfinished.
+- **Security stays tight** (owner: data breaches are the main risk): least-privilege IAM, nothing secret in the repo, server-side permission checks for every Elder/owner control.
 
 ### Launch gates — "doors open" for 25 testers (owner 2026-11-19)
 Owner: "When you make all the fixes I want you to open it for 25 accounts so we can test… I need all products working and tested."
