@@ -310,7 +310,8 @@ async function createPortraitVideo(browser) {
         await page.waitForTimeout(80);
         await page.evaluate(videoPostId => {
           const actions = document.querySelector(`.post[data-post-id="${videoPostId}"] .post-actions`)?.getBoundingClientRect();
-          const navigation = document.querySelector(".topnav")?.getBoundingClientRect();
+          // The phone bottom bar is the shared tab bar (app-tabs.js, audit 36 B2); on desktop Mix's .topnav sits in the header.
+          const navigation = [...document.querySelectorAll("nav.ds-mobile-nav, .topnav")].find(element => element.getClientRects().length && getComputedStyle(element).display !== "none")?.getBoundingClientRect();
           if (actions && navigation && actions.bottom > navigation.top) scrollBy(0, actions.bottom - navigation.top + 1);
         }, videoPostId);
         await page.waitForTimeout(40);
@@ -320,7 +321,7 @@ async function createPortraitVideo(browser) {
           const media = post.querySelector(":scope > .danzstak-media-shell").getBoundingClientRect();
           const actions = post.querySelector(".post-actions").getBoundingClientRect();
           const appHeader = document.querySelector(".topbar").getBoundingClientRect();
-          const navigation = document.querySelector(".topnav").getBoundingClientRect();
+          const navigation = [...document.querySelectorAll("nav.ds-mobile-nav, .topnav")].find(element => element.getClientRects().length && getComputedStyle(element).display !== "none").getBoundingClientRect();
           return {
             headerBelowApp: header.top >= appHeader.bottom - 1,
             actionsAboveNavigation: actions.bottom <= navigation.top + 1,

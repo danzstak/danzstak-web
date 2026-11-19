@@ -31,12 +31,22 @@ assert.match(bump, /require\("\.\/build-sync-app\.cjs"\)\.write\(\{ dryRun: opti
 assert.match(messages, /<script src="assets\/sync-app\.js\?v=\d+" defer><\/script>/); assert.match(messages, /<link rel="stylesheet" href="assets\/sync-app\.css\?v=\d+">/);
 assert.match(app, /url\.pathname === "\/messages\.html"\) link\.href = HOME \+ url\.search \+ url\.hash/);
 assert.match(read("assets/call-invite.js"), /location\.pathname\.startsWith\("\/sync\/"\) \? "\/sync\/" : "messages\.html"/);
-assert.match(read("assets/signup-onboarding.js"), /location\.pathname\.startsWith\("\/sync\/"\) \? "\/sync\/" : "messages\.html"\}\?device=register/);
+// Sign-up (owner 2026-11-19: "save sync to their device and verify the number … it needs to be easy"): SYNC's own page
+// saves the app first, then verifies the number; call-devices.js waits for the install sheet before it opens the number.
+assert.match(read("assets/signup-onboarding.js"), /location\.href = `\/sync\/\?\$\{inSyncIcon \? "" : "install=1&"\}device=register`;/);
+assert.match(read("assets/call-devices.js"), /if\(wantsRegister&&!state\.registered&&await\(window\.danzstakSyncApp\?\.afterInstall\?\.\(\)\?\?true\)&&!state\.registered\)openPanel\(\{auto:true\}\)/);
+assert.match(app, /afterInstall = new Promise\(resolve => \{ closed = \(\) => resolve\(!\(verifyAfter && verifyInApp\)\); \}\);/, "iPhone Safari leaves the number to the SYNC icon");
 assert.match(settings, /window\.danzstakSyncApp\.openInstall\(\); else location\.href = "\/sync\/\?install=1";/);
 assert.match(app, /if \(!inSyncApp\) \{ location\.href = `\$\{HOME\}\?install=1`; return; \}/, "outside /sync/ the row opens SYNC's own page, where its manifest applies");
 for (const state of ["installed-here", "added", "prompt", "known-installed", "other-app", "waiting", "steps"]) assert.ok(app.includes(`"${state}"`) || app.includes(`${state}:`), state);
 assert.match(app, /addEventListener\("beforeinstallprompt", event => \{ event\.preventDefault\(\); deferred = event;/);
-assert.match(app, /package=com\.android\.chrome/, "inside the DanzStak app, Android opens Chrome to install");
+// Inside the DanzStak app (owner 2026-11-19: "It should just save from the PWA"): an app can't install another app and an
+// intent link to Chrome goes nowhere from inside it, so Android saves SYNC from DanzStak's own icon (its SYNC shortcut).
+assert.doesNotMatch(app, /intent:\/\/|package=com\.android\.chrome/, "no link to a browser that goes nowhere");
+assert.match(app, /isAndroid \? \["Press and hold the DanzStak icon on your home screen\.", "Drag SYNC to an empty spot\."\]/);
+assert.ok(JSON.parse(read("manifest.webmanifest")).shortcuts.some(item => item.name === "SYNC" && item.url === "/sync/?app=sync"), "DanzStak's icon carries the SYNC shortcut");
+assert.match(app, /if \(standalone\(\) && \(fromSyncIcon \|\| !launchApp\)\)/, "a window opened from a SYNC icon is SYNC");
+assert.match(app, /if \(first\) \{ const params = new URLSearchParams\(location\.search\); params\.set\("device", "register"\);/, "the SYNC icon's first open verifies the number");
 assert.doesNotMatch(app, /localStorage\.setItem\("danzstak_app_installed"/);
 
 // pwa.js leaves SYNC's install offer alone and does not mark DanzStak installed from the SYNC app.
@@ -51,7 +61,7 @@ assert.match(worker, /destinationUrl\.pathname === "\/messages\.html"\) destinat
 
 // T3 (owner 2026-11-19): after device registration, offer SYNC as its own app; never in a call, never twice dismissed.
 assert.match(app, /addEventListener\("danzstak:call-device-registered", \(\) => \{ placeVerifiedInstall\(\); setTimeout\(offerApp, 150\); \}\);/);
-assert.match(app, /if \(inInstalledSync\(\) \|\| knownInstalled \|\| added \|\| dismissals\(\) >= 2 \|\| inCall\(\) \|\| offer\?\.open\) return false;/);
+assert.match(app, /if \(inInstalledSync\(\) \|\| knownInstalled \|\| added \|\| dismissals\(\) >= 2 \|\| inCall\(\) \|\| offer\?\.open \|\| verifyAfter\) return false;/);
 assert.match(app, /else location\.href = `\$\{HOME\}\?install=1\$\{resumeSetup \? "&setup=1" : ""\}`;/, "outside /sync/ the offer opens SYNC's own page");
 // F16 (owner 2026-11-19): pop-up "Save the SYNC app to your home screen" (Save app / Not now), and "Add SYNC to home screen"
 // stays directly under the verified text until SYNC is installed.
@@ -63,7 +73,7 @@ assert.match(read("assets/phone-setup.js"), /await window\.danzstakSyncApp\?\.of
 for (const key of ["Save the SYNC app to your home screen", "Save app", "Get a SYNC icon on your home screen, straight to your chats.", "Add SYNC to home screen"]) assert.equal(i18n.split(`${JSON.stringify(key)}:`).length - 1, 5, `"${key}" translated`);
 
 // Translations for the sheet.
-for (const key of ["SYNC is installed on this phone", "Tap Share.", "Tap Add to Home Screen.", "Tap ⋮ at the top right of Chrome.", "Tap Install app (or Add to Home screen).", "Open in Chrome to install", "Install SYNC"]) {
+for (const key of ["SYNC is installed on this phone", "Tap Share.", "Tap Add to Home Screen.", "Tap ⋮ at the top right of Chrome.", "Tap Install app (or Add to Home screen).", "Install SYNC", "Save SYNC to your home screen", "SYNC opens inside DanzStak, straight to your chats.", "Press and hold the DanzStak icon on your home screen.", "Drag SYNC to an empty spot.", "Open SYNC from your home screen to verify your number.", "In Safari's menu bar, choose File → Add to Dock.", "Next: verify your number"]) {
   assert.equal(i18n.split(`${JSON.stringify(key)}:`).length - 1, 5, `"${key}" translated for it, fr, es, de and pt`);
 }
 console.log("SYNC own-app checks passed: own /sync/ scope, generated /sync/ page up to date, links stay in SYNC, install row states, pwa.js stands aside, cached, notifications open SYNC, translations.");

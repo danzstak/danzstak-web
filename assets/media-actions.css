@@ -1,0 +1,78 @@
+/* Directive F1a (owner 2026-11-19): full-screen video like the familiar short-video apps. One rail, one caption and one
+   comments sheet for every full-screen player (media-actions.js). DanzStak orange is the only accent. */
+
+/* ---- rail and caption, over the video ---- */
+.ds-ma{position:absolute;inset:0;z-index:3;pointer-events:none}
+.ds-ma::before{content:"";position:absolute;left:0;right:0;bottom:0;height:38%;background:linear-gradient(transparent,rgb(0 0 0/.55));pointer-events:none}
+.ds-ma-rail,.ds-ma-caption{pointer-events:auto}
+/* Above the sound toggle (48px at the lower right). */
+.ds-ma-rail{position:absolute;right:max(6px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom) + 12px) + 60px);display:flex;flex-direction:column;align-items:center;gap:10px}
+.ds-ma-author{display:grid;place-items:center;box-sizing:border-box;width:48px;height:48px;margin-bottom:4px;border:2px solid #fff;border-radius:50%;overflow:hidden;background:#151517;color:#fff;font:800 18px/1 Archivo,system-ui,sans-serif;text-decoration:none;box-shadow:0 2px 10px rgb(0 0 0/.45)}
+.ds-ma-author img{display:block;width:100%;height:100%;object-fit:cover}
+.ds-ma-action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:52px;min-height:52px;padding:0;border:0;background:transparent;color:#fff;font:700 12px/1.1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.02em;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ds-ma-action .ds-action-icon,.ds-ma-action svg{width:30px;height:30px;filter:drop-shadow(0 1px 3px rgb(0 0 0/.65));transition:transform .15s ease}
+.ds-ma-action:active svg{transform:scale(.88)}
+.ds-ma-action[aria-pressed=true]{color:#ff5a1f}
+.ds-ma-action[aria-pressed=true] svg{fill:currentColor}
+.ds-ma-action:focus-visible,.ds-ma-author:focus-visible{outline:2px solid #ff5a1f;outline-offset:2px;border-radius:12px}
+.ds-ma-count{min-height:13px;text-shadow:0 1px 3px rgb(0 0 0/.75)}
+.ds-ma-caption{position:absolute;left:max(14px,env(safe-area-inset-left));right:76px;bottom:max(18px,calc(env(safe-area-inset-bottom) + 12px));color:#fff;text-shadow:0 1px 3px rgb(0 0 0/.75)}
+.ds-ma-name{font:800 15px/1.25 Archivo,system-ui,sans-serif;color:#fff;text-decoration:none}
+.ds-ma-text{display:-webkit-box;margin:4px 0 0;overflow:hidden;font:400 14px/1.35 Archivo,system-ui,sans-serif;overflow-wrap:anywhere;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ds-commenting .ds-ma{display:none}
+
+/* ---- comments sheet ---- */
+.ds-comment-sheet{--ds-keyboard:0px;position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;flex-direction:column;box-sizing:border-box;height:60vh;height:60dvh;padding-bottom:var(--ds-keyboard);border-radius:16px 16px 0 0;background:#fff;color:#0b0b0c;box-shadow:0 -8px 30px rgb(0 0 0/.35);font:400 15px/1.4 Archivo,system-ui,sans-serif;text-shadow:none;transform:translate3d(0,100%,0);transition:transform .22s cubic-bezier(.2,.8,.2,1);touch-action:pan-y;user-select:text;-webkit-user-select:text}
+.ds-comment-sheet.is-open{transform:none}
+.ds-cs-handle,.ds-cs-head{touch-action:none} /* the sheet's drag area: a swipe here moves the sheet, not the page */
+.ds-cs-handle{flex:none;width:40px;height:4px;margin:8px auto 2px;border-radius:2px;background:#c9ccd1}
+.ds-cs-head{display:flex;flex:none;align-items:center;gap:2px;min-height:48px;padding:0 4px 0 16px;border-bottom:1px solid #eceef1}
+.ds-cs-title{flex:1;min-width:0;margin:0;font:800 16px/1.2 Archivo,system-ui,sans-serif}
+.ds-cs-sort{min-height:44px;padding:0 12px;border:0;border-radius:22px;background:transparent;color:#5b6472;font:700 13px/1 Archivo,system-ui,sans-serif;cursor:pointer}
+.ds-cs-close,.ds-cs-cancel-reply{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:#0b0b0c;cursor:pointer}
+.ds-cs-status{flex:none;margin:0;padding:20px 16px;color:#5b6472;text-align:center}
+.ds-cs-status:empty{display:none}
+.ds-cs-list{flex:1 1 auto;min-height:0;margin:0;padding:6px 0;list-style:none;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.ds-cs-row{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;padding:8px 16px 2px}
+.ds-cs-avatar,.ds-cs-me{display:grid;place-items:center;overflow:hidden;border-radius:50%;background:#0b0b0c;color:#fff;font-weight:800;text-decoration:none}
+.ds-cs-avatar{width:40px;height:40px}
+.ds-cs-avatar img,.ds-cs-me img{display:block;width:100%;height:100%;object-fit:cover}
+.ds-cs-meta{margin:0;color:#5b6472;font-size:13px;line-height:1.3}
+.ds-cs-name{color:#0b0b0c;font-weight:800;text-decoration:none}
+.ds-cs-time{font:500 12px/1 "JetBrains Mono",ui-monospace,monospace}
+.ds-cs-text{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.ds-cs-actions{display:flex;align-items:center;margin-left:-12px}
+.ds-cs-actions button{display:inline-flex;align-items:center;gap:4px;min-width:44px;min-height:44px;padding:0 12px;border:0;border-radius:22px;background:transparent;color:#5b6472;font:700 13px/1 Archivo,system-ui,sans-serif;cursor:pointer}
+.ds-cs-actions .ds-action-icon,.ds-cs-actions svg{width:18px;height:18px}
+.ds-cs-react[aria-pressed=true]{color:#ff5a1f}
+.ds-cs-react[aria-pressed=true] svg{fill:currentColor}
+.ds-cs-more{min-height:44px;padding:0;border:0;background:transparent;color:#5b6472;font:700 13px/1 Archivo,system-ui,sans-serif;cursor:pointer}
+.ds-cs-replies{margin:0;padding:0;list-style:none}
+.ds-cs-replies[hidden]{display:none}
+.ds-cs-replies .ds-cs-row{grid-template-columns:32px minmax(0,1fr);padding:4px 0 0}
+.ds-cs-replies .ds-cs-avatar{width:32px;height:32px}
+.ds-cs-replying{display:flex;flex:none;align-items:center;justify-content:space-between;margin:0;padding:0 4px 0 16px;background:#f4f4f2;color:#5b6472;font-size:13px}
+.ds-cs-replying[hidden]{display:none}
+.ds-cs-composer{display:grid;flex:none;grid-template-columns:36px minmax(0,1fr) 44px;align-items:center;gap:8px;padding:8px 8px max(8px,env(safe-area-inset-bottom)) 16px;border-top:1px solid #eceef1;background:#fff}
+.ds-cs-me{width:36px;height:36px}
+.ds-cs-input{box-sizing:border-box;min-width:0;height:44px;padding:0 14px;border:1px solid #c9ccd1;border-radius:22px;background:#f4f4f2;color:#0b0b0c;font:inherit;font-size:16px}
+.ds-cs-input:focus{border-color:#ff5a1f;outline:2px solid #ff5a1f;outline-offset:0}
+.ds-cs-send{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:#ff5a1f;color:#0b0b0c;cursor:pointer}
+.ds-cs-send:disabled{background:#e4e5e8;color:#9aa1ab;cursor:default}
+.ds-comment-sheet button:focus-visible,.ds-comment-sheet a:focus-visible{outline:2px solid #ff5a1f;outline-offset:1px}
+
+/* ---- hosts: while the sheet is open the video keeps the top 40% (its own aspect, still playing) ---- */
+.ds-media-viewer.ds-commenting .ds-media-viewer-track{height:40%}
+.ds-media-viewer.ds-commenting .ds-media-viewer-count{display:none}
+.reels-rail.roll-fullscreen .ds-ma-host{position:relative}
+/* The Roll's sound toggle sits in the card's lower-right corner as in the viewer (it was placed against the video's own
+   box, so it moved with each video's size), and the rail stands above it. */
+.reels-rail.roll-fullscreen .ds-ma-host .danzstak-media-shell{position:static}
+.reels-rail.roll-fullscreen .ds-ma-host .danzstak-audio-toggle{right:max(14px,env(safe-area-inset-right));bottom:max(18px,calc(env(safe-area-inset-bottom) + 12px))}
+.reels-rail.roll-fullscreen .ds-ma-host .reel-details{display:none!important} /* the rail's caption replaces it */
+.reels-rail:not(.roll-fullscreen) .ds-ma{display:none}
+.reels-rail.roll-fullscreen.ds-commenting .reels-list{height:40vh;height:40dvh;overflow:hidden}
+.reels-rail.roll-fullscreen.ds-commenting .reel-card{flex-basis:40vh;flex-basis:40dvh;height:40vh;height:40dvh;min-height:0}
+.reels-rail.roll-fullscreen.ds-commenting .reels-heading{display:none}
+
+@media (prefers-reduced-motion:reduce){.ds-comment-sheet,.ds-ma-action svg{transition:none}}

@@ -28,6 +28,7 @@ const json = (route, body, status = 200) => route.fulfill({ status, contentType:
           createGain() { return { gain: param(), connect(node) { return node; }, disconnect() {} }; }
           createBiquadFilter() { return { type: "", frequency: param(), connect(node) { return node; }, disconnect() {} }; }
           createDynamicsCompressor() { return { threshold: param(), knee: param(), ratio: param(), attack: param(), release: param(), connect(node) { return node; }, disconnect() {} }; }
+          createWaveShaper() { return { curve: null, oversample: "", connect(node) { return node; }, disconnect() {} }; }
           createBuffer() { return { sampleRate: 44100, getChannelData: () => new Float32Array(10) }; }
           createBufferSource() { return { connect(node) { return node; }, start() { window.__syncToneStarts++; }, stop() {} }; }
           close() { return Promise.resolve(); }

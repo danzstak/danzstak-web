@@ -20,7 +20,8 @@
 .profile-album-title p{margin:2px 0 0;color:var(--ds-muted,#667085);font-size:14px}
 .profile-album-actions,.profile-album-bar,.profile-album-dialog-actions{display:flex;gap:8px;flex-wrap:wrap}
 .profile-album-actions button,.profile-album-bar button,.profile-album-dialog button{min-height:44px;padding:0 14px;border:0;border-radius:10px;background:#eef2f7;color:var(--ds-ink,#172033);font:inherit;font-weight:800;cursor:pointer}
-.profile-album-page button.primary,.profile-album-dialog button.primary{background:var(--ds-brand,#121418);color:#fff}
+.profile-album-page button.primary,.profile-album-dialog button.primary{background:var(--ds-btn-go,#15803d);color:#fff}
+.profile-album-page button.primary:active,.profile-album-dialog button.primary:active{background:var(--ds-btn-go-press,#166534)}
 .profile-album-page button.danger,.profile-album-dialog button.danger{background:#fdecea;color:#b42318}
 .profile-album-page button:disabled{opacity:.5;cursor:not-allowed}
 .profile-album-status{margin:0 12px 6px;font-size:14px;font-weight:700}

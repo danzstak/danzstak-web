@@ -69,7 +69,8 @@ jobs:
       - name: Start local review server
         shell: pwsh
         run: |
-          $process = Start-Process python -ArgumentList '-m','http.server','8017','--bind','127.0.0.1' -WorkingDirectory $PWD -PassThru -WindowStyle Hidden
+          # Node static server (HTTP/1.1 keep-alive, backlog 511, fixed content types), not python -m http.server (directive F0).
+          $process = Start-Process node -ArgumentList '.\scripts\static-server.cjs','8017' -WorkingDirectory $PWD -PassThru -WindowStyle Hidden
           "DANZSTAK_SERVER_PID=$($process.Id)" | Out-File -FilePath $env:GITHUB_ENV -Append
           for ($attempt = 0; $attempt -lt 20; $attempt++) {
             try {
@@ -86,12 +87,16 @@ jobs:
           DANZSTAK_LOCAL_URL: http://127.0.0.1:8017
           DANZSTAK_FEED_ORIGIN: http://127.0.0.1:8017
           DANZSTAK_PROFILE_ORIGIN: http://127.0.0.1:8017
+          # A failing check prints the browser's failed requests and errors (scripts/check-diagnostics.cjs).
+          NODE_OPTIONS: --require ./scripts/check-diagnostics.cjs
         run: |
           .\scripts\run-checks.ps1 -Checks @(
             '.\browser-checks\call-video-two-party.cjs'
+            '.\browser-checks\call-note.cjs'
             '.\browser-checks\call-audio-output.cjs'
             '.\browser-checks\foreground-call-ringtone.cjs'
             '.\browser-checks\ringer-loudness.cjs'
+            '.\browser-checks\ringback-loudness.cjs'
             '.\browser-checks\sync-thread-style.cjs'
             '.\browser-checks\message-read-receipt.cjs'
             '.\browser-checks\mix-portrait-preview.cjs'
@@ -100,6 +105,10 @@ jobs:
             '.\browser-checks\profile-interactions.cjs'
             '.\browser-checks\marketplace-ticketing.cjs'
             '.\browser-checks\roll-fullscreen-sound.cjs'
+            '.\browser-checks\media-viewer.cjs'
+            '.\browser-checks\dailies-strip-clean.cjs'
+            '.\browser-checks\dailies-empty-clapper.cjs'
+            '.\browser-checks\dailies-feed-ux.cjs'
           )
       - name: Stop local review server
         if: always()
@@ -138,7 +147,7 @@ jobs:
 
   browser-account-security:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 20 # train d's tab-bar and top-bar checks take about 4 minutes; the job hit 10 mid-check
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -150,7 +159,8 @@ jobs:
       - name: Start static review server
         shell: pwsh
         run: |
-          $process = Start-Process python -ArgumentList '-m','http.server','8132','--bind','127.0.0.1' -WindowStyle Hidden -PassThru
+          # Node static server (HTTP/1.1 keep-alive, backlog 511, fixed content types), not python -m http.server (directive F0).
+          $process = Start-Process node -ArgumentList '.\scripts\static-server.cjs','8132' -WorkingDirectory $PWD -WindowStyle Hidden -PassThru
           "DANZSTAK_SERVER_PID=$($process.Id)" | Out-File -FilePath $env:GITHUB_ENV -Append
           for ($attempt = 0; $attempt -lt 20; $attempt++) {
             try {
@@ -165,6 +175,8 @@ jobs:
         shell: pwsh
         env:
           DANZSTAK_BASE_URL: http://127.0.0.1:8132
+          # A failing check prints the browser's failed requests and errors (scripts/check-diagnostics.cjs).
+          NODE_OPTIONS: --require ./scripts/check-diagnostics.cjs
         run: |
           .\scripts\run-checks.ps1 -Checks @(
             '.\browser-checks\account-security.cjs'
@@ -190,6 +202,32 @@ jobs:
             '.\browser-checks\dailies-tile-no-picker.cjs'
             '.\browser-checks\load-crashes.cjs'
             '.\browser-checks\friendly-errors.cjs'
+            '.\browser-checks\menu-own-media.cjs'
+            '.\browser-checks\profile-tab-panels.cjs'
+            '.\browser-checks\dailies-set-call-fit.cjs'
+            '.\browser-checks\dailies-tile-opens-dailies.cjs'
+            '.\browser-checks\dailies-rotate.cjs'
+            '.\browser-checks\app-tabs.cjs'
+            '.\browser-checks\app-bar.cjs'
+            '.\browser-checks\own-photo.cjs'
+            '.\browser-checks\bazaar-tiles.cjs'
+            '.\browser-checks\bazaar-mix.cjs'
+            '.\browser-checks\mix-flows.cjs'
+            '.\browser-checks\pinned-welcome.cjs'
+            '.\browser-checks\media-viewer-all.cjs'
+            '.\browser-checks\pivot-header.cjs'
+            '.\browser-checks\video-rail-comments.cjs'
+            '.\browser-checks\profile-pictures.cjs'
+            '.\browser-checks\tour-manager-no-paywall.cjs'
+            '.\browser-checks\not-found-pages.cjs'
+            '.\browser-checks\epk-actions.cjs'
+            '.\browser-checks\roll-empty.cjs'
+            '.\browser-checks\profile-picture-links.cjs'
+            '.\browser-checks\profile-showcase-fit.cjs'
+            '.\browser-checks\sync-own-app.cjs'
+            '.\browser-checks\sync-standalone.cjs'
+            '.\browser-checks\sync-phone-setup.cjs'
+            '.\browser-checks\device-reminder.cjs'
           )
       - name: Stop static review server
         if: always()

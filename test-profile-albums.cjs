@@ -172,5 +172,6 @@ const commands = { GetItemCommand: command("Get"), PutItemCommand: command("Put"
   assert.match(ui, /can't be recalled/, "delete says plainly that copies outside DanzStak can't be recalled");
   assert.match(fs.readFileSync("assets/account-export.js", "utf8"), /albums: "\/albums\?full=1"/);
   assert.match(fs.readFileSync("assets/account-export-core.js", "utf8"), /albums: Array\.isArray\(sources\.albums\?\.albums\)/);
+  assert.match(fs.readFileSync("assets/profile-albums.css", "utf8"), /button\.primary\{background:var\(--ds-btn-go,#15803d\);color:#fff\}/, "Create and Save are green go buttons (owner 2026-11-19)");
   console.log("profile albums: ok");
 })().catch(error => { console.error(error); process.exitCode = 1; });
