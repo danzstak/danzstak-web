@@ -53,6 +53,36 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - one type scale, relative times, consistent 44px targets;
     - subtle motion (≤150 ms press/fade), skeletons instead of "Loading…" text.
   - Screenshot before and after at 360/390px for each screen. Spec to write first: `docs/tasks/39-modern-look.md` (tokens, components, the per-screen list).
+- **F9. Profile and Friends pages look like a finished app.** Owner 2026-11-19: "See the difference. Each profile page and each friends page… still Friends is a button on DanzStak."
+  - Reference screenshots, layout only, DanzStak colours and brand, in `docs/screenshots/owner-reference/`: `profile-familiar-reference`, `friends-things-in-common-reference`, `profile-danzstak`, `friends-danzstak`.
+  - **Profile:**
+    - big avatar centred over the cover, with a small camera badge (owner only);
+    - name with an optional check, then one line "N friends · N following";
+    - bio line, then an icon line: work · city · shop;
+    - the **friends facepile** "Friends with things in common" (#572);
+    - one primary action plus secondary actions (owner: Dashboard / + Create / edit; visitor: Add friend / Message / ⋯);
+    - pill tabs (All · Photos · Videos · Events · Shop);
+    - "Personal details" as icon rows.
+    - No floating edit/delete circles over the showcase photo; that becomes one ⋯ on the photo.
+  - **Friends:**
+    - remove the "Invite a friend" text button (invite goes in the ⋯ / header icon);
+    - pills **Friends · Following · Things in common** (spec 5a3);
+    - rows of 56px avatar + name + one grey sub-line ("12 mutual friends", "Online now", a city), whole row tappable;
+    - no big round message buttons on every row (message sits behind ⋯);
+    - "Things in common" grouped by birthday month, hometown, location and genres, each with a small facepile and "X, Y and N others also added this".
+- **F10. Event creation like a modern app.** Owner 2026-11-19: "See the difference. Nobody is going to put in an event on DanzStak."
+  - References in `docs/screenshots/owner-reference/`: `event-create-familiar-reference` and `event-create-danzstak`.
+  - **Today:** a raw "Choose File / No file chosen" picker, an empty grey select for the start time, and a long form under the event list.
+  - **Target, a full-screen "Create event" screen** (from + in the Events header):
+    - big cover/flyer area at the top with **Upload / Gallery** buttons over it (flyer or ≤15 s video);
+    - host row (your avatar + "Event host");
+    - floating-label fields: Event name, **Start date and time** prefilled to the next hour (native date/time picker, locale format), chips "+ End time" · "Repeat" · time zone;
+    - "In person or online?" and "Who can see it?" as tap-to-pick sheets;
+    - venue picker;
+    - tickets (DanzStak sales or outside link) as a sheet with the fee note;
+    - a sticky **Create event** button, disabled until the name, time and flyer are set.
+  - Events home shows the poster wall (spec 26), not the form.
+- **The owner could do this on every page:** F8–F10 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
 ### CDN plan (task 38)
