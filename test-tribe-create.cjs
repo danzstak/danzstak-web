@@ -1,0 +1,21 @@
+"use strict";
+// Design 29a step 1: Tribe create screen; name rules checked before anything is sent.
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const src = fs.readFileSync("assets/tribe-create.js", "utf8"), feed = fs.readFileSync("assets/feed-enhancements.js", "utf8");
+const sandbox = { window: {}, document: {} };
+vm.runInNewContext(src, sandbox);
+const { checkName } = sandbox.window.danzstakTribeCreate;
+assert.equal(checkName("  Punk   Night  Bologna ").name, "Punk Night Bologna", "spaces collapsed");
+assert.equal(checkName("ab").ok, false, "3 characters minimum");
+assert.equal(checkName("x".repeat(76)).ok, false, "75 maximum");
+assert.equal(checkName("DanzStak Official").ok, false, "no impersonation");
+assert.equal(checkName("join www.spam.com").ok, false, "no links");
+assert.equal(checkName("@someone fans").ok, false, "no @handles");
+assert.equal(checkName("Bologna Techno & Electro").ok, true);
+assert.equal(checkName("Città Rock!").ok, true, "accents allowed");
+assert.match(feed, /window\.danzstakTribeCreate\?\.enhance\(\{ box: createBox/, "the create form is upgraded");
+assert.match(feed, /description: createUi\?\.description\(\) \|\| "A new DanzStak Tribe\."/);
+assert.match(feed, /if \(made\) \{ openTribe\(made\); return; \}/, "the new Tribe opens after Create");
+console.log("Tribe create checks passed: name rules, enhanced form, description, opens the new Tribe.");
