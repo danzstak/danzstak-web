@@ -97,7 +97,21 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - one primary action in context (Publish EPK only while the EPK is unpublished, as a slim button inside the EPK ring row).
   - Zeroes never look broken: empty states say what to do next ("Send your first pitch →").
   - Numbers come from the existing APIs (EPK views, booking pipeline, marketplace, follows). Never fake data.
-- **The owner could do this on every page:** F8–F11 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
+- **F12. Every picture can be moved to fit its box.** Owner 2026-11-19: "on all pictures I should be able to move them around to fit them in the box."
+  - Applies to the profile cover, avatar, showcase photo, Tribe cover and Tribe picture, shop cover and event flyer. When the owner sets or edits one: **drag to reposition** (and pinch or slider to zoom) inside a preview of the exact box, then Save.
+  - Store the focal point and zoom (`objectPosition` x/y %, scale) with the image, and render everywhere with `object-fit: cover` plus that position.
+  - Example: the "DACHSHUND" showcase logo is cut off today (`docs/screenshots/owner-reference/profile-duplicate-name-danzstak-2026-11-19.png`).
+  - Reuse one shared component. The cover already has a position (`test-cover-position.cjs`); extend that, don't add a second system.
+- **F13. Tribe page.** Reference: `docs/screenshots/owner-reference/tribe-page-danzstak-2026-11-19.png`.
+  - **Changing the cover also changes the Tribe's picture** in the top-left header and in the Tribes list, unless a separate Tribe picture was set.
+  - **Only Elders see Tribe controls:** Change cover, edit, members tools, pin. Everyone else sees none of them. Enforce on the server too, and add a check as a non-Elder member and a visitor.
+  - Modern look per F8:
+    - no "← Back to Tribes" text button (the app bar back arrow does it);
+    - no huge "✓ Joined" bar (a small "Joined ▾" chip with Leave/Notifications);
+    - pill tabs instead of boxed tabs;
+    - no box inside a box.
+- **F14. The name shows twice on a profile.** "Dachshund Records" appears as the name and again as the bio line under it. Hide a bio or handle line that repeats the name, ignoring case and spacing. Check: a profile whose bio equals its name shows the name once.
+- **The owner could do this on every page:** F8–F14 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
 ### CDN plan (task 38)
