@@ -159,7 +159,17 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - **Own tile:** tapping your picture → `profile.html`. Only the small "watch" area or the tile's media opens your own Dailies.
   - **Friend's tile:** the avatar/name → their profile; the media → their Dailies (F3/F15).
   - Check: tapping the centre of your own avatar on the tile lands on your profile.
-- **The owner could do this on every page:** F8–F20 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
+- **F21. Shop storefront image: upload it in the shop, put it on the profile.** Owner 2026-11-19: "Need to add your store front image here somewhere where users can upload their image for their shop… confirm save to profile and put the image in the shop store front on their profile page… warn the user this will replace the second photo… and the link if they have one."
+  - **Where:** the shop manager (`store.html`; reference `docs/screenshots/owner-reference/shop-manager-no-storefront-image-2026-11-19.png`). At the top, a **storefront image** area, the same box as the profile band (F4) with drag to fit (F12): upload from the phone, then preview.
+  - **On save**, a confirm sheet: "Use this as your shop front on your profile? It will replace the photo on your profile (and its link)." with **Replace** / **Keep shop only**.
+  - **Replace** sets the profile picture box to the storefront image, linked to the storefront (F19). **Keep shop only** saves it to the shop alone.
+  - Restyle the rest of the shop manager to F8: no raw select, no paragraph-heavy "Get paid" box.
+- **F22. Post photos: the frame is bigger than the image (black bars).** Owner 2026-11-19: "The box is bigger than the image. The box should scale to the smaller images." Reference: `docs/screenshots/owner-reference/post-photo-black-bars-2026-11-19.png`.
+  - The media frame takes the **image's own aspect ratio** (from `naturalWidth/Height`, or stored dimensions so nothing jumps): full column width, height = width ÷ ratio, with no black bars above or below.
+  - Very tall images are capped at about 1.25× the column width in height and cropped centred, or at the saved focal point (F12). Tap opens the full image (F1).
+  - Same rule for videos (the poster ratio), the profile Photos grid previews and Tribe posts.
+  - Check: for a landscape, a square and a portrait image, the frame rect equals the image rect at 320–430px.
+- **The owner could do this on every page:** F8–F22 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
 ### Quality bar for Code (owner 2026-11-19: "tight code… make sure Code is doing quality work… effort is set to extra, so get Code to do extra… make it more Facebook-ish")
