@@ -139,3 +139,11 @@ body.profile-page{background:#fff!important}
 
 /* Owner 2026-11-19 (A12): no @username line under the profile name. */
 #profileHandle[hidden]{display:none!important}
+
+/* Owner 2026-11-19: Location and Work side by side on one line; one hairline under the pair. */
+.details .detail-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;border-bottom:1px solid #eef0f3}
+.details .detail-pair>.detail{min-width:0;border-bottom:0!important}
+.details .detail-pair>.detail .value{overflow-wrap:anywhere}
+.details .detail-pair>.detail[hidden]{display:none!important}
+.details .detail-pair:has(>.detail[hidden]){grid-template-columns:minmax(0,1fr)}
+.details .detail-pair:not(:has(>.detail:not([hidden]))){display:none}
