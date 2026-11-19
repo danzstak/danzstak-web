@@ -39,6 +39,12 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - the name sits right of the avatar, never clipped or overlapped, across short and very long names;
     - the box is below the name at full width;
     - there is no gap of more than 12px anywhere in the header, at 320/360/390/430px.
+- **F4a. First, in the next train: stack the picture box's pencil and bin, and give the space to the photo** (owner 2026-11-19, phone screenshot: "put the pencil and the garbage can on top of each other, the pencil on top and the garbage underneath, and make that space bigger for an image").
+  - Today the owner's ✎ and 🗑 sit side by side left of the showcase photo (`.profile-showcase .profile-showcase-tools{flex-direction:row}` in `assets/profile-shop.css`), so they eat about 90px of the row.
+  - Fix: one column, pencil on top and bin underneath, 44px targets with a 6px gap, sitting against the photo's left edge. `placeProfileShopPreview` (`assets/profile-editor.js`) re-measures, and the photo grows into the freed width (it scales with the space, per the owner's earlier "the image box should fill the unused space").
+  - Visitors never see the tools.
+  - Update `browser-checks/profile-showcase-fit.cjs`: the tools are stacked (pencil above bin), nothing overlaps the name, avatar or photo, and the photo is wider than before at 320/360/390/430px.
+  - When F4 moves the box below the name, the stacked pair moves into the band's top-right corner over the photo (later one ⋯, per F9), so the photo keeps the full width.
 - **F5. Every profile picture opens that member's profile** (#598).
 - **F6. The rest of the audit**, `docs/tasks/36-site-audit-2026-11-19.md`, in its order: A4–A10, E8–E10, B1–B10 (one app bar, one tab bar, one font set, one post component, one button system), C1–C5, D.
 - **F7. Finish the open feature PRs**, one per train after F1–F6:
@@ -252,7 +258,7 @@ Work through these in order. Each gate must pass before the next one starts.
 
 ### Road to doors open: Christmas 2026 (owner 2026-11-19: "test this and test some more, I would like to open doors by Christmas. I will get a few users going.")
 Target: **doors open (G7) on Wednesday 23 December 2026**, with two days of margin before Christmas. Each week ends with a release train, and Claude's two test passes run on it before the next week starts.
-- **Week 1, 19–26 Nov:** F0 (CI green, flaky checks fixed at the root), F1–F7, C1–C2, F26 live checks.
+- **Week 1, 19–26 Nov:** F4a (first, small), F0 (CI green, flaky checks fixed at the root), F1–F7, C1–C2, F26 live checks.
 - **Week 2, 27 Nov–3 Dec:** UI kit set up (Tailwind build, icons, emoji, forms), then F8 Notifications, F10 Create event, F21 shop manager, F9 profile and Friends.
 - **Week 3, 4–10 Dec:** F11–F20, F22, F24 gift codes, F25 dashboards.
 - **Week 4, 11–17 Dec:** G2 two full sweeps with grades; G3 clean-up; G6 every product in Stripe test mode (including redeeming each gift code).
