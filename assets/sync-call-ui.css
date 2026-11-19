@@ -28,6 +28,10 @@ body[data-call-mode] .conversation-status{position:absolute;z-index:6;right:16px
 /* Top: minimise · name, SYNC Mobile / call time, Encrypted · (add person, later). */
 .ds-call-top,.ds-call-stage{display:none}
 body[data-call-mode] .ds-call-top,.ds-call-incoming .ds-call-top{position:absolute;z-index:7;top:calc(12px + env(safe-area-inset-top,0px));right:12px;left:12px;display:grid;grid-template-columns:56px minmax(0,1fr) 56px;align-items:start;gap:8px}
+/* Over a video the top line keeps its contrast. */
+body[data-call-mode="video"] .ds-call-top::before{content:"";position:absolute;z-index:-1;top:calc(-12px - env(safe-area-inset-top,0px));right:-12px;left:-12px;height:calc(150px + env(safe-area-inset-top,0px));background:linear-gradient(rgba(0,0,0,.55),transparent);pointer-events:none}
+/* The phone-speaker hint is the Speaker button's job now. */
+#callPhoneAudioNote{display:none}
 .ds-call-round{display:grid;place-items:center;width:56px;height:56px;min-width:56px;min-height:56px;padding:0;border:0;border-radius:50%;background:rgba(42,45,51,.88);color:#fff}
 .ds-call-round svg{width:24px;height:24px}
 .ds-call-who{display:grid;justify-items:center;gap:3px;min-width:0;padding-top:4px;color:#fff;text-align:center}

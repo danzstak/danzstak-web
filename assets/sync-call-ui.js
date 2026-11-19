@@ -192,7 +192,10 @@
     document.body.append(bubble);
     // Incoming: the same top and photo, Decline / Accept at the bottom.
     if (incoming && !incoming.querySelector(".ds-call-top")) {
-      const incomingTop = top.cloneNode(true); incomingTop.querySelector("#callMinimise")?.remove(); incomingTop.querySelectorAll("[id]").forEach(node => node.removeAttribute("id"));
+      const incomingTop = top.cloneNode(true);
+      const slot = document.createElement("span"); slot.className = "ds-call-spacer"; slot.setAttribute("aria-hidden", "true");
+      incomingTop.querySelector("#callMinimise")?.replaceWith(slot); // nothing to minimise before answering; the name stays centred
+      incomingTop.querySelectorAll("[id]").forEach(node => node.removeAttribute("id"));
       incoming.prepend(incomingTop);
       incoming.classList.add("ds-call-incoming");
       incoming.querySelector(".sync-call-avatar")?.classList.add("ds-call-photo");
@@ -213,7 +216,7 @@
       if (!controls.hidden) return;
       connectedAt = 0; delete document.body.dataset.callMinimised; $("callBubble").hidden = true; $("callSheet")?.remove(); paintState();
     }).observe(controls, { attributes: true, attributeFilter: ["hidden"] });
-    window.addEventListener("danzstak:remote-media", () => { if (!connectedAt) connectedAt = Date.now(); paintState(); });
+    window.addEventListener("danzstak:remote-media", () => { if (!connectedAt) connectedAt = Date.now(); paintWho(); paintState(); });
     for (const button of [mic, camera, $("toggleRingback")]) button?.addEventListener("click", () => setTimeout(refreshKeys));
     new MutationObserver(refreshKeys).observe($("toggleRingback") || controls, { attributes: true, attributeFilter: ["hidden", "aria-pressed"] });
     setInterval(() => { if (callKind() && connectedAt) paintState(); }, 1000);
