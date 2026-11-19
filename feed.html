@@ -321,6 +321,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 .message-drawer-loading{position:absolute;inset:46px 0 0;z-index:2;display:grid;place-items:center;background:#f3f5f8;color:#667085;font-size:14px;font-weight:750}.message-drawer-loading[hidden]{display:none}.message-drawer.is-loading iframe{visibility:hidden}
 @media(max-width:560px){.message-drawer.is-video-call{inset:0;width:100vw;height:100dvh;border-radius:0}.message-drawer.is-video-call .message-drawer-bar{height:42px}.message-drawer.is-video-call iframe{height:calc(100dvh - 42px)}}
 .composer-title { display: flex; align-items: center; gap: 12px; }
+a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo opens your profile */
 .composer-avatar { width: 42px; height: 42px; flex:0 0 42px; border-radius: 50%; display: grid; place-items: center; background:#121418 center/cover no-repeat; color: white; font-weight: 900; }
 
 @media(max-width: 1050px) {
@@ -473,7 +474,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
     </section>
 
     <section class="panel post-composer" id="postComposer">
-      <h3 class="composer-title"><span class="composer-avatar" aria-hidden="true">D</span><span>Add to Mix</span></h3>
+      <h3 class="composer-title"><a class="composer-avatar" href="profile.html" aria-label="Open your profile" title="Your profile">D</a><span>Add to Mix</span></h3>
 
       <textarea
         id="postText"
@@ -1879,7 +1880,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/invite-sharing.js?v=1" defer></script>
 <script src="assets/tribes-art.js?v=1" defer></script>
 <script src="assets/tribe-create.js?v=1" defer></script>
-<script src="assets/feed-enhancements.js?v=579" defer></script>
+<script src="assets/feed-enhancements.js?v=582" defer></script>
 <script src="assets/profile-onboarding.js?v=12" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/call-setup.js?v=2" defer></script>
