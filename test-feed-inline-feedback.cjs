@@ -10,7 +10,8 @@ const script = inlineScripts[0];
 
 assert.doesNotMatch(script, /\balert\(/, "feed composer, Flashes, and friend actions should not block the page with browser alerts");
 assert.doesNotMatch(script, /\bconfirm\(/, "feed composer and Flashes should not use blocking browser confirmations");
-assert.ok((script.match(/window\.danzstakConfirm/g) || []).length >= 1, "Daily deletion should use the shared accessible dialog (Dailies come from posts; no separate upload to certify, audit A2)");
+// T0-A2: Dailies come from posts (the post box certifies), so the only Dailies dialog left is deleting your own Daily.
+assert.match(script, /async function deleteActiveOwnDaily\(button\) \{[\s\S]{0,200}window\.danzstakConfirm\(/, "Daily deletion should use the shared accessible dialog");
 for (const message of [
   "Friend request could not be updated.",
   "Daily could not be deleted.",

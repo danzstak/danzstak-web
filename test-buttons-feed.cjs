@@ -10,6 +10,6 @@ assert.ok(feed.lastIndexOf("assets/buttons.css") > feed.lastIndexOf("assets/arti
 assert.match(css, /\.artist-hq-action\{[\s\S]*?border:0!important;border-radius:var\(--ds-btn-radius\)!important;[\s\S]*?background:var\(--ds-btn-tonal\)!important/, "HQ actions are tonal pills, not outlined boxes");
 assert.match(css, /\.artist-hq-action\.primary\{background:var\(--ds-btn-primary\)!important/, "one primary pill");
 assert.match(css, /#feed \.post \.post-menu-toggle\{width:var\(--ds-btn-size\)!important/, "post menu is a 44px icon button");
-assert.match(css, /#pivotButton,\.pivot-header-button\{min-height:var\(--ds-btn-size\)!important\}/, "Pivot pill has a 44px target");
+assert.doesNotMatch(css, /pivot-header-button|#pivotButton/, "the old Pivot pill styles are gone (directive F15j: an icon in the bar)");
 assert.match(css, /\.push-alert-prompt button\.primary\{/, "alerts banner uses the primary pill");
 console.log("Mix + Music HQ button checks passed.");

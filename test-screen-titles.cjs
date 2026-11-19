@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const feed = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 assert.match(feed, /function setScreenTitle\(name\) \{ const label = screenTitles\[name\] \|\| name \|\| "Your Mix"; document\.title = "DanzStak \| " \+/);
 assert.match(feed, /const screenTitles = \{ HQ: "Music HQ", Groups: "Tribes" \};/);
-assert.match(feed, /const visibleName = canonicalName === "Groups" \? "Tribes" : canonicalName;\s*setScreenTitle\(canonicalName\);/, "every workspace sets its title");
+assert.match(feed, /const visibleName = screenTitles\[canonicalName\] \|\| canonicalName;[^\n]*\n\s*setScreenTitle\(canonicalName\);/, "every workspace sets its title (Music HQ, Tribes from the one map)");
 assert.match(feed, /activateMobileScreen\("home"\);\s*setScreenTitle\(""\);/, "Mix gets its title back");
 assert.match(feed, /if \(shouldOpen && !wasOpen\) \{ titleBeforeMenu = document\.title; setScreenTitle\("Menu"\); \}/, "Menu has its own title and restores the previous one");
 assert.match(feed, /function openNotificationDrawer\(opener, \{ updateHistory = true \} = \{\}\) \{\s*setScreenTitle\("Notifications"\);/);

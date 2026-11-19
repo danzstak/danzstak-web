@@ -183,23 +183,41 @@ function cleanImport(body) {
   return { status, items };
 }
 
-// Owner 2026-11-19: "the bazaar needs to have items mixed up from users, not one user's items then another's — scrambled".
-// Seeded shuffle (the browser sends one seed per visit, so "Show more" pages stay consistent), then deal the items out
-// seller by seller so the same shop never fills a row while other shops still have items left. Never paid, never ranked.
+// Owner 2026-11-19: "the bazaar needs to have items mixed up from users, not one user's items then another's — scrambled",
+// and F15f: never the same shop twice in a row. The browser sends one seed per visit, so "Show more" pages stay
+// consistent. Identical to assets/scramble-by-seller.js (this package can't load files from assets/);
+// test-bazaar-scrambled.cjs fails if the two copies differ.
+// <scramble-by-seller>
 function seededRandom(seed) {
   let h = 2166136261;
   for (const char of String(seed || "")) h = Math.imul(h ^ char.charCodeAt(0), 16777619);
   return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }
-export function scrambleBySeller(items, seed) {
+// Seeded shuffle, then deal the cards out shop by shop: each card goes to the shop with the most items left that is not
+// one of the previous `gap` cards (2 = the card to its left and the one above it in the phone's 2-column grid), so a
+// shop never sits next to itself while another shop still has items. Same seed, same order; never paid, never ranked.
+function scrambleBySeller(items, seed, gap = 2) {
   const random = seededRandom(seed), shuffled = [...items];
   for (let index = shuffled.length - 1; index > 0; index--) { const swap = Math.floor(random() * (index + 1)); [shuffled[index], shuffled[swap]] = [shuffled[swap], shuffled[index]]; }
-  const sellers = new Map();
-  for (const item of shuffled) { const key = item.memberId || item.shopName || ""; if (!sellers.has(key)) sellers.set(key, []); sellers.get(key).push(item); }
-  const queues = [...sellers.values()], out = [];
-  while (queues.some(queue => queue.length)) for (const queue of queues) if (queue.length) out.push(queue.shift());
+  const shopOf = item => String(item.memberId || item.shopName || "").trim().toLowerCase();
+  const queues = new Map();
+  for (const item of shuffled) { const key = shopOf(item); if (!queues.has(key)) queues.set(key, []); queues.get(key).push(item); }
+  const order = [...queues.keys()], out = [];
+  while (out.length < shuffled.length) {
+    const recent = out.slice(-gap).map(shopOf), last = recent[recent.length - 1];
+    let pick = null, pickRank = null;
+    for (const key of order) {
+      const left = queues.get(key).length;
+      if (!left) continue;
+      const rank = [key === last ? 2 : recent.includes(key) ? 1 : 0, -left];
+      if (!pickRank || rank[0] < pickRank[0] || (rank[0] === pickRank[0] && rank[1] < pickRank[1])) { pick = key; pickRank = rank; }
+    }
+    out.push(queues.get(pick).shift());
+  }
   return out;
 }
+// </scramble-by-seller>
+export { scrambleBySeller };
 
 export function marketplaceFeeCents(subtotalCents) {
   const subtotal = positiveInteger(subtotalCents, 0, Number.MAX_SAFE_INTEGER);

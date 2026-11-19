@@ -16,13 +16,20 @@
     return query ? `https://www.openstreetmap.org/search?query=${encodeURIComponent(query)}` : "";
   }
 
+  // Not found / unavailable: the shared page-missing screen with a way back to Events (audit 36 C/D, main). The poster
+  // (and its <h1>) stays hidden on a miss, so the helper adds its own visible heading above the status line.
+  const missing = (message, notFound) => {
+    status.textContent = message;
+    window.danzstakPageMissing?.(status, { title: notFound ? "Event not found" : "Event unavailable", back: "Back to Events", href: "feed.html?view=events" });
+  };
+
   async function load() {
-    if (!/^[a-f0-9-]{36}$/i.test(id)) { status.textContent = "This event link is invalid."; return; }
+    if (!/^[a-f0-9-]{36}$/i.test(id)) { missing("This event link is invalid.", true); return; }
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 12000);
     try {
       const response = await fetch(`https://api.danzstak.com/marketplace/events/${encodeURIComponent(id)}`, { credentials: "include", cache: "no-store", signal: controller.signal });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Event not found.");
+      if (!response.ok) throw Object.assign(new Error(data.error || "Event not found."), { status: response.status });
       const event = data.event;
       document.getElementById("eventTitle").textContent = event.title;
       document.title = `${event.title} | DanzStak`;
@@ -64,7 +71,7 @@
       details.hidden = false;
       window.dispatchEvent(new CustomEvent("danzstak:event-loaded", { detail: event }));
     } catch (error) {
-      status.textContent = error.name === "AbortError" ? "Event details took too long to load. Try again." : (error instanceof TypeError || error.message === "Failed to fetch") ? "Event details are temporarily unavailable. Try again in a moment." : error.message;
+      missing(error.name === "AbortError" ? "Event details took too long to load. Try again." : (error instanceof TypeError || error.message === "Failed to fetch") ? "Event details are temporarily unavailable. Try again in a moment." : error.message, error.status === 404);
     } finally { clearTimeout(timer); }
   }
   load();

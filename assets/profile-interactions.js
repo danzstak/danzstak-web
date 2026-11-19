@@ -26,17 +26,6 @@
     return viewerProfilePromise;
   }
 
-  function relativeTime(value) {
-    const time = new Date(value || "");
-    if (Number.isNaN(time.valueOf())) return "Now";
-    const seconds = Math.max(0, Math.floor((Date.now() - time.valueOf()) / 1000));
-    if (seconds < 60) return "Now";
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-    return time.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  }
-
   function avatar(person = {}, size = "standard") {
     const memberId = String(person.authorMemberId || person.memberId || "");
     const name = String(person.authorName || person.name || "DanzStak member");
@@ -89,8 +78,7 @@
     const actions = document.createElement("div");
     actions.className = "profile-comment-actions";
     const time = document.createElement("time");
-    time.dateTime = comment.createdAt || "";
-    time.textContent = relativeTime(comment.createdAt);
+    if (!window.danzstakTimeLabel?.paint(time, comment.createdAt)) time.textContent = window.danzstakTranslate?.("now") || "now"; // B4: one time label
     const like = document.createElement("button");
     like.type = "button";
     like.textContent = comment.myReaction === "Like" ? "Liked" : "Like";
@@ -183,12 +171,11 @@
     composer.className = "profile-comment-composer";
     const placeholder = document.createElement("span");
     placeholder.className = "profile-comment-viewer-avatar";
-    placeholder.textContent = "D";
-    placeholder.setAttribute("aria-hidden", "true");
+    placeholder.setAttribute("aria-hidden", "true"); // B5: no DanzStak "D" while your profile loads
     viewerProfile().then(profile => {
       if (!placeholder.isConnected) return;
       const picture = String(profile.picture || "");
-      if (!picture) { placeholder.textContent = String(profile.name || "D").charAt(0).toUpperCase(); return; }
+      if (!picture) { placeholder.textContent = String(profile.name || "").trim().charAt(0).toUpperCase(); return; }
       const image = document.createElement("img");
       image.className = placeholder.className;
       image.alt = "";

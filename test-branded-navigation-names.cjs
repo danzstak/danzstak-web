@@ -15,7 +15,8 @@ assert.match(feed, /<span class="story-create-label">Dailies<\/span>/);
 // T0-A1 (owner 2026-11-18): no "The Roll" checkbox in the composer any more — every posted video goes there automatically.
 assert.doesNotMatch(feed, /id="shareToReels"/);
 assert.match(enhancements, /reelsTitle\.textContent = "The Roll"/);
-assert.match(enhancements, /canonicalName === "Groups" \? "Tribes" : canonicalName/);
+assert.match(enhancements, /const screenTitles = \{ HQ: "Music HQ", Groups: "Tribes" \};/); // audit 36 C5: one title map
+assert.match(enhancements, /const visibleName = screenTitles\[canonicalName\] \|\| canonicalName;/);
 assert.match(profile, />Your Mix<\/a>/);
 assert.match(booking, />Your Mix<\/a>/);
 assert.match(messages, /data-chat-return[^>]+aria-label="Back to previous DanzStak screen"[^>]*>Back<\/a>/);
