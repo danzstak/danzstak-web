@@ -99,6 +99,7 @@ jobs:
             '.\browser-checks\profile-interactions.cjs'
             '.\browser-checks\marketplace-ticketing.cjs'
             '.\browser-checks\roll-fullscreen-sound.cjs'
+            '.\browser-checks\device-registration-late.cjs'
           )
       - name: Stop local review server
         if: always()

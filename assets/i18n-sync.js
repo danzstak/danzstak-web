@@ -5,6 +5,11 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Your number is verified": "Il tuo numero è verificato",
+"This device still needs one new code to finish.": "Questo dispositivo ha bisogno di un nuovo codice per finire.",
+"Finish on this device": "Completa su questo dispositivo",
+"Enter your number and we'll text one new code to finish this device.": "Inserisci il tuo numero e ti invieremo un nuovo codice per completare questo dispositivo.",
+"That took a little long. We'll send a new code.": "Ci è voluto un po' troppo. Ti inviamo un nuovo codice.",
 "Send a note": "Invia una nota",
 "Text": "Testo",
 "Your note": "La tua nota",
@@ -264,6 +269,11 @@
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
 },
 "fr": {
+"Your number is verified": "Votre numéro est vérifié",
+"This device still needs one new code to finish.": "Cet appareil a encore besoin d’un nouveau code pour terminer.",
+"Finish on this device": "Terminer sur cet appareil",
+"Enter your number and we'll text one new code to finish this device.": "Saisissez votre numéro et nous enverrons un nouveau code pour terminer cet appareil.",
+"That took a little long. We'll send a new code.": "Cela a pris un peu de temps. Nous allons envoyer un nouveau code.",
 "Send a note": "Envoyer un mot",
 "Text": "Texte",
 "Your note": "Ton mot",
@@ -524,6 +534,11 @@
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
 },
 "es": {
+"Your number is verified": "Tu número está verificado",
+"This device still needs one new code to finish.": "Este dispositivo aún necesita un código nuevo para terminar.",
+"Finish on this device": "Terminar en este dispositivo",
+"Enter your number and we'll text one new code to finish this device.": "Escribe tu número y te enviaremos un código nuevo para terminar este dispositivo.",
+"That took a little long. We'll send a new code.": "Tardó un poco. Te enviaremos un código nuevo.",
 "Send a note": "Enviar una nota",
 "Text": "Texto",
 "Your note": "Tu nota",
@@ -783,6 +798,11 @@
 "You can resend once. Try again in 10 minutes.": "Solo puedes reenviar una vez. Inténtalo de nuevo en 10 minutos."
 },
 "de": {
+"Your number is verified": "Deine Nummer ist bestätigt",
+"This device still needs one new code to finish.": "Dieses Gerät braucht noch einen neuen Code zum Abschließen.",
+"Finish on this device": "Auf diesem Gerät abschließen",
+"Enter your number and we'll text one new code to finish this device.": "Gib deine Nummer ein, dann schicken wir einen neuen Code, um dieses Gerät abzuschließen.",
+"That took a little long. We'll send a new code.": "Das hat etwas gedauert. Wir schicken einen neuen Code.",
 "Send a note": "Notiz senden",
 "Text": "Text",
 "Your note": "Deine Notiz",
@@ -854,6 +874,11 @@
 "You can resend once. Try again in 10 minutes.": "Du kannst nur einmal erneut senden. Versuche es in 10 Minuten erneut."
 },
 "pt": {
+"Your number is verified": "Seu número está verificado",
+"This device still needs one new code to finish.": "Este dispositivo ainda precisa de um novo código para terminar.",
+"Finish on this device": "Concluir neste dispositivo",
+"Enter your number and we'll text one new code to finish this device.": "Digite seu número e enviaremos um novo código para concluir este dispositivo.",
+"That took a little long. We'll send a new code.": "Demorou um pouco. Vamos enviar um novo código.",
 "Send a note": "Enviar uma nota",
 "Text": "Texto",
 "Your note": "A sua nota",

@@ -13,7 +13,7 @@ assert.equal(needsName({ isOwner: false, name: "DanzStak member" }), false, "nev
 assert.equal(suggestHandle("Black Flag Fan #1"), "blackflagfan1");
 assert.match(source, /addEventListener\("cancel", event => event\.preventDefault\(\)\)/, "the name step cannot be skipped");
 assert.match(source, /Later — text only/, "members can skip device registration and keep texting");
-assert.match(fs.readFileSync("assets/call-devices.js", "utf8"), /get\("device"\)==="register"&&!state\.registered\)openPanel\(\)/, "Register now opens the SYNC device dialog");
+assert.match(fs.readFileSync("assets/call-devices.js", "utf8"), /asked=params\.get\("device"\)==="register"[\s\S]{0,240}history\.replaceState[\s\S]{0,160}if\(asked&&!state\.registered\)openPanel\(\)/, "Register now opens the SYNC device dialog once and drops ?device=register from the address (directive L2)");
 for (const page of ["feed.html", "profile.html", "messages.html"]) {
   const html = fs.readFileSync(page, "utf8");
   assert.match(html, /signup-onboarding\.js/, `${page} runs the onboarding check`);

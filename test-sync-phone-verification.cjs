@@ -61,3 +61,14 @@ const { pathToFileURL } = require("node:url");
   for(const italian of ["Verifica privata del telefono","Prefisso internazionale","Numero di cellulare","AWS non ha ancora approvato gli SMS di verifica SYNC"])assert.ok(translations.includes(italian),`missing Italian phone verification copy: ${italian}`);
   console.log("SYNC private phone verification regression checks passed.");
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+// Directive L2 (owner 2026-11-19): registration can always finish.
+{
+  const fs = require("node:fs"), assert = require("node:assert/strict");
+  const client = fs.readFileSync("assets/phone-verification.js", "utf8"), page = fs.readFileSync("messages.html", "utf8");
+  assert.match(client, /danzstakBeginCallingDeviceEnrollment\(\{ maxAgeMs:60000 \}\)/, "every Send code gets a device challenge no older than a minute");
+  assert.match(page, /id="syncPhoneFinish"[^>]*>Finish on this device</, "a verified number on an unregistered device offers Finish on this device");
+  assert.match(client, /unfinished = done && deviceUnfinished\(\)[\s\S]*finish\.hidden = !unfinished/, "Finish shows only while this device is unregistered");
+  assert.match(client, /resend\.addEventListener\("click", \(\) => \{[^}]*send\.disabled = current\?\.providerAvailable !== true/, "Resend brings back a Send button that works");
+  console.log("Directive L2 registration checks passed.");
+}
