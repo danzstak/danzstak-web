@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-UklTBSA13qv6vFvRQZliOtW8SADIr2WloneUlWk5KP0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-0huoK4+cDZUjHEGwc+9lT7YjaXxkEuyduZ3h8bYli0w='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -492,8 +492,6 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
             <option value="private">Just me</option>
           </select>
         </div>
-        <label class="story-share-control story-option" title="Add a photo or video to share this post to Dailies"><input id="shareToStory" type="checkbox" disabled><span>Dailies</span></label>
-        <label class="story-share-control reels-option" title="Add a video before sharing it to The Roll"><input id="shareToReels" type="checkbox" disabled><span>The Roll</span></label>
 
         <button class="primary" id="publishBtn" type="button">
           Post
@@ -544,8 +542,6 @@ const feedStatus = document.getElementById("feedStatus");
 const publishBtn = document.getElementById("publishBtn");
 const postText = document.getElementById("postText");
 const postAudience = document.getElementById("postAudience");
-const shareToStory = document.getElementById("shareToStory");
-const shareToReels = document.getElementById("shareToReels");
 const storiesRail = document.getElementById("storiesRail");
 const newsFeedView = document.getElementById("newsFeedView");
 const featureView = document.getElementById("featureView");
@@ -1527,8 +1523,6 @@ publishBtn.addEventListener("click", async () => {
   const locationInput = document.getElementById("postLocation"), submittedLocation = locationInput?.value || "";
   const submittedText = postText.value;
   const content = submittedText.trim();
-  const publishToStory = shareToStory.checked && shareToStory.dataset.hasMedia === "true";
-  const publishToReels = shareToReels.checked;
   const audience = ["public", "friends", "private"].includes(postAudience.value)
     ? postAudience.value
     : "public";
@@ -1586,7 +1580,7 @@ publishBtn.addEventListener("click", async () => {
         "Content-Type": "application/json"
       },
       credentials: "include",
-      body: JSON.stringify({ content: content || "Shared media", location: submittedLocation.trim(), audience, mediaKey, mediaType, reel: mediaType === "video" && publishToReels, originalContentCertified: true })
+      body: JSON.stringify({ content: content || "Shared media", location: submittedLocation.trim(), audience, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true })
     });
 
     if (response.status === 401) {
@@ -1599,7 +1593,9 @@ publishBtn.addEventListener("click", async () => {
     savedPost = await response.json();
     uploadedPostKey = "";
 
-    if (publishToStory) {
+    // T0-A1 (owner 2026-11-18): every photo/video post goes into Dailies (24 h) and every video into The Roll, automatically —
+    // no checkboxes. The server adds the Daily itself (dailyCreated); an older server that does not, gets the old upload.
+    if (selectedMedia?.file && savedPost?.dailyCreated !== true) {
       let uploadedStoryKey = "";
       try {
         const storyTicketResponse = await fetchWithDeadline("https://api.danzstak.com/stories", {
@@ -1626,15 +1622,12 @@ publishBtn.addEventListener("click", async () => {
         window.danzstakShowFeedback?.("Your post was saved, but the Daily could not be published.", { urgent: true });
       }
     }
+    else if (selectedMedia?.file) loadStories().catch(() => {}); // the server added the Daily: show it in the strip now
 
     if (postText.value === submittedText) {
       postText.value = "";
       if (locationInput?.value === submittedLocation) locationInput.value = "";
       certification.checked = false;
-    }
-    if (window.danzstakSelectedMedia === selectedMedia) {
-      shareToReels.checked = false;
-      shareToReels.disabled = true;
     }
 
     // Show the new post immediately after AWS confirms saving it
@@ -1883,7 +1876,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/invite-sharing.js?v=1" defer></script>
 <script src="assets/tribes-art.js?v=1" defer></script>
 <script src="assets/tribe-create.js?v=1" defer></script>
-<script src="assets/feed-enhancements.js?v=575" defer></script>
+<script src="assets/feed-enhancements.js?v=579" defer></script>
 <script src="assets/profile-onboarding.js?v=12" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/call-setup.js?v=2" defer></script>

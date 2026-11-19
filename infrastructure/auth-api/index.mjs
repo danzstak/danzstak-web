@@ -2353,7 +2353,9 @@ async function createSecurePost(event) {
   const audience = requestedGroupId ? "group" : requestedAudience;
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
-  const reel = mediaType === "video" && data.reel === true;
+  // T0-A1 (owner 2026-11-18): every posted video goes into The Roll and stays there, from ANY composer — not only when a
+  // client ticked a box. Facebook imports keep their history out of The Roll unless the member asks.
+  const reel = mediaType === "video" && (!facebookImport || data.reel === true);
   if (sharedSource && (mediaKey || mediaType || reel)) return {statusCode:400,headers,body:JSON.stringify({error:"Shared posts reference the original media."})};
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
@@ -2423,6 +2425,27 @@ async function createSecurePost(event) {
     return { statusCode: 200, headers, body: JSON.stringify({ postId, deduplicated: true, createdAt: existing.Item.createdAt.S }) };
   }
 
+  // T0-A1: every posted photo or video also goes into the member's Dailies for 24 hours, automatically. The Daily points at
+  // the post's own media (no second upload); the Stories cleanup only deletes files under stories/, so the post's photo is
+  // never removed with it, and deleting the post removes this Daily (linked by mediaKey). Tribe posts keep their Tribe
+  // privacy: their Daily is visible only to the poster. A Daily that cannot be written never fails the post itself.
+  let daily = null;
+  if (mediaKey && !facebookImport && !sharedSource) {
+    const storyId = randomUUID(), expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
+    try {
+      await db.send(new PutItemCommand({
+        TableName: storiesTable,
+        Item: { storyId: { S: storyId }, userEmail: { S: userEmail }, content: { S: content.slice(0, 5000) || "Story" }, audience: { S: audience === "group" ? "private" : audience }, mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, postId: { S: postId }, fromPost: { BOOL: true }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } },
+        ConditionExpression: "attribute_not_exists(storyId)"
+      }));
+      daily = { storyId, expiresAt };
+      // The clapper's TAKE N counts the member's lifetime Dailies videos (same rule as a Daily added directly).
+      if (mediaType === "video") await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :one", ExpressionAttributeValues: { ":one": { N: "1" }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count not updated", { postId, error: error.name }));
+    } catch (error) {
+      console.error("Post Daily could not be created", { postId, error: error.name });
+    }
+  }
+
   return {
     statusCode: 201,
     headers,
@@ -2430,6 +2453,8 @@ async function createSecurePost(event) {
       postId,
       userId,
       userEmail,
+      dailyCreated: Boolean(daily),
+      ...(daily ? { daily } : {}),
       profileOwnerMemberId: profileOwnerId,
       content,
       audience,

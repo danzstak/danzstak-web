@@ -59,7 +59,7 @@ for (const [file, expected] of [
   ["feed.html", "assets/identity-media.js?v=2"],
   ["messages.html", "assets/identity-media.js?v=2"],
   ["profile.html", "assets/identity-media.js?v=2"],
-  ["feed.html", "assets/feed-enhancements.js?v=575"],
+  ["feed.html", "assets/feed-enhancements.js?v=579"],
   ["feed.html", "assets/profile-onboarding.js?v=12"],
   ["feed.html", "assets/post-sharing.js?v=422"],
   ["feed.html", "assets/people-search.js?v=424"],
@@ -72,7 +72,7 @@ for (const [file, expected] of [
   ["profile.html", "assets/profile-sharing.js?v=418"],
   ["profile.html", "assets/profile-interactions.css?v=2"],
   ["profile.html", "assets/profile-interactions.js?v=1"],
-  ["profile.html", "assets/profile-editor.js?v=498"],
+  ["profile.html", "assets/profile-editor.js?v=501"],
   ["booking.html", "assets/booking-agent.js?v=501"],
   ["profile.html", "assets/post-sharing.js?v=422"],
   ["profile.html", "assets/profile.js?v=421"]
