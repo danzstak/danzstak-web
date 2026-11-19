@@ -1,24 +1,26 @@
 param([switch]$EnableDeviceSmsOtp)
 $ErrorActionPreference = "Stop"
+# Runs on Windows PowerShell and on pwsh in AWS CloudShell (Linux): forward-slash paths, temp folder from either OS.
+$TempRoot = if ($env:TEMP) { $env:TEMP } else { [IO.Path]::GetTempPath() }
 
 $Region = "us-west-1"
 $FunctionName = "DANZSTAK-Auth-API"
 $RoleName = "DANZSTAK-Auth-API-role-zjknf4ur"
-$Source = Join-Path $PSScriptRoot "infrastructure\auth-api\index.mjs"
-$TourManagerBillingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\tour-manager-billing.mjs"
-$BookingPipelineSource = Join-Path $PSScriptRoot "infrastructure\auth-api\booking-pipeline.mjs"
-$MarketplaceSource = Join-Path $PSScriptRoot "infrastructure\auth-api\marketplace.mjs"
-$TicketingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\ticketing.mjs"
-$PhoneVerificationSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-phone-verification.mjs"
-$PhoneServiceSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-phone-service.mjs"
-$PhoneDynamoSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-phone-dynamodb.mjs"
-$Package = Join-Path $PSScriptRoot "infrastructure\auth-api\package.json"
-$PackageLock = Join-Path $PSScriptRoot "infrastructure\auth-api\package-lock.json"
-$Bundle = Join-Path $env:TEMP "danzstak-auth-api.zip"
-$Stage = Join-Path $env:TEMP ("danzstak-auth-api-" + [guid]::NewGuid().ToString("N"))
-$Policy = Join-Path $env:TEMP "danzstak-auth-api-policy.json"
-$Environment = Join-Path $env:TEMP "danzstak-auth-api-environment.json"
-$SesEventDestination = Join-Path $env:TEMP "danzstak-tour-manager-ses-events.json"
+$Source = Join-Path $PSScriptRoot "infrastructure/auth-api/index.mjs"
+$TourManagerBillingSource = Join-Path $PSScriptRoot "infrastructure/auth-api/tour-manager-billing.mjs"
+$BookingPipelineSource = Join-Path $PSScriptRoot "infrastructure/auth-api/booking-pipeline.mjs"
+$MarketplaceSource = Join-Path $PSScriptRoot "infrastructure/auth-api/marketplace.mjs"
+$TicketingSource = Join-Path $PSScriptRoot "infrastructure/auth-api/ticketing.mjs"
+$PhoneVerificationSource = Join-Path $PSScriptRoot "infrastructure/auth-api/personal-phone-verification.mjs"
+$PhoneServiceSource = Join-Path $PSScriptRoot "infrastructure/auth-api/personal-phone-service.mjs"
+$PhoneDynamoSource = Join-Path $PSScriptRoot "infrastructure/auth-api/personal-phone-dynamodb.mjs"
+$Package = Join-Path $PSScriptRoot "infrastructure/auth-api/package.json"
+$PackageLock = Join-Path $PSScriptRoot "infrastructure/auth-api/package-lock.json"
+$Bundle = Join-Path $TempRoot "danzstak-auth-api.zip"
+$Stage = Join-Path $TempRoot ("danzstak-auth-api-" + [guid]::NewGuid().ToString("N"))
+$Policy = Join-Path $TempRoot "danzstak-auth-api-policy.json"
+$Environment = Join-Path $TempRoot "danzstak-auth-api-environment.json"
+$SesEventDestination = Join-Path $TempRoot "danzstak-tour-manager-ses-events.json"
 $ApiId = "0872gqal4m"
 $AuthIntegrationId = "5pipi5a"
 $ToursTable = "DANZSTAK-Tours"
@@ -256,7 +258,7 @@ try {
   # The role's inline policy is at its 10 KB limit, so this one permission is a separate managed policy attached once.
   $dailiesPolicyName = "DanzStakPostDailies"
   $dailiesPolicyArn = "arn:aws:iam::$($identity.Account):policy/$dailiesPolicyName"
-  $dailiesPolicy = Join-Path $env:TEMP "danzstak-post-dailies-policy.json"
+  $dailiesPolicy = Join-Path $TempRoot "danzstak-post-dailies-policy.json"
   @{
     Version = "2012-10-17"
     Statement = @(@{
@@ -273,6 +275,33 @@ try {
   }
   aws iam attach-role-policy --role-name $RoleName --policy-arn $dailiesPolicyArn
   if ($LASTEXITCODE -ne 0) { throw "Post Dailies policy could not be attached to the Auth API role." }
+
+  # Task 38: media through CloudFront. When the call-signaling stack has the CDN, the Auth API may read only the signing
+  # secret and invalidate only that distribution (managed policy: the inline policy is at its size limit).
+  $mediaCdnDomain = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Call-Signaling --query "Stacks[0].Outputs[?OutputKey=='MediaCdnDomain'].OutputValue | [0]" --output text
+  $mediaCdnDistribution = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Call-Signaling --query "Stacks[0].Outputs[?OutputKey=='MediaCdnDistributionId'].OutputValue | [0]" --output text
+  $mediaCdnServe = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Call-Signaling --query "Stacks[0].Parameters[?ParameterKey=='MediaCdnServe'].ParameterValue | [0]" --output text
+  $mediaCdnReady = ($mediaCdnDomain -match '^[a-z0-9]+\.cloudfront\.net$') -and ($mediaCdnDistribution -match '^E[A-Z0-9]+$')
+  if ($mediaCdnReady) {
+    $cdnPolicyName = "DanzStakMediaCdn"
+    $cdnPolicyArn = "arn:aws:iam::$($identity.Account):policy/$cdnPolicyName"
+    $cdnPolicy = Join-Path $TempRoot "danzstak-media-cdn-policy.json"
+    @{
+      Version = "2012-10-17"
+      Statement = @(
+        @{ Sid = "MediaCdnSigningKey"; Effect = "Allow"; Action = @("secretsmanager:GetSecretValue"); Resource = "arn:aws:secretsmanager:us-west-1:$($identity.Account):secret:danzstak/cloudfront/media-signing-key-*" },
+        @{ Sid = "MediaCdnInvalidate"; Effect = "Allow"; Action = @("cloudfront:CreateInvalidation"); Resource = "arn:aws:cloudfront::$($identity.Account):distribution/$mediaCdnDistribution" }
+      )
+    } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $cdnPolicy -Encoding ascii
+    aws iam get-policy --policy-arn $cdnPolicyArn --output json 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      aws iam create-policy --policy-name $cdnPolicyName --policy-document "file://$cdnPolicy" --output json | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "Media CDN policy could not be created." }
+    }
+    aws iam attach-role-policy --role-name $RoleName --policy-arn $cdnPolicyArn
+    if ($LASTEXITCODE -ne 0) { throw "Media CDN policy could not be attached to the Auth API role." }
+    Remove-Item -LiteralPath $cdnPolicy -Force -ErrorAction SilentlyContinue
+  }
 
   $mediaBucket = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query 'StackResourceDetail.PhysicalResourceId' --output text
   if ($LASTEXITCODE -ne 0 -or -not $mediaBucket) { throw "DanzStak media bucket could not be resolved." }
@@ -304,6 +333,8 @@ try {
   # Fail closed: provider availability controls whether a text can be sent,
   # never whether an unverified device is allowed to register.
   $variables.PHONE_DEVICE_OTP_REQUIRED = if ($EnableDeviceSmsOtp) { 'true' } else { 'false' }
+  if ($mediaCdnReady -and $mediaCdnServe -eq 'true') { $variables.MEDIA_CDN_DOMAIN = [string]$mediaCdnDomain; $variables.MEDIA_CDN_DISTRIBUTION_ID = [string]$mediaCdnDistribution }
+  else { $variables.Remove('MEDIA_CDN_DOMAIN'); $variables.Remove('MEDIA_CDN_DISTRIBUTION_ID') }
   @{ Variables = $variables } | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $Environment -Encoding ascii
   aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }
@@ -455,7 +486,7 @@ try {
   Remove-Item -LiteralPath $Environment -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $SesEventDestination -Force -ErrorAction SilentlyContinue
   $resolvedStage = [IO.Path]::GetFullPath($Stage)
-  $resolvedTemp = [IO.Path]::GetFullPath($env:TEMP).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+  $resolvedTemp = [IO.Path]::GetFullPath($TempRoot).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
   if ($resolvedStage.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) {
     Remove-Item -LiteralPath $resolvedStage -Recurse -Force -ErrorAction SilentlyContinue
   }
