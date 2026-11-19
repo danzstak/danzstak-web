@@ -119,7 +119,13 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - Each new visit (app open, sign-in, return after more than 30 min) shows friends' Dailies in a new fair order, never the same first tile twice in a row. The member's own tile stays pinned left.
   - On load the tiles slide in with a short spring: overshoot about 6px, settle within 400ms, staggered 40ms. No motion with `prefers-reduced-motion`.
   - Check: two visits give different orders and the own tile stays first.
-- **The owner could do this on every page:** F8–F15 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
+- **F16. SYNC installs as its own app, offered right after verification.** Owner 2026-11-19 (phone):
+  - **Problem:** "When I save SYNC as standalone it does not save to my desktop." The app drawer shows no SYNC icon (`docs/screenshots/owner-reference/sync-not-installed-app-drawer-2026-11-19.png`).
+  - **Wanted:** "When users verify their device it should also give the option there, right under the verification text: Save app to desktop."
+  - **Root cause to confirm first:** SYNC shares the main app's scope and manifest, so Android treats it as the same installed PWA. #591 (`/sync/` scope + its own manifest/start_url/icons) is not merged yet. Land #591 in a train and verify on a real Android phone that a separate **SYNC** icon appears.
+  - **Then:** directly under the "This device is verified" text, show **"Add SYNC to home screen"**. It uses SYNC's own `beforeinstallprompt`; iPhone shows the Share → Add to Home Screen steps. It is hidden once installed. Opening the icon goes straight to the chat list.
+  - **Check:** the manifest scope and id differ from the main app; the button appears right after verification; the install prompt fires.
+- **The owner could do this on every page:** F8–F16 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
 ### Quality bar for Code (owner 2026-11-19: "tight code… make sure Code is doing quality work… effort is set to extra, so get Code to do extra… make it more Facebook-ish")
