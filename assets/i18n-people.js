@@ -4,6 +4,13 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Set up SYNC on this device": "Configura SYNC su questo dispositivo",
+"Texting works right away. For calls, video calls and voice messages:": "I messaggi funzionano subito. Per chiamate, videochiamate e messaggi vocali:",
+"Save the SYNC app to your home screen": "Salva l'app SYNC nella schermata Home",
+"Save the SYNC app to this computer": "Salva l'app SYNC su questo computer",
+"Verify your number with a text code": "Verifica il tuo numero con un codice via SMS",
+"Later — text only": "Più tardi — solo messaggi",
+"Set up SYNC": "Configura SYNC",
 "Add a bio": "Aggiungi una bio",
 "No posts yet": "Ancora nessun post",
 "Profile post photo": "Foto del post",
@@ -60,6 +67,13 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"Set up SYNC on this device": "Configure SYNC sur cet appareil",
+"Texting works right away. For calls, video calls and voice messages:": "Les messages marchent tout de suite. Pour les appels, appels vidéo et messages vocaux :",
+"Save the SYNC app to your home screen": "Enregistre l'app SYNC sur ton écran d'accueil",
+"Save the SYNC app to this computer": "Installe l'app SYNC sur cet ordinateur",
+"Verify your number with a text code": "Vérifie ton numéro avec un code par SMS",
+"Later — text only": "Plus tard — messages seulement",
+"Set up SYNC": "Configurer SYNC",
 "Add a bio": "Ajouter une bio",
 "No posts yet": "Pas encore de publications",
 "Profile post photo": "Photo de la publication",
@@ -116,6 +130,13 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"Set up SYNC on this device": "Configura SYNC en este dispositivo",
+"Texting works right away. For calls, video calls and voice messages:": "Los mensajes funcionan desde ya. Para llamadas, videollamadas y mensajes de voz:",
+"Save the SYNC app to your home screen": "Guarda la app SYNC en tu pantalla de inicio",
+"Save the SYNC app to this computer": "Guarda la app SYNC en este ordenador",
+"Verify your number with a text code": "Verifica tu número con un código por SMS",
+"Later — text only": "Más tarde — solo mensajes",
+"Set up SYNC": "Configurar SYNC",
 "Add a bio": "Añadir una bio",
 "No posts yet": "Aún no hay publicaciones",
 "Profile post photo": "Foto de la publicación",
