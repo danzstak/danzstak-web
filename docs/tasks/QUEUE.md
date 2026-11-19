@@ -21,15 +21,19 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 4 | (Owner 2026-11-17: a two-device **video call worked well** — Chrome/computer ↔ phone. Keep it working.) SYNC 16-A: native shell + layout (messages scroll under the header, nothing cut off, keyboard) | 16 | PR #411 + #413 |
 | 5 | SYNC 16-C: button system, SYNC first, then site-wide (no "HTML-looking" buttons) | 16 | PR #423 (SYNC), site sweep #455 → #464 |
 | T | **TEST-READY FIRST (owner 2026-11-19):** CLAUDE.md "Plan: test-ready for the owner and friends" T1 finish open PRs → T2 works-and-looks-good sweep in the installed PWA → T3 SYNC own-app pop-up after device registration → T4 invite testers + docs/TESTING.md. No new features until T1–T3 are done. | CLAUDE.md test-ready plan | TODO |
-| T0-A1 | **Owner bug:** posted video not in Dailies/The Roll → automatic from every composer (server-side), remove opt-in checkboxes, backfill | 36 | PR #602 (owner: deploy Auth API + run backfill) |
-| T0-A2 | **Owner bug:** Dailies tile opens the photo picker; only your own big profile picture edits; every other avatar opens that profile | 36 | Dailies tile: PR (build/dailies-tile-no-picker); avatars: PR #598 |
+| T0-E1 | **Mix Comment icon does nothing when tapped** (`feed.html` ~1705 uses `event.target.classList.contains`; use `closest`) + grep for the same pattern site-wide | 36 E1 | MERGED #604 |
+| T0-A1 | **Owner bug:** posted video not in Dailies/The Roll → automatic from every composer (server-side), remove opt-in checkboxes, backfill | 36 | MERGED #602 (owner: deploy Auth API) |
+| T0-A2 | **Owner bug:** Dailies tile opens the photo picker; only your own big profile picture edits; every other avatar opens that profile | 36 | Dailies tile: PR #606; avatars: PR #598 |
 | T0-A3 | **Owner bug:** The Roll full screen loses sound (carry the sound choice over) + fill the screen | 36 | TODO |
-| T0-A11 | **Owner bug:** + bio opens the long-bio editor (not Edit profile); only the account holder sees it | 36 | TODO |
-| T0-A12 | **Owner:** remove @username under the profile name; friends row there; tap a friend's photo → their posts | 36, 5a3 | TODO |
-| T0-A13 | **Owner:** shop storefront beside the profile picture (shop name + item preview + price → Shop tab), replaces the shop icon button | 36 | TODO |
+| T0-A11 | ~~+ bio opens the long-bio editor~~ Owner (later 2026-11-19): no + bio button at all; Edit profile owner-only; Edit · Shop · Share row | 36 | PR #600 |
+| T0-A12 | **Owner:** remove @username under the profile name; friends row there; tap a friend's photo → their posts | 36, 5a3 | PR #600 (@username hidden) + PR #572 (facepile, needs `/friends/of` deploy) |
+| T0-A13 | **Owner:** shop storefront beside the profile picture (shop name + item preview + price → Shop tab), replaces the shop icon button | 36 | PR #599 |
 | T0-A4 | Saved page crash (`volatilePostPreferences` used before declared) | 36 | TODO |
 | T0-A5 | Record Stores crash + endless loading | 36 | TODO |
-| T0-A6 | Shop manager shows a raw JS error; shared friendly-error helper; Save shop feedback | 36 | TODO |
+| T0-A6 | Shop manager shows a raw JS error; shared friendly-error helper; Save shop feedback (+ E2 Trusted contacts raw error, E4 Events/Support/Shop silent forms) | 36 | TODO |
+| T0-E8 | Remove "Tap your name to change it" and the tap-name-to-edit path; Edit button is the only way in (C3) | 36 E8 | TODO |
+| T0-E9 | One Photo/video button in the profile and Mix composers (no duplicate media buttons) | 36 E9 | TODO |
+| T0-E10 | Visitor profile: Friends ▾ (Unfriend/Unfollow) instead of a dead disabled button; Add friend → Cancel request | 36 E10 | TODO |
 | T0-A7 | Booking Example / Find clubs dead; Leaflet served locally | 36 | TODO |
 | T0-A8 | Tribes: Elder sees Join; open on Your Tribes | 36 | TODO |
 | T0-A9 | Mix composer avatar opens your profile | 36 | TODO |
