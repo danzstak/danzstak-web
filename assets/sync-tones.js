@@ -24,7 +24,15 @@
     "pop": { name: "Pop", kind: "message", period: 0.5, notes: [[0, 0.12, 660, "sine", 0.8, 990]] },
     "rimshot": { name: "Rimshot", kind: "message", period: 0.5, notes: [[0, 0.06, 900, "triangle", 0.6], [0, 0.04, 5000, "noise", 0.5], [0.14, 0.05, 1200, "triangle", 0.4]] }
   };
-  const RING_MAKEUP_GAIN = 3.2; // rings: compressed, then lifted (owner 2026-11-18: ring tones were too quiet)
+  // F15e (owner 2026-11-19: "the ringer on SYNC should be 10 dB louder minimum"). Measured first: the old chain already
+  // peaked at +3 to +6 dBFS (clipping), yet through a phone speaker most rings were quiet (-17 to -33 LUFS) because their
+  // energy sat at 45-480 Hz, below what a phone speaker plays (and the compressor's own make-up gain is why it clipped).
+  // Rings now: sub-bass cut, gentle saturation (harmonics in the 1-4 kHz band a phone speaker plays), a presence lift,
+  // then a soft limiter whose curve can never exceed PEAK (-1.4 dBFS), however hard it is driven.
+  // browser-checks/ringer-loudness.cjs measures every ring against the recorded old levels.
+  const RING_CHAIN = { highpassHz: 800, drive: 16, presenceHz: 3000, presenceDb: 14, push: 8, peak: 0.8 };
+  const tanhCurve = (amount, ceiling) => { const curve = new Float32Array(4097); for (let i = 0; i < curve.length; i++) curve[i] = ceiling * Math.tanh((i / 2048 - 1) * amount) / Math.tanh(amount); return curve; };
+  const saturation = tanhCurve(1.6, 1), softLimit = tanhCurve(2.5, RING_CHAIN.peak);
   const DEFAULTS = { ring: "classic", message: "pop", ringVibrate: true, messageVibrate: true, contacts: {} };
   let ctx = null, active = null, previewTimer = null;
 
@@ -86,11 +94,16 @@
     // Owner 2026-11-18: "the ring tones are quiet". Rings go through a compressor and make-up gain so a phone speaker
     // plays them loud without clipping (message tones stay gentle).
     let loudChain = null;
-    if (tone.kind === "ring" && out.createDynamicsCompressor) {
+    if (tone.kind === "ring" && out.createWaveShaper) {
       try {
-        const comp = out.createDynamicsCompressor(); comp.threshold.value = -20; comp.knee.value = 6; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.12;
-        const makeup = out.createGain(); makeup.gain.value = RING_MAKEUP_GAIN;
-        master.connect(comp); comp.connect(makeup); makeup.connect(out.destination); loudChain = [comp, makeup];
+        const lowCut = out.createBiquadFilter(); lowCut.type = "highpass"; lowCut.frequency.value = RING_CHAIN.highpassHz; lowCut.Q.value = 0.7;
+        const drive = out.createGain(); drive.gain.value = RING_CHAIN.drive;
+        const shaper = out.createWaveShaper(); shaper.curve = saturation; shaper.oversample = "4x";
+        const presence = out.createBiquadFilter(); presence.type = "peaking"; presence.frequency.value = RING_CHAIN.presenceHz; presence.Q.value = 0.8; presence.gain.value = RING_CHAIN.presenceDb;
+        const push = out.createGain(); push.gain.value = RING_CHAIN.push / 2.2; // presence can lift peaks to about x2.2
+        const limiter = out.createWaveShaper(); limiter.curve = softLimit; limiter.oversample = "none"; // no oversampling filter: it overshoots the ceiling
+        master.connect(lowCut).connect(drive).connect(shaper).connect(presence).connect(push).connect(limiter).connect(out.destination);
+        loudChain = [lowCut, drive, shaper, presence, push, limiter];
       } catch { loudChain = null; }
     }
     if (!loudChain) master.connect(out.destination);

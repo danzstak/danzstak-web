@@ -104,6 +104,7 @@ jobs:
             '.\browser-checks\roll-fullscreen-sound.cjs'
             '.\browser-checks\media-viewer.cjs'
             '.\browser-checks\dailies-strip-clean.cjs'
+            '.\browser-checks\ringer-loudness.cjs'
             '.\browser-checks\dailies-empty-clapper.cjs'
             '.\browser-checks\dailies-feed-ux.cjs'
           )

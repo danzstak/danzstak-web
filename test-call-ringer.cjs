@@ -14,9 +14,13 @@ assert.match(ringer, /label: "Test ringer"/, "Test ringer row in the SYNC sheet"
 for (const page of ["feed.html", "profile.html", "messages.html"]) assert.match(read(page), /assets\/call-ringer\.js\?v=\d+/, `${page} loads the ringer`);
 assert.match(worker, /"\/assets\/call-ringer\.js", "\/assets\/call-ringer\.css"/, "cached offline");
 const tones = read("assets/sync-tones.js"), setup = read("assets/call-setup.js");
-assert.match(tones, /tone\.kind === "ring" && out\.createDynamicsCompressor/, "rings are compressed and lifted (owner: ring tones too quiet)");
-assert.match(tones, /const RING_MAKEUP_GAIN = 3\.2;/);
-assert.match(setup, /const DEFAULT_RING = 0\.8;/, "louder default ring volume");
+// F15e (owner 2026-11-19: "10 dB louder minimum"): rings are re-voiced for a phone speaker and soft-limited below
+// clipping; browser-checks/ringer-loudness.cjs measures the result against the old levels.
+assert.match(tones, /tone\.kind === "ring" && out\.createWaveShaper/, "rings go through the loudness chain");
+assert.match(tones, /master\.connect\(lowCut\)\.connect\(drive\)\.connect\(shaper\)\.connect\(presence\)\.connect\(push\)\.connect\(limiter\)\.connect\(out\.destination\);/, "sub-bass cut, saturation, presence, soft limiter");
+assert.match(tones, /limiter\.oversample = "none";/, "the final limiter cannot overshoot its ceiling");
+assert.doesNotMatch(tones, /RING_MAKEUP_GAIN|createDynamicsCompressor/, "no compressor with automatic make-up gain (it made the old rings clip)");
+assert.match(setup, /const DEFAULT_RING = 1;/, "the default ring volume is the maximum");
 assert.match(chat, /finally\{delete els\.enable\.dataset\.busy;els\.enable\.disabled=false;\}/, "Call alerts can be tapped again (owner: it did nothing)");
 assert.match(chat, /window\.danzstakShowFeedback\?\.\(message,\{urgent\}\)/, "Call alerts shows its result on screen");
 console.log("Call ringer checks passed: rings without a tap where allowed, vibrates + asks for a tap when blocked, Test ringer, offline cache.");
