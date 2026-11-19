@@ -7,7 +7,12 @@ Read this first, every session. **Claude Code: your work list is `docs/tasks/QUE
 Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these things — the UX is not good and users will not use the site. Main keeps moving. Make one big directive for Code, then test it all, and test it again. When two agents are coding, things get messed up."
 
 ### Rules
-**Motto: test, test, test, deploy.** The owner is seeing too many mistakes in the PWA.
+**Motto: test, test, test, deploy.** The owner is seeing too many mistakes in the PWA. Owner's saying: **"What is wrong with perfect?"**
+
+**The quality bar, in the owner's words:** "This is perfect if the link works, but this is the quality of work DanzStak needs for success. Everything needs to look this good to a user."
+- The reference is the invite share card in a phone's messages: `docs/screenshots/owner-reference/invite-share-card-quality-bar-2026-11-19.png`. It has a clean preview image, a clear title and the domain.
+- Every screen, share preview and email must reach that level.
+- Also verify that the invite link itself lands correctly: sign-up, then a friend request to the inviter.
 
 1. **Roles.**
    - **Claude Code** (the builder) is the only one who writes code. It builds each fix and **tests it once**: `node scripts/run-all-tests.cjs` plus every browser check the change touches, at 320/360/390/430px, **tapping the centre of icons**, not the button box. Then it opens the PR (or the release train) and stops.
@@ -134,7 +139,42 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - colour swatches in one even row.
   - Check: every tile's image rect equals its cell rect, there is one selection ring, and there is no horizontal overflow at 320–430px.
   - Apply the same "fill = box" rule to every picker and grid (Tribe art, shop images, album covers).
-- **The owner could do this on every page:** F8–F17 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
+- **F18. Tag people, tag a location, and Follow, visible everywhere.** Owner 2026-11-19: "I didn't see any tag or follows throughout the site: tag location & users."
+  - Code exists in part (`assets/media-tags.js`, post `location`, the visitor menu Unfollow in #612), but none of it is visible or easy to reach.
+  - **Composer** (Mix, profile, Tribe), the familiar row of icons under the text: **Photo/video · Tag people · Location · Feeling**.
+    - **Tag people:** a search sheet of friends and members by name/@username, with chips you can remove.
+    - **Location:** search a place or venue (the existing venue directory plus a free text city), never the member's GPS without asking.
+  - **On the post:** "**Ana** is at **Bimbo's 365** with **Bo** and **2 others**" in the header line. Names and the place are links (profile / venue / city page). Tagged people get a notification and can remove their tag.
+  - **Follow** (queue item 15: a friend is two-way, a follow is one-way). Artist, venue, shop and Tribe pages lead with **Follow**. Profiles show "N followers · N following" (F9). Following adds their posts to Mix chronologically, never ranked.
+  - Privacy: the member chooses who can tag them (everyone / friends / nobody) in Settings, and a tag only shows after review if they pick "review tags".
+  - Checks: tag a friend and a place in the composer, see both on the post, the tagged friend gets a notification, Follow/Unfollow works and the counts update.
+- **F19. The picture box on a profile does something when tapped** (the band from F4). Owner 2026-11-19:
+  - **Shop cover:** "When users put a store cover photo in the second image box on their profile it should open that user's store. That should be the store front." The picture links to the member's storefront: their Shop tab with the products, or the shop page.
+  - **Any other photo**, e.g. their dog: "it should pop up to nothing more to see or something, but they can add a link to the photo if they wish, say to Bandcamp or somewhere."
+    - When editing the box, the owner can add an optional **link** (https only; Bandcamp, SoundCloud, their site…). Tapping then opens that link in a new tab with a small "leaving DanzStak" note.
+    - With no link, tapping opens the photo full screen (the F1 viewer). If the owner set a caption, it shows as one short line; otherwise there's no dead "nothing" pop-up.
+  - Checks: shop cover → storefront; photo with link → the link; plain photo → full-screen viewer; visitor and owner both.
+- **F20. Tapping your own picture on the Dailies tile goes to your profile.** Owner 2026-11-19: "When I click the profile image on Dailies it goes to this page for some reason. It should go to my profile page."
+  - Today it opens an old full-screen Daily (`docs/screenshots/owner-reference/dailies-own-tile-opened-wrong-2026-11-19.png`).
+  - **Own tile:** tapping your picture → `profile.html`. Only the small "watch" area or the tile's media opens your own Dailies.
+  - **Friend's tile:** the avatar/name → their profile; the media → their Dailies (F3/F15).
+  - Check: tapping the centre of your own avatar on the tile lands on your profile.
+- **F21. Shop storefront image: upload it in the shop, put it on the profile.** Owner 2026-11-19: "Need to add your store front image here somewhere where users can upload their image for their shop… confirm save to profile and put the image in the shop store front on their profile page… warn the user this will replace the second photo… and the link if they have one."
+  - **Where:** the shop manager (`store.html`; reference `docs/screenshots/owner-reference/shop-manager-no-storefront-image-2026-11-19.png`). At the top, a **storefront image** area, the same box as the profile band (F4) with drag to fit (F12): upload from the phone, then preview.
+  - **On save**, a confirm sheet: "Use this as your shop front on your profile? It will replace the photo on your profile (and its link)." with **Replace** / **Keep shop only**.
+  - **Replace** sets the profile picture box to the storefront image, linked to the storefront (F19). **Keep shop only** saves it to the shop alone.
+  - Restyle the rest of the shop manager to F8: no raw select, no paragraph-heavy "Get paid" box.
+- **F22. Post photos: the frame is bigger than the image (black bars).** Owner 2026-11-19: "The box is bigger than the image. The box should scale to the smaller images." References: `docs/screenshots/owner-reference/post-photo-black-bars-2026-11-19.png` and `post-photo-black-bars-2-2026-11-19.png` (a landscape photo with more black than picture; the owner calls it "wasting pixels").
+  - The media frame takes the **image's own aspect ratio** (from `naturalWidth/Height`, or stored dimensions so nothing jumps): full column width, height = width ÷ ratio, with no black bars above or below.
+  - Very tall images are capped at about 1.25× the column width in height and cropped centred, or at the saved focal point (F12). Tap opens the full image (F1).
+  - Same rule for videos (the poster ratio), the profile Photos grid previews and Tribe posts.
+  - Check: for a landscape, a square and a portrait image, the frame rect equals the image rect at 320–430px.
+- **F23. "Then / Now" before-and-after posts with a slider** (owner 2026-11-19: "an effect like this that does before and after with the slider going left and right… would be kind of cool"). Reference: `docs/screenshots/owner-reference/then-now-slider-reference-2026-11-19.png`. This is a new feature, so build it **after F1–F22**.
+  - In the composer, pick **two photos** and add **Then / Now**, with an optional date for "Then" (prefilled from the photo's date).
+  - **The slider is automated; users don't touch it** (owner: "a mix between 2 photos… the slider is automated, users don't touch the slider"). On the post, both photos sit in one frame and a divider with a round ⇄ badge **sweeps left and right on its own**: an easing loop of about 4 s, pausing a moment on each side, so viewers see the mix between the two. Labels "Then: Nov 19, 2018" and "Now" sit in the corners.
+  - The loop plays only while the post is at least 50% visible, and stops (showing the split) with `prefers-reduced-motion` or data saver. A tap opens full screen (F1), with both photos side by side.
+  - Same aspect rules as F22.
+- **The owner could do this on every page:** F8–F22 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
 ### Quality bar for Code (owner 2026-11-19: "tight code… make sure Code is doing quality work… effort is set to extra, so get Code to do extra… make it more Facebook-ish")
@@ -161,7 +201,7 @@ Work through these in order. Each gate must pass before the next one starts.
   - **The route:** sign up as a new member → name/@username → SYNC device registration → Mix (Dailies, composer, post a photo and a video, The Roll, the full-screen viewer) → profile (every tab, edit, pictures repositioned) → Friends → Tribes (create, post, Elder tools) → Events (create one) → Bazaar (browse, product, checkout in test mode) → Music HQ (EPK build/publish, Booking pitch in test mode, Tour Manager) → SYNC (chat, call, ring, Text note) → Notifications → Menu → Settings / Your data (export) → Log out.
   - **On every screen:** every button is tapped and must work and land on the right screen, with no raw errors, no dead or duplicate buttons, and nothing that looks unfinished.
   - **Findings:** each problem goes into a new fix list (F16+) here. Code fixes them, then the sweep repeats.
-- **G3. Code clean-up pass.** Remove broken or untranslated strings, half-finished screens, dead code and duplicate CSS and JS. Make one component per job: app bar, tab bar, post, button, sheet, list row. Delete unused assets. Code gets tight, not clunky. No behaviour changes without a check.
+- **G3. Code clean-up pass: new, working code, no old code.** Owner: "Have Code update the code so there is no old code; it should all be new and working code. If the old code is creating problems, overwrite it." Where an old layer causes bugs (stacked override CSS, duplicate handlers, legacy fallbacks, old screens behind flags), **replace it with one clean implementation** instead of patching on top. Keep behaviour that is covered by checks, and keep the checks passing. Remove broken or untranslated strings, half-finished screens, dead code and duplicate CSS and JS. Make one component per job: app bar, tab bar, post, button, sheet, list row. Delete unused assets. Code gets tight, not clunky. No behaviour changes without a check.
 - **G4. Claude tests again before doors open.** One more full sweep (G2 route) plus the full suite and every browser check against the live site.
 - **G5. Every page modern, every button works and goes to the right place** (the F8–F15 standard), confirmed screen by screen with before/after screenshots in `docs/screenshots/launch/`.
 - **G6. Every product works and is tested end to end in Stripe Test Mode:**
