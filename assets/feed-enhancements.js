@@ -107,6 +107,7 @@ async function refreshNotificationCount() {
   if (readSections().Settings?.notifications === false) {
     notificationSourceCounts.social = 0;
     notificationSourceCounts.engagement = 0;
+    notificationSourceCounts.device = 0;
     updateNotificationCount(0);
     return;
   }
@@ -126,6 +127,9 @@ async function refreshNotificationCount() {
       notificationSourceCounts[key] = key === "engagement" ? notices.filter(notice => notice.unread !== false).length : notices.length;
       succeeded = true;
     }
+    const reminder = window.danzstakDeviceReminder;
+    notificationSourceCounts.device = reminder && await reminder.needed().catch(() => false) && reminder.unread() ? 1 : 0;
+    succeeded ||= notificationSourceCounts.device > 0;
     if (succeeded) updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
   } catch { /* The next scheduled refresh will retry. */ }
   finally { clearTimeout(timeout); notificationCountLoading = false; }
@@ -1472,6 +1476,9 @@ function renderWorkspace(name) {
         const directory = directorySource.items;
         const friends = friendsSource.items;
         const notificationSourcesComplete = socialSource.available && engagementSource.available;
+        // Owner 2026-11-19: a member who skipped SYNC verification is reminded here until this device is verified.
+        const reminder = window.danzstakDeviceReminder, reminderNeeded = Boolean(await reminder?.needed().catch(() => false));
+        notificationSourceCounts.device = reminderNeeded && reminder.unread() ? 1 : 0;
         const people = new Map();
         for (const friend of friends) {
           const email = String(friend.email || "").toLowerCase();
@@ -1486,6 +1493,7 @@ function renderWorkspace(name) {
         updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
         list.replaceChildren();
         list.setAttribute("aria-busy", "false");
+        if (reminderNeeded) { list.append(reminder.row()); reminder.markSeen(); }
         const appendAvailabilityWarning = () => {
           const warning = document.createElement("p");
           warning.className = "muted notification-source-warning";
@@ -1503,6 +1511,7 @@ function renderWorkspace(name) {
             appendAvailabilityWarning();
             return;
           }
+          if (reminderNeeded) return;
           const empty = document.createElement("p");
           empty.className = "muted";
           empty.textContent = feedTranslate("No new notifications.");
