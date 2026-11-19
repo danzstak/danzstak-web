@@ -396,3 +396,15 @@ video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
 /* Fix-it 18 (owner 2026-11-18): a hidden screen is hidden. ".friends-feature-view{display:grid}" beat the [hidden]
    attribute, so tapping the Mix tab from Friends left the Friends screen stacked above Mix. Only one primary screen. */
 #featureView[hidden],.friends-feature-view[hidden]{display:none!important}
+
+/* T2a (owner 2026-11-18): the online-friend photo is a link to their profile; it keeps its look. */
+a.feed-online-avatar-wrap{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
+a.feed-online-avatar-wrap::after{content:"";position:absolute;inset:min(0px,calc(50% - 22px));border-radius:50%}/* always a 44px tap target, whatever the photo size (34px on phones, smaller in the desktop list) */
+/* T2a: Mix post and comment photos keep their size but get a 44px tap area (the image rounds itself, so the link no
+   longer needs overflow:hidden, which would clip the larger invisible tap area). */
+a.post-avatar,a.comment-avatar{position:relative;overflow:visible!important}
+a.post-avatar>img,a.comment-avatar>img{border-radius:50%}
+a.post-avatar::after{content:"";position:absolute;inset:-6px;border-radius:50%}/* -6px: the photo has a 2px border */
+a.comment-avatar::after{content:"";position:absolute;inset:-6px;border-radius:50%}
+/* T2a: the Mix post-box photo is a link to your profile (#610); keep its 36px look with a 44px tap area (6px past its 2px border). */
+.post-composer a.composer-avatar{position:relative}.post-composer a.composer-avatar::after{content:"";position:absolute;inset:-6px;border-radius:50%}
