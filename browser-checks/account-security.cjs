@@ -15,7 +15,8 @@ const json = (route, body, status = 200) => route.fulfill({ status, contentType:
 
 function responseFor(endpoint) {
   if (endpoint === "/auth/session") return { authenticated: true, user: { sub: ownerId, email: "artist@example.test" } };
-  if (endpoint === "/profiles" || endpoint === "/profile") return { profile: { memberId: ownerId, name: "Tour Artist", username: "tourartist", isOwner: true } };
+  // A finished member has a @username (handle); without one the owner's name + @username step (2026-11-16/17) opens first.
+  if (endpoint === "/profiles" || endpoint === "/profile") return { profile: { memberId: ownerId, name: "Tour Artist", handle: "tourartist", username: "tourartist", isOwner: true } };
   if (endpoint === "/auth/sessions") return { devices: [
     { deviceId: ownerId, label: "Chrome on Android", current: true, lastUsedAt: 1793970000, expiresAt: 1796562000 },
     { deviceId: "22222222-2222-4222-8222-222222222222", label: "Safari on iPhone or iPad", current: false, lastUsedAt: 1793883600, expiresAt: 1796475600 }

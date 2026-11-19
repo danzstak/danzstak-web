@@ -18,11 +18,19 @@ const json = (route, body, status = 200) => route.fulfill({ status, contentType:
       const context = await browser.newContext({ viewport: { width, height: width < 700 ? 844 : 768 }, hasTouch: width < 700, isMobile: width < 700, serviceWorkers: "block" });
       await context.addInitScript(() => {
         window.__syncToneStarts = 0;
+        // The ring may play the member's chosen ringtone (sync-tones.js, task 16-B2), which schedules gain ramps, filters,
+        // noise buffers and a compressor; the stub supports those nodes and counts every tone that starts.
+        const param = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} });
         window.AudioContext = class FakeAudioContext {
-          constructor() { this.state = "running"; this.currentTime = 0; this.destination = {}; }
+          constructor() { this.state = "running"; this.currentTime = 0; this.destination = {}; this.sampleRate = 44100; }
           async resume() { this.state = "running"; }
-          createOscillator() { return { frequency: { value: 0 }, connect(node) { return node; }, start() { window.__syncToneStarts++; }, stop() {} }; }
-          createGain() { return { gain: { value: 0 }, connect(node) { return node; } }; }
+          createOscillator() { return { type: "", frequency: param(), connect(node) { return node; }, start() { window.__syncToneStarts++; }, stop() {} }; }
+          createGain() { return { gain: param(), connect(node) { return node; }, disconnect() {} }; }
+          createBiquadFilter() { return { type: "", frequency: param(), connect(node) { return node; }, disconnect() {} }; }
+          createDynamicsCompressor() { return { threshold: param(), knee: param(), ratio: param(), attack: param(), release: param(), connect(node) { return node; }, disconnect() {} }; }
+          createBuffer() { return { sampleRate: 44100, getChannelData: () => new Float32Array(10) }; }
+          createBufferSource() { return { connect(node) { return node; }, start() { window.__syncToneStarts++; }, stop() {} }; }
+          close() { return Promise.resolve(); }
         };
       });
       const page = await context.newPage();
