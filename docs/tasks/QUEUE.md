@@ -21,7 +21,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | 4 | (Owner 2026-11-17: a two-device **video call worked well** — Chrome/computer ↔ phone. Keep it working.) SYNC 16-A: native shell + layout (messages scroll under the header, nothing cut off, keyboard) | 16 | PR #411 + #413 |
 | 5 | SYNC 16-C: button system, SYNC first, then site-wide (no "HTML-looking" buttons) | 16 | PR #423 (SYNC), site sweep #455 → #464 |
 | T | **TEST-READY FIRST (owner 2026-11-19):** CLAUDE.md "Plan: test-ready for the owner and friends" T1 finish open PRs → T2 works-and-looks-good sweep in the installed PWA → T3 SYNC own-app pop-up after device registration → T4 invite testers + docs/TESTING.md. No new features until T1–T3 are done. | CLAUDE.md test-ready plan | TODO |
-| T2a | Tap any profile picture → that member's profile | CLAUDE.md "T2 checklist", 18 | TODO |
+| T2a | Tap any profile picture → that member's profile | CLAUDE.md "T2 checklist", 18 | IN PROGRESS (Claude Code) |
 | T2b | No separate Dailies upload (Dailies tile never opens the photo picker) | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2c | TAKE N counts photos and videos | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2d | Videos tab: poster frame, full avatar, readable dates | CLAUDE.md "T2 checklist", 18 | TODO |
