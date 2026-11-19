@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-UklTBSA13qv6vFvRQZliOtW8SADIr2WloneUlWk5KP0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-Iwe8KiObV3RmZVP8eyBqLywHg3LMBE0o4cIYxZrrP1o='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -348,7 +348,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 }
 </style>
 <link rel="stylesheet" href="assets/soft-ui.css?v=428">
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=521">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=523">
 <link rel="stylesheet" href="assets/facebook-import.css?v=342">
 <link rel="stylesheet" href="assets/pivot.css?v=3">
 <link rel="stylesheet" href="assets/invite-sharing.css?v=2">
@@ -468,7 +468,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 
     <div id="newsFeedView">
     <section id="storiesRail" class="stories" aria-label="Dailies">
-      <button type="button" class="story story-create" aria-label="Add a photo or video to Dailies"><span class="story-create-art" aria-hidden="true"><span class="daily-clapper"><strong>SCENE 1</strong><small hidden></small><time></time></span><span class="story-create-identity"><span class="story-create-avatar">D</span></span></span><span class="story-create-caption"><span><span class="story-create-label">Dailies</span><small class="story-create-detail">Add today's photo or video</small></span></span></button>
+      <button type="button" class="story story-create" aria-label="Post a photo or video to your Dailies"><span class="story-create-art" aria-hidden="true"><span class="daily-clapper"><strong>SCENE 1</strong><small hidden></small><time></time></span><span class="story-create-identity"><span class="story-create-avatar">D</span></span></span><span class="story-create-caption"><span><span class="story-create-label">Dailies</span><small class="story-create-detail">Add today's photo or video</small></span></span></button>
       <div id="storiesLoading" class="story"><span>Loading Dailies</span></div>
     </section>
 
@@ -1008,20 +1008,93 @@ async function refreshStoryMedia(story) {
   return story.mediaUrl;
 }
 
-async function openStoryViewer(story, { updateHistory = true } = {}) {
+// T0-A2 (owner 2026-11-19): your own Dailies open from your tile as one run you swipe through left/right (Dailies are a
+// horizontal swipe); a friend's tile opens that Daily. Your own Dailies can be deleted from here.
+let storyViewerSequence = [];
+let ownDailies = []; // the signed-in member's own Dailies, newest first (set by loadStories)
+
+function storyViewerStep(delta) {
+  const next = storyViewerSequence[storyViewerSequence.indexOf(storyViewerActiveStory) + delta];
+  if (!next) return false;
+  void showStoryInViewer(next);
+  return true;
+}
+
+async function deleteActiveOwnDaily(button) {
+  const story = storyViewerActiveStory;
+  if (!story?.isOwner || !story.storyId) return;
+  if (!(await window.danzstakConfirm("This Daily will be permanently removed.", { title: "Delete this Daily?", confirmLabel: "Delete Daily", danger: true }))) return;
+  button.disabled = true;
+  try {
+    const deleted = await fetchWithDeadline("https://api.danzstak.com/stories/" + encodeURIComponent(story.storyId), { method: "DELETE", credentials: "include" });
+    if (!deleted.ok) throw new Error("Daily could not be deleted.");
+    const index = storyViewerSequence.indexOf(story);
+    storyViewerSequence = storyViewerSequence.filter(candidate => candidate !== story);
+    ownDailies = ownDailies.filter(candidate => candidate.storyId !== story.storyId);
+    updateOwnDailiesTile();
+    const next = storyViewerSequence[Math.min(index, storyViewerSequence.length - 1)];
+    if (next) await showStoryInViewer(next);
+    else closeStoryViewer();
+  } catch (error) {
+    window.danzstakShowFeedback?.(error.message || "Daily could not be deleted.", { urgent: true });
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function openStoryViewer(story, { updateHistory = true, sequence = null } = {}) {
   let viewer = document.getElementById("storyViewer");
   if (!viewer) {
     viewer = document.createElement("dialog");
     viewer.id = "storyViewer";
     viewer.className = "story-viewer";
     viewer.setAttribute("aria-labelledby", "storyViewerCaption");
-    viewer.innerHTML = '<button type="button" class="story-viewer-close" aria-label="Close Daily">×</button><div class="story-viewer-media"></div><p class="story-viewer-caption" id="storyViewerCaption"></p>';
+    viewer.innerHTML = '<button type="button" class="story-viewer-close" aria-label="Close Daily">×</button>'
+      + '<button type="button" class="story-viewer-delete" aria-label="Delete Daily" hidden>🗑️</button>'
+      + '<span class="story-viewer-count" aria-live="polite" hidden></span>'
+      + '<button type="button" class="story-viewer-step story-viewer-prev" aria-label="Previous Daily" hidden>‹</button>'
+      + '<button type="button" class="story-viewer-step story-viewer-next" aria-label="Next Daily" hidden>›</button>'
+      + '<div class="story-viewer-media"></div><p class="story-viewer-caption" id="storyViewerCaption"></p>';
     viewer.querySelector(".story-viewer-close").addEventListener("click", () => closeStoryViewer());
-    viewer.addEventListener("click", event => { if (event.target === viewer) closeStoryViewer(); });
+    viewer.querySelector(".story-viewer-prev").addEventListener("click", () => storyViewerStep(-1));
+    viewer.querySelector(".story-viewer-next").addEventListener("click", () => storyViewerStep(1));
+    viewer.querySelector(".story-viewer-delete").addEventListener("click", event => deleteActiveOwnDaily(event.currentTarget));
+    document.addEventListener("keydown", event => {
+      if (!viewer.open || event.defaultPrevented || document.querySelector(".danzstak-confirm-dialog[open]")) return;
+      if (event.key === "ArrowRight" && storyViewerStep(1)) event.preventDefault();
+      if (event.key === "ArrowLeft" && storyViewerStep(-1)) event.preventDefault();
+    });
+    let swipeStart = null, lastSwipeAt = 0;
+    viewer.addEventListener("pointerdown", event => { swipeStart = { x: event.clientX, y: event.clientY }; });
+    viewer.addEventListener("pointerup", event => {
+      if (!swipeStart) return;
+      const dx = event.clientX - swipeStart.x, dy = event.clientY - swipeStart.y;
+      swipeStart = null;
+      if (Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.5) { lastSwipeAt = Date.now(); storyViewerStep(dx < 0 ? 1 : -1); }
+    });
+    viewer.addEventListener("pointercancel", () => { swipeStart = null; });
+    // A swipe that ends on the dark backdrop is not a tap to close.
+    viewer.addEventListener("click", event => { if (event.target === viewer && Date.now() - lastSwipeAt > 400) closeStoryViewer(); });
     viewer.addEventListener("cancel", event => { event.preventDefault(); closeStoryViewer(); });
     viewer.addEventListener("close", () => { const video = viewer.querySelector("video"); if (video) video.pause(); storyViewerPreviousFocus?.focus({ preventScroll: true }); storyViewerPreviousFocus = null; });
     document.body.appendChild(viewer);
   }
+  storyViewerSequence = Array.isArray(sequence) && sequence.includes(story) ? sequence.slice() : [story];
+  storyViewerPreviousFocus = document.activeElement;
+  const shown = showStoryInViewer(story);
+  viewer.showModal();
+  if (updateHistory && usesMobileStoryHistory() && history.state?.danzstakStoryOpen !== true) {
+    const currentState = history.state && typeof history.state === "object" ? history.state : {};
+    history.pushState({ ...currentState, danzstakStoryOpen: true }, "");
+  }
+  viewer.querySelector(".story-viewer-close").focus();
+  await shown;
+}
+
+async function showStoryInViewer(story) {
+  const viewer = document.getElementById("storyViewer");
+  if (!viewer) return;
+  viewer.querySelector(".story-viewer-media video")?.pause();
   const mediaBox = viewer.querySelector(".story-viewer-media");
   mediaBox.replaceChildren();
   const status = document.createElement("p");
@@ -1030,13 +1103,15 @@ async function openStoryViewer(story, { updateHistory = true } = {}) {
   mediaBox.appendChild(status);
   viewer.querySelector(".story-viewer-caption").textContent = storyDisplayCaption(story);
   storyViewerActiveStory = story;
-  storyViewerPreviousFocus = document.activeElement;
-  viewer.showModal();
-  if (updateHistory && usesMobileStoryHistory() && history.state?.danzstakStoryOpen !== true) {
-    const currentState = history.state && typeof history.state === "object" ? history.state : {};
-    history.pushState({ ...currentState, danzstakStoryOpen: true }, "");
-  }
-  viewer.querySelector(".story-viewer-close").focus();
+  const index = storyViewerSequence.indexOf(story), several = storyViewerSequence.length > 1;
+  const count = viewer.querySelector(".story-viewer-count");
+  count.hidden = !several;
+  count.textContent = several ? `${index + 1} / ${storyViewerSequence.length}` : "";
+  viewer.querySelector(".story-viewer-prev").hidden = !several || index <= 0;
+  viewer.querySelector(".story-viewer-next").hidden = !several || index >= storyViewerSequence.length - 1;
+  viewer.querySelector(".story-viewer-delete").hidden = story.isOwner !== true;
+  // A button that just hid (› on the last Daily) must not drop keyboard focus out of the viewer.
+  if (viewer.open && viewer.contains(document.activeElement) && document.activeElement.hidden) viewer.querySelector(".story-viewer-close").focus();
   const showRecovery = () => {
     mediaBox.replaceChildren();
     const copy = document.createElement("p");
@@ -1052,11 +1127,12 @@ async function openStoryViewer(story, { updateHistory = true } = {}) {
   const installMedia = async () => {
     mediaBox.replaceChildren(status);
     const mediaUrl = story.mediaUrl || await refreshStoryMedia(story);
+    if (storyViewerActiveStory !== story) return; // the member already swiped on to another Daily
     if (!mediaUrl) { showRecovery(); return; }
     const media = document.createElement(story.mediaType === "video" ? "video" : "img");
-    media.addEventListener("error", () => { story.mediaUrl = ""; showRecovery(); }, { once: true });
+    media.addEventListener("error", () => { story.mediaUrl = ""; if (storyViewerActiveStory === story) showRecovery(); }, { once: true });
     if (story.mediaType === "video") { media.controls = true; media.autoplay = false; media.muted = true; media.playsInline = true; media.setAttribute("aria-label", storyDisplayCaption(story)); }
-    else media.alt = storyDisplayCaption(story);
+    else { media.alt = storyDisplayCaption(story); media.draggable = false; }
     media.src = mediaUrl;
     mediaBox.replaceChildren(media);
   };
@@ -1067,7 +1143,7 @@ function restoreStoryViewerFromHistory(event) {
   const viewer = document.getElementById("storyViewer");
   if (!usesMobileStoryHistory()) return;
   if (event.state?.danzstakStoryOpen === true) {
-    if (!viewer?.open && storyViewerActiveStory) void openStoryViewer(storyViewerActiveStory, { updateHistory: false });
+    if (!viewer?.open && storyViewerActiveStory) void openStoryViewer(storyViewerActiveStory, { updateHistory: false, sequence: storyViewerSequence });
   } else if (viewer?.open) closeStoryViewer({ fromHistory: true });
 }
 addEventListener("popstate", restoreStoryViewerFromHistory);
@@ -1081,7 +1157,11 @@ async function loadStories() {
     document.getElementById("storiesLoading")?.remove();
     storiesRail.querySelector(".story-empty")?.remove();
     storiesRail.querySelectorAll(".story[data-story-id]").forEach(item => item.remove());
-    const visibleStories = (data.stories || []).slice(0, 12);
+    // T0-A2: the strip is your own tile (which opens your Dailies) plus friends' Dailies; yours are not repeated.
+    const allStories = Array.isArray(data.stories) ? data.stories : [];
+    ownDailies = allStories.filter(story => story.isOwner === true);
+    updateOwnDailiesTile();
+    const visibleStories = allStories.filter(story => story.isOwner !== true).slice(0, 12);
     const dailyTakeCount = Math.max(0, Number(data.dailyTakeCount) || 0);
     const creatorSlate = document.querySelector(".daily-clapper");
     if (creatorSlate) creatorSlate.dataset.takeCount = String(dailyTakeCount);
@@ -1090,7 +1170,6 @@ async function loadStories() {
       const item = document.createElement("article");
       item.className = "story";
       item.dataset.storyId = story.storyId;
-      item.dataset.storyOwner = story.isOwner ? "true" : "false";
       item.dataset.mediaType = story.mediaType || "";
       item.title = storyDisplayCaption(story);
       const open = document.createElement("button");
@@ -1107,7 +1186,7 @@ async function loadStories() {
       storyCopy.append(author, caption);
       open.appendChild(storyCopy);
       const storyMemberId = String(story.memberId || "");
-      if (!story.isOwner && /^[a-f0-9-]{36}$/.test(storyMemberId)) {
+      if (/^[a-f0-9-]{36}$/.test(storyMemberId)) {
         item.classList.add("story-has-profile-link");
         const profile = document.createElement("a");
         profile.className = "story-author-link";
@@ -1115,16 +1194,6 @@ async function loadStories() {
         profile.textContent = storyAuthor;
         profile.title = storyAuthor;
         profile.setAttribute("aria-label", "Open " + storyAuthor + " profile");
-        item.appendChild(profile);
-        author.hidden = true;
-      } else if (story.isOwner) {
-        item.classList.add("story-has-profile-link");
-        const profile = document.createElement("a");
-        profile.className = "story-author-link";
-        profile.href = "profile.html";
-        profile.textContent = storyAuthor;
-        profile.title = storyAuthor;
-        profile.setAttribute("aria-label", "Open your profile");
         item.appendChild(profile);
         author.hidden = true;
       }
@@ -1200,28 +1269,6 @@ async function loadStories() {
       }
       open.addEventListener("click", () => openStoryViewer(story));
       item.appendChild(open);
-      if (story.isOwner) {
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.className = "story-delete";
-        remove.setAttribute("aria-label", "Delete Daily");
-        remove.textContent = "🗑️";
-        remove.addEventListener("keydown", event => event.stopPropagation());
-        remove.addEventListener("click", async event => {
-          event.stopPropagation();
-          if (!(await window.danzstakConfirm("This Daily will be permanently removed.", { title: "Delete this Daily?", confirmLabel: "Delete Daily", danger: true }))) return;
-          remove.disabled = true;
-          try {
-            const deleted = await fetchWithDeadline("https://api.danzstak.com/stories/" + encodeURIComponent(story.storyId), { method: "DELETE", credentials: "include" });
-            if (!deleted.ok) throw new Error("Daily could not be deleted.");
-            item.remove();
-          } catch (error) {
-            remove.disabled = false;
-            window.danzstakShowFeedback?.(error.message || "Daily could not be deleted.", { urgent: true });
-          }
-        });
-        item.appendChild(remove);
-      }
       storiesRail.appendChild(item);
     }
     if (!visibleStories.length) {
@@ -1267,56 +1314,23 @@ async function loadStories() {
   finally { document.getElementById("storiesLoading")?.remove(); }
 }
 
+// T0-A2 (owner 2026-11-19): there is no separate Dailies upload, so the own tile never opens a file picker. Every photo
+// or video a member posts goes into their Dailies for 24 hours; the tile opens those Dailies full screen, or the Mix
+// post box when there are none today.
 const createStoryButton = document.querySelector(".story-create");
-const createStoryInput = document.createElement("input");
-createStoryInput.type = "file";
-createStoryInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime";
-createStoryInput.hidden = true;
-createStoryButton?.insertAdjacentElement("afterend", createStoryInput);
+function updateOwnDailiesTile() {
+  const tile = document.querySelector(".story-create");
+  if (!tile) return;
+  tile.dataset.ownDailies = String(ownDailies.length);
+  tile.setAttribute("aria-label", ownDailies.length ? `Open your Dailies (${ownDailies.length})` : "Post a photo or video to your Dailies");
+}
+function openComposerFromDailies() {
+  document.getElementById("postComposer")?.scrollIntoView({ block: "start" });
+  postText.focus({ preventScroll: true });
+}
 createStoryButton?.addEventListener("click", () => {
-  createStoryInput.click();
-});
-createStoryInput.addEventListener("change", async () => {
-  const file = createStoryInput.files?.[0];
-  if (!file) return;
-  const mediaType = file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "";
-  if (!mediaType || !createStoryInput.accept.split(",").includes(file.type)) {
-    window.danzstakShowFeedback?.("Dailies must use a supported photo or video file.", { urgent: true });
-    createStoryInput.value = "";
-    return;
-  }
-  if (!(await window.danzstakConfirm("Confirm that you created this Daily and own all material in it, including any music inside a video.", { title: "Publish this Daily?", confirmLabel: "Choose and publish" }))) {
-    createStoryInput.value = "";
-    return;
-  }
-  createStoryButton.disabled = true;
-  createStoryButton.querySelector(".story-create-label").textContent = "Publishing…";
-  let uploadedStoryKey = "";
-  try {
-    const ticketResponse = await fetchWithDeadline("https://api.danzstak.com/stories", {
-      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contentType: file.type })
-    });
-    if (!ticketResponse.ok) throw new Error("Daily upload could not start.");
-    const ticket = await ticketResponse.json();
-    const uploadResponse = await fetchWithDeadline(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file }, mediaUploadDeadline(file));
-    if (!uploadResponse.ok) throw new Error("Daily media could not be uploaded.");
-    uploadedStoryKey = ticket.mediaKey;
-    const publishResponse = await fetchWithDeadline("https://api.danzstak.com/stories", {
-      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: file.name || "Your Daily", audience: postAudience.value, mediaKey: ticket.mediaKey, mediaType: ticket.mediaType, dedicatedMedia: true, originalContentCertified: true })
-    });
-    if (!publishResponse.ok) throw new Error("Daily could not be published.");
-    uploadedStoryKey = "";
-    await loadStories();
-  } catch (error) {
-    await discardUploadedMedia(uploadedStoryKey);
-    window.danzstakShowFeedback?.(error.message || "Daily could not be published.", { urgent: true });
-  } finally {
-    createStoryInput.value = "";
-    createStoryButton.disabled = false;
-    createStoryButton.querySelector(".story-create-label").textContent = "Dailies";
-  }
+  if (ownDailies.length) void openStoryViewer(ownDailies[0], { sequence: ownDailies });
+  else openComposerFromDailies();
 });
 
 // LOAD SAVED POSTS FROM AWS DYNAMODB

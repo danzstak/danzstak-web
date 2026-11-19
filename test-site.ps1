@@ -128,7 +128,7 @@ if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTick
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
   if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }
 }
-foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()', 'Confirm that you created this Daily')) {
+foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()')) {
   if (-not $feed.Contains($preUploadCertification)) { Add-Failure "Copyright: upload can begin before explicit certification: $preUploadCertification" }
 }
 foreach ($drawerAccessibility in @('aria-controls="messageDrawer"', 'aria-expanded="false"', 'drawer.setAttribute("role", "dialog")', 'event.key === "Escape"', 'launcher.setAttribute("aria-expanded", "true")')) {
@@ -140,9 +140,11 @@ foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
   if (-not $markup.Contains($mediaOrigin)) { Add-Failure "${page}: signed AWS media origin is blocked by CSP" }
 }
 if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
-foreach ($dedicatedStoryControl in @('aria-label="Add a photo or video to Dailies"', 'createStoryInput.accept = "image/jpeg', 'dedicatedMedia: true', 'originalContentCertified: true', 'await loadStories()')) {
-  if (-not $feed.Contains($dedicatedStoryControl)) { Add-Failure "Stories: dedicated Your Story upload is incomplete: $dedicatedStoryControl" }
+# T0-A2 (owner 2026-11-19): Dailies come from posts. The own tile opens your Dailies or the post box, never a file picker.
+foreach ($ownDailiesTile in @('aria-label="Post a photo or video to your Dailies"', 'void openStoryViewer(ownDailies[0], { sequence: ownDailies })', 'else openComposerFromDailies();')) {
+  if (-not $feed.Contains($ownDailiesTile)) { Add-Failure "Dailies: own tile does not open your Dailies or the post box: $ownDailiesTile" }
 }
+if ($feed.Contains('createStoryInput')) { Add-Failure 'Dailies: the own tile still opens a file picker (separate Dailies upload)' }
 $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
 $mediaVisibility = Get-Content -LiteralPath (Join-Path $root 'assets\media-visibility.js') -Raw -Encoding utf8
 if ($feedEnhancements.Contains('Reel saved on this device until cloud sync is available.') -or
@@ -536,9 +538,10 @@ if ($incomingCallsJs.Contains('if (drawer && !drawer.hidden) return;') -or
     -not $chatJs.Contains('if(!embeddedMode||autoAnswer||peer||pending)poll()')) {
   Add-Failure 'Calls: an open embedded conversation can hide incoming calls or compete with the parent call watcher'
 }
-$correctPublishingStatus = 'Publishing' + [char]0x2026
+# T0-A2: the Dailies tile no longer publishes (Dailies come from posts); the Dailies viewer's loading line keeps the check.
+$correctPublishingStatus = 'Loading media' + [char]0x2026
 if (-not $feed.Contains($correctPublishingStatus)) {
-  Add-Failure 'Stories: publishing status contains corrupted text encoding'
+  Add-Failure 'Stories: Dailies viewer status contains corrupted text encoding'
 }
 $directMessagesJs = Get-Content -LiteralPath (Join-Path $root 'assets\direct-messages.js') -Raw -Encoding utf8
 $feedEnhancementsJs = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
