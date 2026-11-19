@@ -164,11 +164,15 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - **On save**, a confirm sheet: "Use this as your shop front on your profile? It will replace the photo on your profile (and its link)." with **Replace** / **Keep shop only**.
   - **Replace** sets the profile picture box to the storefront image, linked to the storefront (F19). **Keep shop only** saves it to the shop alone.
   - Restyle the rest of the shop manager to F8: no raw select, no paragraph-heavy "Get paid" box.
-- **F22. Post photos: the frame is bigger than the image (black bars).** Owner 2026-11-19: "The box is bigger than the image. The box should scale to the smaller images." Reference: `docs/screenshots/owner-reference/post-photo-black-bars-2026-11-19.png`.
+- **F22. Post photos: the frame is bigger than the image (black bars).** Owner 2026-11-19: "The box is bigger than the image. The box should scale to the smaller images." References: `docs/screenshots/owner-reference/post-photo-black-bars-2026-11-19.png` and `post-photo-black-bars-2-2026-11-19.png` (a landscape photo with more black than picture; the owner calls it "wasting pixels").
   - The media frame takes the **image's own aspect ratio** (from `naturalWidth/Height`, or stored dimensions so nothing jumps): full column width, height = width ÷ ratio, with no black bars above or below.
   - Very tall images are capped at about 1.25× the column width in height and cropped centred, or at the saved focal point (F12). Tap opens the full image (F1).
   - Same rule for videos (the poster ratio), the profile Photos grid previews and Tribe posts.
   - Check: for a landscape, a square and a portrait image, the frame rect equals the image rect at 320–430px.
+- **F23. "Then / Now" before-and-after posts with a slider** (owner 2026-11-19: "an effect like this that does before and after with the slider going left and right… would be kind of cool"). Reference: `docs/screenshots/owner-reference/then-now-slider-reference-2026-11-19.png`. This is a new feature, so build it **after F1–F22**.
+  - In the composer, pick **two photos** and add **Then / Now**, with an optional date for "Then" (prefilled from the photo's date).
+  - On the post, both photos sit in one frame with a draggable divider and a round ⇄ handle. Drag left/right to reveal more of either side; a tap on the handle flips between them. Labels "Then: Nov 19, 2018" and "Now" sit in the corners.
+  - Same aspect rules as F22. Keyboard: arrows move the divider. Full screen (F1) shows both side by side.
 - **The owner could do this on every page:** F8–F22 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
