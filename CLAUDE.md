@@ -27,7 +27,9 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
 ### Fix list (in this order)
 - **F0. CI green on main first.** Since #625 every check counts. `browser-checks/call-audio-output.cjs` and `browser-checks/original-feed-art-direction.cjs` time out in CI (seen on #632, a docs-only PR). Fix the root cause or the stale check; never skip one.
 - **F1. Tap a photo or video → full screen.** The owner says it still doesn't work, because the viewer never merged. **#594 is green and ready.** Bring it up to date with main and merge it first, then check on the live app: Mix, Tribes, profile Posts, and the Photos/Videos tabs.
+  - **Owner 2026-11-19 (phone, after the viewer went live):** "When I click on a video it goes full screen. It should be able to vertically swipe to see the rest of the videos in that profile." The same for photos. Opening full screen alone is **not** done: from a video, swiping up/down moves through **every video of that member**, and from a photo through **every photo of that member** (not only the ones already loaded on the page; fetch the member's media list). The check swipes up twice and down once on a real touch emulation at 360/390px, from Mix, the profile Posts tab and the Photos/Videos tabs, and asserts a different media item each time.
 - **F2. The Roll keeps the sound choice.** Owner: "each video I have to turn the audio on." Once sound is on, the next Roll video stays audible, whether reached by scroll or auto-advance; mute carries over the same way; never two audible players. Browser check with real playback. Root cause is likely `media-visibility.js` session sound (`sessionSound`) reset or not applied on the next card.
+  - Owner again, 2026-11-19 6:32 pm: "In The Roll when sound is on the next video should have sound on; when the sound is off the next video should have sound off." This is the whole rule; the check plays three Roll videos in a row, toggling sound on the first, and asserts the second and third follow it.
 - **F3. Dailies scrolling doesn't work** (owner's phone). Reproduce with touch at 360/390px, fix the root cause, and add a check that swipes both the strip and the full-screen Dailies. Land #605 (tile never opens the picker), #609 and #587 in the same train.
 - **F4. Profile header: name beside the avatar, picture box below it.** Owner 2026-11-19, replacing the earlier "box beside the avatar" layout: "put the name to the right of the profile image and move the image box below the name… make the font size smaller to fit the space if needed… this also gives room for a bigger image. Think like a Marvell chip designer."
   - Pack every pixel deliberately. Everything is measured and placed with no overlaps and no dead space.
@@ -39,6 +41,19 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - the name sits right of the avatar, never clipped or overlapped, across short and very long names;
     - the box is below the name at full width;
     - there is no gap of more than 12px anywhere in the header, at 320/360/390/430px.
+- **F4a. First, in the next train: stack the picture box's pencil and bin, and give the space to the photo** (owner 2026-11-19, phone screenshot: "put the pencil and the garbage can on top of each other, the pencil on top and the garbage underneath, and make that space bigger for an image").
+  - Today the owner's ✎ and 🗑 sit side by side left of the showcase photo (`.profile-showcase .profile-showcase-tools{flex-direction:row}` in `assets/profile-shop.css`), so they eat about 90px of the row.
+  - Fix: one column, pencil on top and bin underneath, 44px targets with a 6px gap, sitting against the photo's left edge. `placeProfileShopPreview` (`assets/profile-editor.js`) re-measures, and the photo grows into the freed width (it scales with the space, per the owner's earlier "the image box should fill the unused space").
+  - Visitors never see the tools.
+  - Update `browser-checks/profile-showcase-fit.cjs`: the tools are stacked (pencil above bin), nothing overlaps the name, avatar or photo, and the photo is wider than before at 320/360/390/430px.
+  - When F4 moves the box below the name, the stacked pair moves into the band's top-right corner over the photo (later one ⋯, per F9), so the photo keeps the full width.
+- **F4b. Your own photo in the composer, and real dates on profile posts** (owner 2026-11-19, phone screenshot of the profile Posts tab: "The black S should be a profile picture"). The profile composer shows a black circle with "S" instead of the member's photo; posts below show "11/16/2026, 2:36:01 AM". Fix: every composer avatar (profile, Mix, Tribe) is the member's own profile photo (initial only when no photo exists, in DanzStak colours), and post times are relative ("5h", "3d", then "Nov 16"), the same component as Mix. Check: a member with a photo never sees a letter avatar in any composer; no `mm/dd/yyyy, hh:mm:ss` text on any page.
+- **F4c. Tapping the big profile picture** (owner 2026-11-19): "when a user clicks on the profile picture that is not the account owner they should be able to do a horizontal swipe to see previous profile pictures; if it's the account owner it should open to edit the profile picture."
+  - **Visitor:** the full-screen viewer (F1) opens on the current profile picture; **horizontal swipe** (left/right) goes through that member's earlier profile pictures, newest first, with a small "1 / N" count. ✕, swipe down or Back closes it.
+  - **Owner:** the tap opens the profile-picture editor (new photo, reposition and zoom per F12, remove).
+  - The server keeps each member's past profile pictures (key + date) when they change it; the member can delete any of them (Delete everywhere rules), and only pictures the visitor is allowed to see are listed.
+  - Every other small profile picture (post authors, comments, friends rows, Dailies avatars) still opens that member's profile (F5).
+  - Check: as a visitor, tap the avatar, swipe left twice and see older pictures; as the owner, the tap opens the editor; a deleted old picture never appears.
 - **F5. Every profile picture opens that member's profile** (#598).
 - **F6. The rest of the audit**, `docs/tasks/36-site-audit-2026-11-19.md`, in its order: A4–A10, E8–E10, B1–B10 (one app bar, one tab bar, one font set, one post component, one button system), C1–C5, D.
 - **F7. Finish the open feature PRs**, one per train after F1–F6:
@@ -124,6 +139,30 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - Each new visit (app open, sign-in, return after more than 30 min) shows friends' Dailies in a new fair order, never the same first tile twice in a row. The member's own tile stays pinned left.
   - On load the tiles slide in with a short spring: overshoot about 6px, settle within 400ms, staggered 40ms. No motion with `prefers-reduced-motion`.
   - Check: two visits give different orders and the own tile stays first.
+- **F15a. Dailies strip: no icons on the tiles, and tiles slide behind your own tile** (owner 2026-11-19, phone screenshot: "When I horizontally swipe on the Dailies the icons go above my profile picture and the video goes behind my profile picture. The icons really shouldn't be there and they should swipe behind my profile picture").
+  - Today each tile in the strip carries a bin, a mute circle and a play circle, and the "Dailies" label and SCENE/TAKE strip overlap the bin and the name. While the strip scrolls, those icons draw **over** the pinned own tile because they sit in a higher stacking layer than the tile itself.
+  - Fix: strip tiles show **only** the picture or poster, the SCENE/TAKE clapper (own tile) or the small time label, and the name. No bin, mute or play icons in the strip (delete, sound and play live in the full-screen Dailies, F3). Each scrolling tile is its own stacking context (`isolation: isolate`), and the pinned own tile sits above the whole scroller, so everything slides cleanly **behind** it. The clapper and the name never overlap (the name sits under the clapper or is dropped on your own tile).
+  - **More from the owner's screenshots (2026-11-19, 6:30 pm):** "Two images don't have the icons and the rest of them do… take those icons away and just click on the video and it plays, you don't need the play button there." Every tile looks the same: **tap the tile and it plays** (opens the full-screen Dailies on that card). Also seen: photo Dailies sit in the tile with **black bars above and below** (they must fill the tile, `object-fit: cover`, F17's fill = box rule), and a scrolled tile's name ("Dachshund Records") is drawn **over** the own tile's clapper.
+  - Check (touch swipe at 360/390px): while the strip is scrolled, no element from another tile is painted over the own tile's rect (`elementFromPoint` at a grid of points over the own tile always hits the own tile); no button with a bin, mute or play icon inside the strip; the clapper and name rects don't intersect.
+- **F15b. Pin the DanzStak welcome post to the top of Mix, say "Tribes", tighten it** (owner 2026-11-19, screenshot of the "Welcome to DanzStak!" post: "Lock this post to the top of the Mix until a few weeks after opening, also take out the part about groups and make it say Tribes, and take away the spacing to make it tighter").
+  - **Pinned:** a server-side `pinnedUntil` on official DanzStak posts only (set by the `danzstak-owner` group, checked on the server). Mix shows a pinned post first, once, with a small pin label, until **20 January 2027** (about four weeks after doors open on 23 Dec). After that it falls back into its chronological place. Members can't pin.
+  - **Text:** "Welcome to DanzStak! Connect with people, share your original photos, music videos and ideas, and build your scene. Start by finishing your profile, finding friends and joining a Tribe. What are you creating today?" Translated through i18n. No "group" anywhere in member-facing copy (grep check).
+  - **Tight:** no empty lines between sentences (one short paragraph plus the question), the same post padding as every post. The text change goes through an owner-run script (Owner-session box) or the owner's edit on the post, never a hand edit in DynamoDB.
+  - Check: Mix's first post is the pinned welcome until the date, and not after (clock injected); the post text contains "Tribe" and no "group"; no blank-line gaps in it.
+- **F15c. Mix flows: no down arrow at the end** (owner 2026-11-19: "take away that downward arrow when the user gets to the end of the page and just make the Mix flow. It scrolls as things are loaded"). Owner's correction to the old "load more" button (`.load-more-posts` in `feed.html`).
+  - When the member nears the end of what's loaded (about one screen before), the next chronological page loads by itself, with a skeleton post, no button. Order stays chronological and never ranked.
+  - When there's nothing older, Mix ends with one quiet line "You're caught up" (the finite feed stays finite: no recycled or suggested posts to keep people scrolling).
+  - Check: scroll to the bottom at 360/390px → more posts appear with no tap; no "load more"/arrow button exists; at the true end the "caught up" line shows and no further requests fire.
+- **F15d. Bazaar item every 4th post in Mix, after The Roll** (owner again, 2026-11-19: "In the Mix every fourth post after The Roll should be a product from the Bazaar"). This is queue 5a5 / task 23b, now on the fix list: after The Roll, every 4th post is one member's Bazaar item (a clearly labelled "For sale" card, never paid), a different item and seller each slot, the same item not again for 2 weeks, rotating each new session; tap → the seller's shop at that item; Back returns to the same spot. Built in week 3 with the Bazaar server half (C1 deploy).
+- **F15f. Bazaar: a real mix, never the same shop twice in a row** (owner again, 2026-11-19 6:38 pm, screenshot with three Eroticon items in a row: "these products should be jumbled up and switched around every time you come in, different items for sale in different places and not the same shop in a row so it's a variety").
+  - **Root cause (found in `assets/bazaar.js`):** the real items are scrambled among themselves, but the labelled examples are **appended after** them (`examplesFor` … `list.append(exampleCard…)` after the real cards). Today the only real shop is Eroticon, so every Eroticon item lands together at the top. The server half of the scramble (#618) also isn't deployed yet (C1).
+  - Fix: build **one list** of real items and examples, then the same seeded shuffle + round-robin by shop (`scrambleBySeller`, one shared function for the browser and the server), so **no two neighbouring cards in the grid share a shop** whenever another shop is available (left/right and above/below in the 2-column grid). New seed every visit, so places change each time; "Show more" keeps the same visit's order.
+  - Check: with 1 real shop of 5 items plus examples from 4 shops, no two adjacent cards (row or column) share a shop at 360/390px; two visits give different orders; searching still returns plain results.
+- **F15e. SYNC ringer at least 10 dB louder** (owner 2026-11-19: "The ringer on SYNC should be 10 dB louder minimum").
+  - Measure first: record the integrated loudness (LUFS) and peak of today's ringtones (`assets/call-ringer.js`, `call-setup.js` `ringVolume`, the ringtone files).
+  - Then: remaster each ringtone to at least +10 dB integrated loudness (target about −8 LUFS, true peak ≤ −0.5 dBTP so it doesn't clip), play it at full gain through Web Audio with a `DynamicsCompressorNode` limiter, default `ringVolume` to the maximum, and keep the vibration pattern. The incoming-call push notification (phone locked or app closed) uses the same louder file. The phone's own ringer volume still caps it; say so in "Test ringer" ("Turn up your phone's volume for the loudest ring").
+  - Check: `test-ringer-loudness.cjs` measures each ringtone file (offline decode) and fails if it's not at least 10 dB louder than the old baseline recorded in the test, or if it clips.
+  - Also seen in the same screenshot (call screen): the call buttons are text ("Mute", "Camera off", a "Hang Up" label that wraps over two lines). They become Lucide icons with labels under them (UI kit), in one row of equal 64px circles.
 - **F16. SYNC installs as its own app, offered right after verification.** Owner 2026-11-19 (phone):
   - **Problem:** "When I save SYNC as standalone it does not save to my desktop." The app drawer shows no SYNC icon (`docs/screenshots/owner-reference/sync-not-installed-app-drawer-2026-11-19.png`).
   - **Wanted:** "When users verify their device it should also give the option there, right under the verification text: Save app to desktop."
@@ -252,9 +291,9 @@ Work through these in order. Each gate must pass before the next one starts.
 
 ### Road to doors open: Christmas 2026 (owner 2026-11-19: "test this and test some more, I would like to open doors by Christmas. I will get a few users going.")
 Target: **doors open (G7) on Wednesday 23 December 2026**, with two days of margin before Christmas. Each week ends with a release train, and Claude's two test passes run on it before the next week starts.
-- **Week 1, 19–26 Nov:** F0 (CI green, flaky checks fixed at the root), F1–F7, C1–C2, F26 live checks.
+- **Week 1, 19–26 Nov:** F4a–F4c, F15a–F15c, F15e and F15f (first, the owner's phone findings), F0 (CI green, flaky checks fixed at the root), F1–F7, C1–C2, F26 live checks.
 - **Week 2, 27 Nov–3 Dec:** UI kit set up (Tailwind build, icons, emoji, forms), then F8 Notifications, F10 Create event, F21 shop manager, F9 profile and Friends.
-- **Week 3, 4–10 Dec:** F11–F20, F22, F24 gift codes, F25 dashboards.
+- **Week 3, 4–10 Dec:** F15d Bazaar in Mix, F11–F20, F22, F24 gift codes, F25 dashboards.
 - **Week 4, 11–17 Dec:** G2 two full sweeps with grades; G3 clean-up; G6 every product in Stripe test mode (including redeeming each gift code).
 - **Week 5, 18–22 Dec:** fixes from the sweeps; G4 final sweep; every screen and product graded A; G5 screenshots.
 - **23 Dec:** G7 doors open for 25 accounts; the owner sends invites and the 40 gift codes.
@@ -282,7 +321,7 @@ In every sweep (G2, G4), Claude grades **every screen and every product** in `do
 - Roll sound carries over (F2).
 - Dailies scrolling, rotating and bouncing (F3, F15).
 - TAKE count and Dailies/Roll filled (done; verify).
-- Bazaar mixed across shops (done; the server half ships in C1).
+- Bazaar mixed across shops, never the same shop in a row (F15f; the server half ships in C1).
 - 720p photos (done); videos at 720p (C3).
 - CDN speed (C1–C4).
 - Notifications (F8), Profile and Friends (F9), Create event (F10), Music HQ dashboard (F11), Tribe page and Elder-only controls (F13).
@@ -409,7 +448,7 @@ A feature should hand off to the next one, not sit alone as a separate page.
 ### Layout rules
 
 - One clear primary action per screen (Pitch, Publish EPK, Add show).
-- No infinite scroll; Mix ends with "you're caught up".
+- No infinite scroll of recycled or suggested posts; Mix loads older chronological posts by itself as you scroll (owner 2026-11-19, F15c) and ends with "you're caught up".
 - Phone first — bands use it from the van.
 - Build this layout in steps; do not rewrite every page at once. Start with navigation + HQ, then Tour, then EPK.
 
