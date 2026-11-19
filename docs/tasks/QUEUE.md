@@ -1,5 +1,7 @@
 # DanzStak build queue
 
+**Claude Code: CLAUDE.md "★ THE DIRECTIVE" (owner 2026-11-19) comes first — its fix list F1–F7 and CDN plan C1–C4 replace the order below until done.**
+
 **Claude Code:** read this file at the start of every session and after every PR you open.
 1. Take the **first** item whose status is `TODO`, set it to `IN PROGRESS (Claude Code)`, and commit that change on your branch.
 2. Build it as described in its spec, open the PR against main, and set the status to `PR #<n>`. **Don't merge or deploy.**
@@ -11,7 +13,6 @@
 The owner should never have to paste prompts: everything Claude Code needs is in this file and the specs it links.
 
 
-> **StakGuard is ON HOLD (owner 2026-11-18)** until the owner works out the legal side. Skip any StakGuard work; don't merge StakGuard PRs; keep StakGuard screens hidden.
 
 | # | Item | Spec | Status |
 |---|------|------|--------|
@@ -115,7 +116,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 
 **Payments are in TEST mode (owner, 2026-11-17).** The Auth API and Tour Manager Lambdas were found on the LIVE Stripe key with live payments on; on the owner's word they were switched to the test secrets (`danzstak/stripe/secret-key`, `webhook-secret`, `sync-network-webhook-secret`) and `TOUR_MANAGER_LIVE_PAYMENTS=false`. Open issue: that test key belongs to the separate sandbox "DanzStak Test" (a different account id), while the code's test price IDs and `STRIPE_EXPECTED_ACCOUNT_ID` belong to the main account's test mode, so checkouts answer 503 "not connected to the approved Stripe account" (safe: nothing can be charged). Fix: the owner puts the **main DanzStak account's test-mode secret key** (and its test webhook secrets) into those secrets, or the products are recreated in the sandbox and the expected account id points there. Owner's Claude decides with the owner.
 
-**Before going live (owner, 2026-11-17): test every paid product end to end in test mode** — single email, Starter/Club/Tour packs, AI EPK, AI redesign, AI profile, AI shop, Tour Itinerary, contact unlock, translation packs (30/180 min), DS number, StakGuard month, shop items and event tickets (buyer, seller payout hold, refund, dispute), refunds under Terms 8A, unopened-pitch credit returns, and the all-in price shown before every checkout. Only after a clean pass does the owner approve live keys.
+**Before going live (owner, 2026-11-17): test every paid product end to end in test mode** — single email, Starter/Club/Tour packs, AI EPK, AI redesign, AI profile, AI shop, Tour Itinerary, contact unlock, translation packs (30/180 min), DS number, shop items and event tickets (buyer, seller payout hold, refund, dispute), refunds under Terms 8A, unopened-pitch credit returns, and the all-in price shown before every checkout. Only after a clean pass does the owner approve live keys.
 
 **Blocked on the owner:**
 - AWS support case: Bedrock quotas at 0, and SMS sandbox / Notify rejected.
