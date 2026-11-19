@@ -34,7 +34,7 @@ const artist = { name:"Road Test", genre:"Punk", hometown:"Seattle", epk:"https:
       });
       await page.goto(`${origin}/booking-selections.html`, { waitUntil:"domcontentloaded" });
       await page.locator("#bookingAccountStatus").filter({ hasText:"loaded" }).waitFor();
-      const dimensions = await page.evaluate(() => ({ scrollWidth:document.documentElement.scrollWidth, clientWidth:document.documentElement.clientWidth, minTarget:Math.min(...[...document.querySelectorAll(".outreach button,.outreach input:not([type=checkbox]),.outreach select,.pitch-permission")].filter(node => getComputedStyle(node).display !== "none").map(node => node.getBoundingClientRect().height)) }));
+      const dimensions = await page.evaluate(() => ({ scrollWidth:document.documentElement.scrollWidth, clientWidth:document.documentElement.clientWidth, minTarget:Math.min(...[...document.querySelectorAll(".outreach button,.outreach input:not([type=checkbox]),.outreach select,.pitch-permission")].filter(node => node.checkVisibility()).map(node => node.getBoundingClientRect().height)) }));
       assert.ok(dimensions.scrollWidth <= dimensions.clientWidth + 1, `${width}px booking workspace overflows`);
       if (width <= 430) assert.ok(dimensions.minTarget >= 43.5, `${width}px outreach target is ${dimensions.minTarget}px`);
       await page.getByLabel("Pitch type").selectOption("dj");

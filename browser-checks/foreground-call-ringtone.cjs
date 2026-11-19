@@ -12,8 +12,9 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR
   : path.resolve(__dirname, "..", "docs", "screenshots", "foreground-call-ringtone");
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const postId = "33333333-3333-4333-8333-333333333333";
-// call-devices.js only accepts a UUID device id and a 43-character token (fixed with 5a00; the old placeholders were dropped).
-const deviceId = "44444444-4444-4444-8444-444444444444", deviceToken = "T".repeat(43);
+// This device's own SYNC registration, stored the way call-devices.js writes it since the one-phone/several-accounts
+// change (owner 2026-11-17): a UUID device id, a 43-character token and the account's tag, under the "accounts" key.
+const device = { deviceId: "44444444-4444-4444-8444-444444444444", deviceToken: "r".repeat(43), accountTag: "c".repeat(32), physicalDeviceId: "55555555-5555-4555-8555-555555555555" };
 
 (async () => {
   const browser = await chromium.launch({ channel: "msedge", headless: true });
@@ -23,11 +24,19 @@ const deviceId = "44444444-4444-4444-8444-444444444444", deviceToken = "T".repea
       const context = await browser.newContext({ viewport: { width, height: width < 700 ? 844 : 900 }, serviceWorkers: "block", hasTouch: width < 700 });
       await context.addInitScript(() => {
         window.__toneStarts = 0;
+        // The ring plays the member's chosen ringtone (sync-tones.js, task 16-B2), which schedules gain ramps, filters,
+        // noise buffers and a compressor; the stub supports those nodes and counts every tone that starts.
+        const param = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} });
         class TestAudioContext {
-          constructor() { this.state = "running"; this.currentTime = 0; this.destination = {}; }
+          constructor() { this.state = "running"; this.currentTime = 0; this.destination = {}; this.sampleRate = 44100; }
           async resume() { this.state = "running"; }
-          createOscillator() { return { frequency: { value: 0 }, connect(node) { return node; }, start() { window.__toneStarts += 1; }, stop() {} }; }
-          createGain() { return { gain: { value: 0 }, connect(node) { return node; } }; }
+          createOscillator() { return { type: "", frequency: param(), connect(node) { return node; }, start() { window.__toneStarts += 1; }, stop() {} }; }
+          createGain() { return { gain: param(), connect(node) { return node; }, disconnect() {} }; }
+          createBiquadFilter() { return { type: "", frequency: param(), connect(node) { return node; }, disconnect() {} }; }
+          createDynamicsCompressor() { return { threshold: param(), knee: param(), ratio: param(), attack: param(), release: param(), connect(node) { return node; }, disconnect() {} }; }
+          createBuffer() { return { sampleRate: 44100, getChannelData: () => new Float32Array(10) }; }
+          createBufferSource() { return { connect(node) { return node; }, start() { window.__toneStarts += 1; }, stop() {} }; }
+          close() { return Promise.resolve(); }
         }
         Object.defineProperty(window, "AudioContext", { configurable: true, value: TestAudioContext });
       });
@@ -50,11 +59,13 @@ const deviceId = "44444444-4444-4444-8444-444444444444", deviceToken = "T".repea
         else if (url.pathname === "/profiles") body = { profile: { memberId: ownerId, name: "Callee Artist", handle: "callee", username: "callee", bio: "Independent artist testing a populated DanzStak feed.", picture: `${baseUrl}/assets/danzstak-d-icon.png` } };
         else if (url.pathname.startsWith("/calls/")) {
           const headers = await request.allHeaders();
-          const authenticated = headers["x-danzstak-device-id"] === deviceId && headers["x-danzstak-device-token"] === deviceToken;
+          const authenticated = headers["x-danzstak-device-id"] === device.deviceId && headers["x-danzstak-device-token"] === device.deviceToken;
           authenticatedCallRequests.push({ path: url.pathname, authenticated });
-          if (!authenticated && url.pathname !== "/calls/devices") return route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ code: "CALL_DEVICE_REGISTRATION_REQUIRED" }) });
-          if (url.pathname === "/calls/inbox") body = { events: offerActive ? [{ eventId: "offer-event", callId: "22222222-2222-4222-8222-222222222222", signalType: "offer", senderEmail: "caller@danzstak.invalid", senderName: "Tour Friend", mode: "phone" }] : [] };
-          else if (url.pathname === "/calls/devices") body = { currentDeviceRegistered: authenticated, devices: authenticated ? [{ deviceId, current: true, name: "Browser test phone", allowCalls: true, lastUsedAt: "2026-11-09T10:00:00.000Z" }] : [] };
+          // The device list answers without a device token (it tells the page which account it is); it only reports this
+          // device as registered when this device's own credential is sent. Everything else needs the credential.
+          if (url.pathname === "/calls/devices") body = { accountTag: device.accountTag, currentDeviceRegistered: authenticated, currentPhysicalDeviceId: authenticated ? device.physicalDeviceId : "", devices: [{ deviceId: device.deviceId, name: "Browser test phone", allowCalls: true, lastUsedAt: "2026-11-09T10:00:00.000Z", thisDevice: authenticated }] };
+          else if (!authenticated) return route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ code: "CALL_DEVICE_REGISTRATION_REQUIRED" }) });
+          else if (url.pathname === "/calls/inbox") body = { events: offerActive ? [{ eventId: "offer-event", callId: "22222222-2222-4222-8222-222222222222", signalType: "offer", senderEmail: "caller@danzstak.invalid", senderName: "Tour Friend", mode: "phone" }] : [] };
         }
         else if (url.pathname === "/secure-posts") body = { posts: [{ postId, userId: ownerId, authorName: "Callee Artist", content: "West Coast dates are coming together. Rehearsal tonight, then the van heads north.", createdAt: "2026-11-07T18:30:00.000Z", audience: "public", isOwner: true, mediaType: "image", mediaUrl: `${baseUrl}/assets/danzstak-share-fb-v2.jpg`, viewCount: 42, commentPolicy: "everyone" }] };
         else if (url.pathname === "/engagement") body = { myReaction: "", reactionCounts: { Like: 8, Love: 4 }, comments: [] };
@@ -68,23 +79,25 @@ const deviceId = "44444444-4444-4444-8444-444444444444", deviceToken = "T".repea
         return route.fulfill({ status: 200, contentType: "application/json", headers: corsHeaders, body: JSON.stringify(body) });
       });
 
-      await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
-      await page.evaluate(([deviceId, deviceToken]) => new Promise((resolve, reject) => {
+      // A registered phone already holds its credential when DanzStak starts. Store it from a same-origin static file
+      // first: seeding a live page races call-devices.js, which writes its own startup snapshot back to the same key.
+      await page.goto(`${baseUrl}/assets/danzstak-d-icon.png`, { waitUntil: "domcontentloaded" });
+      await page.evaluate(credential => new Promise((resolve, reject) => {
         const request = indexedDB.open("danzstak-call-device", 1);
         request.onupgradeneeded = () => request.result.createObjectStore("credentials");
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
           const db = request.result;
           const transaction = db.transaction("credentials", "readwrite");
-          transaction.objectStore("credentials").put({ deviceId, deviceToken }, "current");
+          transaction.objectStore("credentials").put([credential], "accounts");
           transaction.oncomplete = () => { db.close(); resolve(); };
           transaction.onerror = () => reject(transaction.error);
         };
-      }), [deviceId, deviceToken]);
+      }), device);
       const registeredInbox = page.waitForResponse(response => (
         new URL(response.url()).pathname === "/calls/inbox" && response.status() === 200
       ), { timeout: 5000 });
-      await page.reload({ waitUntil: "domcontentloaded" });
+      await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await registeredInbox;
       await page.locator(`.post[data-post-id="${postId}"]`).waitFor({ state: "visible" });
       await page.locator(`.post[data-post-id="${postId}"] .post-content`).click();
