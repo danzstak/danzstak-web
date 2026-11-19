@@ -144,25 +144,17 @@ storyBlock.hidden = true;
 const storyText = document.createElement("blockquote");
 storyText.className = "profile-story-text";
 storyText.setAttribute("data-no-translate", "");
-const storyEdit = document.createElement("button");
-storyEdit.type = "button"; storyEdit.className = "profile-story-edit"; storyEdit.dataset.icon = "edit";
-storyEdit.setAttribute("aria-label", profileTranslate("Edit your story")); storyEdit.title = storyEdit.getAttribute("aria-label");
-const storyAdd = document.createElement("button");
-storyAdd.type = "button"; storyAdd.className = "profile-story-add"; storyAdd.textContent = "+ bio"; storyAdd.setAttribute("aria-label", profileTranslate("Add your long bio")); storyAdd.title = storyAdd.getAttribute("aria-label"); // owner 2026-11-19: "+ bio" lives in About and opens the long bio
-storyBlock.append(storyText, storyEdit, storyAdd);
+storyBlock.append(storyText);
+// Owner 2026-11-19: "get rid of the bio button" — "+ bio" and the story pencil only opened Edit profile again.
+// The long bio is written in Edit profile ("Your story") and shows here.
 details.appendChild(storyBlock);
 function renderProfileStory(profile = {}) {
   const story = String(profile.story || "").trim(), owner = profile.isOwner === true && !viewingOtherProfile;
   storyText.textContent = story;
   storyText.hidden = !story;
-  storyEdit.hidden = !story || !owner;
-  storyAdd.hidden = Boolean(story) || !owner;
-  storyBlock.hidden = !story && !owner;
+  storyBlock.hidden = !story;
   if (story) window.danzstakLinkifyUserText?.(storyText);
 }
-const openStoryEditor = () => { editButton.click(); setTimeout(() => { const field = document.querySelector(".edit-profile-panel [name='story']"); const section = field?.closest("details"); if (section) section.open = true; field?.focus(); field?.scrollIntoView({ block: "center" }); }, 200); };
-storyEdit.addEventListener("click", openStoryEditor);
-storyAdd.addEventListener("click", openStoryEditor);
 
 detail("Location", "profileLocation");
 detail("Work", "profileWork");

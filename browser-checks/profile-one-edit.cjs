@@ -32,6 +32,8 @@ const editorOpen = page => page.evaluate(() => { const panel = document.querySel
       const role = await page.locator("#profileName").getAttribute("role");
       if (role === "button") failures.push(`${width}px: your name is still a button`);
       if (/Tap your name/i.test(await page.evaluate(() => document.body.innerHTML))) failures.push(`${width}px: "Tap your name" is still in the page`);
+      // Owner 2026-11-19: "get rid of the bio button" — no "+ bio" anywhere (header or About); it only opened Edit profile.
+      if (await page.evaluate(() => [...document.querySelectorAll("button")].some(b => /\+\s*bio/i.test(b.textContent) || /long bio|edit your story/i.test(b.getAttribute("aria-label") || "")))) failures.push(`${width}px: a "+ bio" button is still on the profile`);
       const labels = await page.$$eval(".profile-create-shortcut", nodes => nodes.map(n => n.getAttribute("aria-label")));
       if (labels.filter(l => /photo|video/i.test(l || "")).length !== 1) failures.push(`${width}px: composer media buttons: ${labels.join(", ")}`);
       await page.getByRole("button", { name: /Edit Profile/i }).first().click();
