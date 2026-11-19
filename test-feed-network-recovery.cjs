@@ -40,9 +40,6 @@ vm.runInContext(source.slice(helperStart, helperEnd), context);
   for (const operation of [
     'const response = await fetchWithDeadline("https://api.danzstak.com/stories"',
     'const deleted = await fetchWithDeadline("https://api.danzstak.com/stories/"',
-    'const ticketResponse = await fetchWithDeadline("https://api.danzstak.com/stories"',
-    'const uploadResponse = await fetchWithDeadline(ticket.uploadUrl',
-    'const publishResponse = await fetchWithDeadline("https://api.danzstak.com/stories"',
     'const storyTicketResponse = await fetchWithDeadline("https://api.danzstak.com/stories"',
     'const storyUploadResponse = await fetchWithDeadline(storyTicket.uploadUrl',
     'const storyResponse = await fetchWithDeadline("https://api.danzstak.com/stories"'

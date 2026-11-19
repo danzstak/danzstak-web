@@ -94,15 +94,11 @@ const kit = {
       assert.equal(await venueNext.getAttribute("href"), "booking.html", `${width}px should continue directly to worldwide venue discovery`);
       assert.ok(await venueNext.evaluate(node => node.getBoundingClientRect().height) >= 44, `${width}px venue-discovery action must retain a 44px touch target`);
       assert.equal(errors.length, 0, `${width}px browser errors: ${errors.join(" | ")}`);
+      // Task 25: no act form; the line names the act from the published EPK.
+      assert.match(await page.locator("#pitchingAs").textContent(), new RegExp(`Pitching as ${kit.artistName}`));
+      assert.equal(await page.locator(".artist-workspace input:not([type=hidden]), .artist-workspace textarea").count(), 0, `${width}px booking must not re-ask for EPK details`);
       await page.locator(".artist-workspace").screenshot({ path:path.join(output, `booking-handoff-${width}.png`) });
       if (width === 390) {
-        await page.locator("#pitchArtist").fill("Another Act");
-        await page.locator("#pitchEpk").fill("https://example.com/another-epk");
-        await page.evaluate(() => { window.danzstakConfirm = async () => false; });
-        await page.locator("#usePublishedEpk").click();
-        await page.locator("#bookingAccountStatus").filter({ hasText:"Booking workspace unchanged" }).waitFor();
-        assert.equal(await page.locator("#pitchArtist").inputValue(), "Another Act", "declining an act switch must retain the current act");
-        assert.equal(await page.locator("#pitchEpk").inputValue(), "https://example.com/another-epk", "declining an act switch must retain the current EPK");
         await venueNext.click();
         await page.waitForURL(url => url.pathname.endsWith("/booking.html"));
         await page.locator("#venueQuickQuery").fill("punk clubs in Tacoma");

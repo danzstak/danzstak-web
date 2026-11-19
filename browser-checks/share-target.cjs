@@ -3,7 +3,7 @@
 // /share-target; the real service worker keeps it and opens Mix with the composer ready (nothing posts on its own).
 // Real browser at 320, 360, 390, 414, 430 with the service worker running:
 // - photo + text → composer has the photo attached and the text in the box; nothing left in the share cache;
-// - video → attached as a video (The Roll toggle on);
+// - video → attached as a video (it goes to The Roll automatically when posted, #602: no checkbox);
 // - signed out → nothing attached, the share waits; after sign-in Mix opens it in the composer;
 // - audio → refused with a plain message.
 // Run: DANZSTAK_BASE_URL=http://127.0.0.1:8141 node browser-checks/share-target.cjs
@@ -58,7 +58,7 @@ async function share(page, files, text = "") {
   ]);
 }
 const shareCount = page => page.evaluate(async () => (await (await caches.open("danzstak-share")).keys()).length);
-const composer = page => page.evaluate(() => ({ text: document.getElementById("postText")?.value, media: window.danzstakSelectedMedia?.file?.name || "", kind: window.danzstakSelectedMedia?.kind || "", preview: Boolean(document.querySelector(".composer-media-preview img, .composer-media-preview video")), roll: document.getElementById("shareToReels")?.checked === true, overflow: document.documentElement.scrollWidth > innerWidth, feedback: document.querySelector(".app-feedback, [data-app-feedback], .danzstak-feedback")?.textContent || "" }));
+const composer = page => page.evaluate(() => ({ text: document.getElementById("postText")?.value, media: window.danzstakSelectedMedia?.file?.name || "", kind: window.danzstakSelectedMedia?.kind || "", preview: Boolean(document.querySelector(".composer-media-preview img, .composer-media-preview video")), noRollCheckbox: !document.getElementById("shareToReels"), overflow: document.documentElement.scrollWidth > innerWidth, feedback: document.querySelector(".app-feedback, [data-app-feedback], .danzstak-feedback")?.textContent || "" }));
 
 (async () => {
   fs.mkdirSync(output, { recursive: true });
@@ -80,11 +80,11 @@ const composer = page => page.evaluate(() => ({ text: document.getElementById("p
       if (shots) { await page.waitForTimeout(500); await page.screenshot({ path: path.join(output, `1-photo-in-composer-${width}.png`) }); }
 
       if (width === 390) {
-        // Video: attached as video, The Roll on.
+        // Video: attached as video; The Roll is automatic for every posted video (no opt-in box since #602).
         await share(page, [{ b64: Buffer.from("not really a video but typed as one").toString("base64"), name: "VID_0007.mp4", type: "video/mp4" }]);
         await page.waitForFunction(() => window.danzstakSelectedMedia?.file?.name === "VID_0007.mp4", null, { timeout: 15000 });
         state = await composer(page);
-        assert.ok(state.kind === "video" && state.roll, `${label}: a shared video goes in as a video, The Roll on`);
+        assert.ok(state.kind === "video" && state.noRollCheckbox, `${label}: a shared video goes in as a video, no Roll opt-in box`);
         // Audio: refused, nothing kept.
         await share(page, [{ b64: Buffer.from("ID3").toString("base64"), name: "track.mp3", type: "audio/mpeg" }]);
         await page.waitForFunction(() => /can't be posted on DanzStak/.test(document.body.innerText), null, { timeout: 10000 });

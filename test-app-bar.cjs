@@ -19,4 +19,6 @@ assert.match(css, /\.install-app-button\{display:none!important\}/, "the orange 
 assert.match(js, /pivot\.setAttribute\("data-pivot-trigger", ""\);/, "Pivot is in the Menu");
 assert.match(js, /install\.querySelector\("\.menu-label"\)\.textContent = t\("Install DanzStak"\);/, "Install is in the Menu");
 assert.match(js, /if \(install\.hidden !== next\) install\.hidden = next;/, "the Menu install item never loops on its own hidden writes");
+assert.match(js, /const result = await window\.danzstakRequestInstall\(\);[\s\S]*?window\.danzstakOpenInstallHelp\?\.\(\);/, "one install item: browser prompt, else the install steps");
+assert.match(js, /next = standalone \|\| \(/, "the item stays in the Menu until DanzStak runs installed");
 console.log("App bar checks passed.");

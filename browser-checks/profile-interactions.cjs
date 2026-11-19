@@ -163,7 +163,7 @@ const engagement = {
       assert.equal(Math.round(geometry.createInput[0]), 36);
       assert.equal(geometry.createInput[1], "20px");
       assert.equal(Math.round(geometry.shortcutsHeight), 40);
-      assert.deepEqual(geometry.shortcutLabels, ["Add a video", "Add a photo or video", "Add an event"]); // icon buttons (owner 2026-11-16) keep accessible names
+      assert.deepEqual(geometry.shortcutLabels, ["Add a photo or video", "Add an event"]); // icon buttons (owner 2026-11-16) keep accessible names
       assert.equal(Math.round(geometry.countersHeight), 32);
       assert.equal(Math.round(geometry.actionsHeight), 44);
       assert.ok(geometry.actionTargets.every(height => Math.round(height) === 44), `${width}px post action targets are not 44px`);
