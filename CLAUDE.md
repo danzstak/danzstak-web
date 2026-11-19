@@ -82,7 +82,22 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - tickets (DanzStak sales or outside link) as a sheet with the fee note;
     - a sticky **Create event** button, disabled until the name, time and flyer are set.
   - Events home shows the poster wall (spec 26), not the form.
-- **The owner could do this on every page:** F8–F10 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
+- **F11. Music HQ = a real creator dashboard.** Owner 2026-11-19: "See the difference."
+  - References in `docs/screenshots/owner-reference/`: `creator-dashboard-familiar-reference`, `creator-dashboard-welcome-familiar-reference` and `music-hq-danzstak`.
+  - **Today:** a huge orange "Publish EPK" bar, four grey boxes all showing "0", and pills that cut off.
+  - **Target:**
+    - header "Music HQ" with search and your avatar;
+    - scrollable pill tabs **Overview · Gigs · EPK · Booking · Sales · Fans** (no cut-off text: scroll with a fade);
+    - a dismissible **welcome card** the first time ("Your HQ shows how your band is doing… Learn more");
+    - an artist row (avatar with a check, name, "Set up your EPK" progress ring);
+    - **three progress rings**: EPK (sections done / total), Pitches (sent / planned), Shows (booked / asked);
+    - **"Analytics ›"** with 30 / 14 / 7-day pills and a 2-column stat grid (EPK opens, booking replies, ticket sales, merch sales, new followers, Mix views), each showing a ▲/▼ % change versus the previous period, or "--" when there's no data;
+    - **"Next gigs ›"** as ticket-stub rows;
+    - **"Content ›"** with the latest post;
+    - one primary action in context (Publish EPK only while the EPK is unpublished, as a slim button inside the EPK ring row).
+  - Zeroes never look broken: empty states say what to do next ("Send your first pitch →").
+  - Numbers come from the existing APIs (EPK views, booking pipeline, marketplace, follows). Never fake data.
+- **The owner could do this on every page:** F8–F11 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
 ### CDN plan (task 38)
@@ -307,13 +322,11 @@ This section preserves the durable product decisions from the owner's long-form 
 - Approved paid products and exact owner-set prices live in `docs/OWNER-DIRECTIVES.md`. Audit and reuse valid DanzStak products before creating anything. Access/entitlements come only from signature-verified, idempotent webhook processing.
 - SFS Token through Phantom is an optional checkout method only. Verify the mint, recipient, amount, price source and transaction on the server. DanzStak does not custody SFS, award it or bypass marketplace safety, taxes, delivery, refunds or records merely because the buyer chose token payment.
 
-### Pivot, creator control and StakGuard
+### Pivot and creator control
 
 - Pivot is the guided exit from billionaire-owned platforms. The member downloads their own export—no platform login or API—previews it, chooses exactly what moves, sets privacy in batches, invites people and can share an “I pivoted” card. Imported timelines retain original dates and default private; audio files are never imported.
 - DanzStak can track in-service content identity and outbound share-link engagement, not people across the internet. Do not promise to detect screenshots, copied downloads, reposts without the link or deletion from third-party systems DanzStak does not control. Make casual downloading harder where lawful, while keeping accessibility and authorized downloads functional.
 - **Delete everywhere** removes the original, every DanzStak reshare/reference, active media and caches, and makes DanzStak-served links stop working. It cannot recall a screenshot, prior download or independent third-party copy; the confirmation must say that plainly.
-- StakGuard provides a broker directory, verified source/date information, member-reviewed request templates and a progress ledger. The member—not DanzStak—reviews and transmits requests using official broker/state tools. Never claim zero legal risk, guaranteed removal, a real scan when none occurred or “all of the dark web.” Legal, vendor, security and feasibility review precede launch.
-- StakGuard removal help is free. Monitoring is $4 per month as a one-time charge: no automatic renewal, no subscriptions and no prepaid bundles (owner, 2026-11-16: strictly one-off charges across DanzStak). One reminder before the month ends. No product or charge is created before owner approval.
 
 ### Infrastructure boundaries
 
@@ -444,7 +457,7 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 1. **Land what's ready.** For every open PR from Claude Code:
    - If it's behind main, merge main into it (bump versions with `scripts/bump-versions.cjs`; take the higher number).
    - If CI is green and its browser check passes, **merge it**. The owner gave permission on 2026-11-19.
-   - Never merge StakGuard work or anything marked "needs owner".
+   - Never merge anything marked "needs owner".
    - Close a PR that another merged PR supersedes, with one line saying which.
 2. **Build the first `TODO` row in QUEUE.md.**
    - Reproduce the bug in a real browser at phone width first, and fix the root cause.
@@ -584,6 +597,7 @@ Overlaps: A2 = T2a/T2b, A10 is part of 5a2, B10 includes T2g, C4 = T2h/T2i, D1 =
 Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, translate), Twilio upgrade, Stripe test keys, live testing on two real phones.
 
 ### Builder log (newest first)
+- 2026-11-19 13:10 UTC · Claude Code · T0-A3 · PR #633 · The Roll full screen keeps the member's sound (one shared in-memory choice; moving The Roll to <body> no longer re-mutes it) and fills the screen (no strip padding/white card, caption edge to edge). Merged #625 (CI enforces every check). New checks `roll-fullscreen-sound` (CI call-media) + `test-roll-sound-session`. Not in CI and failing on main too: `video-playback-coordinator`, `core-social-mobile`, `feed-mobile-density`, `pivot` · Next: T0-A10 (Menu → Photos/Videos show only your media, with 5a2)
 - 2026-11-19 13:05 UTC · Claude Code (owner live) · owner: "stop coding, plan" → **★ THE DIRECTIVE** at the top of this file (one coder, one release train, test twice; fix list F1–F7; CDN C1–C4). Call-signaling now serves the CDN; #594 viewer green but blocked by main moving · Next: F1 (#594)
 - 2026-11-19 12:20 UTC · Claude Code · CI enforcement · merged #617, #623 (6 stale checks + 3 flakes), #624 (alerts banner on phones, Mix media bleed above 700px); PR #625: review.yml and the regression suite run every check through `scripts/run-checks.ps1` (keeps going, then fails and names each failed check; covered by `test-run-checks.ps1` and `test-review-workflow.cjs`). **Rule for everyone: add new checks to a `run-checks.ps1 -Checks @(...)` list, never as bare `node` lines.** Owner decisions open: purchase pop-up totals leave out the buyer fee ($0.75 unlock, $1.50 email vs the 2026-11-16 all-in prices); `call-devices.js` startup can overwrite a credential another tab just saved · Next: T0-A3 (The Roll full screen: sound + fill; #617 found the full-screen Roll shifted 10px with its bottom cut off)
 - 2026-11-19 12:20 UTC · Claude Code (owner live, CloudShell) · CDN deployed (dk7kawr758jtd.cloudfront.net) + backfill run; #627 backfill arg fix; CDN step 3 PR (CSP + app photo cache + log-out clear) · Next: switch the CDN on (CloudShell: verify a signed URL, MediaCdnServe=true, Auth API env + policy)
@@ -625,11 +639,4 @@ Claude Code builds these in this order (queue items in `docs/tasks/QUEUE.md`; de
 5. **Shops need a real skin, not "straight HTML".** The profile Shop tab is the shop itself (done, PR #569); next: task 23 extras (chips, featured bundle, shipping table, all-in prices) and the product page.
 6. **Your own photo everywhere you post from.** Composer avatars (Mix and profile) show the member's profile photo, never the DanzStak "D" or an empty circle.
 7. **Done today:** Log out goes straight to the landing page; Tribe initials centred and Tribes can show their own picture; "+ bio" is the 5th profile icon; profile Shop tab; Bazaar has the Eroticon shop live; AI EPK builder ready as PR #567 (needs the Auth API deploy, then merge).
-
-## StakGuard (ON HOLD — owner 2026-11-18)
-
-**On hold until the owner has worked out the legal side.** Do not build, ship, advertise, price or create Stripe products for StakGuard; leave existing StakGuard PRs unmerged and any StakGuard screens hidden. **DanzStak gives no advice at all on data brokers, people-search sites or removing personal data (owner 2026-11-18: "DanzStak can't even give advice to users until I dig deeper")** — no help pages, tips, templates, broker lists or links, and the AI helpers and support replies must not offer it either. DanzStak's own privacy policy statement ("DanzStak is not a data broker") stays.
-
-
-StakGuard is DanzStak's data-broker protection product for every member under Settings -> Your data. It is separate from creator-content provenance and share-link tracking. Finding supported data-broker and people-search exposure, showing its source/date, preparing member-approved opt-outs and linking free official tools are free. Monitoring is $4 per month as a one-time charge with no auto-renewal ever and no prepaid bundles (owner, 2026-11-16); one reminder before the paid month expires. Broker removal comes first; dark-web checks are later and never claim "all of the dark web." Phase A is research with synthetic data only—no vendors, Stripe products or charging without owner approval. Full spec: `instructions/pages/17-privacy-shield`.
 
