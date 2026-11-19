@@ -34,7 +34,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T2k | Site-wide 16-C buttons outside SYNC | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2l | About tab = one fluid page | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2m | SYNC (DS) number at the top of the device window | CLAUDE.md "T2 checklist", 18 | TODO |
-| T2n | SYNC chat list instant (skeleton now; cache only after owner says yes) | CLAUDE.md "T2 checklist", 18 | TODO |
+| T2n | SYNC chat list instant from a copy kept on the phone (owner approved 2026-11-19; cleared on Log out / account switch) | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2o | Plan only: bundle step → write docs/tasks/35-bundle-step.md | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2p | Plan only: Open Graph share previews (task 17) | CLAUDE.md "T2 checklist", 18 | TODO |
 | 5a00 | **Incoming SYNC calls must ring** (owner 2026-11-18 phone test: calls connect, no ringer). Foreground ringtone via `<audio>` + vibration with audio unlock, background push that rings/vibrates and re-notifies while ringing, "Test ringer" row, call-alerts prompt | 31 | PR #578 (foreground ring + vibration + tap prompt + Test ringer; server re-notify while ringing still TODO) |
