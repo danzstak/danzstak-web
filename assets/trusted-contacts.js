@@ -14,7 +14,7 @@
     list.replaceChildren(...contacts.map(contact => {
       const item = document.createElement("li"), name = document.createElement("strong"), meta = document.createElement("span"), reach = document.createElement("span");
       name.textContent = contact.name;
-      meta.textContent = [contact.categories, contact.towns.join(", "), contact.venues.join(", ")].filter(Boolean).join(" · ");
+      meta.textContent = [contact.categories, (contact.towns || []).join(", "), (contact.venues || []).join(", ")].filter(Boolean).join(" · ");
       reach.textContent = [contact.phone, contact.email, contact.website].filter(Boolean).join(" · ");
       item.append(name, meta, reach);
       return item;
@@ -22,7 +22,7 @@
   };
   const load = async () => {
     try { render((await request("GET")).contacts || []); }
-    catch (error) { form.hidden = true; status.textContent = error.message; form.after(status); }
+    catch (error) { form.hidden = true; status.textContent = window.danzstakFriendlyError?.(error, "Your contacts could not be loaded or saved. Try again in a moment.") ?? "Your contacts could not be loaded or saved. Try again in a moment."; form.after(status); }
   };
   form.addEventListener("submit", async event => {
     event.preventDefault();
@@ -32,10 +32,10 @@
     button.disabled = true; status.textContent = "Saving…";
     try {
       const saved = await request("POST", body);
-      status.textContent = `Saved for ${saved.towns.join(", ")}.${saved.unplaced?.length ? ` Couldn't place: ${saved.unplaced.join(", ")}.` : ""}`;
+      status.textContent = `Saved for ${(saved.towns || []).join(", ") || "your list"}.${saved.unplaced?.length ? ` Couldn't place: ${saved.unplaced.join(", ")}.` : ""}`;
       form.reset();
       await load();
-    } catch (error) { status.textContent = error.message; }
+    } catch (error) { status.textContent = window.danzstakFriendlyError?.(error, "Your contacts could not be loaded or saved. Try again in a moment.") ?? "Your contacts could not be loaded or saved. Try again in a moment."; }
     finally { button.disabled = false; }
   });
   load();

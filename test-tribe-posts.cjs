@@ -21,7 +21,7 @@ for (const required of [
 
 for (const required of [
   "post.groupId",
-  'body: JSON.stringify({ content: content || "Shared media", groupId: group.id, mediaKey, mediaType, originalContentCertified: true })',
+  'body: JSON.stringify({ content: content || "Shared media", groupId: group.id, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true })',
   "renderTribePosts(group, feed)"
 ]) assert.ok(tribes.includes(required), `Tribe discussion UI missing: ${required}`);
 

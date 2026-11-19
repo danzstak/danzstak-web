@@ -832,7 +832,8 @@ function renderWorkspace(name) {
     tabs.setAttribute("aria-label", "Tribe views");
     let groupView = "discover";
     const viewButtons = {};
-    for (const [value, label] of [["discover", "Discover"], ["joined", "Your Tribes"]]) {
+    if (Object.values(saved.GroupsJoined || {}).some(Boolean)) groupView = "joined"; // owner 2026-11-18: opens on your Tribes, like Facebook Groups
+    for (const [value, label] of [["joined", "Your Tribes"], ["discover", "Discover"]]) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "groups-tab";
@@ -871,6 +872,17 @@ function renderWorkspace(name) {
     createToggle.textContent = "+ Create Tribe";
     createToggle.setAttribute("aria-expanded", "false");
     discoverControls.append(groupSearch, categoryFilter, createToggle);
+    // Owner 2026-11-18: Tribes opens like Facebook Groups. Pills, then a search icon and + on the right; the search box and
+    // the category filter only appear after tapping search.
+    const searchToggle = document.createElement("button");
+    searchToggle.type = "button"; searchToggle.className = "ds-icon-button tribes-search-toggle";
+    searchToggle.setAttribute("aria-label", "Search Tribes"); searchToggle.setAttribute("aria-expanded", "false");
+    searchToggle.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    toolbar.classList.add("tribes-head");
+    searchToggle.addEventListener("click", () => { const open = !toolbar.classList.contains("is-searching"); toolbar.classList.toggle("is-searching", open); searchToggle.setAttribute("aria-expanded", String(open)); if (open) groupSearch.focus(); else if (groupSearch.value || categoryFilter.value) { groupSearch.value = ""; categoryFilter.value = ""; renderGroups(); } });
+    const headActions = document.createElement("div"); headActions.className = "tribes-head-actions";
+    headActions.append(searchToggle, createToggle);
+    tabs.append(headActions);
     toolbar.append(tabs, discoverControls);
     const createBox = document.createElement("div");
     createBox.className = "group-create-box";
@@ -908,6 +920,10 @@ function renderWorkspace(name) {
     standardsError.hidden = true;
     standardsCheckbox.addEventListener("change", () => { standardsError.hidden = standardsCheckbox.checked; });
     createBox.append(groupName.wrap, categoryLabel, standardsLabel, standardsError, createButton);
+    // Design 29a step 1 (owner 2026-11-18): a full-screen create screen with a live preview and category chips.
+    const createUi = window.danzstakTribeCreate?.enhance({ box: createBox, nameInput: groupName.input, categorySelect, standardsLabel, createButton, categoryName: groupCategoryName }) || null;
+    const closeCreate = () => { createBox.hidden = true; createToggle.setAttribute("aria-expanded", "false"); createToggle.focus?.(); };
+    createBox.addEventListener("tribe-create-close", closeCreate);
     const grid = document.createElement("div");
     grid.className = "groups-grid";
     grid.setAttribute("aria-live", "polite");
@@ -1022,6 +1038,7 @@ function renderWorkspace(name) {
       const hero = document.createElement("header"); hero.className = "tribe-hero";
       const cover = document.createElement("div"); cover.className = "tribe-hero-cover";
       if (group.coverUrl) { cover.style.backgroundImage = `linear-gradient(180deg,transparent 45%,rgba(8,12,20,.72)),url("${String(group.coverUrl).replace(/["\\]/g, "")}")`; cover.classList.add("has-photo"); }
+      else if (window.danzstakTribeArt) { cover.classList.add("has-art"); cover.setAttribute("aria-hidden", "true"); cover.append(window.danzstakTribeArt.art(group.name, group.category)); }
       else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); cover.setAttribute("aria-hidden", "true"); }
       if ((group.isElder || group.isOwner) && group.custom) {
         const editCover = document.createElement("button"); editCover.type = "button"; editCover.className = "tribe-cover-edit"; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
@@ -1119,7 +1136,7 @@ function renderWorkspace(name) {
               if (!uploadResponse.ok) throw new Error("Media upload failed");
               mediaKey = ticket.mediaKey; mediaType = ticket.mediaType; uploadedMediaKey = mediaKey;
             }
-            const response = await postActionFetch("/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: content || "Shared media", groupId: group.id, mediaKey, mediaType, originalContentCertified: true }) });
+            const response = await postActionFetch("/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: content || "Shared media", groupId: group.id, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true }) });
             const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || "Post could not be shared with this Tribe");
             uploadedMediaKey = ""; input.value = ""; checkbox.checked = false; clearSelectedMedia(); status.textContent = "Posted to " + group.name + ".";
             if (typeof window.loadPosts === "function") await window.loadPosts(); renderTribePosts(group, feed);
@@ -1146,23 +1163,31 @@ function renderWorkspace(name) {
 
     // Tribe covers without a photo show the Tribe's initial in DanzStak type (owner 2026-11-16: not generic).
     function tribeInitial(name) { return String(name || "").replace(/^[^\p{L}\p{N}]+/u, "").charAt(0).toUpperCase() || "T"; }
+    // Owner 2026-11-18 (Facebook Groups screenshot): a pin on each of your Tribes keeps it on top. The member's own choice,
+    // stored on this device only; no ranking.
+    const tribePins = new Set((() => { try { return JSON.parse(localStorage.getItem("danzstak_tribe_pins") || "[]"); } catch { return []; } })());
+    const saveTribePins = () => { try { localStorage.setItem("danzstak_tribe_pins", JSON.stringify([...tribePins])); } catch { /* optional */ } };
     function renderGroups() {
       grid.replaceChildren();
-      const defaults = categories.map(category => ({ id: `default-${legacyCategoryOrder.indexOf(category)}`, name: groupCategoryName(category), category, description: `Connect in ${(groupCategoryName(category)).toLowerCase()}.`, custom: false }));
+      // Owner 2026-11-18: categories are not Tribes. Members create Tribes (name first, then a category); the category
+      // is only a filter and a label, so no built-in "Bands" / "Fans" / ... Tribes are listed.
+      const defaults = [];
       const query = groupSearch.value.trim().toLowerCase();
       const groups = [...customGroups, ...defaults]
         .filter(group => groupView !== "joined" || Boolean(saved.GroupsJoined?.[group.id]))
         .filter(group => !categoryFilter.value || group.category === categoryFilter.value)
         .filter(group => !query || `${group.name} ${group.description || ""} ${groupCategoryName(group.category)}`.toLowerCase().includes(query))
-        .sort((a, b) => Number(Boolean(saved.GroupsJoined?.[b.id])) - Number(Boolean(saved.GroupsJoined?.[a.id])) || Number(Boolean(b.custom)) - Number(Boolean(a.custom)) || String(a.name).localeCompare(String(b.name)));
+        .sort((a, b) => Number(tribePins.has(b.id)) - Number(tribePins.has(a.id)) || Number(Boolean(saved.GroupsJoined?.[b.id])) - Number(Boolean(saved.GroupsJoined?.[a.id])) || Number(Boolean(b.custom)) - Number(Boolean(a.custom)) || String(a.name).localeCompare(String(b.name)));
       if (!groups.length) {
         const empty = document.createElement("div");
         empty.className = "groups-empty";
         const heading = document.createElement("strong");
-        heading.textContent = groupView === "joined" ? "You have not joined a Tribe yet" : "No Tribes match that search";
+        const filtered = Boolean(groupSearch.value.trim() || categoryFilter.value);
+        heading.textContent = groupView === "joined" ? "You have not joined a Tribe yet" : filtered ? "No Tribes match that search" : "No Tribes yet. Start one for your scene.";
         const copy = document.createElement("span");
-        copy.textContent = groupView === "joined" ? "Choose Discover to find communities." : "Try another name or category.";
+        copy.textContent = groupView === "joined" ? "Choose Discover to find communities." : filtered ? "Try another name or category." : "";
         empty.append(heading, copy);
+        if (!filtered && groupView !== "joined" && createToggle) { const start = document.createElement("button"); start.type = "button"; start.className = "primary groups-empty-create"; start.textContent = "+ Create Tribe"; start.addEventListener("click", () => { if (createBox.hidden) createToggle.click(); }); empty.append(start); }
         grid.appendChild(empty);
         return;
       }
@@ -1176,6 +1201,7 @@ function renderWorkspace(name) {
         // Owner 2026-11-18: the Tribe's own picture fills the box when its Elders set one (Add cover inside the Tribe);
         // otherwise the initial sits dead centre.
         if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); }
+        else if (window.danzstakTribeArt) { cover.classList.add("has-art"); cover.append(window.danzstakTribeArt.art(group.name, group.category)); }
         else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); }
         const title = document.createElement("h4");
         const open = document.createElement("button"); open.type = "button"; open.className = "group-open"; open.textContent = group.name; open.addEventListener("click", () => openTribe(group)); title.appendChild(open);
@@ -1186,13 +1212,14 @@ function renderWorkspace(name) {
         description.textContent = group.description;
         const meta = document.createElement("div");
         meta.className = "group-meta";
-        meta.textContent = `${Number(group.memberCount || 0) ? Number(group.memberCount) + " in The Crew · " : ""}${group.isElder || group.isOwner ? "Elder · " : ""}${groupCategoryName(group.category)}`;
+        { const count = Number(group.memberCount || 0), members = count ? `${count} ${count === 1 ? "member" : "members"}` : ""; meta.textContent = [group.isElder || group.isOwner ? "Elder" : "", members || groupCategoryName(group.category)].filter(Boolean).join(" · "); } // owner 2026-11-18: Facebook Groups line
         const join = document.createElement("button");
         join.type = "button";
         join.className = "primary";
         const joined = Boolean(saved.GroupsJoined?.[group.id]);
         const pendingSync = group.custom && !group.cloud;
-        join.textContent = pendingSync ? "Waiting to sync" : joined ? "Joined" : "Join Tribe";
+        join.textContent = pendingSync ? "Waiting to sync" : joined ? "Joined" : "Join";
+        join.setAttribute("aria-label", joined ? `Joined ${group.name}` : `Join ${group.name}`);
         join.disabled = pendingSync;
         if (pendingSync) join.title = "This tribe is saved on this device. Reopen Tribes when connected to retry syncing it.";
         join.classList.toggle("is-selected", joined);
@@ -1201,7 +1228,7 @@ function renderWorkspace(name) {
           join.disabled = true;
           try {
             await saveGroupMembership(group, nextJoined);
-            join.textContent = nextJoined ? "Joined" : "Join Tribe";
+            join.textContent = nextJoined ? "Joined" : "Join";
             join.classList.toggle("is-selected", nextJoined);
             renderGroups();
           } catch (error) {
@@ -1211,6 +1238,14 @@ function renderWorkspace(name) {
           }
         });
         card.append(cover, category, title, meta, description);
+        if (joined) {
+          const pin = document.createElement("button"); pin.type = "button"; pin.className = "ds-icon-button tribe-pin";
+          const pinned = tribePins.has(group.id);
+          pin.setAttribute("aria-pressed", String(pinned)); pin.setAttribute("aria-label", pinned ? `Unpin ${group.name}` : `Pin ${group.name}`);
+          pin.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M15 3l6 6-3 1-4 4 1 5-2 1-4-4-5 5-1-1 5-5-4-4 1-2 5 1 4-4z" fill="' + (pinned ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+          pin.addEventListener("click", () => { if (tribePins.has(group.id)) tribePins.delete(group.id); else tribePins.add(group.id); saveTribePins(); renderGroups(); });
+          card.append(pin);
+        }
         const moderation = document.createElement("div");
         moderation.className = "group-moderation-notice";
         const moderationTitle = document.createElement("strong");
@@ -1237,6 +1272,11 @@ function renderWorkspace(name) {
         });
         moderation.append(moderationTitle, moderationText, report);
         card.appendChild(moderation);
+        // Owner 2026-11-18: rows stay clean like Facebook Groups; Report and the Elder tools sit behind a ⋯ button.
+        const more = document.createElement("button"); more.type = "button"; more.className = "ds-icon-button tribe-row-more";
+        more.setAttribute("aria-label", `More for ${group.name}`); more.setAttribute("aria-expanded", "false"); more.textContent = "⋯";
+        more.addEventListener("click", () => { const open = !card.classList.contains("show-tools"); card.classList.toggle("show-tools", open); more.setAttribute("aria-expanded", String(open)); });
+        card.appendChild(more);
         card.appendChild(join);
         if (group.custom && group.isOwner !== false) {
           if (group.cloud && group.isOwner === true) {
@@ -1286,8 +1326,9 @@ function renderWorkspace(name) {
 
     createButton.addEventListener("click", async () => {
       if (createButton.dataset.mode === "retry") { renderWorkspace("Groups"); return; }
-      const value = groupName.input.value.trim();
-      if (!value) return groupName.input.focus();
+      const check = window.danzstakTribeCreate?.checkName(groupName.input.value) || { ok: Boolean(groupName.input.value.trim()), name: groupName.input.value.trim(), reason: "" };
+      const value = check.name;
+      if (!check.ok) { if (check.reason) showAppFeedback(check.reason, { urgent: true }); return groupName.input.focus(); }
       if (!standardsCheckbox.checked) {
         standardsError.hidden = false;
         standardsCheckbox.focus();
@@ -1295,7 +1336,7 @@ function renderWorkspace(name) {
       }
       createButton.disabled = true;
       try {
-        const response = await groupFetch("/groups", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: value, category: categorySelect.value, description: "A new DanzStak Tribe.", communityStandards: true }) });
+        const response = await groupFetch("/groups", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: value, category: categorySelect.value, description: createUi?.description() || "A new DanzStak Tribe.", communityStandards: true }) });
         const result = await response.json().catch(() => ({}));
         if (!response.ok || !result.group) throw new Error(result.error || "Tribe could not be created");
         customGroups.unshift({ ...result.group, custom: true, cloud: true });
@@ -1307,8 +1348,11 @@ function renderWorkspace(name) {
       } catch (error) { showAppFeedback(error.message, { urgent: true }); createButton.disabled = false; return; }
       groupName.input.value = "";
       standardsCheckbox.checked = false;
-      renderGroups();
+      createUi?.reset();
       createButton.disabled = false;
+      // Created: the new Tribe opens, like Facebook Groups (design 29a step 2 adds the setup checklist there).
+      if (createUi) { closeCreate(); const made = customGroups[0]; if (made) { openTribe(made); return; } }
+      renderGroups();
     });
     groupSearch.addEventListener("input", renderGroups);
     categoryFilter.addEventListener("change", renderGroups);
@@ -2018,7 +2062,7 @@ function renderWorkspace(name) {
         const response = await postActionFetch("/secure-posts", {
           method: "POST", credentials: "include", cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: `Event: ${submittedTitle}\n${formattedDate}\n${venue.input.value.trim()}${ticketCopy}`, audience: audience.value, mediaKey: mediaFields.mediaKey, mediaType: mediaFields.mediaType === "video" ? "video" : "image", originalContentCertified: true })
+          body: JSON.stringify({ content: `Event: ${submittedTitle}\n${formattedDate}\n${venue.input.value.trim()}${ticketCopy}`, audience: audience.value, mediaKey: mediaFields.mediaKey, mediaType: mediaFields.mediaType === "video" ? "video" : "image", reel: mediaFields.mediaType === "video", originalContentCertified: true })
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Event could not be published");
@@ -3144,9 +3188,13 @@ async function postActionFetch(path, options = {}, timeoutMs = 12000) {
   } finally { clearTimeout(timeout); }
 }
 
-const changedPostPreferenceFields = new Map();
-let volatilePostPreferences = {};
 
+const changedPostPreferenceFields = new Map();
+// Audit A4 (2026-11-19): `var`, not `let`. restoreWorkspaceRoute() runs at load (above) and can open Saved, which
+// reads post preferences before this line has run; a `let` was still in its temporal dead zone and Saved crashed.
+// eslint-disable-next-line no-var
+var volatilePostPreferences;
+volatilePostPreferences = volatilePostPreferences || {};
 function mergeRemotePostPreferences(postId, current, remote) {
   const merged = { ...(current || {}) };
   const changed = changedPostPreferenceFields.get(postId);
@@ -4688,23 +4736,15 @@ function placeReelsRail() {
 
 // Composer offers The Roll for a pasted video link too (owner 2026-11-16), not only uploaded videos.
 (() => {
-  const text = document.getElementById("postText"), toggle = document.getElementById("shareToReels"), publish = document.getElementById("publishBtn");
-  if (!text || !toggle || !publish) return;
+  // T0-A1 (owner 2026-11-18): automatic, like uploaded videos — no checkbox. A post with an approved video link adds it.
+  const text = document.getElementById("postText"), publish = document.getElementById("publishBtn");
+  if (!text || !publish) return;
   const linkedVideo = () => { for (const token of text.value.split(/\s+/)) { const url = approvedVideoUrl(token.replace(/[),.!?]+$/, "")); if (url) return url; } return null; };
-  let offeredFor = "";
-  text.addEventListener("input", () => {
-    if (window.danzstakSelectedMedia) return;
-    const url = linkedVideo();
-    toggle.disabled = !url;
-    if (url && offeredFor !== url.href) { toggle.checked = true; offeredFor = url.href; toggle.closest("label")?.removeAttribute("title"); }
-    if (!url) { toggle.checked = false; offeredFor = ""; }
-  });
   let pending = null;
-  publish.addEventListener("click", () => { pending = !window.danzstakSelectedMedia && toggle.checked && document.getElementById("originalContentCertification")?.checked ? linkedVideo() : null; }, true);
+  publish.addEventListener("click", () => { pending = !window.danzstakSelectedMedia && document.getElementById("originalContentCertification")?.checked ? linkedVideo() : null; }, true);
   window.addEventListener("danzstak:post-published", async event => {
     const url = pending; pending = null;
     if (!url || event.detail?.mediaUrl) return;
-    toggle.checked = false; toggle.disabled = true; offeredFor = "";
     try {
       const response = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: url.href, rightsCertified: true }) });
       const result = await response.json().catch(() => ({}));
