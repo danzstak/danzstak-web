@@ -12,16 +12,13 @@ assert.match(template, /story:profileString\(item,'profileStory',2000\)/);
 // Editor: a real textarea, filled when the editor opens.
 assert.match(editor, /<textarea name="story" maxlength="2000" rows="8"/);
 assert.match(editor, /panel\.elements\.story\.value = profile\.story \|\| "";/);
-// About: story first; owner-only edit/add; visitors never see an empty block.
+// About: story first; written in Edit profile (no separate + bio button, owner 2026-11-19).
 assert.ok(editor.indexOf("details.appendChild(storyBlock)") < editor.indexOf('detail("Location", "profileLocation")'), "story sits above the details");
-assert.match(editor, /storyEdit\.hidden = !story \|\| !owner;/);
-assert.match(editor, /storyAdd\.hidden = Boolean\(story\) \|\| !owner;/);
-assert.match(editor, /storyBlock\.hidden = !story && !owner;/);
+assert.doesNotMatch(editor, /storyAdd|storyEdit|profile-story-add/, "owner 2026-11-19: no + bio button (it only opened Edit profile)");
+assert.match(editor, /storyBlock\.hidden = !story;/, "no empty story block for anyone");
 assert.match(editor, /storyText\.setAttribute\("data-no-translate", ""\)/, "the member's own words are never machine-translated");
 assert.match(editor, /renderProfileStory\(profile\);/);
 // Look: big pull-quote, no grey boxes, 44px targets.
 assert.match(css, /\.profile-story-text\{[^}]*font-size:clamp\(20px,5\.4vw,26px\)[^}]*white-space:pre-line/);
 assert.match(css, /\.details \.detail\{[^}]*border:0!important[^}]*background:transparent!important/);
-assert.match(css, /\.profile-story-edit\{[^}]*width:44px;height:44px/);
-assert.match(css, /\.profile-story-add\{[^}]*min-height:44px/);
 console.log("profile story ok");
