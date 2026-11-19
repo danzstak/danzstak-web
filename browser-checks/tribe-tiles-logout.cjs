@@ -27,16 +27,12 @@ const json = body => ({ status: 200, contentType: "application/json", body: JSON
       await page.waitForTimeout(800);
       const tiles = await page.evaluate(() => [...document.querySelectorAll(".groups-workspace .group-card")].map(card => {
         const cover = card.querySelector(".group-card-cover"), box = cover.getBoundingClientRect(), after = getComputedStyle(cover, "::after");
-        return { name: card.querySelector(".group-open")?.textContent, photo: cover.classList.contains("has-photo"), image: getComputedStyle(cover).backgroundImage, position: after.position, inset: [after.top, after.left, after.bottom, after.right], place: after.placeItems, box: [box.width, box.height] };
+        return { name: card.querySelector(".group-open")?.textContent, art: Boolean(cover.querySelector("svg.tribe-art")), photo: cover.classList.contains("has-photo"), image: getComputedStyle(cover).backgroundImage, position: after.position, inset: [after.top, after.left, after.bottom, after.right], place: after.placeItems, box: [box.width, box.height] };
       }));
       const letters = tiles.filter(tile => !tile.photo);
       assert.ok(letters.length >= 2, `${width}px: member Tribes listed`);
       assert.ok(!tiles.some(tile => /^(Bands|Fans|Events|Industry|DJs & Producers)$/.test(tile.name || "")), `${width}px: no built-in category Tribes (owner 2026-11-18)`);
-      for (const tile of letters) {
-        assert.equal(tile.position, "absolute", `${width}px ${tile.name}: initial is laid over the whole box`);
-        assert.deepEqual(tile.inset, ["0px", "0px", "0px", "0px"], `${width}px ${tile.name}: initial box fills the tile`);
-        assert.match(tile.place, /center/, `${width}px ${tile.name}: initial is centred`);
-      }
+      for (const tile of letters) assert.ok(tile.art, `${width}px ${tile.name}: a Tribe without a picture shows DanzStak art, not a letter (owner 2026-11-18)`);
       const custom = tiles.find(tile => tile.name === "Oakland Noise");
       if (custom) assert.ok(custom.photo && /danzstak-d-icon\.png/.test(custom.image), `${width}px: a Tribe's own picture fills its box (${JSON.stringify(custom)})`);
       if (width === 390) await page.screenshot({ path: "docs/screenshots/tribe-tiles-390.png" });
