@@ -4,6 +4,13 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"That share didn't come through. Try sharing again.": "La condivisione non è arrivata. Riprova a condividere.",
+"That share has expired. Share it again.": "La condivisione è scaduta. Condividi di nuovo.",
+"Sign in to post what you shared. It waits on this phone for 10 minutes.": "Accedi per pubblicare quello che hai condiviso. Resta su questo telefono per 10 minuti.",
+"That file can't be posted on DanzStak. Share a JPEG, PNG, WebP or GIF photo, or an MP4, WebM or MOV video.": "Questo file non si può pubblicare su DanzStak. Condividi una foto JPEG, PNG, WebP o GIF, oppure un video MP4, WebM o MOV.",
+"Open the post box and add your photo again.": "Apri il riquadro del post e aggiungi di nuovo la foto.",
+"A post holds one photo or video, so the first one is attached.": "Un post contiene una sola foto o un solo video, quindi è allegato il primo.",
+"Some of what you shared can't be posted on DanzStak, so it was left out.": "Parte di ciò che hai condiviso non si può pubblicare su DanzStak ed è stata esclusa.",
 "Add a bio": "Aggiungi una bio",
 "No posts yet": "Ancora nessun post",
 "Profile post photo": "Foto del post",
@@ -60,6 +67,13 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"That share didn't come through. Try sharing again.": "Le partage n'est pas arrivé. Réessaie de partager.",
+"That share has expired. Share it again.": "Le partage a expiré. Partage-le à nouveau.",
+"Sign in to post what you shared. It waits on this phone for 10 minutes.": "Connecte-toi pour publier ce que tu as partagé. Il reste sur ce téléphone pendant 10 minutes.",
+"That file can't be posted on DanzStak. Share a JPEG, PNG, WebP or GIF photo, or an MP4, WebM or MOV video.": "Ce fichier ne peut pas être publié sur DanzStak. Partage une photo JPEG, PNG, WebP ou GIF, ou une vidéo MP4, WebM ou MOV.",
+"Open the post box and add your photo again.": "Ouvre la zone de publication et ajoute à nouveau ta photo.",
+"A post holds one photo or video, so the first one is attached.": "Une publication contient une seule photo ou vidéo, la première est donc jointe.",
+"Some of what you shared can't be posted on DanzStak, so it was left out.": "Une partie de ce que tu as partagé ne peut pas être publiée sur DanzStak et a été laissée de côté.",
 "Add a bio": "Ajouter une bio",
 "No posts yet": "Pas encore de publications",
 "Profile post photo": "Photo de la publication",
@@ -116,6 +130,13 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"That share didn't come through. Try sharing again.": "No llegó lo que compartiste. Vuelve a compartirlo.",
+"That share has expired. Share it again.": "Lo que compartiste caducó. Compártelo de nuevo.",
+"Sign in to post what you shared. It waits on this phone for 10 minutes.": "Inicia sesión para publicar lo que compartiste. Se guarda en este teléfono durante 10 minutos.",
+"That file can't be posted on DanzStak. Share a JPEG, PNG, WebP or GIF photo, or an MP4, WebM or MOV video.": "Ese archivo no se puede publicar en DanzStak. Comparte una foto JPEG, PNG, WebP o GIF, o un video MP4, WebM o MOV.",
+"Open the post box and add your photo again.": "Abre el cuadro de publicación y vuelve a añadir tu foto.",
+"A post holds one photo or video, so the first one is attached.": "Una publicación lleva una sola foto o video, así que se adjuntó el primero.",
+"Some of what you shared can't be posted on DanzStak, so it was left out.": "Parte de lo que compartiste no se puede publicar en DanzStak, así que se dejó fuera.",
 "Add a bio": "Añadir una bio",
 "No posts yet": "Aún no hay publicaciones",
 "Profile post photo": "Foto de la publicación",
