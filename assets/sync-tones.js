@@ -126,6 +126,7 @@
   // A new message while the app is open: once, quietly, and never on top of a ringing call.
   function messageArrived(contact) {
     if (active || document.hidden) return false;
+    if (ringerBusy()) return false; // 5a00: the call ringer may be playing through <audio>
     const out = context(); if (!out || out.state !== "running") { if (vibrates("message", contact)) try { navigator.vibrate?.(120); } catch {} return false; }
     play(toneFor("message", contact), { audio: out, volume: 0.35, loop: false, maxMs: 1500, quiet: true, vibrate: vibrates("message", contact) && (!window.danzstakSyncPrefs || window.danzstakSyncPrefs.vibration()) ? [120] : null });
     return true;
@@ -222,5 +223,8 @@
   }
   window.danzstakSyncSettings?.add({ id: "tones", label: "Ringtones", hint: "Ringtone, message tone and vibration", icon: "bell", order: 20, run: () => open("") });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addChatMenuItem); else addChatMenuItem();
-  window.danzstakSyncTones = { list, toneFor, vibrates, choose, setVibrate, reset, play, stop, startRing, messageArrived, preview, open, isPlaying: () => !!active, contactKey };
+  // 5a00: the ringer (call-ringer.js) renders the same notes into an in-memory loop for an <audio> element.
+  const ringerBusy = () => ["audio", "webaudio"].includes(window.danzstakCallRinger?.state?.());
+  const pattern = id => TONES[id] ? { period: TONES[id].period, notes: TONES[id].notes.map(note => note.slice()) } : null;
+  window.danzstakSyncTones = { list, toneFor, vibrates, choose, setVibrate, reset, play, stop, startRing, messageArrived, preview, open, pattern, isPlaying: () => !!active || ringerBusy(), contactKey };
 })();
