@@ -23,3 +23,13 @@ export function plan(posts, stories, nowSeconds, onlyEmail = "") {
   return { media, dailies, reels, takes };
 }
 
+
+// --member-email <address> limits the run to one member. Without the flag every member's posts count. (Bug 2026-11-19:
+// indexOf(-1) + 1 read argv[0], so "--apply" became the email filter and the apply run matched no posts.)
+export function memberEmailArg(argv = []) {
+  const index = argv.indexOf("--member-email");
+  if (index < 0) return "";
+  const value = String(argv[index + 1] || "").trim().toLowerCase();
+  if (!value || value.startsWith("--")) throw new Error("--member-email needs an address after it.");
+  return value;
+}

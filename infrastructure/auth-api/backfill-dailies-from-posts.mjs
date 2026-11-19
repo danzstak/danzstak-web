@@ -15,7 +15,7 @@
 //
 // Needs AWS credentials for us-west-1 with Scan/PutItem/UpdateItem on DANZSTAK-Posts, DANZSTAK-Stories and
 // DanzStak-UserSettings. Prints counts and post ids only, never emails or post text.
-import { plan, dailyFor } from "./dailies-backfill-plan.mjs";
+import { plan, dailyFor, memberEmailArg } from "./dailies-backfill-plan.mjs";
 import { DynamoDBClient, ScanCommand, PutItemCommand, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 
 const POSTS = process.env.DANZSTAK_POSTS_TABLE || "DANZSTAK-Posts";
@@ -23,7 +23,7 @@ const STORIES = process.env.DANZSTAK_STORIES_TABLE || "DANZSTAK-Stories";
 const SETTINGS = process.env.DANZSTAK_SETTINGS_TABLE || "DanzStak-UserSettings";
 const argv = process.argv.slice(2);
 const apply = argv.includes("--apply");
-const onlyEmail = (argv[argv.indexOf("--member-email") + 1] || "").toLowerCase();
+const onlyEmail = memberEmailArg(argv);
 
 async function scanAll(db, TableName, ProjectionExpression, ExpressionAttributeNames) {
   const items = []; let ExclusiveStartKey;
