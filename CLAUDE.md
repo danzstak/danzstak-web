@@ -134,7 +134,16 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
     - colour swatches in one even row.
   - Check: every tile's image rect equals its cell rect, there is one selection ring, and there is no horizontal overflow at 320–430px.
   - Apply the same "fill = box" rule to every picker and grid (Tribe art, shop images, album covers).
-- **The owner could do this on every page:** F8–F17 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
+- **F18. Tag people, tag a location, and Follow, visible everywhere.** Owner 2026-11-19: "I didn't see any tag or follows throughout the site: tag location & users."
+  - Code exists in part (`assets/media-tags.js`, post `location`, the visitor menu Unfollow in #612), but none of it is visible or easy to reach.
+  - **Composer** (Mix, profile, Tribe), the familiar row of icons under the text: **Photo/video · Tag people · Location · Feeling**.
+    - **Tag people:** a search sheet of friends and members by name/@username, with chips you can remove.
+    - **Location:** search a place or venue (the existing venue directory plus a free text city), never the member's GPS without asking.
+  - **On the post:** "**Ana** is at **Bimbo's 365** with **Bo** and **2 others**" in the header line. Names and the place are links (profile / venue / city page). Tagged people get a notification and can remove their tag.
+  - **Follow** (queue item 15: a friend is two-way, a follow is one-way). Artist, venue, shop and Tribe pages lead with **Follow**. Profiles show "N followers · N following" (F9). Following adds their posts to Mix chronologically, never ranked.
+  - Privacy: the member chooses who can tag them (everyone / friends / nobody) in Settings, and a tag only shows after review if they pick "review tags".
+  - Checks: tag a friend and a place in the composer, see both on the post, the tagged friend gets a notification, Follow/Unfollow works and the counts update.
+- **The owner could do this on every page:** F8–F18 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
 ### Quality bar for Code (owner 2026-11-19: "tight code… make sure Code is doing quality work… effort is set to extra, so get Code to do extra… make it more Facebook-ish")
