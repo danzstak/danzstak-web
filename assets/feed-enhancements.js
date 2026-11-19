@@ -3762,10 +3762,9 @@ function updateCommentPreview(post) {
     const group = children.get(item.dataset.parentCommentId) || []; group.push(item); children.set(item.dataset.parentCommentId,group);
   }
   const roots = items.filter(item => !item.dataset.parentCommentId || !byId.has(item.dataset.parentCommentId));
-  const sortMode = post.dataset.commentSort || "relevant";
-  roots.sort(sortMode === "newest"
-    ? (a,b) => String(b.dataset.createdAt || "").localeCompare(String(a.dataset.createdAt || ""))
-    : (a,b) => Number(b.dataset.reactionTotal || 0) - Number(a.dataset.reactionTotal || 0) || String(b.dataset.createdAt || "").localeCompare(String(a.dataset.createdAt || "")));
+  // Directive F1a: comments by time only, Newest (default) or Oldest, as in the comments sheet; never ranked by reactions.
+  const oldest = post.dataset.commentSort === "oldest";
+  roots.sort((a,b) => (oldest ? 1 : -1) * String(a.dataset.createdAt || "").localeCompare(String(b.dataset.createdAt || "")));
   const ordered = [], rootIndex = new Map(), appendThread = (item,index) => { ordered.push(item); rootIndex.set(item,index); for (const reply of (children.get(item.dataset.commentId || "") || []).sort((a,b) => String(a.dataset.createdAt || "").localeCompare(String(b.dataset.createdAt || "")))) appendThread(reply,index); };
   roots.forEach((item,index) => appendThread(item,index));
   const expanded = post.dataset.commentsExpanded === "true";
@@ -3819,9 +3818,7 @@ function refreshCommentInterfaceLanguage(root = document) {
   for (const button of root.querySelectorAll?.(".comment-emoji-toggle") || []) button.setAttribute("aria-label", feedTranslate("Add emoji to comment"));
   for (const button of root.querySelectorAll?.(".comment-send") || []) button.setAttribute("aria-label", feedTranslate("Post comment"));
   for (const sort of root.querySelectorAll?.(".comment-sort") || []) {
-    const newest = sort.closest("article")?.dataset.commentSort === "newest";
-    sort.textContent = feedTranslate(newest ? "Newest ▾" : "Most relevant ▾");
-    sort.setAttribute("aria-label", feedTranslate(newest ? "Comment order: newest first. Activate for most relevant." : "Comment order: most relevant. Activate for newest first."));
+    paintCommentSort(sort, sort.closest("article")?.dataset.commentSort === "oldest");
   }
   for (const button of root.querySelectorAll?.(".comment-reply-button") || []) {
     const name = button.dataset.replyName || "this comment";
@@ -4121,17 +4118,20 @@ function ensureCommentComposer(post) {
     const sort = document.createElement("button");
     sort.type = "button";
     sort.className = "comment-sort";
-    sort.textContent = feedTranslate("Most relevant ▾");
-    sort.setAttribute("aria-label", feedTranslate("Comment order: most relevant. Activate for newest first."));
+    paintCommentSort(sort, false);
     sort.addEventListener("click", () => {
-      const newest = post.dataset.commentSort !== "newest";
-      post.dataset.commentSort = newest ? "newest" : "relevant";
-      sort.textContent = feedTranslate(newest ? "Newest ▾" : "Most relevant ▾");
-      sort.setAttribute("aria-label", feedTranslate(newest ? "Comment order: newest first. Activate for most relevant." : "Comment order: most relevant. Activate for newest first."));
+      const oldest = post.dataset.commentSort !== "oldest";
+      post.dataset.commentSort = oldest ? "oldest" : "newest";
+      paintCommentSort(sort, oldest);
       updateCommentPreview(post);
     });
     post.querySelector(".commentList")?.before(sort);
   }
+}
+
+function paintCommentSort(sort, oldest) {
+  sort.textContent = feedTranslate(oldest ? "Oldest ▾" : "Newest ▾");
+  sort.setAttribute("aria-label", feedTranslate(oldest ? "Comment order: oldest first. Activate for newest first." : "Comment order: newest first. Activate for oldest first."));
 }
 
 function renderPersistentComment(post, comment) {

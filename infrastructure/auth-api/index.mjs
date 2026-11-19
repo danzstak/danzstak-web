@@ -2050,8 +2050,9 @@ async function getEngagement(event) {
     const list = children.get(comment.parentCommentId) || []; list.push(comment); children.set(comment.parentCommentId, list);
   }
   const comments = [], appendThread = comment => { comments.push(comment); for (const reply of (children.get(comment.commentId) || []).sort((a,b) => a.createdAt.localeCompare(b.createdAt))) appendThread(reply); };
+  // Directive F1a (owner 2026-11-19): comments by time only (the app shows Newest or Oldest), never ranked by reactions.
   commentRecords.filter(comment => !comment.parentCommentId || !commentById.has(comment.parentCommentId))
-    .sort((a,b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
+    .sort((a,b) => a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
   return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments }) };
 }
 

@@ -26,7 +26,7 @@ for (const language of languages) {
   assert.ok(templates[language].cancelReply.includes("{name}"), `${language} cancel-reply template must preserve the member name`);
 }
 
-for (const phrase of ["Write a comment…", "Add emoji to comment", "Post comment", "Most relevant ▾", "Newest ▾", "Reply", "Replying to ", "Cancel reply to "])
+for (const phrase of ["Write a comment…", "Add emoji to comment", "Post comment", "Oldest ▾", "Newest ▾", "Reply", "Replying to ", "Cancel reply to "])
   assert.ok(feed.includes(phrase), `comment UI must retain the translatable source phrase: ${phrase}`);
 assert.match(feed, /function refreshCommentInterfaceLanguage\(root = document\)/, "existing comments must refresh when the account language changes");
 // B4: one time label for posts and comments (assets/time-label.js), in the account language, full date in the title.
@@ -38,8 +38,8 @@ assert.match(timeLabel, /toLocaleString\(locale, \{ dateStyle: "medium", timeSty
 assert.match(html, /<script src="assets\/time-label\.js\?v=\d+"><\/script>/, "Mix must load the shared time label");
 assert.match(feed, /attributeFilter: \["lang"\]/, "comment translations must observe live language changes");
 assert.match(feed, /dataset\.replyName/, "member names must be preserved separately from translated interface copy");
-assert.match(html, /assets\/i18n\.js\?v=409/);
-assert.match(html, /assets\/feed-enhancements\.js\?v=590/);
+assert.match(html, /assets\/i18n\.js\?v=410/);
+assert.match(html, /assets\/feed-enhancements\.js\?v=591/);
 assert.match(serviceWorker, /danzstak-shell-v997/);
 
 console.log("Comment localization checks passed: all 15 languages cover composing, sorting, named replies, accessibility labels, and live language changes.");
