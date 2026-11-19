@@ -123,6 +123,15 @@ body.profile-page{background:#fff!important}
 .profile-add-bio[hidden]{display:none!important}
 .profile-add-bio:active{background:rgba(239,108,32,.22)}
 .profile-empty-wall{margin:0;padding:24px 16px;color:#5b6472;text-align:center;font-size:15px}
+/* About = vanity wall (owner 2026-11-18): the long-form story first, big; details as plain lines, no grey boxes. */
+.details{display:block!important;gap:0!important}
+.profile-story{position:relative;margin:0 0 8px;padding:8px 0 20px;border-bottom:1px solid #e5e7eb}
+.profile-story-text{margin:0;padding:0 44px 0 0;color:#121418;font-size:clamp(20px,5.4vw,26px);font-weight:700;line-height:1.38;letter-spacing:-.01em;white-space:pre-line;overflow-wrap:anywhere}
+.profile-story-text::before{content:"\201C";display:block;height:.55em;color:#ff5a1f;font-size:2.4em;line-height:1}
+.profile-story-edit{position:absolute;top:4px;right:0;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:#4b5563}
+.profile-story-add{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:1px dashed #ff5a1f;border-radius:22px;background:#fff7f2;color:#c2410c;font:inherit;font-weight:700}
+.details .detail{padding:12px 0!important;border:0!important;border-bottom:1px solid #eef0f3!important;border-radius:0!important;background:transparent!important}
+.details .detail .label{font-size:12px;letter-spacing:.06em}
 /* Owner 2026-11-18: "+ bio" sits as the 5th icon in the profile action row, same size as its neighbours. */
 .profile-actions .profile-add-bio--icon{order:99;display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:center;gap:1px;margin:0;padding:0 8px;min-width:44px;border-radius:12px;font-size:13px;font-weight:800;letter-spacing:-.01em}
 .profile-actions .profile-add-bio--icon svg{width:14px;height:14px}

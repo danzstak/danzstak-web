@@ -308,7 +308,9 @@ const marketplace = createMarketplace({
   authenticate: getAuthenticatedUser,
   corsHeaders,
   tableName: marketplaceTable,
-  env: process.env
+  env: process.env,
+  mediaOwnerPrefix: userId => mediaOwnerPrefixForUser(userId),
+  signMedia: key => signedMediaUrl(key, 3600)
 });
 const ticketing = createTicketing({
   db,

@@ -6,7 +6,8 @@ const pwa = fs.readFileSync("assets/pwa.js", "utf8");
 const appBar = fs.readFileSync("assets/app-bar.js", "utf8");
 assert.match(pwa, /const signedInPage = \/\(\?:feed\|profile\|messages\)\\\.html\$\/i/, "profile, SYNC and Mix are signed-in pages");
 assert.match(pwa, /if \(signedInPage\) installButton\.style\.setProperty\("display", "none", "important"\);/, "the install arrow never shows on signed-in pages");
-assert.match(appBar, /document\.querySelector\("\.install-app-button"\)\?\.click\(\)/, "Menu → Install DanzStak still drives the hidden button");
+// Owner 2026-11-18: one Menu → Install DanzStak item; it asks the browser to install (what the hidden button did), else shows the steps.
+assert.match(appBar, /const result = await window\.danzstakRequestInstall\(\);[\s\S]*?window\.danzstakOpenInstallHelp\?\.\(\);/, "Menu → Install DanzStak still installs");
 for (const page of ["profile.html", "messages.html", "feed.html"]) {
   const html = fs.readFileSync(page, "utf8");
   assert.match(html, /assets\/pwa\.js\?v=432/, `${page} loads the fixed pwa.js`);
