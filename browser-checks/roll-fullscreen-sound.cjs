@@ -156,6 +156,17 @@ async function openFeed(browser, clip, width, height) {
         assert.equal(next.playing[0].muted, false, `${label}: the next video inherits sound on: ${JSON.stringify(next)}`);
         await page.locator(".reels-rail.roll-fullscreen .reels-list").evaluate(list => list.scrollTo({ top: 0 }));
         await page.waitForFunction(src => [...document.querySelectorAll("video.reel-player")].some(video => !video.paused && video.currentSrc.endsWith(src)), first, { timeout: 5000 });
+        // Directive F2 (owner: "each video I have to turn the audio on"): when a video plays to its end, The Roll moves on
+        // by itself and the next video keeps the sound. Real playback: the 5-second clip runs out on its own.
+        await page.waitForFunction(src => [...document.querySelectorAll("video.reel-player")].some(video => !video.paused && !video.currentSrc.endsWith(src)), first, { timeout: 12000 });
+        await page.waitForTimeout(400);
+        const advanced = await rollState(page);
+        assert.equal(advanced.playing.length, 1, `${label}: after auto-advance only one Roll video plays: ${JSON.stringify(advanced)}`);
+        assert.equal(advanced.playing[0].muted, false, `${label}: the auto-advanced video keeps the sound on: ${JSON.stringify(advanced)}`);
+        assert.equal(advanced.audible, 1, `${label}: never two audible players: ${JSON.stringify(advanced)}`);
+        assert.equal(advanced.toggle, "Mute video", `${label}: the speaker on the auto-advanced video shows sound on`);
+        await page.locator(".reels-rail.roll-fullscreen .reels-list").evaluate(list => list.scrollTo({ top: 0 }));
+        await page.waitForFunction(src => [...document.querySelectorAll("video.reel-player")].some(video => !video.paused && video.currentSrc.endsWith(src)), first, { timeout: 5000 });
       }
 
       // 2. Muting in full screen carries back to Mix.
