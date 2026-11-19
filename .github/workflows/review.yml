@@ -175,6 +175,7 @@ jobs:
           node .\browser-checks\comment-icon-tap.cjs
           node .\browser-checks\dailies-tile-no-picker.cjs
           node .\browser-checks\load-crashes.cjs
+          node .\browser-checks\friendly-errors.cjs
       - name: Stop static review server
         if: always()
         shell: pwsh
