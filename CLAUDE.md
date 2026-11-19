@@ -122,6 +122,21 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
 - **The owner could do this on every page:** F8–F15 are examples of one standard. Apply it everywhere in the F8 pass, and write `docs/tasks/39-modern-look.md` with every screen listed before building.
 - Then the **T2 sweep**, T3 and T4 (test-ready plan below).
 
+### Quality bar for Code (owner 2026-11-19: "tight code… make sure Code is doing quality work… effort is set to extra, so get Code to do extra… make it more Facebook-ish")
+- **More familiar.** On every screen, compare against the owner's reference screenshots in `docs/screenshots/owner-reference/`: same places, same patterns, same density. Only the DanzStak colours, fonts, logo and music details differ. When in doubt, do it the way the familiar app does.
+- **Tight code.**
+  - One shared component per job, no copy-paste variants.
+  - No `!important` stacking to win fights; fix the cause.
+  - No dead code, no unused assets, no magic pixel offsets that aren't measured.
+  - Every string goes through the translation layer: every word must be in the visitor's own language (owner 2026-11-16).
+- **Extra effort on every PR.**
+  - Read the spec and the owner's words twice.
+  - Before opening the PR, review your own diff line by line.
+  - Run the full suite and the touched browser checks at all four widths, and look at your own screenshots.
+  - List what you did not verify.
+  - A fix without a check that would have caught the bug is unfinished.
+- **Security stays tight** (owner: data breaches are the main risk): least-privilege IAM, nothing secret in the repo, server-side permission checks for every Elder/owner control.
+
 ### Launch gates — "doors open" for 25 testers (owner 2026-11-19)
 Owner: "When you make all the fixes I want you to open it for 25 accounts so we can test… I need all products working and tested."
 
