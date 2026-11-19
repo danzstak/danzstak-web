@@ -65,7 +65,7 @@
     if (result.ok && /^[a-f0-9-]{36}$/.test(result.data.caller?.memberId || "")) {
       const next = new URLSearchParams({ member: result.data.caller.memberId, invited: result.data.kind === "video" ? "video" : "audio" });
       if (result.data.live === false) next.set("missed", "1");
-      location.replace(`messages.html?${next}`);
+      location.replace(`${location.pathname.startsWith("/sync/") ? "/sync/" : "messages.html"}?${next}`); // task 34: stay in the SYNC app
       return;
     }
     cleanUrl([]);
