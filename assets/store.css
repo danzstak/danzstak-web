@@ -27,3 +27,28 @@ a{color:var(--ds-brand,#121418)}
 .payouts-start{min-height:44px;padding:0 16px;border-radius:999px;background:#121418;color:#fff;font-weight:800;border:0}
 
 .moving-day-link a{display:inline-flex;align-items:center;min-height:44px;padding:4px 0;font-weight:900}
+
+/* Owner 2026-11-19: shop cover, shop album and product photos from the phone. */
+.store-hero{position:relative}
+.store-cover{display:block;width:calc(100% + 32px);max-width:none;margin:-16px -16px 14px;aspect-ratio:16/7;object-fit:cover;background:#121418}
+.store-cover[hidden]{display:none}
+.shop-album{margin:18px 0}
+.shop-album[hidden]{display:none}
+.shop-album h2,.shop-photos h2,.shop-photos h3{margin:0 0 10px}
+.shop-album-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+.shop-album-grid img{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:#121418}
+.shop-album-tile{position:relative;margin:0}
+.shop-album-remove{position:absolute;top:4px;right:4px;width:32px;height:32px;min-height:32px;padding:0;border:0;border-radius:50%;background:rgba(11,11,12,.72);color:#fff;font-size:20px;line-height:32px}
+.shop-album-remove::after{content:"";position:absolute;inset:-6px}
+.shop-photos{margin:18px 0;padding-top:14px;border-top:1px solid rgba(18,20,24,.12)}
+.shop-photos .store-note{margin:0 0 10px;color:#5d6066}
+.shop-photos .store-note[hidden]{display:none}
+.shop-cover-preview{display:block;width:100%;aspect-ratio:16/7;object-fit:cover;margin:0 0 10px;background:#121418}
+.shop-cover-preview[hidden]{display:none}
+.shop-photo-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.shop-photos button,.product-photo-field button{min-height:44px}
+#addAlbumPhotos{margin-top:10px}
+.product-photo-field{display:grid;gap:8px;margin:0 0 12px}
+.product-photo-label{font-weight:700}
+.product-photo-preview{width:120px;height:120px;object-fit:cover;background:#121418}
+.product-photo-preview[hidden]{display:none}
