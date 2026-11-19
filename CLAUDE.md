@@ -323,6 +323,65 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 - **SYNC signup = DanzStak membership (owner, 2026-11-18).** Signing up for SYNC makes the person a DanzStak member: one account, one identity, no separate SYNC account. A member who joins through SYNC lands in SYNC after signup (the conversation they were invited to, or the chat list), with Mix one tap away. Someone invited to a call just wants to answer it: the invite link shows who is calling and **Answer**; answering creates the account, asks for name/@username and the SMS code, then connects the call. The caller sees "Waiting for … to join" instead of a ring timeout; if the call is gone, the new member lands on a missed call with **Call back**. Spec: `docs/tasks/24-answer-to-join.md`.
 - **No ChatGPT/Codex references.** Remove ChatGPT, OpenAI and Codex references and dependencies from the repository, scripts and branch/deploy names; DanzStak is built with Claude.
 
+## Manager's plan (owner 2026-11-19: "why do I have to micro-manage Claude — you should be the manager of the project")
+
+**Claude Code runs this project. The owner sets direction and tests on his phone; he should never have to say "do it", "plan it" or "merge it".** Every Claude Code run follows this section, then `docs/tasks/QUEUE.md`.
+
+**Goal right now: test-ready.**
+- Every screen a tester touches works and looks finished in the installed PWA at 360 and 390px.
+- Then friends sign up and test (T4).
+- No new features until the T0 rows are done.
+
+**Each run, in this order:**
+1. **Land what's ready.** For every open PR from Claude Code:
+   - If it's behind main, merge main into it (bump versions with `scripts/bump-versions.cjs`; take the higher number).
+   - If CI is green and its browser check passes, **merge it**. The owner gave permission on 2026-11-19.
+   - Never merge StakGuard work or anything marked "needs owner".
+   - Close a PR that another merged PR supersedes, with one line saying which.
+2. **Build the first `TODO` row in QUEUE.md.**
+   - Reproduce the bug in a real browser at phone width first, and fix the root cause.
+   - Add the check that would have caught it. **Tap the centre of icons**, not the button box: the dead Comment icon slipped past every test that clicked by locator.
+   - Screenshot before and after at 360 and 390px, then open the PR.
+3. **If something can only be done on the owner's computer** (Auth API or call-signaling deploys, IAM, Stripe keys), add it to the **Owner-session box** below with the exact command. Don't stop the queue for it.
+4. **Write one Builder log line** (below) and message the owner **only** for something he must do or see.
+
+**Order of work** (QUEUE.md has the rows; the audit with root causes is `docs/tasks/36-site-audit-2026-11-19.md`):
+1. **Ready PRs:**
+   - #602 (posted photos/videos go to Dailies and The Roll automatically; supersedes #601, so close #601);
+   - #604 (Comment icon);
+   - #599 (shop beside the profile picture);
+   - #603 (this plan).
+2. **T0 bugs**, in queue order:
+   - A2 (Dailies tile opens the photo picker; avatars open profiles);
+   - A4 (Saved page crash);
+   - A5 (Record Stores crash);
+   - A6 together with E2 and E4 (raw errors shown to members; forms that fail silently);
+   - A7 (Booking: dead buttons; serve Leaflet locally);
+   - A8 (Tribes: an Elder sees "Join");
+   - A9 (Mix composer avatar does nothing);
+   - E8 (the only way into Edit profile is the Edit button);
+   - E9 (one Photo/video button);
+   - E10 (Friends ▾ on visitor profiles);
+   - A10 (Menu → Photos/Videos show only your media);
+   - B1–B10 (one app bar, one tab bar, one font set, one post component, one button system);
+   - C1–C5, then D.
+3. **T1: finish the open feature PRs**, one at a time, each brought up to date with main and checked at phone widths:
+   - #594 / #577 (full-screen media viewer; keep one, close the other);
+   - #575 (albums);
+   - #572 (friends facepile; needs the call-signaling `/friends/of` deploy);
+   - #593 (share a phone photo to DanzStak);
+   - #591 (SYNC as its own app);
+   - #598 (avatars open profiles).
+4. **T2 sweep**, then T3 (SYNC own-app pop-up after device registration) and T4 (invite testers, `docs/TESTING.md`).
+
+**Done means:** a fresh account can sign up, post a photo and a video (it lands in Dailies and The Roll), comment, open a profile, use the Bazaar, start a SYNC chat and log out, at 360/390px, with **no raw errors, no dead buttons and no duplicate buttons**.
+
+### Owner-session box (things only the owner's computer can do)
+- **Deploy the Auth API after #602 merges:** `./aws-deploy-auth-api.ps1`. It also creates and attaches the IAM policy `DanzStakPostDailies`; the cloud session isn't allowed to change IAM. Until then, new posts still reach The Roll, and Mix adds the Daily from the browser.
+- **Done 2026-11-19 by Claude Code:** Eroticon's video post (the only video missing `reel`) is now in The Roll, and it has a Daily until 21:06 UTC today. The `backfill-video-reels.mjs` run isn't needed for existing posts.
+- **Deploy call-signaling** for #572 (`/friends/of`) and #555 (everyone list) once they merge.
+- **Deploy the Auth API for the AI EPK (#567)**, then merge it.
+
 ## Hand-off: Claude Code builds, Claude plans (owner 2026-11-18)
 
 **Owner, 2026-11-19 00:10 (final): one coder only. Claude Code codes; Claude (the planning chat) only plans and writes the plan here. "It takes four times longer to fix mistakes than to do it right the first time" — read the spec, build it right, test it in a real browser at phone widths before opening the PR.**
@@ -410,7 +469,9 @@ Overlaps: A2 = T2a/T2b, A10 is part of 5a2, B10 includes T2g, C4 = T2h/T2i, D1 =
 Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, translate), Twilio upgrade, Stripe test keys, live testing on two real phones.
 
 ### Builder log (newest first)
+- 2026-11-19 09:20 UTC · Claude Code (manager) · #600 merged; Eroticon video put in The Roll + today's Dailies directly in DynamoDB; IAM policy + Auth API deploy left for the owner session (cloud session may not change IAM); "Manager's plan" written above · Next: land #602, #604, #599, #603, then T0-A2
 - 2026-11-19 01:45 UTC · Claude Code · T0-A1 · PR #602 posted photos/videos go to Dailies (24 h) and videos to The Roll automatically from every composer (server-side), checkboxes removed; owner: deploy Auth API (managed policy DanzStakPostDailies) then `node infrastructure/auth-api/backfill-video-reels.mjs --apply` · Next: T0-A2
+- 2026-11-19 · Claude Code (owner live session) · re-tapped every control on 30 screens on main → `docs/tasks/36` section E; new T0-E1 (Mix Comment icon dead), E8–E10; A11/A12/A13/A1 now PRs #600/#600+#572/#599/#601 · Next: T0-E1
 - 2026-11-19 02:00 UTC · Claude (planning chat) · full site audit (every page + button at 390px) + owner phone bugs → `docs/tasks/36-site-audit-2026-11-19.md`, plan T0 above, queue rows A1–D · Next: T0-A1
 - 2026-11-19 · Claude (planning chat) · owner: yes, the SYNC chat list may be kept on the phone → T2 checklist item 14 / queue T2n unblocked · Next: T1
 - 2026-11-19 · Claude (planning chat) · owner asked what's next → "T2 checklist" (16 fix-it items) added under the test-ready plan; queue rows T2a–T2p · Next: T1
