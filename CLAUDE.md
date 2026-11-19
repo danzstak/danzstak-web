@@ -7,7 +7,12 @@ Read this first, every session. **Claude Code: your work list is `docs/tasks/QUE
 Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these things — the UX is not good and users will not use the site. Main keeps moving. Make one big directive for Code, then test it all, and test it again. When two agents are coding, things get messed up."
 
 ### Rules
-**Motto: test, test, test, deploy.** The owner is seeing too many mistakes in the PWA.
+**Motto: test, test, test, deploy.** The owner is seeing too many mistakes in the PWA. Owner's saying: **"What is wrong with perfect?"**
+
+**The quality bar, in the owner's words:** "This is perfect if the link works, but this is the quality of work DanzStak needs for success. Everything needs to look this good to a user."
+- The reference is the invite share card in a phone's messages: `docs/screenshots/owner-reference/invite-share-card-quality-bar-2026-11-19.png`. It has a clean preview image, a clear title and the domain.
+- Every screen, share preview and email must reach that level.
+- Also verify that the invite link itself lands correctly: sign-up, then a friend request to the inviter.
 
 1. **Roles.**
    - **Claude Code** (the builder) is the only one who writes code. It builds each fix and **tests it once**: `node scripts/run-all-tests.cjs` plus every browser check the change touches, at 320/360/390/430px, **tapping the centre of icons**, not the button box. Then it opens the PR (or the release train) and stops.
@@ -181,7 +186,7 @@ Work through these in order. Each gate must pass before the next one starts.
   - **The route:** sign up as a new member → name/@username → SYNC device registration → Mix (Dailies, composer, post a photo and a video, The Roll, the full-screen viewer) → profile (every tab, edit, pictures repositioned) → Friends → Tribes (create, post, Elder tools) → Events (create one) → Bazaar (browse, product, checkout in test mode) → Music HQ (EPK build/publish, Booking pitch in test mode, Tour Manager) → SYNC (chat, call, ring, Text note) → Notifications → Menu → Settings / Your data (export) → Log out.
   - **On every screen:** every button is tapped and must work and land on the right screen, with no raw errors, no dead or duplicate buttons, and nothing that looks unfinished.
   - **Findings:** each problem goes into a new fix list (F16+) here. Code fixes them, then the sweep repeats.
-- **G3. Code clean-up pass.** Remove broken or untranslated strings, half-finished screens, dead code and duplicate CSS and JS. Make one component per job: app bar, tab bar, post, button, sheet, list row. Delete unused assets. Code gets tight, not clunky. No behaviour changes without a check.
+- **G3. Code clean-up pass: new, working code, no old code.** Owner: "Have Code update the code so there is no old code; it should all be new and working code. If the old code is creating problems, overwrite it." Where an old layer causes bugs (stacked override CSS, duplicate handlers, legacy fallbacks, old screens behind flags), **replace it with one clean implementation** instead of patching on top. Keep behaviour that is covered by checks, and keep the checks passing. Remove broken or untranslated strings, half-finished screens, dead code and duplicate CSS and JS. Make one component per job: app bar, tab bar, post, button, sheet, list row. Delete unused assets. Code gets tight, not clunky. No behaviour changes without a check.
 - **G4. Claude tests again before doors open.** One more full sweep (G2 route) plus the full suite and every browser check against the live site.
 - **G5. Every page modern, every button works and goes to the right place** (the F8–F15 standard), confirmed screen by screen with before/after screenshots in `docs/screenshots/launch/`.
 - **G6. Every product works and is tested end to end in Stripe Test Mode:**
