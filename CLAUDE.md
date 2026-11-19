@@ -362,6 +362,24 @@ Owner: "Make all the little things we've done so far work and look good so I can
 
 **T2. "Works and looks good" sweep (the owner tests from the installed app):** walk every screen a tester touches, in the installed PWA at 360 and 390px, signed in as a new member: sign up → name/@username → Mix (Dailies, composer with own photo, post photo/video, The Roll) → profile (Posts/About/Friends/Photos/Videos/Shop, + bio, edit profile) → Tribes (create, open, post) → Bazaar (Eroticon items, open product) → Events → Music HQ / EPK builder → SYNC (chat list, thread, send text, call + ring + Text note, Call alerts, Test ringer) → Menu → Log out. For every broken or "'97-looking" thing: add a line to `docs/tasks/18-fix-it.md`, fix the root cause, add a check. No new features in this pass. Done when a fresh account can do the whole walk without help and every screen looks finished.
 
+**T2 checklist (Claude, 2026-11-19) — the open fix-it items in `docs/tasks/18-fix-it.md`, in this order, one small PR each, inside the T2 sweep:**
+1. **Tap any profile picture → that member's profile** (post authors, comments, friends rows, search, SYNC list/thread, Tribes members).
+2. **No separate Dailies upload:** the Dailies tile opens the viewer (own Dailies) or the composer, never the photo picker; every posted photo/video goes to Dailies automatically.
+3. **TAKE N counts every Dailies item** (photos and videos), lifetime, never decreasing.
+4. **Videos tab:** poster frame instead of a black box, full avatar, dates like "Nov 18" (no US-only `mm/dd/yyyy`).
+5. **Media fills the column edge to edge** in Mix, profiles, Tribes, Roll previews and SYNC; never stretched.
+6. **Events: "Post an event" is its own screen** (+ in the Events header), styled file picker, locale date picker (reuse PR #486 if it still applies).
+7. **Bazaar: one search** (the shared top bar), Bazaar / My Shop as tabs, empty state = one line + "+ Sell something".
+8. **Menu = familiar full-screen grid:** profile row on top, 2-column shortcut tiles (Friends, Tribes, Photos, Events, Bazaar, Music HQ, Record shops, **Radio stations**, Your data, Settings), Log out at the bottom.
+9. **Radio stations:** a simple directory page (name, city, genre, website, booking contact) in Music HQ and the Menu; start with an empty state + "Suggest a station"; no scraped data.
+10. **Share sheet tidy** until 5a8: one bottom sheet, no wall of text, styled buttons.
+11. **Site-wide buttons** outside SYNC use the 16-C button system (no browser-default buttons anywhere a tester can see).
+12. **About tab** = one fluid page (no three grey boxes), hide empty fields for visitors.
+13. **SYNC (DS) number at the top of the SYNC device window**, owner-only.
+14. **SYNC chat list opens instantly** from the cached list and refreshes in the background — **owner decision needed first:** may the chat list (names, last message preview) be cached on the phone? Until the owner says yes, show a skeleton list instead of "Loading saved chats…".
+15. **Plan only, no code yet:** bundle step (one JS + one CSS per page, versioned) — write `docs/tasks/35-bundle-step.md` with the approach, risks and test plan for owner approval.
+16. **Plan only:** server-rendered share previews (Open Graph) for profiles/posts/EPKs/events — part of task 17, needs an Auth API/Lambda@Edge route the owner session deploys.
+
 **T3. SYNC as its own app (5a03 + owner 2026-11-19):** spec 34, plus: **right after a device registers** (the SMS code succeeds), show a one-time pop-up: "Make SYNC its own app — get a SYNC icon on your home screen, straight to your chats" with **Add SYNC to home screen** (uses the install prompt from SYNC's own `/sync/` scope; iPhone shows the Share → Add to Home Screen steps) and **Not now**. Never shown again once installed or dismissed twice.
 
 **T4. Friends can sign up and test (needs the owner — Claude Code prepares, never changes live services):**
@@ -374,6 +392,7 @@ Owner: "Make all the little things we've done so far work and look good so I can
 Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, translate), Twilio upgrade, Stripe test keys, live testing on two real phones.
 
 ### Builder log (newest first)
+- 2026-11-19 · Claude (planning chat) · owner asked what's next → "T2 checklist" (16 fix-it items) added under the test-ready plan; queue rows T2a–T2p · Next: T1
 - 2026-11-19 00:45 UTC · Claude (planning chat) · owner: tap photo/video → full screen **vertical** swipe through that member's photos/videos (was horizontal); Dailies = horizontal swipe; The Roll = carousel swipe → plan steps 1 and 6 updated, queue 5a1/5a7 · Next: T1
 - 2026-11-19 00:40 UTC · Claude (planning chat) · owner: Twilio is upgraded (paid), not Trial; plan T4 updated · Next: T1
 - 2026-11-19 00:20 UTC · Claude (planning chat) · owner: make everything work and look good in the PWA, then friends test; SYNC "make it its own app" pop-up after device registration → plan "test-ready" T1–T5 above · Next: T1 (#577, #575, #572, build/share-target), then T2 sweep
