@@ -135,3 +135,7 @@ body.profile-page{background:#fff!important}
 /* Owner 2026-11-18: "+ bio" sits as the 5th icon in the profile action row, same size as its neighbours. */
 .profile-actions .profile-add-bio--icon{order:99;display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:center;gap:1px;margin:0;padding:0 8px;min-width:44px;border-radius:12px;font-size:13px;font-weight:800;letter-spacing:-.01em}
 .profile-actions .profile-add-bio--icon svg{width:14px;height:14px}
+.profile-actions .profile-add-bio--icon[hidden],.profile-add-bio[hidden]{display:none!important} /* owner 2026-11-18: owner-only controls never show for visitors */
+
+/* Owner 2026-11-19 (A12): no @username line under the profile name. */
+#profileHandle[hidden]{display:none!important}
