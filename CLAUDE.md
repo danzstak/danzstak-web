@@ -154,6 +154,10 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - When there's nothing older, Mix ends with one quiet line "You're caught up" (the finite feed stays finite: no recycled or suggested posts to keep people scrolling).
   - Check: scroll to the bottom at 360/390px → more posts appear with no tap; no "load more"/arrow button exists; at the true end the "caught up" line shows and no further requests fire.
 - **F15d. Bazaar item every 4th post in Mix, after The Roll** (owner again, 2026-11-19: "In the Mix every fourth post after The Roll should be a product from the Bazaar"). This is queue 5a5 / task 23b, now on the fix list: after The Roll, every 4th post is one member's Bazaar item (a clearly labelled "For sale" card, never paid), a different item and seller each slot, the same item not again for 2 weeks, rotating each new session; tap → the seller's shop at that item; Back returns to the same spot. Built in week 3 with the Bazaar server half (C1 deploy).
+- **F15f. Bazaar: a real mix, never the same shop twice in a row** (owner again, 2026-11-19 6:38 pm, screenshot with three Eroticon items in a row: "these products should be jumbled up and switched around every time you come in, different items for sale in different places and not the same shop in a row so it's a variety").
+  - **Root cause (found in `assets/bazaar.js`):** the real items are scrambled among themselves, but the labelled examples are **appended after** them (`examplesFor` … `list.append(exampleCard…)` after the real cards). Today the only real shop is Eroticon, so every Eroticon item lands together at the top. The server half of the scramble (#618) also isn't deployed yet (C1).
+  - Fix: build **one list** of real items and examples, then the same seeded shuffle + round-robin by shop (`scrambleBySeller`, one shared function for the browser and the server), so **no two neighbouring cards in the grid share a shop** whenever another shop is available (left/right and above/below in the 2-column grid). New seed every visit, so places change each time; "Show more" keeps the same visit's order.
+  - Check: with 1 real shop of 5 items plus examples from 4 shops, no two adjacent cards (row or column) share a shop at 360/390px; two visits give different orders; searching still returns plain results.
 - **F15e. SYNC ringer at least 10 dB louder** (owner 2026-11-19: "The ringer on SYNC should be 10 dB louder minimum").
   - Measure first: record the integrated loudness (LUFS) and peak of today's ringtones (`assets/call-ringer.js`, `call-setup.js` `ringVolume`, the ringtone files).
   - Then: remaster each ringtone to at least +10 dB integrated loudness (target about −8 LUFS, true peak ≤ −0.5 dBTP so it doesn't clip), play it at full gain through Web Audio with a `DynamicsCompressorNode` limiter, default `ringVolume` to the maximum, and keep the vibration pattern. The incoming-call push notification (phone locked or app closed) uses the same louder file. The phone's own ringer volume still caps it; say so in "Test ringer" ("Turn up your phone's volume for the loudest ring").
@@ -287,7 +291,7 @@ Work through these in order. Each gate must pass before the next one starts.
 
 ### Road to doors open: Christmas 2026 (owner 2026-11-19: "test this and test some more, I would like to open doors by Christmas. I will get a few users going.")
 Target: **doors open (G7) on Wednesday 23 December 2026**, with two days of margin before Christmas. Each week ends with a release train, and Claude's two test passes run on it before the next week starts.
-- **Week 1, 19–26 Nov:** F4a–F4c, F15a–F15c and F15e (first, the owner's phone findings), F0 (CI green, flaky checks fixed at the root), F1–F7, C1–C2, F26 live checks.
+- **Week 1, 19–26 Nov:** F4a–F4c, F15a–F15c, F15e and F15f (first, the owner's phone findings), F0 (CI green, flaky checks fixed at the root), F1–F7, C1–C2, F26 live checks.
 - **Week 2, 27 Nov–3 Dec:** UI kit set up (Tailwind build, icons, emoji, forms), then F8 Notifications, F10 Create event, F21 shop manager, F9 profile and Friends.
 - **Week 3, 4–10 Dec:** F15d Bazaar in Mix, F11–F20, F22, F24 gift codes, F25 dashboards.
 - **Week 4, 11–17 Dec:** G2 two full sweeps with grades; G3 clean-up; G6 every product in Stripe test mode (including redeeming each gift code).
@@ -317,7 +321,7 @@ In every sweep (G2, G4), Claude grades **every screen and every product** in `do
 - Roll sound carries over (F2).
 - Dailies scrolling, rotating and bouncing (F3, F15).
 - TAKE count and Dailies/Roll filled (done; verify).
-- Bazaar mixed across shops (done; the server half ships in C1).
+- Bazaar mixed across shops, never the same shop in a row (F15f; the server half ships in C1).
 - 720p photos (done); videos at 720p (C3).
 - CDN speed (C1–C4).
 - Notifications (F8), Profile and Friends (F9), Create event (F10), Music HQ dashboard (F11), Tribe page and Elder-only controls (F13).
