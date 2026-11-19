@@ -33,7 +33,7 @@
 .profile-shop-preview-plus{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border:2px dashed #ef6c20;border-radius:10px;color:#ef6c20;font-size:24px;font-weight:700;line-height:1}
 /* No shop items: the member's own photo fills the space (owner 2026-11-18: "picture of their dog or something"). */
 .profile-showcase{flex-direction:row;align-items:center;justify-content:flex-end;gap:8px}
-.profile-showcase-photo{display:block;width:min(100%,180px);min-width:0;height:84px;border-radius:12px;object-fit:cover;box-shadow:0 4px 14px #10182822}
+.profile-showcase-photo{display:block;flex:1 1 auto;width:100%;min-width:0;height:84px;border-radius:12px;object-fit:cover;box-shadow:0 4px 14px #10182822}
 .profile-showcase-tools{display:flex;flex-direction:column;gap:4px}
 .profile-showcase-tools button{display:grid;place-items:center;width:40px;height:40px;min-height:40px;padding:0;border:1px solid #e4e8ee;border-radius:50%;background:#fff;color:#4b5563}
 .profile-showcase-tools button svg{width:18px;height:18px}
@@ -42,7 +42,7 @@
 .profile-showcase-add .profile-shop-preview-label strong{white-space:normal;font-size:13px;font-weight:600;color:#4b5563}
 .profile-showcase-shop{display:inline-flex;align-items:center;min-height:32px;color:#c2410c;font-size:12px;font-weight:700}
 .profile-showcase[aria-busy=true]{opacity:.6}
-@media(max-width:600px){.profile-showcase-photo{width:min(100%,150px);height:72px}}
+@media(max-width:600px){.profile-showcase-photo{height:72px}} /* F4: the photo fills the box's width; JS sets its height */
 
 /* Owner 2026-11-19: never over the name — the box starts where the cover ends and fits the space above the name. */
 .profile-shop-preview{max-height:var(--showcase-room,84px);overflow:visible}
@@ -59,3 +59,5 @@
 .profile-showcase-add .profile-shop-preview-label strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;line-height:1.25}
 .profile-shop-preview.is-tight .profile-showcase-add .profile-shop-preview-label strong{display:none}
 .profile-showcase-shop{min-width:0;min-height:36px;font-size:11px;line-height:1.2;text-align:right}
+/* F4: when the box has room (short name), the "Fill this space" line shows in full instead of stopping mid-sentence. */
+.profile-shop-preview.is-roomy .profile-showcase-add .profile-shop-preview-label strong{-webkit-line-clamp:4}

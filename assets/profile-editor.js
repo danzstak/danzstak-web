@@ -1313,19 +1313,49 @@ function renderProfileShowcase(shop, profile = {}) {
 function placeProfileShopPreview(preview) {
   // Owner 2026-11-19 (screenshot): the box sat on top of the member's name. It now starts right where the cover photo
   // ends and is sized to the space between the cover and the name, so the name always shows in full.
+  // Directive F4 (owner 2026-11-19): the box fills all the free space. It grows down to the first thing that sits in its
+  // column: the name's text, the bio, the friends row or the action buttons (so with a short name it reaches past the
+  // avatar to the action row; with a long name it stays above the name), and shrinks again when the name gets longer or
+  // the screen narrower. The photo fills the box; shop items grow with it.
   const place = () => {
-    const cover = document.querySelector(".cover"), box = preview.offsetParent, name = document.getElementById("profileName");
-    if (!cover || !box) return;
-    const coverBottom = cover.getBoundingClientRect().bottom, boxTop = box.getBoundingClientRect().top;
-    preview.style.top = Math.max(0, Math.round(coverBottom - boxTop) + 4) + "px";
+    if (!preview.isConnected) return;
+    const cover = document.querySelector(".cover"), host = preview.offsetParent;
+    if (!cover || !host) return;
+    const coverBottom = cover.getBoundingClientRect().bottom, hostRect = host.getBoundingClientRect(), top = coverBottom + 4;
+    preview.style.top = Math.max(0, Math.round(top - hostRect.top)) + "px";
     const avatar = document.getElementById("profileInitial");
-    if (avatar) preview.style.left = Math.round(avatar.getBoundingClientRect().right - box.getBoundingClientRect().left + 12) + "px"; // clear of the round photo and its ring
-    const room = name ? Math.floor(name.getBoundingClientRect().top - coverBottom - 4 - 8) : 84;
-    preview.style.setProperty("--showcase-room", Math.max(40, Math.min(room, 96)) + "px");
+    if (avatar) preview.style.left = Math.round(avatar.getBoundingClientRect().right - hostRect.left + 12) + "px"; // clear of the round photo and its ring
+    const column = preview.getBoundingClientRect();
+    const textRects = element => { if (!element || element.hidden || !element.getClientRects().length) return []; const range = document.createRange(); range.selectNodeContents(element); return [...range.getClientRects()]; };
+    const boxes = selector => [...document.querySelectorAll(selector)].filter(element => !preview.contains(element) && element.getClientRects().length).map(element => element.getBoundingClientRect());
+    const blockers = [
+      ...textRects(document.getElementById("profileName")), ...textRects(document.querySelector(".profile-bio")),
+      ...boxes(".profile-actions > *, .profile-friends-row, .profile-facepile, .profile-tabs, [role='tablist']")
+    ].filter(rect => rect.width > 0 && rect.height > 0 && rect.right > column.left + 0.5 && rect.left < column.right - 0.5 && rect.bottom > top);
+    const floor = blockers.length ? Math.min(...blockers.map(rect => rect.top)) : top + 96;
+    const room = Math.max(40, Math.min(Math.floor(floor - 8 - top), 240));
+    preview.style.setProperty("--showcase-room", room + "px");
     preview.classList.toggle("is-tight", room < 72);
+    preview.classList.toggle("is-roomy", room >= 88); // the owner's "Fill this space" line shows in full
+    const items = preview.querySelector(".profile-shop-preview-items");
+    if (items) {
+      const images = [...items.querySelectorAll("img")].filter(image => getComputedStyle(image).display !== "none");
+      const label = preview.querySelector(".profile-shop-preview-label")?.getBoundingClientRect().height || 0, gap = 6;
+      const size = images.length ? Math.floor(Math.min((column.width - gap * (images.length - 1)) / images.length, room - label - gap, 120)) : 0;
+      images.forEach(image => { image.style.width = image.style.height = Math.max(32, size) + "px"; });
+    }
   };
   place(); requestAnimationFrame(place);
-  if (!window.__danzstakShopPreviewResize) { window.__danzstakShopPreviewResize = true; window.addEventListener("resize", () => { const current = document.querySelector(".profile-shop-preview"); if (current) current.dispatchEvent(new Event("danzstak:place")); }); }
+  document.fonts?.ready?.then(place).catch(() => {});
+  if (!window.__danzstakShopPreviewResize) {
+    window.__danzstakShopPreviewResize = true;
+    const replace = () => { const current = document.querySelector(".profile-shop-preview"); if (current) current.dispatchEvent(new Event("danzstak:place")); };
+    window.addEventListener("resize", replace);
+    // Recompute when the name or bio changes (Edit profile) and when the header's layout changes.
+    const header = document.getElementById("profileName")?.parentElement;
+    if (header && typeof MutationObserver === "function") new MutationObserver(() => requestAnimationFrame(replace)).observe(header, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["hidden"] });
+    if (header && typeof ResizeObserver === "function") new ResizeObserver(() => requestAnimationFrame(replace)).observe(header);
+  }
   preview.addEventListener("danzstak:place", place);
 }
 
