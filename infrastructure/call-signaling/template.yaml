@@ -28,8 +28,20 @@ Parameters:
   TurnRegion:
     Type: String
     Default: us-east-1
+  MediaSigningPublicKeyId:
+    Type: String
+    Default: ''
+    AllowedPattern: '^(K[A-Z0-9]+)?$'
+    Description: 'Task 38 media CDN: CloudFront public key id from scripts/setup-media-cdn-key.ps1. Empty = no CDN (media stays on S3 signed URLs).'
+  MediaCdnServe:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+    Description: 'Task 38: true hands out CDN URLs. Turn on only after the pages allow the CDN host in their Content-Security-Policy (task 38 step 3).'
 Conditions:
   HasTurnChannel: !Not [!Equals [!Ref TurnChannelArn, '']]
+  HasMediaCdn: !Not [!Equals [!Ref MediaSigningPublicKeyId, '']]
+  ServeMediaCdn: !And [!Condition HasMediaCdn, !Equals [!Ref MediaCdnServe, 'true']]
 Resources:
   MediaBucket:
     Type: AWS::S3::Bucket
@@ -72,6 +84,98 @@ Resources:
             Resource: [!GetAtt MediaBucket.Arn, !Sub '${MediaBucket.Arn}/*']
             Condition:
               Bool: {aws:SecureTransport: false}
+          - !If
+            - HasMediaCdn
+            - Sid: AllowMediaCdnRead
+              Effect: Allow
+              Principal: {Service: cloudfront.amazonaws.com}
+              Action: s3:GetObject
+              Resource: !Sub '${MediaBucket.Arn}/*'
+              Condition:
+                StringEquals:
+                  AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${MediaDistribution}'
+            - !Ref AWS::NoValue
+  # Task 38 (owner 2026-11-19 "build the CDN"): photos and videos through CloudFront. The bucket stays private (Origin
+  # Access Control); only URLs signed with DanzStak's key (trusted key group) are served; keys never change after upload,
+  # so files are cached for up to a year at the edge and in the browser.
+  MediaKeyGroup:
+    Type: AWS::CloudFront::KeyGroup
+    Condition: HasMediaCdn
+    Properties:
+      KeyGroupConfig:
+        Name: danzstak-media-signing
+        Comment: DanzStak media CDN signed URLs (task 38)
+        Items: [!Ref MediaSigningPublicKeyId]
+  MediaOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Condition: HasMediaCdn
+    Properties:
+      OriginAccessControlConfig:
+        Name: danzstak-media-oac
+        Description: CloudFront reads the private DanzStak media bucket
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+  MediaCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Condition: HasMediaCdn
+    Properties:
+      CachePolicyConfig:
+        Name: danzstak-media-immutable
+        Comment: Media keys are unique per upload, so the path alone is the cache key
+        MinTTL: 86400
+        DefaultTTL: 2592000
+        MaxTTL: 31536000
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          CookiesConfig: {CookieBehavior: none}
+          HeadersConfig: {HeaderBehavior: none}
+          QueryStringsConfig: {QueryStringBehavior: none}
+  MediaResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Condition: HasMediaCdn
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: danzstak-media-headers
+        Comment: Long private browser cache, CORS for DanzStak pages
+        CorsConfig:
+          AccessControlAllowCredentials: false
+          AccessControlAllowHeaders: {Items: ['*']}
+          AccessControlAllowMethods: {Items: [GET, HEAD]}
+          AccessControlAllowOrigins: {Items: ['https://danzstak.com', 'https://www.danzstak.com', 'https://review.danzstak.com']}
+          AccessControlMaxAgeSec: 86400
+          OriginOverride: true
+        CustomHeadersConfig:
+          Items:
+            - {Header: Cache-Control, Value: 'private, max-age=31536000, immutable', Override: true}
+        SecurityHeadersConfig:
+          ContentTypeOptions: {Override: true}
+          StrictTransportSecurity: {AccessControlMaxAgeSec: 63072000, IncludeSubdomains: true, Override: true}
+  MediaDistribution:
+    Type: AWS::CloudFront::Distribution
+    Condition: HasMediaCdn
+    Properties:
+      DistributionConfig:
+        Comment: DanzStak media CDN (task 38)
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_All
+        Origins:
+          - Id: media-bucket
+            DomainName: !GetAtt MediaBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt MediaOriginAccessControl.Id
+            S3OriginConfig: {OriginAccessIdentity: ''}
+        DefaultCacheBehavior:
+          TargetOriginId: media-bucket
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD, OPTIONS]
+          Compress: true
+          CachePolicyId: !Ref MediaCachePolicy
+          ResponseHeadersPolicyId: !Ref MediaResponseHeadersPolicy
+          TrustedKeyGroups: [!Ref MediaKeyGroup]
   CallSignalsTable:
     Type: AWS::DynamoDB::Table
     Metadata:
@@ -494,6 +598,16 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
+        - !If
+          - HasMediaCdn
+          - PolicyName: DanzstakMediaCdn
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: secretsmanager:GetSecretValue
+                  Resource: !Sub 'arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:danzstak/cloudfront/media-signing-key-*'
+          - !Ref AWS::NoValue
         - PolicyName: DanzstakCallSignalingData
           PolicyDocument:
             Version: '2012-10-17'
@@ -635,6 +749,7 @@ Resources:
           CALL_INVITES_TABLE: !Ref CallInvitesTable
           STORIES_TABLE: !Ref StoriesTable
           MEDIA_BUCKET: !Ref MediaBucket
+          MEDIA_CDN_DOMAIN: !If [ServeMediaCdn, !GetAtt MediaDistribution.DomainName, '']
           SESSIONS_TABLE: !Ref SessionsTable
           USER_POOL_ID: !Ref UserPoolId
       Code:
@@ -745,7 +860,9 @@ Resources:
           const mediaTypes={'image/jpeg':['image','jpg'],'image/png':['image','png'],'image/webp':['image','webp'],'image/gif':['image','gif'],'application/pdf':['document','pdf'],'video/mp4':['video','mp4'],'video/webm':['video','webm'],'video/quicktime':['video','mov']};
           const enc=value=>encodeURIComponent(value).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase());
           const hmac=(key,value,encoding)=>createHmac('sha256',key).update(value).digest(encoding);
-          function signedMediaUrl(method,key,expires=900){const region=process.env.AWS_REGION,bucket=process.env.MEDIA_BUCKET,access=process.env.AWS_ACCESS_KEY_ID,secret=process.env.AWS_SECRET_ACCESS_KEY,token=process.env.AWS_SESSION_TOKEN,date=new Date(),stamp=date.toISOString().replace(/[:-]|\.\d{3}/g,''),day=stamp.slice(0,8),scope=`${day}/${region}/s3/aws4_request`,host=`${bucket}.s3.${region}.amazonaws.com`,uri='/'+key.split('/').map(enc).join('/'),query=[['X-Amz-Algorithm','AWS4-HMAC-SHA256'],['X-Amz-Credential',`${access}/${scope}`],['X-Amz-Date',stamp],['X-Amz-Expires',String(expires)],['X-Amz-Security-Token',token],['X-Amz-SignedHeaders','host']].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>`${enc(k)}=${enc(v)}`).join('&'),canonical=`${method}\n${uri}\n${query}\nhost:${host}\n\nhost\nUNSIGNED-PAYLOAD`,toSign=`AWS4-HMAC-SHA256\n${stamp}\n${scope}\n${createHash('sha256').update(canonical).digest('hex')}`,signing=hmac(hmac(hmac(hmac('AWS4'+secret,day),region),'s3'),'aws4_request'),signature=hmac(signing,toSign,'hex');return `https://${host}${uri}?${query}&X-Amz-Signature=${signature}`;}
+          // Task 38: viewing media goes through CloudFront with a signed URL that stays the same for a 6-hour block (so it caches); S3 until the CDN is configured.
+          const mediaCdn=(()=>{const domain=String(process.env.MEDIA_CDN_DOMAIN||'').trim().toLowerCase();let key=null,loading=null,failed=0;const b64=b=>b.toString('base64').replace(/\+/g,'-').replace(/=/g,'_').replace(/\//g,'~'),enc=k=>String(k).split('/').map(p=>encodeURIComponent(p).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase())).join('/');async function ready(){if(!/^[a-z0-9.-]+\.(cloudfront\.net|danzstak\.com)$/.test(domain)||key)return Boolean(key);if(failed&&Date.now()-failed<300000)return false;if(!loading)loading=(async()=>{try{const {SecretsManagerClient,GetSecretValueCommand}=require('@aws-sdk/client-secrets-manager');const value=JSON.parse((await new SecretsManagerClient({}).send(new GetSecretValueCommand({SecretId:'danzstak/cloudfront/media-signing-key'}))).SecretString||'{}');if(!/^K[A-Z0-9]{6,}$/.test(String(value.keyPairId||''))||!String(value.privateKey||'').includes('PRIVATE KEY'))throw new Error('Media CDN key is not configured.');key={keyPairId:value.keyPairId,privateKey:value.privateKey};failed=0;}catch(error){failed=Date.now();console.error('Media CDN key unavailable; serving S3 URLs',{error:error?.name||'Error'});}finally{loading=null;}})();await loading;return Boolean(key);}function url(mediaKey){if(!key||!mediaKey)return '';try{const expires=Math.ceil((Math.floor(Date.now()/1000)+3600)/21600)*21600,resource=`https://${domain}/${enc(mediaKey)}`,policy=JSON.stringify({Statement:[{Resource:resource,Condition:{DateLessThan:{'AWS:EpochTime':expires}}}]});return `${resource}?Expires=${expires}&Signature=${b64(require('node:crypto').createSign('RSA-SHA1').update(policy).sign(key.privateKey))}&Key-Pair-Id=${encodeURIComponent(key.keyPairId)}`;}catch{return '';}}return {ready,url};})();
+          function signedMediaUrl(method,key,expires=900){if(method==='GET'){const cdn=mediaCdn.url(key);if(cdn)return cdn;}const region=process.env.AWS_REGION,bucket=process.env.MEDIA_BUCKET,access=process.env.AWS_ACCESS_KEY_ID,secret=process.env.AWS_SECRET_ACCESS_KEY,token=process.env.AWS_SESSION_TOKEN,date=new Date(),stamp=date.toISOString().replace(/[:-]|\.\d{3}/g,''),day=stamp.slice(0,8),scope=`${day}/${region}/s3/aws4_request`,host=`${bucket}.s3.${region}.amazonaws.com`,uri='/'+key.split('/').map(enc).join('/'),query=[['X-Amz-Algorithm','AWS4-HMAC-SHA256'],['X-Amz-Credential',`${access}/${scope}`],['X-Amz-Date',stamp],['X-Amz-Expires',String(expires)],['X-Amz-Security-Token',token],['X-Amz-SignedHeaders','host']].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>`${enc(k)}=${enc(v)}`).join('&'),canonical=`${method}\n${uri}\n${query}\nhost:${host}\n\nhost\nUNSIGNED-PAYLOAD`,toSign=`AWS4-HMAC-SHA256\n${stamp}\n${scope}\n${createHash('sha256').update(canonical).digest('hex')}`,signing=hmac(hmac(hmac(hmac('AWS4'+secret,day),region),'s3'),'aws4_request'),signature=hmac(signing,toSign,'hex');return `https://${host}${uri}?${query}&X-Amz-Signature=${signature}`;}
           const ownerPrefix=user=>createHash('sha256').update(user.email).digest('hex').slice(0,24);
           const attr=(user,name)=>user?.Attributes?.find(x=>x.Name===name)?.Value||'';
           async function publicProfile(email,account){const settings=await db.send(new GetItemCommand({TableName:process.env.SETTINGS_TABLE,Key:{userEmail:{S:email}},ConsistentRead:true})),item=settings.Item;return {memberId:attr(account,'sub'),name:item?.profileName?.S||attr(account,'name')||attr(account,'preferred_username')||'DanzStak member',picture:item?.profileAvatarKey?.S?signedMediaUrl('GET',item.profileAvatarKey.S,3600):attr(account,'picture')};}
@@ -900,6 +1017,7 @@ Resources:
           exports.handler=async event=>{try{const method=event.requestContext?.http?.method,key=method+' '+event.rawPath;if(['POST','PUT','PATCH','DELETE'].includes(method)&&!['https://danzstak.com','https://www.danzstak.com','https://review.danzstak.com'].includes(event.headers?.origin||event.headers?.Origin))return json(403,{error:'Forbidden origin'});if(key==='POST /auth/refresh')return await refreshSession(event);const user=await identity(event);if(!user)return json(401,{error:'Authentication required'});if(key==='GET /news')return await news(event);if(key==='GET /people')return await peopleSearch(event,user);if(key==='GET /push/key')return json(200,{publicKey:await getVapidPublicKey()});if(key==='POST /push/subscribe')return await savePushSubscription(event,user);if(key==='DELETE /push/subscribe')return await removePushSubscription(event,user);if(key==='POST /push/test')return await testPush(event,user);if(key.endsWith(' /settings/posts'))return await postVisibility(event,user);if(key==='POST /calls/devices/challenge')return await createDeviceChallenge(user);if(key==='POST /calls/devices/register')return await registerCallingDevice(event,user);if(key==='POST /calls/devices/share/preview')return await previewSharedDevice(event,user);if(key==='POST /calls/devices/share')return await shareCallingDevice(event,user);if(key==='GET /calls/devices')return await listCallingDevices(event,user);if(key==='PATCH /calls/devices')return await updateCallingDevice(event,user);if(key==='DELETE /calls/devices')return await revokeCallingDevice(event,user);if(key==='POST /calls/decline')return await declineFromNotification(event,user);if(key==='POST /calls/signal')return await send(event,user);if(key==='GET /calls/inbox')return await inbox(event,user);if(key==='POST /calls/ack')return await ack(event,user);if(key==='POST /calls/presence')return await presence(user);if(key==='GET /calls/directory')return await directory(user);if(key==='GET /settings/presence')return await getPresenceSetting(user);if(key==='POST /settings/presence')return await setPresenceSetting(event,user);if(key==='GET /settings/sync-prefs')return await getSyncPrefs(user);if(key==='POST /settings/sync-prefs')return await setSyncPrefs(event,user);if(key==='POST /settings/sync-privacy')return await setSyncPrivacy(event,user);if(key==='POST /messages/typing')return await setTyping(event,user);if(key==='POST /friends/request')return await friendRequest(event,user);if(key==='POST /friends/respond')return await friendRespond(event,user);if(key==='POST /friends/remove')return await friendRemove(event,user);if(key==='POST /friends/block')return await friendBlock(event,user);if(key==='POST /friends/unblock')return await friendUnblock(event,user);if(key==='GET /friends/blocked')return await getBlockedMembers(user);if(key==='GET /friends')return await getFriends(user);if(key==='GET /profiles')return await getProfile(event,user);if(key==='POST /profiles')return await updateProfile(event,user);if(key==='GET /notifications')return await notifications(user);if(key==='POST /conversations/prefs')return await updateConversationPrefs(event,user);if(key==='POST /messages')return await sendMessage(event,user);if(key==='GET /messages')return await getMessages(event,user);if(key==='POST /messages/delete')return await deleteConversation(event,user);if(key==='GET /conversations')return await getConversations(user);if(key==='POST /groups/membership')return await groupMembership(event,user);if(key==='POST /stories')return await createStory(event,user);if(key==='GET /stories')return await getStories(user);if(key.startsWith('DELETE /stories/'))return await deleteStory(event,user);return json(404,{error:'Not found'});}catch(error){console.error(error);return json(500,{error:'Service unavailable'});}};
           const coreHandler=exports.handler;
           exports.handler=async event=>{
+            await mediaCdn.ready().catch(()=>false);
             if(Array.isArray(event.Records)&&event.Records.some(record=>record.eventSource==='aws:dynamodb'))return activityPushBatch(event);
             if(event.requestContext?.http?.method==='GET'&&event.rawPath==='/calls/ice'){
               try{const user=await identity(event);return user?await getCallIceServers(event,user):json(401,{error:'Authentication required'});}catch(error){console.error(error);return json(500,{error:'Service unavailable'});}
@@ -1144,3 +1262,12 @@ Resources:
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/DELETE/stories/*'
   NewsInvokePermission: {Type: AWS::Lambda::Permission, Properties: {Action: 'lambda:InvokeFunction', FunctionName: !Ref SignalingFunction, Principal: apigateway.amazonaws.com, SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/GET/news'}}
   RefreshSessionInvokePermission: {Type: AWS::Lambda::Permission, Properties: {Action: 'lambda:InvokeFunction', FunctionName: !Ref SignalingFunction, Principal: apigateway.amazonaws.com, SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/POST/auth/refresh'}}
+Outputs:
+  MediaCdnDomain:
+    Condition: HasMediaCdn
+    Description: 'Task 38: set the Auth API MEDIA_CDN_DOMAIN to this value'
+    Value: !GetAtt MediaDistribution.DomainName
+  MediaCdnDistributionId:
+    Condition: HasMediaCdn
+    Description: 'Task 38: set the Auth API MEDIA_CDN_DISTRIBUTION_ID to this value'
+    Value: !Ref MediaDistribution
