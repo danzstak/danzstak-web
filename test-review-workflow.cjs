@@ -67,4 +67,10 @@ const loop = runner.slice(runner.indexOf("foreach ($check in $Checks)"), runner.
 assert.doesNotMatch(loop, /(?:^|[;{])\s*(?:exit|break|return)\b/m, "run-checks.ps1 must not stop at the first failing check");
 assert.doesNotMatch(loop, /(?:^|[;{])\s*throw\b(?![^\n]*Check file not found)/m, "run-checks.ps1 must not stop at the first failing check");
 
+// The regression suite (review.yml "regression" job) also goes through the runner, and runs the runner's own test.
+const regressions = fs.readFileSync(path.join(root, "test-regressions.ps1"), "utf8");
+assert.match(regressions, /scripts\/run-checks\.ps1'\) -Checks \$checks/, "test-regressions.ps1 must run its checks through scripts/run-checks.ps1");
+assert.match(regressions, /'test-run-checks\.ps1'/, "test-regressions.ps1 must run test-run-checks.ps1");
+assert.ok(fs.existsSync(path.join(root, "test-run-checks.ps1")), "test-run-checks.ps1 is missing");
+
 console.log(`Review workflow checks passed: ${listed.length} checks in ${blocks.filter(block => block.lines.some(line => /run-checks\.ps1/.test(line))).length} steps run through scripts/run-checks.ps1, and no step runs several checks directly.`);

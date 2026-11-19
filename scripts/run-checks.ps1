@@ -13,13 +13,15 @@
 # Each entry is a script path plus optional arguments separated by spaces. .cjs/.mjs/.js run with node; .ps1 runs
 # in its own pwsh process (exit N -> N, an uncaught throw -> 1, normal end -> 0), so a stale $LASTEXITCODE or a
 # throw inside one script can neither pass nor stop the others. Output of each check is folded into a log group;
-# every failure is also an ::error annotation and a line in the job summary.
+# every failure is also an ::error annotation and a line in the job summary. Outside GitHub Actions it prints plain
+# headers instead of workflow commands. Behaviour is covered by test-run-checks.ps1 (regression suite).
 param(
   [Parameter(Mandatory = $true)]
   [string[]]$Checks
 )
 
 $ErrorActionPreference = 'Continue'
+$onActions = $env:GITHUB_ACTIONS -eq 'true'
 $pwshPath = (Get-Process -Id $PID).Path
 $results = [System.Collections.Generic.List[object]]::new()
 
@@ -29,7 +31,7 @@ foreach ($check in $Checks) {
   $script = $parts[0]
   $arguments = @($parts | Select-Object -Skip 1)
   $started = Get-Date
-  Write-Host "::group::$check"
+  if ($onActions) { Write-Host "::group::$check" } else { Write-Host "--- $check" }
   $global:LASTEXITCODE = 0
   try {
     if (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw "Check file not found: $script" }
@@ -43,12 +45,12 @@ foreach ($check in $Checks) {
     Write-Host $_
     $code = 1
   }
-  Write-Host '::endgroup::'
+  if ($onActions) { Write-Host '::endgroup::' }
   $seconds = [math]::Round(((Get-Date) - $started).TotalSeconds)
   if ($code -eq 0) {
     Write-Host "PASS  $check  (${seconds}s)"
   } else {
-    Write-Host "::error title=Check failed::$check exited with code $code"
+    if ($onActions) { Write-Host "::error title=Check failed::$check exited with code $code" }
     Write-Host "FAIL  $check  (exit $code, ${seconds}s)"
   }
   $results.Add([pscustomobject]@{ Check = $check; Code = $code; Seconds = $seconds })
