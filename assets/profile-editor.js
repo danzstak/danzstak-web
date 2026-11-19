@@ -157,12 +157,6 @@ shopManagementLink.setAttribute("role", "button"); shopManagementLink.dataset.ic
 shopManagementLink.hidden = viewingOtherProfile;
 actions.appendChild(shopManagementLink);
 bioElement.insertAdjacentElement("afterend", actions);
-const nameEditHint = document.createElement("button");
-nameEditHint.type = "button";
-nameEditHint.className = "profile-name-edit-hint";
-nameEditHint.textContent = profileEditorWords.tap;
-nameEditHint.hidden = true;
-handleElement.insertAdjacentElement("afterend", nameEditHint);
 
 const mediaTools = document.createElement("div");
 mediaTools.className = "profile-media-tools";
@@ -754,7 +748,7 @@ function profileWallComposer(profile) {
     button.addEventListener("click", handler);
     shortcuts.appendChild(button);
   };
-  addShortcut("Add a video", "video", () => { mediaInput.accept = "video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
+  // Audit E9 (2026-11-19): one Photo/video button. "Add a video" opened the same picker as the button beside it.
   addShortcut("Add a photo or video", "image", () => { mediaInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
   const eventLink = document.createElement("a");
   eventLink.className = "profile-create-shortcut";
@@ -1399,15 +1393,13 @@ editButton.addEventListener("click", () => {
   panel.hidden = false;
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
 });
-nameEditHint.addEventListener("click", () => {
+// Audit E8 (2026-11-19): the Edit button is the only way into Edit profile. The name is plain text again (it used to be
+// a hidden "Tap your name to change it" button, a third way in). ?edit=identity still opens the editor at the name.
+function openNameEdit() {
   editButton.click();
   requestAnimationFrame(() => panel.elements.name.focus({ preventScroll: true }));
-});
+}
 panel.elements.website.addEventListener("input", () => panel.elements.website.setCustomValidity(""));
-document.getElementById("profileName").addEventListener("click", () => {
-  if (viewingOtherProfile || editButton.hidden) return;
-  nameEditHint.click();
-});
 
 panel.querySelector("[data-cancel]").addEventListener("click", () => { panel.hidden = true; repositioning = false; finishReposition.hidden = true; coverElement.classList.remove("repositioning"); repositionButton.classList.remove("active"); repositionButton.textContent = "Reposition Cover"; });
 panel.addEventListener("submit", async event => {
@@ -1458,17 +1450,6 @@ function applyLoadedProfile(profile = {}) {
   if (profile.isOwner === true) {
     viewingOtherProfile = false;
     editButton.hidden = false;
-    nameEditHint.hidden = true; // owner 2026-11-16: no "tap your name" instruction; the name is tappable
-    const profileName = document.getElementById("profileName");
-    profileName.classList.add("profile-name-editable");
-    profileName.tabIndex = 0;
-    profileName.setAttribute("role", "button");
-    profileName.setAttribute("aria-label", profileEditorWords.tap);
-    profileName.addEventListener("keydown", event => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      nameEditHint.click();
-    }, { once: false });
     mediaTools.hidden = false;
     const requestedEdit = new URLSearchParams(location.search).get("edit");
     if (["identity", "privacy"].includes(requestedEdit) && panel.dataset.routeOpened !== "true") {
