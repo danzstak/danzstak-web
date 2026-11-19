@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-4hhIzg7V5NVM55eG+x/moAsXX1VHkTNgTHVQcPM56/4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-QTyVLwkWwoqszyK5jhRtXXcnwBig3bqmfV7I+dTdq5w='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -1070,8 +1070,17 @@ async function openStoryViewer(story, { updateHistory = true, sequence = null } 
       + '<button type="button" class="story-viewer-step story-viewer-next" aria-label="Next Daily" hidden>›</button>'
       + '<div class="story-viewer-media"></div><p class="story-viewer-caption" id="storyViewerCaption"></p>';
     viewer.querySelector(".story-viewer-close").addEventListener("click", () => closeStoryViewer());
-    viewer.querySelector(".story-viewer-prev").addEventListener("click", () => storyViewerStep(-1));
-    viewer.querySelector(".story-viewer-next").addEventListener("click", () => storyViewerStep(1));
+    // ‹ › act when the finger lifts: after a swipe the browser sometimes sends a tap's pointer and touch events but no
+    // click (seen on CI as a lost tap on ›). A click soon after that release is the same tap and is ignored; keyboard
+    // and mouse clicks still step once.
+    for (const [selector, delta] of [[".story-viewer-prev", -1], [".story-viewer-next", 1]]) {
+      const button = viewer.querySelector(selector);
+      let pressed = null, steppedAt = 0;
+      button.addEventListener("pointerdown", event => { pressed = event.pointerId; });
+      button.addEventListener("pointerup", event => { if (pressed !== event.pointerId) return; pressed = null; steppedAt = performance.now(); storyViewerStep(delta); });
+      button.addEventListener("pointercancel", () => { pressed = null; });
+      button.addEventListener("click", () => { if (performance.now() - steppedAt < 600) return; storyViewerStep(delta); });
+    }
     viewer.querySelector(".story-viewer-delete").addEventListener("click", event => deleteActiveOwnDaily(event.currentTarget));
     document.addEventListener("keydown", event => {
       if (!viewer.open || event.defaultPrevented || document.querySelector(".danzstak-confirm-dialog[open]")) return;
