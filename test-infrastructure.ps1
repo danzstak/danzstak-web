@@ -111,6 +111,16 @@ $authDeploy = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-deploy-auth
 foreach ($mediaDeploymentControl in @('"s3:GetObject"', '$variables.MEDIA_BUCKET', 'describe-stack-resource', 'DeletePostStoryReferences')) {
   if (-not $authDeploy.Contains($mediaDeploymentControl)) { throw "Auth API protected-media deployment control is missing: $mediaDeploymentControl" }
 }
+# The Auth API's permissions are one managed policy (2026-11-20 deploy: the inline one hit the role's shared 10,240
+# quota). Build it exactly as the deploy script does and keep it under the managed-policy limit of 6,144 characters
+# (whitespace not counted), with room for a few more statements.
+$policyStart = $authDeploy.IndexOf("  @{`n    Version = `"2012-10-17`"".Replace("`n", [Environment]::NewLine))
+if ($policyStart -lt 0) { $policyStart = $authDeploy.IndexOf("  @{`r`n    Version = `"2012-10-17`"") }
+$policyEnd = $authDeploy.IndexOf('| ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Policy', $policyStart)
+if ($policyStart -lt 0 -or $policyEnd -lt 0) { throw 'Auth API access policy could not be found in the deploy script' }
+$policyBuilder = [scriptblock]::Create('$identity = @{ Account = "635288116224" }; $SessionDevicesTable = "DANZSTAK-SessionDevices"; $MarketplaceTable = "DANZSTAK-Marketplace"; $PhoneVerificationTable = "DANZSTAK-PhoneVerifications"; $PhoneVerificationSecret = "danzstak/phone-verification-secret"; $PhoneNotifyConfigurationId = "notify-0"; ' + $authDeploy.Substring($policyStart, $policyEnd - $policyStart) + ' | ConvertTo-Json -Depth 10 -Compress')
+$policyChars = ((& $policyBuilder) -replace '\s', '').Length
+if ($policyChars -gt 5800) { throw "Auth API access policy is $policyChars characters; a managed policy allows 6,144. Split it before it fails in deploy." }
 $nodeAuthCheck = & node --check $authApiPath 2>&1
 if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript syntax failed: $nodeAuthCheck" }
 
@@ -521,4 +531,4 @@ if (-not $cloudFrontScript.Contains('aws cloudfront list-distributions --region 
   throw 'CloudFront hardening depends on an ambient AWS default region'
 }
 
-Write-Host "Infrastructure checks passed ($templateBytes-byte template; embedded Lambda syntax valid)."
+Write-Host "Infrastructure checks passed ($templateBytes-byte template; embedded Lambda syntax valid; Auth API access policy $policyChars of 6,144 characters)."
