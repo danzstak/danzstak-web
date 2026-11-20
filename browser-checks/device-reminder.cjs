@@ -65,6 +65,9 @@ async function openNotifications(page) {
       assert.deepEqual({ tag: row.tag, href: row.href, title: row.title, line: row.line, buttons: row.buttons }, { tag: "A", href: "/sync/?device=register", title: "Verify this device for SYNC calls", line: "Calls and voice messages need it. Texting already works.", buttons: 0 }, `${label}: one tappable row, no extra button`);
       assert.ok(row.tall && row.fits && row.hit, `${label}: 44px row on screen, its centre reachable (${JSON.stringify(row)})`);
       assert.equal(row.empty, false, `${label}: no "No new notifications" under the reminder`);
+      // Owner 2026-11-19: "just offer it in the notification" — the DS number, for members who won't enter a phone number.
+      const ds = await run.page.evaluate(() => { const a = document.querySelector(".notification-list .notification-ds-link"); if (!a) return null; const r = a.getBoundingClientRect(); return { href: a.getAttribute("href"), text: a.textContent, tall: r.height >= 44, fits: r.right <= innerWidth + 0.5, hit: Boolean(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest(".notification-ds-link")) }; });
+      assert.deepEqual(ds, { href: "/sync/?device=register&ds=1", text: "No phone number? Get a DS number", tall: true, fits: true, hit: true }, `${label}: the DS number is offered under the reminder`);
       if (width === 390) await run.page.screenshot({ path: "docs/screenshots/device-reminder-390.png" });
       await run.page.touchscreen.tap(row.x, row.y);
       await run.page.waitForURL(/\/sync\/\?device=register$/, { timeout: 8000 });
