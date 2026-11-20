@@ -112,6 +112,7 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
       - The EPK shows which version lives where: "Radio edit on Spotify / Apple Music · full dance mix on vinyl only".
       - Bazaar listings for the vinyl say "Full dance mixes, not online".
       - DanzStak never hosts either; it links the edit and sells the vinyl.
+      - **It's the artist's choice** (owner: "But it up to the artist what the do with their art"). This is an option the artist turns on, never a default, a recommendation or a nudge. An artist who puts everything online, or nothing, gets the same EPK quality and is never told otherwise. The AI only describes what the artist actually does.
       - The vinyl-only/collector mark from above sits on the vinyl version.
     - **What every artist will expect from the AI** (owner): the whole discography with years and labels, remixers and collaborators, live video, every streaming and store link, socials, the real name and where they're based, press and past shows. Anything it can't find is listed under "Still missing", never invented.
     - Owner's own EPK: Eroticon (`@eroticon`) has a private draft rebuilt from Bandcamp, Discogs, Apple Music, Deezer and Shazam (2026-11-20). Location is open: the draft says San Francisco, Bandcamp says Paris.
