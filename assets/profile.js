@@ -96,9 +96,14 @@ async function loadProfile() {
     const cover = document.querySelector(".cover");
     cover.classList.remove("has-photo");
     if (profile.cover) {
-      cover.style.backgroundPosition = `${profile.coverX ?? 50}% ${profile.coverY ?? 50}%`;
-      cover.style.backgroundSize = profile.coverFit ? "contain" : "cover";
-      cover.style.backgroundRepeat = "no-repeat";
+      // Directive F12: the cover sits where its owner placed it (x/y/zoom); "Fit Entire Cover" shows it whole.
+      const fit = window.danzstakImagePosition;
+      if (fit && !profile.coverFit) fit.apply(cover, profile.coverZoom !== undefined ? { x: profile.coverX, y: profile.coverY, zoom: profile.coverZoom } : (fit.recall(profile.cover) || { x: profile.coverX, y: profile.coverY, zoom: 1 }), profile.cover);
+      else {
+        cover.style.backgroundPosition = `${profile.coverX ?? 50}% ${profile.coverY ?? 50}%`;
+        cover.style.backgroundSize = profile.coverFit ? "contain" : "cover";
+        cover.style.backgroundRepeat = "no-repeat";
+      }
     }
     loadRecoverableProfileImage(cover, profile.cover, "cover");
     const message = document.getElementById("profileMessage");
