@@ -11,13 +11,29 @@ This spec builds on `docs/tasks/08-ai-epk-builder.md` and PR #567 (`infrastructu
 there still hold: only confirmed pages, nothing invented, facts tied to sources, the artist reviews every word, and
 no training on creator content.
 
-## 1. Ask before searching
-- **Every name the artist releases or plays under:** DJ names, aliases, past bands, side projects, labels they run,
-  and their real name as credited. Shown as chips; each name is searched everywhere.
-  ("Djeroticon is me as well. You should ask what other names do you produce on.")
-- **Intent questions**, asked once and only when they matter, never as a nudge:
-  - "Vinyl only on purpose?" when a release has no digital copy.
-  - "Do you keep some of your music offline?"
+## 0. No questions for a paying customer
+Owner, 2026-11-20: "Paying customers should not have to answer questions."
+- The artist gives one thing: their act name (or one link). The AI does the rest.
+- **The AI finds everything else itself:** other names come from Discogs `namevariations`/`aliases`/`members`/`groups`,
+  Bandcamp and social bios, and credits on the releases; the real name from Discogs; intent from what the artist
+  actually does (a release that exists only on vinyl is written "Vinyl only, never released digitally"; radio edits
+  online and long mixes on vinyl are described as such).
+- **No question screens, no quizzes.** The only artist step is the review: one "Is this you?" tick list and the draft
+  itself, where any line can be edited or removed.
+- Where no page gives a fact (a pressing city, a booking contact), the draft simply leaves it out and lists it once
+  under "Still missing", as an optional field the artist can fill or ignore. It never blocks the draft and never asks.
+
+## 1. Every language
+Owner, 2026-11-20: "they will all be in different languages."
+- **Reads sources in any language** (Italian blogs, German label pages, Japanese flyers, Spanish radio, French press)
+  and understands them; facts keep the original-language source URL.
+- **Writes the EPK in the artist's language** (their DanzStak language), and offers the same EPK in the languages of
+  the places they play or pitch (English always, plus e.g. Italian, German, Spanish, French, Japanese, Portuguese).
+- Names, venue names, label names, titles and sleeve wording stay as printed ("Made in Berlin", "GZ Media Paris"),
+  never translated.
+- The booking pitch is written in the venue's language when the venue's country is known.
+- Scene voice in every language: a native speaker of that scene would write it this way (no machine-translation
+  stiffness, no corporate words).
 
 ## 2. Look everywhere, release by release
 - **Sources, by name, for every name:**
@@ -39,9 +55,36 @@ no training on creator content.
   - `videos`.
 - **Made in: city and country** for every physical release, as printed on the sleeve or label. ("It's all good is
   from Berlin, it even says right on it made in Berlin.") Use the sleeve's own wording ("GZ Media Paris"). Never
-  write "Made in EU" for an artist who wouldn't. If no page says, ask; never guess a city.
+  write "Made in EU" for an artist who wouldn't. If no page says, leave it out and list it under "Still missing"; never guess a city.
 - **Live and video:** the act's own YouTube channel, live sets and music videos. A video from someone else's channel
   counts only once the artist ticks it.
+
+## 2a. The whole touring history
+Owner, 2026-11-20: "I have been around the world many times from music. And nobody knows."
+- An EPK's job is to make that known. The AI builds a **past shows** list from every source, for every name:
+  Resident Advisor (events and lineups), Songkick, Bandsintown, setlist.fm, Facebook events, Discogs notes, club and
+  festival archive pages, old flyers and posters (image text read with OCR), radio show pages, press and interviews,
+  in every language.
+- Each show: date (or year), venue, city, country, event/festival, billed with whom. Grouped by country and decade.
+- The bio says how far the act has travelled ("has played in N countries across N continents") and names the
+  standout rooms, festivals and cities; the booking pitch names the ones that matter to that venue.
+- A map/list section "Played in" on the EPK (countries and cities), each entry linked to its source.
+- No show is invented; a show with only a year is written with the year.
+
+## 2b. Understands sound systems and what the artist plays on
+Owner, 2026-11-20: "Needs to … understand soundsystems and what the artist expects."
+- **Gear and setup, read from the artist's own pages, riders, videos and credits:** DJ (vinyl, CDJ/XDJ models, mixer,
+  turntables, needles), live electronic (hardware, laptop, controllers, inputs needed), band (backline, inputs).
+- **The tech rider it drafts is one a production crew can work from:** inputs and DI count, monitor needs (booth
+  monitors, wedges), power, table size, turntable isolation for vinyl sets, mixer model and alternatives accepted,
+  set length, changeover. Industry wording, no fluff.
+- **Sound-system culture** is understood and written correctly: rigs (e.g. Funktion-One, Void, Martin, d&b, custom
+  sound-system crews), free parties/teknivals, warehouse, club and festival stages, and the difference between them
+  for the act's sound. The AI writes about it only when a source shows the act's connection to it.
+- **What the artist expects (the list every artist will check):** whole discography with years, labels, formats,
+  credits and "Made in"; remixers and collaborators; every name they've used; live video; every streaming and store
+  link; socials; real name and base; past shows worldwide; press; a press photo; a tech rider; a booking pitch.
+  Anything not found goes under "Still missing", never invented.
 
 ## 3. "Is this you?", grouped
 - Group every candidate by name and source: releases, profiles, videos, photos and stream reports.
@@ -77,6 +120,7 @@ no training on creator content.
 ## 6. Checks (the AI EPK is not done until these pass)
 Fixtures are recorded page/API responses. No live network calls run in CI.
 - **Eroticon fixture** (`test-ai-epk-eroticon.cjs`), built from the owner's own pages.
+  - **No questions:** the build reaches a full draft from the act name alone, with no question screen.
   - **Bio:**
     - names the 1988 and 1996 start;
     - is in oldest-to-newest order.
@@ -92,6 +136,12 @@ Fixtures are recorded page/API responses. No live network calls run in CI.
     - no "add streaming links" item;
     - no dollar figure anywhere;
     - no fact without a source URL.
+- **Languages fixture:** an Italian-language source page is read and cited; the EPK comes out in the artist's
+  language plus English; sleeve wording and names are untranslated.
+- **Touring fixture:** recorded RA/Songkick/flyer pages give a "Played in" list with sources and a bio line with the
+  country count.
+- **Rider fixture:** a DJ who plays vinyl gets a rider with turntable isolation and booth monitors; a live act gets
+  its input list.
 - **Short-career fixture:** an act whose streaming pages start in 2023 but whose Discogs history starts in 1996
   gets a bio that names 1996.
 - **Same-name fixture:** two acts called "Eroticon" are never merged without the artist's tick.
@@ -103,8 +153,8 @@ Fixtures are recorded page/API responses. No live network calls run in CI.
   Reach). Only an A ships.
 
 ## Owner's own EPK
-Eroticon (`@eroticon`) has a private draft rebuilt by hand on 2026-11-20 to this standard. Two things are open:
-- the 1996 "6" pressing city;
-- the Latch-On pressing plant.
+Eroticon (`@eroticon`) has a private draft rebuilt by hand on 2026-11-20. It does not yet meet this standard: the
+worldwide touring history, the tech rider and the other languages are missing. The pressing city of "6" and the
+Latch-On plant stay under "Still missing" until a page shows them.
 
 Use it as the reference output for the Eroticon fixture.
