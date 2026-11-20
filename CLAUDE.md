@@ -79,6 +79,7 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - Restyle the screens on the UI kit when it lands.
   - Test both end to end in Stripe Test Mode.
   - Owner: the Auth API deploy in CloudShell.
+  - **Full spec and acceptance checks: `docs/tasks/43-ai-epk-quality.md`** (owner 2026-11-20: "Ai needs to get really good at making an EPK"). The AI EPK doesn't ship until its Eroticon fixture passes and is graded A.
   - **The AI must read the whole career, not just the last few years** (owner 2026-11-20, after the first Eroticon draft: "You made it look like I been doing it for 3 years"; "The ai needs to check soundcloud and mixcloud and Bandcamp and a bunch of others"; "Google"; "Yes discogs").
     - The first draft read only Apple Music, Deezer and Shazam, which list streaming singles from late 2023. Eroticon's real history starts in 1988 (CyborPunx, Seattle), with vinyl on Sleeping Dragon Records since 1996, all on Bandcamp and Discogs.
     - Today `ai-epk.mjs` runs 6 Brave searches of the act name plus "review/interview/live/festival/release/bandcamp" and reads only the pages the artist confirms.
