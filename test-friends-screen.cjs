@@ -109,17 +109,23 @@ const call = async (fn, user, query = {}, body) => JSON.parse(JSON.stringify(awa
   assert.match(friendButton, /API \+ "\/friends\/cancel"/, "tap Requested again to cancel");
   assert.match(friendButton, /location\.href = "friends\.html"/, "an incoming request opens Friends to answer it");
 
-  // Friends row copy and the "also have this" line.
+  // The facepile's name (owner 2026-11-19: stacked to the right of the action buttons) and the "also have this" line.
   const ctx = { window: {}, document: { addEventListener() {}, querySelector: () => null, getElementById: () => null, querySelectorAll: () => [] }, location: {}, fetch: async () => ({ ok: false }) };
   ctx.window.addEventListener = () => {};
   vm.runInNewContext(fs.readFileSync("assets/friends-row.js", "utf8"), { ...ctx, window: ctx.window });
   const { line, screenUrl } = ctx.window.DanzStakFriendsRow;
   assert.equal(line({ isOwner: true, count: 128 }), "128 friends");
-  assert.equal(line({ isOwner: true, count: 0 }), "Find your friends on DanzStak");
+  assert.equal(line({ isOwner: true, count: 0 }), "", "no friends yet: no pile");
   assert.equal(line({ isOwner: false, mutualCount: 12, common: [] }), "12 mutual friends");
   assert.equal(line({ isOwner: false, mutualCount: 1, common: [] }), "1 mutual friend");
   assert.equal(line({ isOwner: false, mutualCount: 0, common: [{ kind: "place" }] }), "Friends with things in common");
-  assert.equal(line({ isOwner: false, mutualCount: 0, common: [], listVisible: false }), "", "nothing to say: no row");
+  assert.equal(line({ isOwner: false, mutualCount: 0, common: [], listVisible: false }), "", "nothing to say: no pile");
+  const rowSource = fs.readFileSync("assets/friends-row.js", "utf8");
+  assert.match(rowSource, /pile\.className = "profile-facepile"; pile\.href = screenUrl\(profile\);/, "one facepile link that opens the Friends screen");
+  assert.match(rowSource, /document\.querySelector\("#profileContent \.profile-actions:not\(\.profile-locked-friend\)"\)[\s\S]{0,400}actions\.append\(pile\)/, "at the right end of the action row");
+  assert.match(rowSource, /String\(person\.name \|\| ""\)\.trim\(\)\.charAt\(0\)/, "a face's letter never comes from an email (privacy)");
+  assert.match(rowSource, /const own = \(await json\("\/friends"\)\)\?\.friends;/, "your own pile works before /friends/of is deployed");
+  assert.doesNotMatch(fs.readFileSync("assets/profile-editor.js", "utf8"), /loadFacepile|className = "profile-facepile"/, "one facepile, not two");
   assert.equal(screenUrl({ isOwner: false, memberId: id(2) }), `friends.html?member=${id(2)}`);
   assert.equal(screenUrl({ isOwner: true, memberId: id(1) }), "friends.html");
 

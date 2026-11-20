@@ -1,6 +1,8 @@
 const fs=require('node:fs'), vm=require('node:vm'), assert=require('node:assert/strict');
 const source=fs.readFileSync('assets/profile-editor.js','utf8');
-const code=source.slice(source.indexOf('async function toggleCoverFit()'),source.indexOf('fitCoverButton.addEventListener("click", toggleCoverFit)'));
+// F12: the toggle draws through placeProfileCover (without the Move-to-fit component it falls back to plain CSS).
+const place=source.slice(source.indexOf('function placeProfileCover('),source.indexOf('function applyProfile('));
+const code='const fitPictures=()=>undefined;'+place+source.slice(source.indexOf('async function toggleCoverFit()'),source.indexOf('fitCoverButton.addEventListener("click", toggleCoverFit)'));
 let saved={coverFit:false}, fail=false, storageFailure=false;
 const alerts=[],writes=[];
 const context=vm.createContext({

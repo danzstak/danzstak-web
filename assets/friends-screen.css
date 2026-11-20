@@ -57,11 +57,4 @@
 .friends-page .skip-link:focus{top:12px}
 
 /* Friends row under the profile name (profile.html). */
-.profile-friends-row{display:flex;align-items:center;gap:10px;min-height:44px;margin:8px 0 4px;color:var(--ds-ink,#172033);text-decoration:none;font-weight:800}
-.profile-friends-faces{display:flex;flex-direction:row}
-.profile-friends-faces>*{display:grid;place-items:center;width:28px;height:28px;border:2px solid var(--ds-canvas,#fff);border-radius:50%;object-fit:cover;background:#dfe6ee;color:#fff;font-size:11px;font-weight:900}
-.profile-friends-faces>*+*{margin-left:-9px}
-.profile-friends-initials{background:hsl(var(--friend-hue,210) 45% 42%)!important}
-.profile-friends-line{font-size:15px}
-.profile-friends-row:hover .profile-friends-line,.profile-friends-row:focus-visible .profile-friends-line{text-decoration:underline}
 @media (max-width:360px){.friends-tabs [role=tab]{font-size:14px;padding:0 3px}}

@@ -24,11 +24,11 @@ const json = body => ({ status: 200, contentType: "application/json", body: JSON
       // A connected video call with an open data channel (stubbed).
       await page.evaluate(() => { document.body.dataset.callMode = "video"; document.getElementById("videoGrid").hidden = false; document.getElementById("mediaControls").hidden = false; });
       await page.evaluate("channel = { readyState: 'open', send(data) { window.__sent = data; } }");
-      const buttons = await page.evaluate(() => [...document.querySelectorAll("#mediaControls > button")].filter(b => !b.hidden && getComputedStyle(b).display !== "none").map(b => { const r = b.getBoundingClientRect(); return { id: b.id, l: r.left, r: r.right, t: r.top, w: r.width, h: r.height }; }));
-      assert.ok(buttons.some(b => b.id === "callNoteButton"), `${width}px: Text button in the call controls`);
-      assert.ok(buttons.every(b => b.l >= 0 && b.r <= width && b.w >= 44 && b.h >= 44), `${width}px: all call buttons fit, 44px+ (${JSON.stringify(buttons)})`);
-      assert.equal(new Set(buttons.map(b => Math.round(b.t))).size, 1, `${width}px: one row`);
-      await page.locator("#callNoteButton").click();
+      // F15k: the note is reached from More (the six-button call panel), as a member does it.
+      const panel = await page.evaluate(() => [...document.querySelectorAll(".ds-call-keys .ds-call-key > button")].map(b => { const r = b.getBoundingClientRect(); return { id: b.id, l: r.left, r: r.right, w: r.width, h: r.height }; }));
+      assert.ok(panel.length === 6 && panel.every(b => b.l >= 0 && b.r <= width && b.w >= 44 && b.h >= 44), `${width}px: the call panel's six buttons fit, 44px+ (${JSON.stringify(panel)})`);
+      const openNote = async () => { await page.locator("#callMore").click(); await page.locator("#callSheet .ds-call-sheet-row", { hasText: "Text note" }).click(); };
+      await openNote();
       await page.locator(".call-note-sheet textarea").fill("Soundcheck at 5 <img src=x onerror=alert(1)>");
       await page.locator(".call-note-send").click();
       const sent = JSON.parse(await page.evaluate(() => window.__sent));
@@ -40,7 +40,7 @@ const json = body => ({ status: 200, contentType: "application/json", body: JSON
       await page.locator(".call-note-sheet").waitFor({ state: "detached", timeout: 3000 });
       if (width === 360) { // no confirmation → says so, and keeps the text to try again
         await page.waitForTimeout(2100);
-        await page.locator("#callNoteButton").click();
+        await openNote();
         await page.locator(".call-note-sheet textarea").fill("Bring the merch");
         await page.locator(".call-note-send").click();
         await page.waitForFunction(() => document.querySelector(".call-note-status")?.textContent === "Not delivered, try again", null, { timeout: 6000 });
@@ -123,6 +123,6 @@ const json = body => ({ status: 200, contentType: "application/json", body: JSON
       assert.deepEqual(errors, [], `${label}: page errors ${errors.join(" | ")}`);
       await context.close();
     }
-    console.log("Call note checks passed: the Text button fits the row at 320/360/390/430px; the sender shows Sent ✓ only after the other phone confirms (Not delivered otherwise); the receiver sees the note on voice and video calls at 360/390px, on screen above the call buttons, with the video shrunk to end above it, and confirms delivery.");
+    console.log("Call note checks passed: Text note opens from More in the call panel at 320/360/390/430px; the sender shows Sent ✓ only after the other phone confirms (Not delivered otherwise); the receiver sees the note on voice and video calls at 360/390px, on screen above the call buttons, with the video shrunk to end above it, and confirms delivery.");
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

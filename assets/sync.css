@@ -75,65 +75,7 @@ body.is-booking-thread #callStatus,body.is-booking-thread .conversation-status,b
 .message-attach .ds-action-icon,.message-camera .ds-action-icon,.message-form>.message-send .ds-action-icon{width:24px;height:24px}
 
 /* Incoming and active calls are primary screens, never cards inside the inbox. */
-.sync-call-screen{
-  position:fixed!important;
-  z-index:10020!important;
-  inset:0!important;
-  display:flex!important;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  width:100%!important;
-  min-height:100dvh!important;
-  padding:calc(30px + env(safe-area-inset-top,0px)) 22px calc(30px + env(safe-area-inset-bottom,0px))!important;
-  border:0!important;
-  border-radius:0!important;
-  background:radial-gradient(circle at 50% 24%,#1f4167 0,#0c1a2c 42%,#050b14 100%)!important;
-  color:#fff!important;
-  text-align:center;
-}
-.sync-call-screen[hidden]{display:none!important}
-.sync-call-avatar{display:grid;place-items:center;width:112px;height:112px;margin-bottom:10px;border:2px solid #ffffffb8;border-radius:50%;background:linear-gradient(145deg,#214b78,#0c2038);box-shadow:0 18px 50px #0008;color:#fff;font-size:2.4rem;font-weight:900}
-.sync-call-kicker{color:#cbd8e8;font-size:.78rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
-.sync-call-screen strong{max-width:min(420px,90vw);font-size:clamp(1.5rem,7vw,2.35rem);line-height:1.15}
-.sync-call-screen p{margin:0;color:#bdc9d8}
-.sync-call-screen .call-actions{display:flex;gap:42px;margin-top:44px}
-.sync-call-screen .call-actions button{width:76px;min-width:76px;height:76px;min-height:76px;padding:8px!important;border:0!important;border-radius:50%!important;color:#fff!important;font-size:.78rem!important;font-weight:800!important}
-.sync-call-screen #declineCall{background:#df3347!important}
-.sync-call-screen #acceptCall{background:#21a55b!important}
 
-body[data-call-mode="video"],body[data-call-mode="phone"]{overflow:hidden!important;background:var(--sync-call)!important}
-body[data-call-mode="video"] .chat-header,body[data-call-mode="phone"] .chat-header,
-body[data-call-mode="video"] .chat-sidebar,body[data-call-mode="phone"] .chat-sidebar,
-body[data-call-mode="video"] .ds-mobile-nav,body[data-call-mode="phone"] .ds-mobile-nav,
-body[data-call-mode="video"] .site-ownership,body[data-call-mode="phone"] .site-ownership{display:none!important}
-body[data-call-mode] .chat-shell{display:block!important;width:100%!important;height:100dvh!important;min-height:0!important;margin:0!important;padding:0!important}
-body[data-call-mode] .conversation{position:fixed;z-index:10010;inset:0;display:flex!important;height:100dvh!important;min-height:0!important;border:0!important;border-radius:0!important;background:var(--sync-call)!important;color:#fff!important}
-body[data-call-mode] .conversation-header{position:absolute;z-index:4;top:0;right:0;left:0;border:0!important;background:linear-gradient(#020711cc,transparent)!important;color:#fff!important}
-body[data-call-mode] .conversation-header a,body[data-call-mode] .conversation-presence{color:#fff!important}
-body[data-call-mode] .conversation-header-actions button{border-color:#ffffff26!important;background:#07111dbd!important;color:#fff!important}
-body[data-call-mode] .conversation-header-actions #makePlans,
-body[data-call-mode] .conversation-header-actions #headerPhone,
-body[data-call-mode] .conversation-header-actions #headerVideo,
-body[data-call-mode] .conversation-header-actions #minimizeConversation,
-body[data-call-mode] .conversation-header-actions #conversationMore,
-body[data-call-mode] .conversation-header-actions #closeConversation{display:none!important}
-body[data-call-mode] .conversation-status{position:absolute;z-index:4;top:64px;right:12px;left:12px;border:0!important;border-radius:999px;background:#02071199!important;color:#dfe8f4!important;text-align:center}
-body[data-call-mode] .message-list,body[data-call-mode] .message-form,body[data-call-mode] #remoteAudio{display:none!important}
-body[data-call-mode="video"] .video-grid{display:grid!important;position:absolute;inset:0;width:100%;height:100%;padding:0!important;background:#020711}
-body[data-call-mode="video"] .video-grid>figure:first-child{position:absolute;inset:0;width:100%!important;max-width:none!important;height:100%!important;margin:0!important;border:0!important;border-radius:0!important}
-body[data-call-mode="video"] #remoteVideo{width:100%;height:100%;object-fit:cover;background:#020711}
-body[data-call-mode="video"] .video-grid>figure:first-child figcaption{display:none}
-body[data-call-mode="video"] .video-grid .local-video{position:absolute;z-index:3;top:88px;right:14px;width:min(29vw,160px);aspect-ratio:3/4;margin:0!important;overflow:hidden;border:2px solid #fff;border-radius:16px;background:#16263a;box-shadow:0 10px 30px #0008}
-body[data-call-mode="video"] #localVideo{width:100%;height:100%;object-fit:cover}
-body[data-call-mode="video"] .local-video figcaption{position:absolute;right:6px;bottom:5px;color:#fff;font-size:.7rem;text-shadow:0 1px 4px #000}
-body[data-call-mode="phone"] .video-grid{display:none!important}
-body[data-call-mode="phone"] .conversation::before{content:"SYNC";position:absolute;inset:0;display:grid;place-items:center;padding-top:0;background:radial-gradient(circle,#24486e 0,#0b1727 48%,#030811 100%);color:#fff;font-size:1.35rem;font-weight:900;letter-spacing:.12em}
-body[data-call-mode] .media-controls{position:absolute!important;z-index:5;right:0;bottom:calc(26px + env(safe-area-inset-bottom,0px));left:0;display:flex!important;justify-content:center;gap:14px;padding:0 14px!important;background:transparent!important}
-body[data-call-mode] .media-controls[hidden]{display:none!important}
-body[data-call-mode] .media-controls button{width:56px;min-width:56px;height:56px;min-height:56px;padding:6px!important;border:1px solid #ffffff42!important;border-radius:50%!important;background:#f4f7fb26!important;color:#fff!important;font-size:.7rem!important;font-weight:800!important;backdrop-filter:blur(12px)}
-body[data-call-mode] .media-controls .hangup-button{background:#df3347!important;border-color:#df3347!important}
 
 @media(max-width:760px){
   /* The phone list owns the screen. Its SYNC heading is the app bar, so the

@@ -1,72 +1,72 @@
 "use strict";
-// Queue 5a3 (owner 2026-11-18): a Facebook-style friends row under the profile name. Small overlapping friend photos
-// and one short line ("128 friends" on your own profile, "12 mutual friends" or "Friends with things in common" on
-// someone else's). The whole row is one tap target that opens the one Friends screen (friends.html), and so does the
-// profile's Friends tab. The separate people button is gone from the action row (profile-sharing.js); inviting lives
-// on the Friends screen.
+// Queue 5a3 (owner 2026-11-18) + owner 2026-11-19 ("Friends should be a 50% stacked to the right of the 3 buttons as
+// Facebook has"): the profile's friends facepile. Up to four friends' photos, each overlapping the next by half, at the
+// right end of the action row (train h's .profile-facepile spot and styles). It is one 44px link named "128 friends" on
+// your own profile, "12 mutual friends" or "Friends with things in common" on someone else's, and it opens the one
+// Friends screen (friends.html), as does the profile's Friends tab. Someone else's pile needs GET /friends/of (the
+// call-signaling deploy); until then your own profile falls back to GET /friends, so your pile never disappears.
 (() => {
   const API = "https://api.danzstak.com";
   const MEMBER = /^[a-f0-9-]{36}$/;
+  const t = value => window.danzstakTranslate?.(value) || value;
   let drawnFor = "";
 
   const screenUrl = profile => profile?.isOwner || !MEMBER.test(profile?.memberId || "") ? "friends.html" : `friends.html?member=${encodeURIComponent(profile.memberId)}`;
-  const initials = name => String(name || "?").trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "?";
-  const hue = text => [...String(text || "")].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) % 360, 7);
-
+  // A face is the friend's photo, or the first letter of their name (never of an email: privacy).
   function face(person) {
+    const span = document.createElement("span");
+    span.className = "profile-facepile-face";
     if (person.picture) {
       const img = document.createElement("img");
       img.src = person.picture; img.alt = ""; img.loading = "lazy"; img.decoding = "async"; img.referrerPolicy = "no-referrer";
-      img.addEventListener("error", () => img.replaceWith(fallback(person)), { once: true });
-      return img;
-    }
-    return fallback(person);
-  }
-  function fallback(person) {
-    const span = document.createElement("span");
-    span.className = "profile-friends-initials"; span.textContent = initials(person.name);
-    span.style.setProperty("--friend-hue", String(hue(person.memberId || person.name)));
+      img.addEventListener("error", () => { img.remove(); span.textContent = initial(person); }, { once: true });
+      span.append(img);
+    } else span.textContent = initial(person);
     return span;
   }
+  const initial = person => String(person.name || "").trim().charAt(0).toUpperCase() || "•";
 
-  // One short line, never a count of zero for a visitor.
+  // The pile's name, never a count of zero for a visitor.
+  const count = (n, one, many) => n === 1 ? t(one) : t(many).replace("{count}", String(n));
   function line(data) {
-    if (data.isOwner) return data.count ? `${data.count} friend${data.count === 1 ? "" : "s"}` : "Find your friends on DanzStak";
-    if (data.mutualCount) return `${data.mutualCount} mutual friend${data.mutualCount === 1 ? "" : "s"}`;
-    if ((data.common || []).length) return "Friends with things in common";
-    if (data.listVisible && data.count) return `${data.count} friend${data.count === 1 ? "" : "s"}`;
+    if (data.isOwner) return data.count ? count(data.count, "1 friend", "{count} friends") : "";
+    if (data.mutualCount) return count(data.mutualCount, "1 mutual friend", "{count} mutual friends");
+    if ((data.common || []).length) return t("Friends with things in common");
+    if (data.listVisible && data.count) return count(data.count, "1 friend", "{count} friends");
     return "";
+  }
+
+  async function json(path) {
+    try {
+      const response = await fetch(`${API}${path}`, { credentials: "include", cache: "no-store" });
+      return response.ok ? await response.json() : null;
+    } catch { return null; }
+  }
+  async function friendsOf(profile) {
+    const data = await json(`/friends/of${profile.isOwner ? "" : `?member=${encodeURIComponent(profile.memberId)}`}`);
+    if (Array.isArray(data?.friends)) return data;
+    if (!profile.isOwner) return null;
+    const own = (await json("/friends"))?.friends;
+    return Array.isArray(own) ? { isOwner: true, count: own.filter(Boolean).length, friends: own.filter(Boolean) } : null;
   }
 
   async function draw(profile) {
     if (!profile || !(profile.isOwner || MEMBER.test(profile.memberId || ""))) return;
     const key = profile.isOwner ? "me" : profile.memberId;
-    if (drawnFor === key && document.querySelector(".profile-friends-row")) return;
+    if (drawnFor === key && document.querySelector(".profile-actions .profile-facepile")) return;
     drawnFor = key;
-    let data;
-    try {
-      const response = await fetch(`${API}/friends/of${profile.isOwner ? "" : `?member=${encodeURIComponent(profile.memberId)}`}`, { credentials: "include", cache: "no-store" });
-      if (!response.ok) return;
-      data = await response.json();
-    } catch { return; }
-    const text = line(data);
-    document.querySelector(".profile-friends-row")?.remove();
-    if (!text) return;
-    const row = document.createElement("a");
-    row.className = "profile-friends-row";
-    row.href = screenUrl(profile);
-    row.setAttribute("aria-label", `${text}. Open Friends`);
-    const faces = document.createElement("span");
-    faces.className = "profile-friends-faces"; faces.setAttribute("aria-hidden", "true");
-    const people = [...(data.friends || [])].sort((a, b) => Number(Boolean(b.picture)) - Number(Boolean(a.picture))).slice(0, 6);
-    for (const person of people) faces.append(face(person));
-    if (!people.length) faces.hidden = true;
-    const words = document.createElement("span");
-    words.className = "profile-friends-line"; words.textContent = text;
-    row.append(faces, words);
-    const anchor = document.querySelector("#profileContent .profile-actions:not(.profile-locked-friend)") || document.querySelector(".profile-actions");
-    if (anchor) anchor.before(row);
-    else document.getElementById("profileHandle")?.after(row);
+    const data = await friendsOf(profile);
+    document.querySelector(".profile-actions .profile-facepile")?.remove();
+    const text = data ? line(data) : "";
+    const people = [...(data?.friends || [])].sort((a, b) => Number(Boolean(b.mutual)) - Number(Boolean(a.mutual)) || Number(Boolean(b.picture)) - Number(Boolean(a.picture))).slice(0, 4);
+    if (!text || !people.length) return;
+    const actions = document.querySelector("#profileContent .profile-actions:not(.profile-locked-friend)") || document.querySelector(".profile-actions");
+    if (!actions) return;
+    const pile = document.createElement("a");
+    pile.className = "profile-facepile"; pile.href = screenUrl(profile);
+    pile.setAttribute("aria-label", text); pile.title = text;
+    pile.append(...people.map(face));
+    actions.append(pile);
   }
 
   // The profile's Friends tab opens the same Friends screen. Only real taps and Enter (trusted clicks): arrow keys

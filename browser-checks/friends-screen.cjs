@@ -43,14 +43,17 @@ function api(route, calls) {
       page.on("pageerror", error => errors.push(error.message));
       await page.route("https://api.danzstak.com/**", route => api(route, calls));
 
-      // Someone else's profile: "3 mutual friends" with their photos; the whole row opens the Friends screen.
+      // Someone else's profile: "3 mutual friends" as the facepile right of the action buttons (owner 2026-11-19);
+      // the pile opens the Friends screen.
       await page.goto(`${origin}/profile.html?member=${MARA}`, { waitUntil: "domcontentloaded" });
-      const row = page.locator(".profile-friends-row");
+      const row = page.locator(".profile-actions .profile-facepile");
       await row.waitFor();
-      assert.match(await row.innerText(), /3 mutual friends/);
+      assert.equal(await row.getAttribute("aria-label"), "3 mutual friends");
       assert.equal(await row.getAttribute("href"), `friends.html?member=${MARA}`);
-      assert.equal(await page.locator(".profile-friends-faces > *").count(), 5, "up to 6 small friend photos, initials when a photo is missing");
+      assert.equal(await row.locator(".profile-facepile-face").count(), 4, "up to 4 friend photos, mutual friends first, a letter when a photo is missing");
+      assert.equal(await row.locator(".profile-facepile-face img").count() + await row.locator(".profile-facepile-face:not(:has(img))").count(), 4);
       assert.equal(await page.locator('.profile-actions [data-icon="users"]').count(), 0, "no separate people button in the action row");
+      assert.equal(await page.locator(".profile-friends-row").count(), 0, "no second row of friends under the name");
       assert.ok((await row.boundingBox()).height >= 44);
       await page.screenshot({ path: path.join(output, `profile-visitor-${width}.png`) });
       await page.locator('[data-profile-tab="Friends"]').click();

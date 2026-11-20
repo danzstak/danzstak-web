@@ -93,6 +93,7 @@ jobs:
           .\scripts\run-checks.ps1 -Checks @(
             '.\browser-checks\call-video-two-party.cjs'
             '.\browser-checks\call-note.cjs'
+            '.\browser-checks\sync-call-screen-ui.cjs'
             '.\browser-checks\call-audio-output.cjs'
             '.\browser-checks\foreground-call-ringtone.cjs'
             '.\browser-checks\ringer-loudness.cjs'
@@ -224,10 +225,13 @@ jobs:
             '.\browser-checks\roll-empty.cjs'
             '.\browser-checks\profile-picture-links.cjs'
             '.\browser-checks\profile-showcase-fit.cjs'
+            '.\browser-checks\image-position.cjs'
             '.\browser-checks\sync-own-app.cjs'
             '.\browser-checks\sync-standalone.cjs'
             '.\browser-checks\sync-phone-setup.cjs'
             '.\browser-checks\device-reminder.cjs'
+            '.\browser-checks\incoming-call-everywhere.cjs'
+            '.\browser-checks\profile-facepile.cjs'
           )
       - name: Stop static review server
         if: always()

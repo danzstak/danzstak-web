@@ -50,7 +50,7 @@ for (const [file, expected] of [
   ["epk.html", "assets/mobile-design-system.css?v=22"],
   ["profile.html", "assets/mobile-design-system.css?v=22"],
   ["record-stores.html", "assets/mobile-design-system.css?v=22"],
-  ["feed.html", "assets/feed-enhancements.css?v=529"],
+  ["feed.html", "assets/feed-enhancements.css?v=531"],
   ["feed.html", "assets/pwa.js?v=435"],
   ["messages.html", "assets/pwa.js?v=435"],
   ["profile.html", "assets/pwa.js?v=435"],
@@ -59,23 +59,23 @@ for (const [file, expected] of [
   ["feed.html", "assets/identity-media.js?v=2"],
   ["messages.html", "assets/identity-media.js?v=2"],
   ["profile.html", "assets/identity-media.js?v=2"],
-  ["feed.html", "assets/feed-enhancements.js?v=593"],
+  ["feed.html", "assets/feed-enhancements.js?v=595"],
   ["feed.html", "assets/profile-onboarding.js?v=12"],
   ["feed.html", "assets/post-sharing.js?v=422"],
   ["feed.html", "assets/people-search.js?v=424"],
   ["feed.html", "assets/media-visibility.js?v=403"],
   ["messages.html", "assets/media-visibility.js?v=403"],
   ["profile.html", "assets/media-visibility.js?v=403"],
-  ["messages.html", "assets/chat.js?v=475"],
-  ["messages.html", "assets/chat.css?v=470"],
+  ["messages.html", "assets/chat.js?v=476"],
+  ["messages.html", "assets/chat.css?v=471"],
   ["messages.html", "assets/direct-messages.js?v=518"],
   ["profile.html", "assets/profile-sharing.js?v=419"],
   ["profile.html", "assets/profile-interactions.css?v=2"],
   ["profile.html", "assets/profile-interactions.js?v=2"],
-  ["profile.html", "assets/profile-editor.js?v=515"],
+  ["profile.html", "assets/profile-editor.js?v=518"],
   ["booking.html", "assets/booking-agent.js?v=505"],
   ["profile.html", "assets/post-sharing.js?v=422"],
-  ["profile.html", "assets/profile.js?v=421"]
+  ["profile.html", "assets/profile.js?v=422"]
 ]) {
   assert.ok(read(file).includes(expected), `${file} must reference ${expected}`);
 }
