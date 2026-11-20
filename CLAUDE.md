@@ -79,6 +79,18 @@ Owner: "Lots of mistakes I'm finding that we have gone through. Fix all these th
   - Restyle the screens on the UI kit when it lands.
   - Test both end to end in Stripe Test Mode.
   - Owner: the Auth API deploy in CloudShell.
+  - **The AI must read the whole career, not just the last few years** (owner 2026-11-20, after the first Eroticon draft: "You made it look like I been doing it for 3 years"; "The ai needs to check soundcloud and mixcloud and Bandcamp and a bunch of others"; "Google"; "Yes discogs").
+    - The first draft read only Apple Music, Deezer and Shazam, which list streaming singles from late 2023. Eroticon's real history starts in 1988 (CyborPunx, Seattle), with vinyl on Sleeping Dragon Records since 1996, all on Bandcamp and Discogs.
+    - Today `ai-epk.mjs` runs 6 Brave searches of the act name plus "review/interview/live/festival/release/bandcamp" and reads only the pages the artist confirms.
+    - **Add a source step that always looks in these places by name:**
+      - Bandcamp (`<name>.bandcamp.com` and search);
+      - **Discogs through its public API** (`api.discogs.com/database/search` → `/artists/{id}` and `/artists/{id}/releases`; the web pages refuse automated reads, the API works);
+      - SoundCloud, Mixcloud, Beatport, Resident Advisor, YouTube, Instagram, Facebook, ReverbNation, Apple Music, Spotify, Deezer;
+      - a general web search.
+    - Each source becomes a candidate on "Is this you?". Discogs gives the real name, so the artist can confirm it.
+    - The draft is written from the **oldest release to the newest**, and its first line says how long the act has been going.
+    - Check: a fixture act whose Discogs history starts in 1996 and whose streaming pages start in 2023 gets a bio that names the 1996 start.
+    - Owner's own EPK: Eroticon (`@eroticon`) has a private draft rebuilt from Bandcamp, Discogs, Apple Music, Deezer and Shazam (2026-11-20). Location is open: the draft says San Francisco, Bandcamp says Paris.
 - **F0. CI green on main first.** Since #625 every check counts. `browser-checks/call-audio-output.cjs`, `browser-checks/original-feed-art-direction.cjs`, `browser-checks/roll-fullscreen-sound.cjs` and `browser-checks/profile-onboarding-identity.cjs` time out in CI now and then (seen on docs-only PRs #632, #639, #644, #650). Fix the root cause or the stale check; never skip one.
 - **F1. Tap a photo or video → full screen.** The owner says it still doesn't work, because the viewer never merged. **#594 is green and ready.** Bring it up to date with main and merge it first, then check on the live app: Mix, Tribes, profile Posts, and the Photos/Videos tabs.
   - **Owner 2026-11-19 (phone, after the viewer went live):** "When I click on a video it goes full screen. It should be able to vertically swipe to see the rest of the videos in that profile." The same for photos. Opening full screen alone is **not** done: from a video, swiping up/down moves through **every video of that member**, and from a photo through **every photo of that member** (not only the ones already loaded on the page; fetch the member's media list). The check swipes up twice and down once on a real touch emulation at 360/390px, from Mix, the profile Posts tab and the Photos/Videos tabs, and asserts a different media item each time.
