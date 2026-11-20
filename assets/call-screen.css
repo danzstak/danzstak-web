@@ -1,12 +1,11 @@
 /* SYNC video call screen (fix-it "Call screen"). The other person fills the screen; your camera floats in a corner. */
-body[data-call-mode="video"]{--call-subtitle-band:0px;--call-pip-top:calc(88px + env(safe-area-inset-top,0px));--call-pip-bottom:calc(26px + 56px + 18px + env(safe-area-inset-bottom,0px) + var(--call-subtitle-band))}
+body[data-call-mode="video"]{--call-subtitle-band:0px;--call-pip-top:calc(88px + env(safe-area-inset-top,0px));--call-pip-bottom:calc(var(--call-panel-h) + 12px + var(--call-subtitle-band))}
 body[data-call-mode="video"][data-call-subtitles="on"]{--call-subtitle-band:clamp(84px,17dvh,140px)}
 /* Big video: edge to edge, framed slightly above centre (where faces are); ends above the subtitle band when it is on. */
 body[data-call-mode="video"] .video-grid{bottom:max(var(--call-subtitle-band),var(--call-note-band,0px))!important;transition:bottom .2s ease;height:auto!important;touch-action:manipulation}
 body[data-call-mode="video"] .video-grid video{max-height:none!important}/* chat.css capped call video at 440px tall */
 body[data-call-mode="video"] .video-grid #remoteVideo,body[data-call-mode="video"] .video-grid[data-swapped="1"] #localVideo{object-fit:cover;object-position:50% 35%}
 body[data-call-mode="video"] .video-grid[data-fit="contain"] #remoteVideo,body[data-call-mode="video"] .video-grid[data-fit="contain"][data-swapped="1"] #localVideo{object-fit:contain;object-position:50% 50%}
-body[data-call-mode="video"] .media-controls{bottom:calc(26px + env(safe-area-inset-bottom,0px) + var(--call-subtitle-band))!important}
 /* Small window: one of four corners, never over the call buttons. */
 body[data-call-mode="video"] .video-grid .local-video,body[data-call-mode="video"] .video-grid[data-swapped="1"]>figure:first-child{position:absolute!important;z-index:4;inset:auto!important;width:min(29vw,160px)!important;height:auto!important;aspect-ratio:3/4;overflow:hidden;border:2px solid #fff!important;border-radius:16px!important;box-shadow:0 10px 30px #0008;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:top .18s ease-out,bottom .18s ease-out,left .18s ease-out,right .18s ease-out}
 body[data-call-mode="video"] .video-grid[data-pip-corner="tl"] .local-video,body[data-call-mode="video"] .video-grid[data-pip-corner="tl"][data-swapped="1"]>figure:first-child{top:var(--call-pip-top)!important;left:14px!important}

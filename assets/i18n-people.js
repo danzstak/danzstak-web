@@ -4,6 +4,8 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"1 friend": "1 amico",
+"{count} friends": "{count} amici",
 "No phone number? Get a DS number": "Niente numero di telefono? Prendi un numero DS",
 "Verify this device for SYNC calls": "Verifica questo dispositivo per le chiamate SYNC",
 "Calls and voice messages need it. Texting already works.": "Serve per chiamate e messaggi vocali. I messaggi di testo funzionano già.",
@@ -125,6 +127,8 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"1 friend": "1 ami",
+"{count} friends": "{count} amis",
 "No phone number? Get a DS number": "Pas de numéro de téléphone ? Prends un numéro DS",
 "Verify this device for SYNC calls": "Vérifie cet appareil pour les appels SYNC",
 "Calls and voice messages need it. Texting already works.": "Il le faut pour les appels et messages vocaux. Les messages texte marchent déjà.",
@@ -246,6 +250,8 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"1 friend": "1 amigo",
+"{count} friends": "{count} amigos",
 "No phone number? Get a DS number": "¿Sin número de teléfono? Consigue un número DS",
 "Verify this device for SYNC calls": "Verifica este dispositivo para las llamadas de SYNC",
 "Calls and voice messages need it. Texting already works.": "Hace falta para llamadas y mensajes de voz. Los mensajes de texto ya funcionan.",

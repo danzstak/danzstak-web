@@ -241,7 +241,9 @@ foreach ($backgroundCallControl in @('window.openMessageDrawer(event.senderEmail
 foreach ($callBehavior in @('setCallMode(kind)', 'showCallConversation()', 'setCallMode("")')) {
   if (-not $chatScript.Contains($callBehavior)) { Add-Failure "Calls: missing call layout state behavior: $callBehavior" }
 }
-foreach ($callLayout in @('body[data-call-mode="phone"] .video-grid', 'body[data-call-mode="phone"] #toggleCamera', 'body[data-call-mode="video"] .video-grid', '.receiver-hangup[hidden]')) {
+# F15k: the camera button stays in the call panel (disabled on voice calls), so the panel keeps its 2x3 grid; checked by
+# browser-checks/sync-call-screen-ui.cjs.
+foreach ($callLayout in @('body[data-call-mode="phone"] .video-grid', 'body[data-call-mode="video"] .video-grid', '.receiver-hangup[hidden]')) {
   if (-not $chatStyles.Contains($callLayout)) { Add-Failure "Calls: missing phone/video layout rule: $callLayout" }
 }
 foreach ($relationshipStatus in @('relationship=document.createElement("span")', 'relationship.className="connection-status"', 'relationship.setAttribute("role","status")')) {
