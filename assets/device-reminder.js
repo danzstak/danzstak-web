@@ -8,7 +8,8 @@
 (() => {
   const DB_NAME = "danzstak-call-device", STORE = "credentials", SEEN_KEY = "danzstak_device_reminder_seen", AGAIN_MS = 3 * 24 * 60 * 60 * 1000;
   const t = value => window.danzstakTranslate?.(value) || value;
-  const valid = item => Boolean(item && typeof item.deviceId === "string" && item.deviceId && typeof item.deviceToken === "string" && item.deviceToken);
+  // The same rule as call-devices.js, so both agree on what counts as this device's SYNC credential.
+  const valid = item => Boolean(item && /^[a-f0-9-]{36}$/.test(String(item.deviceId || "")) && /^[A-Za-z0-9_-]{43}$/.test(String(item.deviceToken || "")));
 
   function hasCredential() {
     if (!window.indexedDB) return Promise.resolve(false);
