@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-wQ6RJJuR+6oltkepVaGNTxtJ103oKmxjKUm4MOxw2AI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-yUvQfqo6SlA6q6CvgOKV2MHTUgS8g/CJe6052fL3qwI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -349,7 +349,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=8" defer></script>
 <script src="assets/i18n-events.js?v=2" defer></script>
-<script src="assets/i18n-people.js?v=24" defer></script>
+<script src="assets/i18n-people.js?v=25" defer></script>
 <script src="assets/time-label.js?v=1"></script>
 <script src="assets/i18n-music.js?v=17" defer></script>
 <script src="assets/i18n.js?v=410" defer></script>
@@ -1068,15 +1068,30 @@ async function openStoryViewer(story, { updateHistory = true, sequence = null } 
       if (event.key === "ArrowRight" && storyViewerStep(1)) event.preventDefault();
       if (event.key === "ArrowLeft" && storyViewerStep(-1)) event.preventDefault();
     });
-    let swipeStart = null, lastSwipeAt = 0;
+    // Owner 2026-11-19: "lost the horizontal swipe in dailies". On a phone the browser can claim part of a swipe (a slightly
+    // diagonal one, or pull-to-refresh) and send pointercancel, which dropped the swipe; touchend still arrives, so the swipe
+    // is read from whichever ends it, once.
+    let swipeStart = null, touchStart = null, lastSwipeAt = 0;
+    const swiped = (dx, dy) => {
+      if (Math.abs(dx) < 48 || Math.abs(dx) <= Math.abs(dy) * 1.5 || Date.now() - lastSwipeAt < 350) return;
+      lastSwipeAt = Date.now(); storyViewerStep(dx < 0 ? 1 : -1);
+    };
     viewer.addEventListener("pointerdown", event => { swipeStart = { x: event.clientX, y: event.clientY }; });
     viewer.addEventListener("pointerup", event => {
       if (!swipeStart) return;
       const dx = event.clientX - swipeStart.x, dy = event.clientY - swipeStart.y;
       swipeStart = null;
-      if (Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.5) { lastSwipeAt = Date.now(); storyViewerStep(dx < 0 ? 1 : -1); }
+      swiped(dx, dy);
     });
     viewer.addEventListener("pointercancel", () => { swipeStart = null; });
+    viewer.addEventListener("touchstart", event => { const touch = event.touches[0]; touchStart = touch ? { x: touch.clientX, y: touch.clientY } : null; }, { passive: true });
+    viewer.addEventListener("touchend", event => {
+      const touch = event.changedTouches[0];
+      if (!touchStart || !touch) return;
+      const dx = touch.clientX - touchStart.x, dy = touch.clientY - touchStart.y;
+      touchStart = null;
+      swiped(dx, dy);
+    }, { passive: true });
     // A swipe that ends on the dark backdrop is not a tap to close.
     viewer.addEventListener("click", event => { if (event.target === viewer && Date.now() - lastSwipeAt > 400) closeStoryViewer(); });
     viewer.addEventListener("cancel", event => { event.preventDefault(); closeStoryViewer(); });
@@ -1909,7 +1924,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/call-devices.js?v=17" defer></script>
 <script src="assets/push-notifications.js?v=310" defer></script>
 <script src="assets/media-scale.js?v=1" defer></script>
-<script src="assets/icon-buttons.js?v=16" defer></script>
+<script src="assets/icon-buttons.js?v=17" defer></script>
 <script src="assets/facebook-import.js?v=343" defer></script>
 <script src="assets/pivot.js?v=6" defer></script>
 <script src="assets/device-settings.js?v=233" defer></script>
@@ -1922,7 +1937,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/tribes-art.js?v=1" defer></script>
 <script src="assets/tribe-create.js?v=1" defer></script>
 <script src="assets/device-reminder.js?v=2" defer></script>
-<script src="assets/feed-enhancements.js?v=594" defer></script>
+<script src="assets/feed-enhancements.js?v=595" defer></script>
 <script src="assets/profile-onboarding.js?v=12" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/call-setup.js?v=3" defer></script>
@@ -1942,7 +1957,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <footer class="site-ownership">&copy; 2026 DanzStak LLC. All rights reserved.<br>User content belongs to its creators.</footer>
 <script src="assets/media-visibility.js?v=403" defer></script>
 <script src="assets/media-actions.js?v=1" defer></script>
-<script src="assets/media-viewer.js?v=5" defer></script>
+<script src="assets/media-viewer.js?v=6" defer></script>
 <script src="assets/responsive-media.js?v=3" defer></script>
 <script src="assets/media-fit.js?v=3" defer></script>
 <script src="assets/link-preview-cards.js?v=4" defer></script>

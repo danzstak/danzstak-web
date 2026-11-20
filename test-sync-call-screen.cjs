@@ -14,7 +14,7 @@ assert.match(css, /\.video-grid\{bottom:max\(var\(--call-subtitle-band\),var\(--
 assert.match(js, /HOLD_MS = 300/, "long-press about 300 ms");
 assert.match(js, /if \(start\.touch && distance > 10\) \{ clearTimeout\(holdTimer\); start = null; return; \}/, "a swipe is not a long-press");
 assert.match(js, /localStorage\.setItem\(KEY, next\)/, "the corner is remembered on this device");
-assert.match(css, /--call-pip-bottom:calc\(26px \+ 56px \+ 18px \+ env\(safe-area-inset-bottom,0px\) \+ var\(--call-subtitle-band\)\)/, "bottom corners sit above the call buttons");
+assert.match(css, /--call-pip-bottom:calc\(var\(--call-panel-h\) \+ 12px \+ var\(--call-subtitle-band\)\)/, "bottom corners sit above the call panel (F15k: its real height, measured by sync-call-ui.js)");
 assert.match(html, /<script src="assets\/call-screen\.js\?v=\d+" defer><\/script>/);
 assert.match(html, /<link rel="stylesheet" href="assets\/call-screen\.css\?v=\d+">/);
 assert.ok(worker.includes('"/assets/call-screen.js"') && worker.includes('"/assets/call-screen.css"'));

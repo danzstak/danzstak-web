@@ -268,6 +268,9 @@
     };
     root.addEventListener("pointerup", finish);
     root.addEventListener("pointercancel", finish);
+    // The viewer does its own swiping: the browser must not start a scroll or fling from it, or the next tap (✕ right
+    // after a quick flick) only stops that fling and never clicks. The comments sheet keeps its own scrolling.
+    root.addEventListener("touchmove", event => { if (!event.target.closest?.(".ds-comment-sheet")) event.preventDefault(); }, { passive: false });
     root.addEventListener("wheel", event => {
       event.preventDefault();
       const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
