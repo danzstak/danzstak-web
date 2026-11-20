@@ -79,6 +79,11 @@ Owner, 2026-11-20: "I have been around the world many times from music. And nobo
   - **Where the artist has lived and worked in music** (residencies, base cities, labels registered abroad), from
     bios, interviews, label and company records and release credits. The bio tells the story country by country, in
     time order, and the EPK shows "Based in" and "Lived and worked in".
+  - **Sound-system crews and scene connections.** Owner, 2026-11-20: "Spiral Tribe, Kamikaze crew, a lot of stuff."
+    Free-party and teknival crews (Spiral Tribe, Kamikaze, Desert Storm, Heretik, Teknokrates and the many others)
+    rarely publish lineups by act. The AI searches crew histories, books, documentaries, flyer archives, forums and
+    photo captions for every name the artist has used, and writes which crews the artist played with or was part of,
+    where and when. A connection appears only with a source.
 
 ## 2b. Understands sound systems and what the artist plays on
 Owner, 2026-11-20: "Needs to … understand soundsystems and what the artist expects."
@@ -140,6 +145,7 @@ Fixtures are recorded page/API responses. No live network calls run in CI.
     - names the 1988 and 1996 start;
     - calls 1988 the first recordings, never the start of the career;
     - names the Love Parades and every country Eroticon has lived in doing music, each with a source;
+    - names his sound-system crews (Spiral Tribe, Kamikaze and the others his pages and the scene's archives show);
     - is in oldest-to-newest order.
   - **Releases:**
     - all 10 Bandcamp releases and all 6 Discogs releases appear;
