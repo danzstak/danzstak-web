@@ -59,6 +59,17 @@ Owner, 2026-11-20: "they will all be in different languages."
 - **Live and video:** the act's own YouTube channel, live sets and music videos. A video from someone else's channel
   counts only once the artist ticks it.
 
+## 1a. Search the real name too
+Owner, 2026-11-20: "look at Shawn Finkelstein and Shmuel Finkelstein for trademarks and many other things."
+- Every legal and given name (and its spellings and transliterations) is searched like an act name, plus:
+  trademark registers (USPTO, EUIPO, WIPO, INPI France, DPMA Germany, UKIPO), company and label registries
+  (Paris/INPI, Companies House, US state registries), credits as writer/producer/engineer, music-rights societies
+  (ASCAP, BMI, SACEM, GEMA, PRS), crowdfunding and maker profiles, and press.
+- Trademarks and companies the artist owns (labels, brands, sound systems, events) appear on the EPK as "Labels and
+  brands", each with the register entry as its source. Many profile sites (LinkedIn, Crunchbase, some music
+  networks) refuse automated reads; the AI then uses their public search snippets as leads and confirms them
+  elsewhere, never quoting a page it couldn't read.
+
 ## 2a. The whole touring history
 Owner, 2026-11-20: "I have been around the world many times from music. And nobody knows."
 - An EPK's job is to make that known. The AI builds a **past shows** list from every source, for every name:
