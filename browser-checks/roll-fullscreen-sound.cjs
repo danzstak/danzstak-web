@@ -126,6 +126,12 @@ async function openFeed(browser, clip, width, height) {
       let state = await rollState(page);
       assert.equal(state.full, true, `${label}: tapping the tile must open The Roll full screen`);
       assert.equal(state.audible, 1, `${label}: sound turned on in the strip must carry into full screen: ${JSON.stringify(state)}`);
+      // Owner 2026-11-19: "every 3rd video the sound goes off in the roll". Mix reloading its posts (a phone does it after
+      // its connection comes back) rebuilt The Roll and stopped the playing video; it must keep playing with its sound.
+      await page.evaluate(() => { window.__rollVideo = [...document.querySelectorAll("video.reel-player")].find(video => !video.paused); window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts || [] } })); });
+      await page.waitForTimeout(800);
+      const kept = await page.evaluate(() => ({ playing: Boolean(window.__rollVideo?.isConnected && !window.__rollVideo.paused), muted: window.__rollVideo?.muted }));
+      assert.deepEqual(kept, { playing: true, muted: false }, `${label}: Mix reloading its posts must not stop or mute the playing Roll video`);
       assert.equal(state.toggle, "Mute video", `${label}: the full-screen speaker must show sound on`);
       const geometry = await page.evaluate(() => {
         const rail = document.querySelector(".reels-rail.roll-fullscreen");
