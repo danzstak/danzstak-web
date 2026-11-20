@@ -194,12 +194,12 @@ async function loadFacepile() {
   try {
     const response = await profileFetch(profileApi + "/friends", { credentials: "include", cache: "no-store" });
     if (!response.ok) return;
-    const friends = ((await response.json()).friends || []).filter(friend => friend && (friend.name || friend.email));
+    const friends = ((await response.json()).friends || []).filter(Boolean);
     if (!friends.length) return;
     facepile.replaceChildren(...friends.slice(0, 4).map(friend => {
       const face = document.createElement("span"); face.className = "profile-facepile-face";
       if (friend.picture) { const image = document.createElement("img"); image.src = friend.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; face.append(image); }
-      else face.textContent = String(friend.name || friend.email).trim().charAt(0).toUpperCase();
+      else face.textContent = String(friend.name || "").trim().charAt(0).toUpperCase() || "•"; // never from an email (privacy)
       return face;
     }));
     const label = profileTranslate(friends.length === 1 ? "1 friend" : "{count} friends").replace("{count}", String(friends.length));
