@@ -17,6 +17,14 @@
   const when = (iso, timeZone) => { const d = new Date(iso); if (Number.isNaN(d.valueOf())) return ""; try { return new Intl.DateTimeFormat(locale(), { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", ...(timeZone ? { timeZone } : {}) }).format(d); } catch { return d.toLocaleString(); } };
   const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids.filter(k => k !== null && k !== undefined && k !== false)); return n; };
   const value = text => el("span", { className: "ev-value", textContent: text }); // member data: never translated
+  const longDate = local => { const d = new Date(local); if (!local || Number.isNaN(d.valueOf())) return ""; try { return new Intl.DateTimeFormat(locale(), { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" }).format(d); } catch { return d.toLocaleString(); } };
+  // Fix-it 18 (owner 2026-11-17): the composer is its own screen. Device Back closes it (the draft stays) instead of
+  // re-rendering the Events page underneath. feed-enhancements' route restore asks this first.
+  let closeCreatorScreen = null;
+  function closeCreatorFromHistory() {
+    if (!closeCreatorScreen || history.state?.danzstakEventCreator === true) return false;
+    return closeCreatorScreen({ fromHistory: true });
+  }
 
   // ---------- My tickets: saved on this device when the buyer opens their order, readable offline ----------
   function readTickets(now = Date.now()) {
@@ -162,7 +170,11 @@
     // Fan side: search + My tickets + tonight.
     const searchInput = el("input", { type: "search", className: "ev-search-input", placeholder: "Night, artist, venue or city", autocomplete: "off" });
     searchInput.setAttribute("aria-label", "Search nights");
-    const searchForm = el("form", { className: "ev-search", role: "search" }, searchInput);
+    // + opens the composer screen (familiar "new" control next to search, accessible name kept).
+    const addButton = el("button", { type: "button", className: "ev-add" });
+    addButton.setAttribute("aria-label", "Post an event");
+    addButton.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" fill="none"/></svg>';
+    const searchForm = el("form", { className: "ev-search", role: "search" }, searchInput, addButton);
     const results = el("div", { className: "ev-results", hidden: true });
     searchForm.addEventListener("submit", e => { e.preventDefault(); showResults(); });
     searchInput.addEventListener("input", () => showResults());
@@ -189,11 +201,41 @@
       el("li", {}, el("strong", { textContent: "Your crowd sees it." }), " ", el("span", { textContent: "Your night goes in Mix and Events." })));
     const openCreator = el("button", { type: "button", className: "ev-primary", textContent: "Make your poster" });
     const promo = el("section", { className: "ev-block ev-promo" }, el("p", { className: "ev-eyebrow", textContent: "For promoters" }), el("h2", { className: "ev-display", textContent: "Sell tickets to your night" }), perks, openCreator);
-    const creatorHost = el("div", { className: "ev-creator-host", hidden: true });
+    const creatorHost = el("div", { className: "ev-creator-host" });
     const yours = el("section", { className: "ev-block ev-yours", hidden: true });
-    openCreator.addEventListener("click", () => { creatorHost.hidden = false; openCreator.hidden = true; if (!creatorHost.firstChild) creatorHost.append(creator()); creatorHost.querySelector(".ev-drop")?.focus(); });
+    // The composer screen: full screen on phones, a centred sheet on computers. Closing keeps the draft.
+    const closeButton = el("button", { type: "button", className: "ev-screen-close" });
+    closeButton.setAttribute("aria-label", "Close");
+    closeButton.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" fill="none"/></svg>';
+    const screenTitle = el("h2", { className: "ev-screen-title", id: "evCreatorTitle", textContent: "New event" });
+    const screenBody = el("div", { className: "ev-screen-body" }, creatorHost);
+    const screen = el("div", { className: "ev-creator-screen", role: "dialog", hidden: true }, el("header", { className: "ev-screen-bar" }, closeButton, screenTitle), screenBody);
+    screen.setAttribute("aria-modal", "true"); screen.setAttribute("aria-labelledby", "evCreatorTitle");
+    let opener = null;
+    function openScreen(from) {
+      if (!creatorHost.firstChild) creatorHost.append(creator());
+      opener = from || null;
+      screen.hidden = false; document.body.classList.add("ev-creator-open");
+      screenBody.append(status);
+      if (history.state?.danzstakEventCreator !== true) history.pushState({ ...(history.state && typeof history.state === "object" ? history.state : {}), danzstakEventCreator: true }, "");
+      closeCreatorScreen = closeScreen;
+      requestAnimationFrame(() => (creatorHost.querySelector(".ev-drop") || closeButton).focus({ preventScroll: true }));
+    }
+    function closeScreen({ fromHistory = false } = {}) {
+      if (screen.hidden) return false;
+      if (!fromHistory && history.state?.danzstakEventCreator === true) { history.back(); return true; } // popstate closes it
+      screen.hidden = true; document.body.classList.remove("ev-creator-open");
+      host.insertBefore(status, screen);
+      if (closeCreatorScreen === closeScreen) closeCreatorScreen = null;
+      opener?.focus?.({ preventScroll: true });
+      return true;
+    }
+    openCreator.addEventListener("click", () => openScreen(openCreator));
+    addButton.addEventListener("click", () => openScreen(addButton));
+    closeButton.addEventListener("click", () => closeScreen());
+    screen.addEventListener("keydown", e => { if (e.key === "Escape") { e.preventDefault(); closeScreen(); } });
 
-    host.append(searchForm, results, myTickets, tonight, promo, creatorHost, yours, status);
+    host.append(searchForm, results, myTickets, tonight, promo, yours, status, screen);
 
     // Load upcoming nights (public) and the promoter's own nights (signed in).
     (async () => {
@@ -283,7 +325,10 @@
       // One question at a time.
       const field = (label, input) => el("label", { className: "ev-field" }, el("span", { className: "ev-label", textContent: label }), input);
       const titleIn = el("input", { type: "text", maxLength: 140, placeholder: "e.g. Basement Frequencies", autocomplete: "off" });
-      const startsIn = el("input", { type: "datetime-local" });
+      const startsIn = el("input", { type: "datetime-local", lang: locale() || "" });
+      // The picker's own format follows the browser; the line under it reads the date in the member's language.
+      const startsRead = el("p", { className: "ev-date-read ev-value" });
+      startsRead.setAttribute("aria-live", "polite");
       const venueIn = el("input", { type: "text", maxLength: 160, placeholder: "Club or space", autocomplete: "off" });
       const addressIn = el("input", { type: "text", maxLength: 300, placeholder: "Street, city (optional)", autocomplete: "off" });
       const priceIn = el("input", { type: "text", inputMode: "decimal", placeholder: "15.00", autocomplete: "off" });
@@ -292,7 +337,7 @@
       const lineupIn = el("textarea", { rows: 4, maxLength: 3000, placeholder: "Headliner\nSupport\nDJ" });
       const panels = [
         [field("Name of the night", titleIn)],
-        [field("Doors open", startsIn)],
+        [field("Doors open", startsIn), startsRead],
         [field("Venue", venueIn), field("Address", addressIn)],
         [field("Price per ticket (USD)", priceIn), payout, el("label", { className: "ev-check" }, freeIn, el("span", { textContent: "Free entry, or tickets sold somewhere else" }))],
         [field("Lineup", lineupIn)]
@@ -311,6 +356,8 @@
       const bind = (input, key, transform = v => v) => input.addEventListener("input", () => { draft[key] = transform(input.value); refreshPoster(); });
       bind(titleIn, "title"); bind(startsIn, "startsLocal"); bind(venueIn, "venue"); bind(addressIn, "address"); bind(priceIn, "price"); bind(lineupIn, "lineup");
       startsIn.addEventListener("change", () => { draft.startsLocal = startsIn.value; refreshPoster(); });
+      const readDate = () => { startsRead.textContent = longDate(startsIn.value); };
+      startsIn.addEventListener("input", readDate); startsIn.addEventListener("change", readDate);
       freeIn.addEventListener("change", () => { draft.sellTickets = !freeIn.checked; stubsWrap.hidden = !draft.sellTickets; refreshPoster(); });
 
       // More options: ticket stubs (sections), named tickets, delivery, outside link, end time, audience.
@@ -395,7 +442,9 @@
         if (!result.ok) { status.textContent = result.message; return; }
         status.replaceChildren(el("span", { textContent: "Your night is live." }), " ", el("a", { href: `event.html?id=${encodeURIComponent(result.eventId)}`, textContent: "Open the event page" }));
         if (typeof window.loadPosts === "function") window.loadPosts().catch?.(() => {});
-        creatorHost.replaceChildren(); creatorHost.hidden = true; openCreator.hidden = false;
+        // Close the screen (its Back entry is consumed first), then show the success line on the Events page.
+        const done = status.cloneNode(true);
+        closeScreen(); creatorHost.replaceChildren(); status.replaceChildren(...done.childNodes);
       });
 
       refreshPoster();
@@ -405,5 +454,5 @@
     }
   }
 
-  window.danzstakEvents = Object.freeze({ render, readTickets, saveTickets, search, tonightAndWeekend, newDraft, validate, publish, parsePrice, buyerFees });
+  window.danzstakEvents = Object.freeze({ render, closeCreatorFromHistory, longDate, readTickets, saveTickets, search, tonightAndWeekend, newDraft, validate, publish, parsePrice, buyerFees });
 })();

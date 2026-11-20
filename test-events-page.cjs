@@ -90,6 +90,33 @@ for (const token of ["#0b0b0c", "#ededea", "#ff5a1f", "Archivo", "JetBrains Mono
 assert.match(css, /\.ev-skin :is\(button,input,select,textarea,summary\)\{min-height:44px/, "44px touch targets");
 assert.doesNotMatch(css, /border-radius:(?!0)[1-9]/, "square edges in the creator skin");
 
+// Fix-it 18 (owner 2026-11-17): the composer is not printed on the Events page. A + next to search (and
+// "Make your poster") opens it as its own screen; device Back closes it and keeps the draft; the date reads back
+// in the member's language under the picker.
+assert.match(page, /className: "ev-add"[\s\S]*?"aria-label", "Post an event"/, "+ button with an accessible name");
+assert.match(page, /el\("form", \{ className: "ev-search", role: "search" \}, searchInput, addButton\)/, "+ sits beside search");
+assert.match(page, /className: "ev-creator-screen", role: "dialog", hidden: true/, "the composer is its own screen, closed at first");
+assert.match(page, /host\.append\(searchForm, results, myTickets, tonight, promo, yours, status, screen\)/, "no composer printed inline on the page");
+assert.match(page, /danzstakEventCreator: true/, "opening the composer adds a history entry");
+assert.match(page, /if \(!fromHistory && history\.state\?\.danzstakEventCreator === true\) \{ history\.back\(\); return true; \}/, "close goes back through history");
+assert.doesNotMatch(page, /creatorHost\.replaceChildren\(\); creatorHost\.hidden = true/, "closing never throws the draft away");
+assert.match(enhancements, /function restoreWorkspaceRoute\(\) \{\r?\n  \/\/ Back from the Events composer[^\n]*\r?\n  if \(globalThis\.danzstakEvents\?\.closeCreatorFromHistory\?\.\(\)\) return;/, "Back closes the composer before the Events page re-renders");
+assert.match(page, /\[field\("Doors open", startsIn\), startsRead\]/, "the date reads back under the picker");
+assert.match(css, /\.ev-add\{[^}]*width:44px;height:44px/, "44px + button");
+assert.match(css, /\.ev-creator-screen\{position:fixed;inset:0;z-index:10050/, "full screen on phones");
+assert.match(css, /\.ev-screen-close\{[^}]*width:44px;height:44px/, "44px close");
+{
+  // Behaviour: the Back hook only closes when the creator's history entry was popped.
+  const hist = { state: null };
+  const hb = { window: {}, document: { documentElement: { lang: "it" } }, localStorage, console, URL, history: hist };
+  vm.runInNewContext(read("assets/events-page.js"), hb);
+  assert.equal(hb.window.danzstakEvents.closeCreatorFromHistory(), false, "nothing open: route restore runs as before");
+  const read1 = hb.window.danzstakEvents.longDate("2027-02-06T21:30");
+  assert.match(read1, /2027/, "long date includes the year");
+  assert.match(read1, /febbraio/i, "the date reads in the member's language (Italian)");
+  assert.equal(hb.window.danzstakEvents.longDate(""), "", "no date, no line");
+}
+
 // Every new word has it/fr/es.
 const tsandbox = { window: {} };
 vm.runInNewContext(read("assets/i18n-events.js"), tsandbox);

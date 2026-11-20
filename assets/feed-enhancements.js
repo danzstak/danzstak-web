@@ -2596,6 +2596,8 @@ document.querySelector('[data-route="home"]')?.addEventListener("click", () => {
 document.getElementById("messagesNav")?.addEventListener("click", () => activateMobileScreen("chat"), { capture: true });
 
 function restoreWorkspaceRoute() {
+  // Back from the Events composer screen closes it and keeps the draft (fix-it 18).
+  if (globalThis.danzstakEvents?.closeCreatorFromHistory?.()) return;
   if (matchMedia("(max-width: 700px)").matches && history.state?.danzstakMenuOpen === true) {
     if (!document.body.classList.contains("mobile-menu-open")) setMobileMenu(true, { updateHistory: false, fromHistory: true });
     return;

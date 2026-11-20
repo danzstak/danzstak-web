@@ -54,7 +54,7 @@ function fixture(pathname, method) {
       await page.route(`${baseUrl}/__upload`, route => route.fulfill({ status: 200, body: "" }));
       // Screen-sized captures scrolled to each section: what a phone shows, with the real top bar and tabs.
       const shot = async (name, locator) => {
-        if (![320, 390, 1366].includes(width)) return;
+        if (![320, 360, 390, 1366].includes(width)) return;
         if (locator) await locator.evaluate(node => { node.scrollIntoView({ block: "start" }); scrollBy(0, -70); });
         await page.waitForTimeout(150);
         for (let attempt = 1; ; attempt++) {
@@ -89,12 +89,39 @@ function fixture(pathname, method) {
       await page.locator(".ev-search-input").fill("");
       assert.match(await page.locator(".ev-own").first().innerText(), /23\/60[\s\S]*tickets sold/, "promoter sees sales so far");
 
+      // Fix-it 18: nothing of the composer is printed on the page; + beside search opens it as its own screen.
+      assert.equal(await page.locator(".ev-creator-screen").isHidden(), true, "composer closed on arrival");
+      assert.equal(await page.locator(".ev-skin input[type=file]:visible, .ev-skin input[type=datetime-local]:visible").count(), 0, "no form fields printed on Events");
+      const add = page.getByRole("button", { name: "Post an event" });
+      const addBox = await add.boundingBox();
+      assert.ok(addBox.width >= 44 && addBox.height >= 44, `${width}px + is a 44px target`);
+      const historyBefore = await page.evaluate(() => history.length);
+      await add.click();
+      const screenBox = await page.locator(".ev-creator-screen").boundingBox();
+      if (width < 760) assert.deepEqual([screenBox.x, screenBox.y, Math.round(screenBox.width)], [0, 0, width], `${width}px composer fills the screen`);
+      assert.equal(await page.locator(".ev-screen-title").innerText(), "NEW EVENT");
+      await shot("composer-open", null);
+      // Device Back closes the screen and the draft survives.
+      await page.locator(".ev-file").setInputFiles(path.resolve("assets/danzstak-share-fb-v2.jpg"));
+      await page.locator(".ev-poster-media img").waitFor();
+      await page.locator(".ev-step:not([hidden]) input").fill("Back Test Night");
+      await page.goBack();
+      await page.locator(".ev-creator-screen").waitFor({ state: "hidden" });
+      assert.equal(await page.locator(".ev-skin .ev-night").count() > 0, true, "Back lands on the Events list, not Mix");
+      assert.match(page.url(), /feed\.html\?view=events$/, "Back stays on Events");
+      // Close (the ✕/back arrow) behaves the same.
+      await add.click();
+      assert.equal(await page.locator(".ev-step:not([hidden]) input").inputValue(), "Back Test Night", "the draft is kept after Back");
+      await page.getByRole("button", { name: "Close" }).click();
+      await page.locator(".ev-creator-screen").waitFor({ state: "hidden" });
+      assert.equal(await page.evaluate(() => history.length), historyBefore + 1, "closing does not stack history entries");
+
       // Promoter: pitch, then the flyer-first creator.
       await page.locator(".ev-promo").scrollIntoViewIfNeeded();
       await shot("promoter-pitch", page.locator(".ev-promo"));
       await page.getByRole("button", { name: "Make your poster" }).click();
-      assert.equal(await page.locator(".ev-step:not([hidden])").count(), 0, "questions wait for the flyer");
-      await page.locator(".ev-file").setInputFiles(path.resolve("assets/danzstak-share-fb-v2.jpg"));
+      await page.locator(".ev-creator-screen").waitFor({ state: "visible" });
+      await page.locator(".ev-step:not([hidden]) input").fill("");
       await page.locator(".ev-poster-media img").waitFor();
       await shot("creator-flyer", page.locator(".ev-creator"));
       assert.equal(await page.locator(".ev-step:not([hidden])").count(), 1, "one question at a time");
@@ -102,6 +129,8 @@ function fixture(pathname, method) {
       assert.equal(await page.locator(".ev-poster-title").innerText(), "BASEMENT FREQUENCIES", "the poster fills in as they type");
       await page.getByRole("button", { name: "Next" }).click();
       await page.locator(".ev-step:not([hidden]) input").fill("2027-02-06T22:00");
+      assert.match(await page.locator(".ev-date-read").innerText(), /Saturday, February 6, 2027/, "the date reads back in words");
+      await shot("composer-date", null);
       await page.getByRole("button", { name: "Next" }).click();
       const venueInputs = page.locator(".ev-step:not([hidden]) input");
       await venueInputs.nth(0).fill("The Pit"); await venueInputs.nth(1).fill("1 Main St, Oakland");
@@ -126,6 +155,9 @@ function fixture(pathname, method) {
       await page.locator(".ev-finish input[type=checkbox]").check();
       await page.getByRole("button", { name: "Publish event" }).click();
       await page.locator(".ev-status").filter({ hasText: "Your night is live." }).waitFor({ timeout: 15000 }).catch(async error => { throw new Error(`${width}px publish did not finish: ${await page.locator(".ev-status").textContent()} / posted ${posted.join(",")}`); });
+      await page.locator(".ev-creator-screen").waitFor({ state: "hidden" });
+      assert.equal(await page.locator(".ev-skin > .ev-status").innerText().then(t => /Your night is live\./.test(t)), true, "success shows on the Events page after the screen closes");
+      await shot("composer-published", page.locator(".ev-skin > .ev-status"));
       assert.deepEqual(posted.filter(p => /stories|marketplace|secure-posts/.test(p)), ["/stories", "/marketplace/events", "/marketplace/events/99999999-9999-4999-8999-999999999999/tiers", "/marketplace/events/99999999-9999-4999-8999-999999999999/tiers", "/secure-posts"], `${width}px publish sequence`);
 
       // Public event page: poster, ticket stubs with Buy, lineup, map link.
