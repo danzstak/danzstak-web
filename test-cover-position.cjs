@@ -2,7 +2,7 @@
 // cover in place. Checks moveProfileCover(): zero coordinates survive, Cancel saves nothing, a failed save puts the cover
 // back, a cover is needed first, and a profile kept in this browser saves locally.
 const fs = require("node:fs"), vm = require("node:vm"), assert = require("node:assert/strict");
-const source = fs.readFileSync("assets/profile-editor.js", "utf8");
+const source = fs.readFileSync("assets/profile-editor.js", "utf8").replace(/\r\n/g, "\n"); // CRLF on Windows checkouts
 // The saving flag is declared just above; "var" here so the check can read it from the context. Positions built inside
 // the context are compared as plain JSON (another realm).
 assert.match(source, /let coverPositionSaving = false;\nconst readLocalProfileMedia/);
