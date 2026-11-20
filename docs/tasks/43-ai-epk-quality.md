@@ -70,6 +70,15 @@ Owner, 2026-11-20: "I have been around the world many times from music. And nobo
   standout rooms, festivals and cities; the booking pitch names the ones that matter to that venue.
 - A map/list section "Played in" on the EPK (countries and cities), each entry linked to its source.
 - No show is invented; a show with only a year is written with the year.
+- **Landmark events and where the artist has lived.** Owner, 2026-11-20: the draft "doesn't mention Love Parades or
+  all the countries I have lived in doing music."
+  - Landmark events by name: Love Parade (Berlin and its other cities), Street Parade, Fuckparade, Reclaim the
+    Streets, teknivals, Sónar, Awakenings, Dance Valley, Mayday and the like. They are often listed by truck, stage or
+    sound system rather than by act, so the AI searches lineups, truck/float lists and photo archives under every
+    name, in every language.
+  - **Where the artist has lived and worked in music** (residencies, base cities, labels registered abroad), from
+    bios, interviews, label and company records and release credits. The bio tells the story country by country, in
+    time order, and the EPK shows "Based in" and "Lived and worked in".
 
 ## 2b. Understands sound systems and what the artist plays on
 Owner, 2026-11-20: "Needs to … understand soundsystems and what the artist expects."
@@ -130,6 +139,7 @@ Fixtures are recorded page/API responses. No live network calls run in CI.
   - **Bio:**
     - names the 1988 and 1996 start;
     - calls 1988 the first recordings, never the start of the career;
+    - names the Love Parades and every country Eroticon has lived in doing music, each with a source;
     - is in oldest-to-newest order.
   - **Releases:**
     - all 10 Bandcamp releases and all 6 Discogs releases appear;
@@ -161,7 +171,7 @@ Fixtures are recorded page/API responses. No live network calls run in CI.
 
 ## Owner's own EPK
 Eroticon (`@eroticon`) has a private draft rebuilt by hand on 2026-11-20. It does not yet meet this standard: the
-worldwide touring history, the tech rider and the other languages are missing. The pressing city of "6" and the
+worldwide touring history, the Love Parades, the countries he has lived in, the tech rider and the other languages are missing. The pressing city of "6" and the
 Latch-On plant stay under "Still missing" until a page shows them.
 
 Use it as the reference output for the Eroticon fixture.
