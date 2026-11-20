@@ -148,7 +148,7 @@ jobs:
 
   browser-account-security:
     runs-on: windows-latest
-    timeout-minutes: 20 # train d's tab-bar and top-bar checks take about 4 minutes; the job hit 10 mid-check
+    timeout-minutes: 35 # about 20 minutes of checks now (train i's run took 19.5; train j's was stopped at 20 mid-check with every check passing)
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
