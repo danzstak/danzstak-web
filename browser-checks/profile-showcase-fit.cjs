@@ -37,7 +37,7 @@ async function measure(page) {
     return {
       cover: rect(document.querySelector(".cover")), avatar: rect(document.getElementById("profileInitial")), name: rect(name), lines,
       nameText: name.textContent, fontSize: parseFloat(getComputedStyle(name).fontSize), clipped: name.scrollWidth > name.clientWidth + 0.5,
-      band: rect(document.querySelector(".profile-shop-preview")), photo: rect(document.querySelector(".profile-showcase-photo")),
+      band: rect(document.querySelector(".profile-shop-preview")), photo: rect(document.querySelector(".profile-showcase-frame")), // F12: the frame is the box; a zoomed photo grows inside it
       buttons: [...document.querySelectorAll(".profile-actions > *")].map(rect).filter(Boolean), actions: rect(document.querySelector(".profile-actions")),
       tabs: rect(document.querySelector(".profile-tabs")),
       contentLeft: content.getBoundingClientRect().left + parseFloat(style.paddingLeft), contentRight: content.getBoundingClientRect().right - parseFloat(style.paddingRight),
@@ -116,7 +116,7 @@ function judge(r, c, label, failures) {
           await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
           await page.waitForTimeout(200);
           const open = await page.evaluate(() => [...document.querySelectorAll(".profile-showcase-tools button")].filter(button => button.getClientRects().length).map(button => button.textContent.trim()));
-          if (open.join("|") !== "Change this photo|Remove this photo") failures.push(`${label}: the ⋯ does not open Change / Remove: ${JSON.stringify(open)}`);
+          if (open.join("|") !== "Move to fit|Change this photo|Remove this photo") failures.push(`${label}: the ⋯ does not open Move to fit / Change / Remove: ${JSON.stringify(open)}`); // F12: Move to fit first
           // A tap outside closes it, like any familiar menu.
           const name = await page.locator("#profileName").boundingBox();
           await page.touchscreen.tap(name.x + 4, name.y + name.height / 2);

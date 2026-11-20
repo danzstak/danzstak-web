@@ -29,7 +29,11 @@ assert.match(profileEditor, /function markAvatarEditable\(on, profile = window\.
 assert.match(profileEditor, /function applyLoadedProfile\(profile = \{\}\) \{\n  markAvatarEditable\(profile\.isOwner === true, profile\);/);
 assert.match(profileEditor, /else if \(viewingOtherProfile && window\.danzstakCurrentProfile\?\.picture\) void openProfilePictures\(\);/, "a visitor's tap opens the member's pictures (F4c)");
 assert.match(profileEditor, /else if \(choice === "phone"\) \{ sheet\.close\(\); profilePhotoMediaButton\("avatar", "Change Profile Photo"\)\?\.click\(\); \}/);
-assert.match(profileEditor, /const profile = await uploadCloudProfileMedia\(new File\(\[jpeg\], "profile-picture\.jpg", \{ type: "image\/jpeg" \}\), "avatarKey"\);/);
+// F12: a new or moved profile picture is placed in the round box and saved cropped (1080px JPEG).
+assert.match(profileEditor, /const position = await fit\.open\(\{ src: source, aspect: 1, round: true, title: "Move your profile picture" \}\);/);
+assert.match(profileEditor, /const jpeg = await fit\.crop\(source, position, \{ aspect: 1, size: 1080 \}\);\n  return await uploadCloudProfileMedia\(new File\(\[jpeg\], "profile-picture\.jpg", \{ type: "image\/jpeg" \}\), "avatarKey", extra\);/);
+assert.match(profileEditor, /const profile = await placeProfilePicture\(await response\.blob\(\)\);/, "your DanzStak photos are placed too");
+assert.match(profileEditor, /placeProfilePicture\(await profilePictureFile\(oldPicture\), \{ avatarRecrop: true \}\)/, "moving the current picture replaces it");
 assert.match(profileEditor, /compact\.append\(compactAvatar, opener\);\n  if \(profile\.isOwner && profile\.picture\) installCompactAvatar\(profile\);/, "the composer photo is installed after the placeholder is in the row");
 assert.match(profileCss, /\.avatar\.profile-avatar-editable::after\{/, "camera badge on your own picture");
 console.log("Profile picture link checks passed: profile-wall authors, SYNC chat-list photos, online friends, 44px tap areas, your own picture changes from this phone or your DanzStak photos, the post box shows your picture.");

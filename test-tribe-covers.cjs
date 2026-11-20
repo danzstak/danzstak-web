@@ -102,9 +102,15 @@ function harness({
           const expected = values[":oldCover"]?.S;
           if (expected ? state.coverKey?.S !== expected : state.coverKey) conflict();
           state.coverKey = values[":cover"];
+          if (values[":x"]) Object.assign(state, { coverX: values[":x"], coverY: values[":y"], coverZoom: values[":zoom"] });
           if (values[":coverCleanup"]) state.coverCleanup = values[":coverCleanup"];
           else delete state.coverCleanup;
           delete state.coverCleanupClaim; delete state.coverCleanupClaimKey; delete state.coverCleanupClaimExpiresAt;
+          return {};
+        }
+        if (input.UpdateExpression.startsWith("SET coverX")) {
+          if (state.deletionState || state.coverKey?.S !== values[":cover"].S) conflict();
+          Object.assign(state, { coverX: values[":x"], coverY: values[":y"], coverZoom: values[":zoom"] });
           return {};
         }
         if (input.UpdateExpression.startsWith("SET coverCleanupClaim")) {
@@ -271,5 +277,27 @@ function harness({
   assert.equal(metadataRecovery.metaDeleted(), true);
   assert.equal(metadataRecovery.metaAttempts(), 4);
 
-  console.log("Elder-managed Tribe cover checks passed: durable replacement queue, hidden pending deletion, failure-safe ordering, and idempotent retries.");
+  // Directive F12: an Elder moves the cover to fit its box (the square Tribe picture uses the same point).
+  const moved = harness();
+  const moveResponse = await moved.context.updateGroupCover({ headers: { origin: "https://danzstak.com" }, pathParameters: { groupId }, body: JSON.stringify({ position: { x: 0, y: 140, zoom: 9 } }) });
+  assert.equal(moveResponse.statusCode, 200);
+  assert.deepEqual(JSON.parse(moveResponse.body).coverPosition, { x: 0, y: 100, zoom: 3 }, "positions are clamped");
+  assert.deepEqual([moved.state.coverX.N, moved.state.coverY.N, moved.state.coverZoom.N], ["0", "100", "3"]);
+  assert.equal(moved.mediaAttempts.size, 0, "moving the cover touches no media");
+  assert.ok(!moved.events.some(event => event.startsWith("head:")), "no photo lookup for a move");
+  const movedList = await moved.context.listGroups({ headers: { origin: "https://danzstak.com" } });
+  assert.deepEqual(JSON.parse(movedList.body).groups.find(group => group.id === groupId)?.coverPosition, { x: 0, y: 100, zoom: 3 }, "the Tribes list draws the picture from the same point");
+  const noCover = harness({ meta: { ownerId: { S: ownerId } } });
+  assert.equal((await noCover.context.updateGroupCover({ headers: { origin: "https://danzstak.com" }, pathParameters: { groupId }, body: JSON.stringify({ position: { x: 10, y: 10, zoom: 1 } }) })).statusCode, 400, "no cover, nothing to move");
+  const member = harness();
+  member.context.getAuthenticatedUser = async () => "99999999-9999-4999-a999-999999999999";
+  assert.equal((await member.context.updateGroupCover({ headers: { origin: "https://danzstak.com" }, pathParameters: { groupId }, body: JSON.stringify({ position: { x: 10, y: 10, zoom: 1 } }) })).statusCode, 403, "only an Elder moves the cover (F13)");
+  const placed = harness();
+  const placedResponse = await placed.context.updateGroupCover({ headers: { origin: "https://danzstak.com" }, pathParameters: { groupId }, body: JSON.stringify({ mediaKey: newCover, position: { x: 25, y: 75, zoom: 1.4 } }) });
+  assert.deepEqual(JSON.parse(placedResponse.body).coverPosition, { x: 25, y: 75, zoom: 1.4 }, "a new cover is saved where the Elder placed it");
+  assert.deepEqual([placed.state.coverKey.S, placed.state.coverX.N, placed.state.coverZoom.N], [newCover, "25", "1.4"]);
+  const centred = harness();
+  await centred.context.updateGroupCover({ headers: { origin: "https://danzstak.com" }, pathParameters: { groupId }, body: JSON.stringify({ mediaKey: newCover }) });
+  assert.deepEqual([centred.state.coverX.N, centred.state.coverY.N, centred.state.coverZoom.N], ["50", "50", "1"], "a new cover without a position starts centred");
+  console.log("Elder-managed Tribe cover checks passed: durable replacement queue, hidden pending deletion, failure-safe ordering, idempotent retries, and Elders moving the cover to fit (F12).");
 })().catch(error => { console.error(error); process.exitCode = 1; });
