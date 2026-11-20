@@ -1041,6 +1041,9 @@ function renderWorkspace(name) {
       } catch (error) { loading.textContent = error.message; }
     }
 
+    // Where the Tribe cover sits (F12): the server's position, else one kept on this phone until the Auth API deploy.
+    function tribeCoverPosition(group) { return group.coverPosition || window.danzstakImagePosition?.recall(group.coverUrl) || null; }
+
     function openTribe(group, { updateHistory = true } = {}) {
       if (updateHistory && /^[a-f0-9-]{36}$/i.test(String(group.id || ""))) {
         const tribeUrl = new URL(location.href);
@@ -1056,15 +1059,43 @@ function renderWorkspace(name) {
       const back = document.createElement("button"); back.type = "button"; back.className = "tribe-back"; back.textContent = "← Back to Tribes"; back.addEventListener("click", showTribeDirectory);
       const hero = document.createElement("header"); hero.className = "tribe-hero";
       const cover = document.createElement("div"); cover.className = "tribe-hero-cover";
-      if (group.coverUrl) { cover.style.backgroundImage = `linear-gradient(180deg,transparent 45%,rgba(8,12,20,.72)),url("${String(group.coverUrl).replace(/["\\]/g, "")}")`; cover.classList.add("has-photo"); }
+      // Directive F12: the Tribe cover sits where its Elders placed it; the same point fills the square Tribe picture.
+      const fit = window.danzstakImagePosition;
+      if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); fit?.apply(cover, tribeCoverPosition(group), group.coverUrl); }
       else if (window.danzstakTribeArt) { cover.classList.add("has-art"); cover.setAttribute("aria-hidden", "true"); cover.append(window.danzstakTribeArt.art(group.name, group.category)); }
       else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); cover.setAttribute("aria-hidden", "true"); }
       if ((group.isElder || group.isOwner) && group.custom) {
+        // Elders only (F13): change the cover, and move it to fit its box (F12).
+        const tools = document.createElement("div"); tools.className = "tribe-cover-tools";
         const editCover = document.createElement("button"); editCover.type = "button"; editCover.className = "tribe-cover-edit"; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
+        const moveCover = document.createElement("button"); moveCover.type = "button"; moveCover.className = "tribe-cover-move"; moveCover.textContent = "Move to fit"; moveCover.hidden = !group.coverUrl || !fit;
         const coverInput = document.createElement("input"); coverInput.type = "file"; coverInput.accept = "image/jpeg,image/png,image/webp,image/gif"; coverInput.hidden = true;
+        const coverBox = () => { const box = cover.getBoundingClientRect(); return box.width && box.height ? box.width / box.height : 2.4; };
+        const placeCover = (src, position) => fit ? fit.open({ src, aspect: coverBox(), position, title: "Move your cover", extras: [{ aspect: 1, label: "Tribe picture" }] }) : Promise.resolve(position || { x: 50, y: 50, zoom: 1 });
+        // Until the Auth API stores positions (owner deploy), a position is kept on this phone and the Elder is told so.
+        const keepHere = (url, position) => {
+          fit?.remember(url, position);
+          const p = fit?.normalize(position);
+          if (p && (p.x !== 50 || p.y !== 50 || p.zoom !== 1)) showAppFeedback(window.danzstakTranslate?.("Saved on this phone. Everyone else sees it after DanzStak's next update.") || "Saved on this phone. Everyone else sees it after DanzStak's next update.");
+        };
         editCover.addEventListener("click", () => coverInput.click());
+        moveCover.addEventListener("click", async () => {
+          const position = await placeCover(group.coverUrl, tribeCoverPosition(group));
+          if (!position) return;
+          moveCover.disabled = true;
+          try {
+            const response = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/cover", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ position }) });
+            const saved = await response.json().catch(() => ({}));
+            if (response.ok && saved.coverPosition) group.coverPosition = saved.coverPosition;
+            else if ((response.status === 400 || response.status === 403) && !/Elder/i.test(String(saved.error || ""))) keepHere(group.coverUrl, position);
+            else throw new Error(saved.error || "That position couldn't be saved. Try again.");
+            openTribe(group);
+          } catch (error) { showAppFeedback(error.message, { urgent: true }); moveCover.disabled = false; }
+        });
         coverInput.addEventListener("change", async () => {
-          const file = coverInput.files?.[0]; if (!file || !file.type.startsWith("image/")) return;
+          const file = coverInput.files?.[0]; coverInput.value = ""; if (!file || !file.type.startsWith("image/")) return;
+          const position = await placeCover(file, null);
+          if (!position) return;
           editCover.disabled = true; editCover.textContent = "Uploading…"; let uploadedMediaKey = "";
           try {
             const ticketResponse = await postActionFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: file.type, purpose: "post" }) }, 15000);
@@ -1073,15 +1104,18 @@ function renderWorkspace(name) {
             const uploadResponse = typeof window.fetchWithDeadline === "function" ? await window.fetchWithDeadline(ticket.uploadUrl, uploadOptions, typeof window.mediaUploadDeadline === "function" ? window.mediaUploadDeadline(file) : 120000) : await fetch(ticket.uploadUrl, uploadOptions);
             if (!uploadResponse.ok) throw new Error("Cover upload failed");
             uploadedMediaKey = ticket.mediaKey;
-            const saveResponse = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/cover", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey: ticket.mediaKey }) });
+            const saveResponse = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/cover", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey: ticket.mediaKey, position }) });
             const savedCover = await saveResponse.json().catch(() => ({})); if (!saveResponse.ok || !savedCover.coverUrl) throw new Error(savedCover.error || "Cover could not be saved");
-            uploadedMediaKey = ""; group.coverUrl = savedCover.coverUrl; openTribe(group);
+            uploadedMediaKey = ""; group.coverUrl = savedCover.coverUrl; group.coverPosition = savedCover.coverPosition || null;
+            if (!savedCover.coverPosition) keepHere(savedCover.coverUrl, position);
+            openTribe(group);
           } catch (error) {
             if (uploadedMediaKey && typeof window.discardUploadedMedia === "function") await window.discardUploadedMedia(uploadedMediaKey).catch(() => {});
             showAppFeedback(error.message, { urgent: true }); editCover.disabled = false; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
           }
         });
-        cover.append(editCover, coverInput);
+        tools.append(moveCover, editCover);
+        cover.append(tools, coverInput);
       }
       const identity = document.createElement("div"); identity.className = "tribe-hero-identity";
       const title = document.createElement("h4"); title.textContent = group.name;
@@ -1219,7 +1253,7 @@ function renderWorkspace(name) {
         cover.setAttribute("aria-hidden", "true");
         // Owner 2026-11-18: the Tribe's own picture fills the box when its Elders set one (Add cover inside the Tribe);
         // otherwise the initial sits dead centre.
-        if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); }
+        if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); window.danzstakImagePosition?.apply(cover, tribeCoverPosition(group), group.coverUrl); }
         else if (window.danzstakTribeArt) { cover.classList.add("has-art"); cover.append(window.danzstakTribeArt.art(group.name, group.category)); }
         else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); }
         const title = document.createElement("h4");

@@ -33,12 +33,19 @@ async function setup(browser, width) {
 async function call(page, kind) {
   await page.evaluate(async kind => {
     const wait = async (ok, ms) => { const t0 = performance.now(); while (!ok()) { if (performance.now() - t0 > ms) throw new Error("no connect"); await new Promise(r => setTimeout(r, 50)); } };
+    // Calls send no candidates after the offer/answer, so each side's description goes across only once its candidates
+    // are gathered (as in call-video-two-party.cjs); a fixed 300 ms wasn't enough on CI's Windows runner ("no connect").
+    const gathered = pc => pc.iceGatheringState === "complete" ? Promise.resolve() : new Promise(resolve => {
+      const done = () => { if (pc.iceGatheringState === "complete") { clearTimeout(cap); pc.removeEventListener("icegatheringstatechange", done); resolve(); } };
+      const cap = setTimeout(() => { pc.removeEventListener("icegatheringstatechange", done); resolve(); }, 5000);
+      pc.addEventListener("icegatheringstatechange", done);
+    });
     document.getElementById("contactEmail").value = "dee@x.test"; window.danzstakActiveContactName = "Dee";
     const caller = new RTCPeerConnection({ iceServers: [] }), media = await navigator.mediaDevices.getUserMedia({ audio: true, video: kind === "video" });
     media.getTracks().forEach(t => caller.addTrack(t, media)); caller.createDataChannel("danzstak-call", { ordered: true });
-    await caller.setLocalDescription(await caller.createOffer()); await new Promise(r => setTimeout(r, 300));
+    await caller.setLocalDescription(await caller.createOffer()); await gathered(caller);
     await makePeer(kind, { receiving: true }); contactName = "Dee"; // eslint-disable-line no-undef
-    await peer.setRemoteDescription(caller.localDescription); await peer.setLocalDescription(await peer.createAnswer()); await new Promise(r => setTimeout(r, 300)); // eslint-disable-line no-undef
+    await peer.setRemoteDescription(caller.localDescription); await peer.setLocalDescription(await peer.createAnswer()); await gathered(peer); // eslint-disable-line no-undef
     await caller.setRemoteDescription(peer.localDescription); // eslint-disable-line no-undef
     await wait(() => channel?.readyState === "open", 10000); // eslint-disable-line no-undef
   }, kind);
