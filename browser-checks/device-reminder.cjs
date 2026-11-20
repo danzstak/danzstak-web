@@ -14,12 +14,23 @@ const json = body => ({ status: 200, contentType: "application/json", headers: {
 
 async function open(browser, width, { verified = false } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 800 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
-  if (verified) await context.addInitScript(() => {
-    const request = indexedDB.open("danzstak-call-device", 1);
-    request.onupgradeneeded = () => request.result.createObjectStore("credentials");
-    request.onsuccess = () => { const db = request.result; db.transaction("credentials", "readwrite").objectStore("credentials").put([{ deviceId: "d1", deviceToken: "t".repeat(43), accountTag: "a1", physicalDeviceId: "p1" }], "accounts"); };
-  });
   const page = await context.newPage(), errors = [];
+  // The verified case stores this browser's SYNC credential first, on the site's own origin, and waits until the write
+  // has finished. (An init script raced the app on CI's Edge: the write could land after the reminder had already
+  // looked, and the init script's about:blank document has no IndexedDB, which threw a page error.)
+  if (verified) {
+    await page.goto(`${base}/manifest.webmanifest`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(() => new Promise((resolve, reject) => {
+      const request = indexedDB.open("danzstak-call-device", 1);
+      request.onupgradeneeded = () => request.result.createObjectStore("credentials");
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result, tx = db.transaction("credentials", "readwrite");
+        tx.objectStore("credentials").put([{ deviceId: "d1", deviceToken: "t".repeat(43), accountTag: "a1", physicalDeviceId: "p1" }], "accounts");
+        tx.oncomplete = () => { db.close(); resolve(); }; tx.onerror = () => reject(tx.error);
+      };
+    }));
+  }
   page.on("pageerror", error => errors.push(error.message));
   await page.route("https://api.danzstak.com/**", route => {
     const p = new URL(route.request().url()).pathname;
