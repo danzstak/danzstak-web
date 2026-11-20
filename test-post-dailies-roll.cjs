@@ -101,7 +101,8 @@ function sandbox({ storiesFail = false } = {}) {
   assert.match(feed, /reel: mediaType === "video", originalContentCertified: true/);
   assert.match(feed, /if \(selectedMedia\?\.file && savedPost\?\.dailyCreated !== true\) \{/, "Mix only uploads a Daily itself when the server did not add one");
   assert.match(enhancements, /groupId: group\.id, mediaKey, mediaType, reel: mediaType === "video"/, "Tribe composer");
-  assert.match(enhancements, /reel: mediaFields\.mediaType === "video"/, "event composer");
+  // Task 14-D: the event composer moved to events-page.js.
+  assert.match(fs.readFileSync("assets/events-page.js", "utf8"), /reel: media\.mediaType === "video"/, "event composer");
   assert.match(profileEditor, /mediaKey, mediaType, reel: mediaType === "video" \};/, "profile composer");
   assert.doesNotMatch(enhancements, /toggle = document\.getElementById\("shareToReels"\)/, "linked videos go to The Roll without a checkbox");
 

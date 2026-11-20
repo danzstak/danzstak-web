@@ -30,3 +30,30 @@
 .payouts-row select{min-height:44px}
 .payouts-start{min-height:44px;padding:0 16px;border-radius:999px;background:#121418;color:#fff;font-weight:800;border:0}
 @media print{header,nav,.ticket-tier,.door-print,.door-list input,.event-payouts,#eventMedia{display:none!important}.door-row button{display:none}}
+
+/* Task 14-D (owner 2026-11-17): the public event page is the poster and the ticket stub. Event's own look, not the builder skin. */
+.event-status{margin:16px 0}
+.event-poster{display:grid;gap:0;margin:0 0 16px}
+.event-poster .event-media{margin:0 -12px;background:#0b0b0c}
+.event-poster .event-media img,.event-poster .event-media video{margin:0;border-radius:0;max-height:78vh}
+.event-poster-copy{padding:14px 0 12px;border-bottom:3px solid #ff5a1f}
+.event-poster-copy h1{margin:2px 0 8px;font-size:clamp(1.9rem,9vw,3rem);line-height:.98;font-weight:900;text-transform:uppercase;letter-spacing:-.01em;overflow-wrap:anywhere}
+.event-poster-copy .event-kicker{margin:0;font:600 .72rem/1.2 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#c2410c}
+.event-poster-copy .event-when{margin:0 0 4px;font-weight:800}
+.event-doors{font:600 .72rem/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#c2410c}
+.event-venue-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0}
+.event-map{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border:1px solid currentColor;border-radius:999px;color:inherit;font-weight:700;text-decoration:none}
+.event-map::after{content:" ↗"}
+.event-tickets h2,.event-lineup h2{margin:18px 0 10px;font:600 .78rem/1.2 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase}
+.ticket-tiers{display:grid;gap:12px}
+.ticket-tier{display:grid;grid-template-columns:minmax(0,1fr) 40px;border:1.5px solid #121418;border-radius:6px;background:#fff;overflow:hidden}
+.ticket-tier-main{display:grid;gap:4px;padding:14px;min-width:0}
+.ticket-tier-main h3{margin:0;font-size:1.15rem}
+.ticket-tier-main .ticket-price{margin:0;font-size:1.2rem}
+.ticket-available{margin:0;color:#475467;font-size:.88rem}
+.ticket-tier-tear{display:flex;align-items:center;justify-content:center;border-left:2px dashed #121418;background:#fff7f2}.ticket-tier-tear span{writing-mode:vertical-rl;transform:rotate(180deg);font:600 .66rem/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:#c2410c}
+.ticket-tier .ticket-buy-button{background:#ff5a1f;color:#0b0b0c}
+.event-lineup ul{margin:0;padding:0;list-style:none}
+.event-lineup li{padding:10px 0;border-bottom:1px solid #e4e4e0;font-size:1.05rem;font-weight:800}
+.event-lineup li:first-child{font-size:1.3rem}
+@media (min-width:768px){.event-poster{grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:0 28px;align-items:start}.event-poster .event-media{grid-row:1/4;margin:0}.event-poster-copy,.event-tickets,.event-lineup{grid-column:2}}
