@@ -65,6 +65,13 @@ Owner, 2026-11-20: "look at Shawn Finkelstein and Shmuel Finkelstein for tradema
   trademark registers (USPTO, EUIPO, WIPO, INPI France, DPMA Germany, UKIPO), company and label registries
   (Paris/INPI, Companies House, US state registries), credits as writer/producer/engineer, music-rights societies
   (ASCAP, BMI, SACEM, GEMA, PRS), crowdfunding and maker profiles, and press.
+- **Go deep in the rights societies** (owner, 2026-11-20: "go deep looking into artists BMI pages, ASCAP"). Search
+  BMI Repertoire, ASCAP ACE and Songview (the joint BMI/ASCAP database), plus SACEM, GEMA, PRS, SOCAN, SIAE, SGAE,
+  APRA and the ISWC/IPI records, for every name. Read each registered work: title, writers and shares, publishers
+  (often the artist's own label), co-writers, alternate titles and performer credits. These list songs written for
+  or with other artists, film/TV/game uses and works that were never released on record, and give the writer's IPI
+  number to tell same-name people apart. The EPK shows "Songwriting and publishing": works count, notable works,
+  co-writers and publisher, each with the society entry as source. Royalty or earnings figures are never shown.
 - Trademarks and companies the artist owns (labels, brands, sound systems, events) appear on the EPK as "Labels and
   brands", each with the register entry as its source. Many profile sites (LinkedIn, Crunchbase, some music
   networks) refuse automated reads; the AI then uses their public search snippets as leads and confirms them
@@ -156,6 +163,7 @@ Fixtures are recorded page/API responses. No live network calls run in CI.
     - names the 1988 and 1996 start;
     - calls 1988 the first recordings, never the start of the career;
     - names the Love Parades and every country Eroticon has lived in doing music, each with a source;
+    - lists his registered works from BMI/ASCAP/Songview (and SACEM/GEMA where found) with publisher and co-writers;
     - names his sound-system crews (Spiral Tribe, Kamikaze and the others his pages and the scene's archives show);
     - is in oldest-to-newest order.
   - **Releases:**
