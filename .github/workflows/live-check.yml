@@ -27,7 +27,8 @@ jobs:
       DANZSTAK_LIVE_URL: https://danzstak.com
       DANZSTAK_BASE_URL: https://danzstak.com
       DANZSTAK_CAPTURE_DIR: ${{ github.workspace }}\live-screenshots
-      NODE_OPTIONS: --require ./scripts/check-diagnostics.cjs
+    # NODE_OPTIONS (the check diagnostics preload) is set only on the steps that run our checks: at job level it reached
+    # actions/checkout and github-script before the file existed, and every run failed in seconds (2026-11-20).
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -38,6 +39,8 @@ jobs:
         run: npm install --no-save --ignore-scripts playwright@1.55.0 playwright-core@1.55.0
       - name: The live service worker is main's (after a push, wait for Amplify to publish)
         shell: pwsh
+        env:
+          NODE_OPTIONS: --require ./scripts/check-diagnostics.cjs
         run: |
           $attempts = if ('${{ github.event_name }}' -eq 'push') { 20 } else { 1 }
           for ($attempt = 1; $attempt -le $attempts; $attempt++) {
@@ -48,6 +51,8 @@ jobs:
           throw 'The live service worker does not match main.'
       - name: Public browser checks against the live site
         shell: pwsh
+        env:
+          NODE_OPTIONS: --require ./scripts/check-diagnostics.cjs
         run: |
           .\scripts\run-checks.ps1 -Checks @(
             '.\browser-checks\app-bar.cjs'
