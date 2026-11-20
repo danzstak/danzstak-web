@@ -73,3 +73,24 @@ const { pathToFileURL } = require("node:url");
   assert.match(phone, /resend\.addEventListener\("click", \(\) => \{[^}]*send\.disabled = current\?\.providerAvailable !== true/, "Resend brings back a Send button that works");
   console.log("SYNC test-notification localization + Resend checks passed.");
 }
+
+// Directive L2 short screen: one line, a live countdown, "Wrong number? Change it", the country from the phone, autosubmit.
+{
+  const fs = require("node:fs"), assert = require("node:assert/strict");
+  const client = fs.readFileSync("assets/phone-verification.js", "utf8"), devices = fs.readFileSync("assets/call-devices.js", "utf8"), sync = fs.readFileSync("assets/i18n-sync.js", "utf8");
+  for (const page of ["messages.html", "sync/index.html"]) {
+    const html = fs.readFileSync(page, "utf8");
+    assert.match(html, /<p class="calling-device-account" hidden>/, `${page}: no account-name box on the short screen`);
+    assert.match(html, /<p class="push-test-row" hidden>/, `${page}: the test-notification button waits until the device is registered`);
+    assert.match(html, /id="syncPhoneChangeNumber"[^>]*>Wrong number\? Change it</, `${page}: Wrong number? Change it`);
+    assert.match(html, /autocomplete="one-time-code"/, `${page}: the code field offers the SMS code`);
+  }
+  assert.match(devices, /pushRow\.hidden=!registered/, "the test button shows only once registered");
+  assert.match(client, /t\("Resend in"\)[^\n]*padStart\(2, "0"\)/, "Resend shows a m:ss countdown");
+  assert.match(client, /digits\.length === 6[^\n]*codeForm\.requestSubmit\(\)/, "the 6th digit submits the code");
+  assert.match(client, /OTPCredential/, "WebOTP fills the code on Android when the text allows it");
+  assert.match(client, /new Intl\.DisplayNames/, "country names in the visitor's language");
+  for (const key of ["Calls and voice messages need this phone verified. Texting already works.", "Resend in", "Wrong number? Change it"])
+    for (const lang of ["it", "fr", "es", "de", "pt"]) assert.ok(sync.split(`"${lang}": {`)[1].includes(JSON.stringify(key) + ":"), `"${key}" missing in ${lang}`);
+  console.log("Directive L2 short registration screen checks passed.");
+}

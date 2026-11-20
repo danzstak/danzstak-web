@@ -48,7 +48,8 @@
     const seconds = Math.max(0, Math.ceil((Date.parse(current.resendAfter || 0) - Date.now()) / 1000));
     resend.disabled = seconds > 0 || current.providerAvailable !== true;
     const resendLabel = resend.querySelector(".ds-cue-label") || resend;
-    resendLabel.textContent = seconds ? `${t("Resend")} ${seconds}s` : t("Resend");
+    // A live countdown instead of an error box (directive L2): "Resend in 0:52".
+    resendLabel.textContent = seconds ? `${t("Resend in")} ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` : t("Resend");
     if (seconds) timer = setTimeout(cooldown, 1000);
   }
   function render(data) {
@@ -60,13 +61,14 @@
     numberForm.hidden = pending || done; codeForm.hidden = !pending; verified.hidden = !done;
     send.disabled = pending || done || current.providerAvailable !== true;
     if (done) message(`${t("Private phone registered to SYNC")} · ${current.maskedNumber}`, "verified");
-    else if (pending) message(`${t("Enter the six-digit code sent to")} ${current.maskedNumber}.`);
+    else if (pending) message(t("Enter the six-digit code sent to {number}.").replace("{number}", current.maskedNumber || ""));
     else if (finishHere && current.providerAvailable) message(`${t("Your number is verified")} · ${current.maskedNumber || ""}. ${t("Send a code to finish on this device.")}`);
-    else if (current.providerAvailable) message(deviceChallenge ? t("Enter a mobile number that can receive this device's one-time code.") : t("Enter a private mobile number. SYNC will text a six-digit code."));
+    else if (current.providerAvailable) message(""); // the one short line above the form is enough (directive L2)
     else message(t("SYNC verification texts aren't available yet. No text will be sent and no device will be marked verified."), "blocked");
     cooldown();
   }
   async function load() {
+    setupCountries();
     message(t("Checking SMS verification availability…"));
     try { render(await request("/phone-verification")); }
     catch(error) { message(error.message, "error"); numberForm.hidden = codeForm.hidden = verified.hidden = true; }
@@ -114,6 +116,40 @@
     }
     finally { confirmButton.disabled = false; }
   });
+  // Directive L2: the code submits itself when the 6th digit is in (typed, pasted or filled from the SMS).
+  code.addEventListener("input", () => {
+    const digits = code.value.replace(/\D/g, "").slice(0, 6);
+    if (digits !== code.value) code.value = digits;
+    if (digits.length === 6 && !confirmButton.disabled && !codeForm.hidden) codeForm.requestSubmit();
+  });
+  // Android: the WebOTP API fills the code from the SMS when the text carries the "@danzstak.com #123456" line.
+  // Without that line (Twilio's default text) nothing happens, and the keyboard still offers the code (one-time-code).
+  let otpAbort = null;
+  function listenForSmsCode() {
+    otpAbort?.abort(); otpAbort = null;
+    if (!("OTPCredential" in window) || !navigator.credentials?.get) return;
+    const controller = new AbortController(); otpAbort = controller;
+    navigator.credentials.get({ otp:{ transport:["sms"] }, signal:controller.signal }).then(credential => {
+      if (!credential?.code || codeForm.hidden || !/^\d{6}$/.test(credential.code)) return;
+      code.value = credential.code; code.dispatchEvent(new Event("input", { bubbles:true }));
+    }).catch(() => {});
+  }
+  new MutationObserver(() => { if (codeForm.hidden) { otpAbort?.abort(); otpAbort = null; } else listenForSmsCode(); }).observe(codeForm, { attributes:true, attributeFilter:["hidden"] });
+  // "Wrong number? Change it": back to the number, one tap, the typed number kept and selected.
+  byId("syncPhoneChangeNumber")?.addEventListener("click", () => { codeForm.hidden = true; numberForm.hidden = false; send.disabled = current?.providerAvailable !== true; number.focus(); number.select(); });
+  // Directive L2: the country is prefilled from the phone's region or language, and every name is in the visitor's language.
+  const COUNTRIES = [["US","+1"],["CA","+1"],["IT","+39"],["GB","+44"],["IE","+353"],["DE","+49"],["AT","+43"],["CH","+41"],["FR","+33"],["BE","+32"],["NL","+31"],["ES","+34"],["PT","+351"],["SE","+46"],["NO","+47"],["DK","+45"],["FI","+358"],["PL","+48"],["CZ","+420"],["GR","+30"],["MX","+52"],["BR","+55"],["AR","+54"],["AU","+61"],["NZ","+64"],["JP","+81"]];
+  const LANGUAGE_REGION = { it:"IT", fr:"FR", de:"DE", es:"ES", pt:"PT", nl:"NL", sv:"SE", nb:"NO", da:"DK", fi:"FI", pl:"PL", cs:"CZ", el:"GR", ja:"JP", en:"US" };
+  function setupCountries() {
+    if (!country || country.dataset.ready) return;
+    country.dataset.ready = "1";
+    const lang = document.documentElement.lang || navigator.language || "en";
+    let names = null; try { names = new Intl.DisplayNames([lang, "en"], { type:"region" }); } catch { /* old browser: keep English names */ }
+    const tags = (Array.isArray(navigator.languages) && navigator.languages.length ? navigator.languages : [navigator.language || "en"]).map(String);
+    const region = tags.map(tag => (tag.match(/[-_]([A-Za-z]{2})\b/) || [])[1]?.toUpperCase()).find(value => COUNTRIES.some(([code]) => code === value))
+      || LANGUAGE_REGION[(tags[0] || "en").slice(0, 2).toLowerCase()] || "US";
+    country.replaceChildren(...COUNTRIES.map(([code, dial]) => { const option = document.createElement("option"); option.value = dial; option.dataset.region = code; option.textContent = `${names?.of(code) || code} ${dial}`; if (code === region) option.selected = true; return option; }));
+  }
   // Resend brings back a Send button that works (it stayed disabled while the old code was "pending").
   resend.addEventListener("click", () => { codeForm.hidden = true; numberForm.hidden = false; send.disabled = current?.providerAvailable !== true; number.focus(); });
   remove.addEventListener("click", async () => {

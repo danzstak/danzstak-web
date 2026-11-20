@@ -5,6 +5,10 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Enter the six-digit code sent to {number}.": "Inserisci il codice a sei cifre inviato a {number}.",
+"Calls and voice messages need this phone verified. Texting already works.": "Chiamate e messaggi vocali richiedono questo telefono verificato. I messaggi di testo funzionano già.",
+"Resend in": "Rinvia tra",
+"Wrong number? Change it": "Numero sbagliato? Cambialo",
 "Send a test notification": "Invia una notifica di prova",
 "No device has notifications on yet. Allow notifications and try again.": "Nessun dispositivo ha ancora le notifiche attive. Consenti le notifiche e riprova.",
 "Sent to 1 device.": "Inviata a 1 dispositivo.",
@@ -327,6 +331,10 @@
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
 },
 "fr": {
+"Enter the six-digit code sent to {number}.": "Saisissez le code à six chiffres envoyé au {number}.",
+"Calls and voice messages need this phone verified. Texting already works.": "Les appels et messages vocaux demandent que ce téléphone soit vérifié. Les messages texte fonctionnent déjà.",
+"Resend in": "Renvoyer dans",
+"Wrong number? Change it": "Mauvais numéro ? Modifiez-le",
 "Send a test notification": "Envoyer une notification test",
 "No device has notifications on yet. Allow notifications and try again.": "Aucun appareil n’a encore les notifications activées. Autorisez les notifications et réessayez.",
 "Sent to 1 device.": "Envoyée à 1 appareil.",
@@ -650,6 +658,10 @@
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
 },
 "es": {
+"Enter the six-digit code sent to {number}.": "Escribe el código de seis dígitos enviado al {number}.",
+"Calls and voice messages need this phone verified. Texting already works.": "Las llamadas y los mensajes de voz necesitan este teléfono verificado. Los mensajes de texto ya funcionan.",
+"Resend in": "Reenviar en",
+"Wrong number? Change it": "¿Número equivocado? Cámbialo",
 "Send a test notification": "Enviar una notificación de prueba",
 "No device has notifications on yet. Allow notifications and try again.": "Ningún dispositivo tiene las notificaciones activadas todavía. Permite las notificaciones e inténtalo de nuevo.",
 "Sent to 1 device.": "Enviada a 1 dispositivo.",
@@ -972,6 +984,10 @@
 "You can resend once. Try again in 10 minutes.": "Solo puedes reenviar una vez. Inténtalo de nuevo en 10 minutos."
 },
 "de": {
+"Enter the six-digit code sent to {number}.": "Gib den sechsstelligen Code ein, der an {number} gesendet wurde.",
+"Calls and voice messages need this phone verified. Texting already works.": "Anrufe und Sprachnachrichten brauchen dieses Telefon bestätigt. Textnachrichten funktionieren schon.",
+"Resend in": "Erneut senden in",
+"Wrong number? Change it": "Falsche Nummer? Ändern",
 "Send a test notification": "Testbenachrichtigung senden",
 "No device has notifications on yet. Allow notifications and try again.": "Noch kein Gerät hat Benachrichtigungen aktiviert. Erlaube Benachrichtigungen und versuche es erneut.",
 "Sent to 1 device.": "An 1 Gerät gesendet.",
@@ -1114,6 +1130,10 @@
 "You can resend once. Try again in 10 minutes.": "Du kannst nur einmal erneut senden. Versuche es in 10 Minuten erneut."
 },
 "pt": {
+"Enter the six-digit code sent to {number}.": "Digite o código de seis dígitos enviado para {number}.",
+"Calls and voice messages need this phone verified. Texting already works.": "Chamadas e mensagens de voz precisam deste telefone verificado. As mensagens de texto já funcionam.",
+"Resend in": "Reenviar em",
+"Wrong number? Change it": "Número errado? Altere",
 "Send a test notification": "Enviar uma notificação de teste",
 "No device has notifications on yet. Allow notifications and try again.": "Nenhum dispositivo tem notificações ativadas ainda. Permita as notificações e tente de novo.",
 "Sent to 1 device.": "Enviada para 1 dispositivo.",
