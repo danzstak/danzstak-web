@@ -54,3 +54,9 @@ body.ds-has-app-bar>header.ds-app-bar .ds-top-search-field:focus-within{box-shad
 body.ds-has-app-bar>header.ds-app-bar .ds-app-bar-back{flex:none;margin-right:2px}
 /* 320px with ← and Pivot: the logo steps aside so the search box keeps room to read (← and the Mix tab both go home). */
 @media(max-width:359px){body.ds-has-app-bar>header.ds-app-bar:has(>.ds-app-bar-back) .ds-app-bar-brand{display:none!important}}
+/* Directive F13: an in-page screen's ← (an open Tribe) takes the first column of the Mix bar; at 320px the logo steps
+   aside so the search box keeps room (the same rule as the other bars). */
+header.topbar .ds-app-bar-screen-back{color:#f5f5f2}
+header.topbar .ds-app-bar-screen-back[hidden]{display:none!important}
+@media(max-width:700px){body.ds-has-app-bar header.topbar.ds-feed-bar.ds-has-screen-back{grid-template-columns:44px 40px minmax(0,1fr) 44px 44px 44px!important}}
+@media(max-width:359px){body.ds-has-app-bar header.topbar.ds-feed-bar.ds-has-screen-back{grid-template-columns:44px minmax(0,1fr) 44px 44px 44px!important}body.ds-has-app-bar header.topbar.ds-feed-bar.ds-has-screen-back>.logo{display:none!important}}
