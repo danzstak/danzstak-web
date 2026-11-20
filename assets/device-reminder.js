@@ -46,7 +46,14 @@
     const line = document.createElement("span"); line.textContent = t("Calls and voice messages need it. Texting already works.");
     text.append(title, line);
     link.append(icon, text);
-    return link;
+    // Owner 2026-11-19: "if they don't wish to put their phone number in [they] can get a ds- number … they have to buy
+    // the ds- number … just offer it in the notification" ($3, the existing Stripe checkout in SYNC's device panel).
+    const ds = document.createElement("a");
+    ds.className = "notification-ds-link"; ds.href = "/sync/?device=register&ds=1";
+    ds.textContent = t("No phone number? Get a DS number");
+    const both = document.createDocumentFragment();
+    both.append(link, ds);
+    return both;
   }
   window.danzstakDeviceReminder = Object.freeze({ needed, unread, markSeen, row });
 })();
