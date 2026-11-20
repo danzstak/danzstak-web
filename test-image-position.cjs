@@ -2,7 +2,8 @@
 // Unit checks for the shared component (assets/image-position.js) and the server fields that keep a position.
 // The sheet itself (drag, zoom, Save, the crop) is checked in a real browser: browser-checks/image-position.cjs.
 const assert = require("node:assert/strict"), fs = require("node:fs"), vm = require("node:vm");
-const component = fs.readFileSync("assets/image-position.js", "utf8");
+const read = file => fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n"); // CRLF on Windows checkouts
+const component = read("assets/image-position.js");
 const storage = new Map();
 const window = {};
 const context = vm.createContext({
@@ -41,25 +42,25 @@ assert.match(component, /from\.x - \(dx \/ overflowX\) \* 100/, "a drag moves th
 assert.match(component, /setZoom\(pinch\.zoom \* \(Math\.hypot\(a\.x - b\.x, a\.y - b\.y\) \/ pinch\.distance\)\)/, "two fingers pinch to zoom");
 assert.match(component, /sheet\.addEventListener\("cancel", event => \{ event\.preventDefault\(\); finish\(null\); \}\)/, "Escape / Back cancels");
 assert.match(component, /const t = text => \(typeof window\.danzstakTranslate === "function"/, "every word goes through the translation layer");
-const css = fs.readFileSync("assets/image-position.css", "utf8");
+const css = read("assets/image-position.css");
 assert.match(css, /\.ds-fit-cancel,\.ds-fit-save\{min-width:44px;min-height:44px;/);
 assert.match(css, /\.ds-fit-step\{display:grid;place-items:center;width:44px;height:44px;/);
 assert.match(css, /\.ds-fit-save\{justify-self:end;background:var\(--fit-go\);color:#fff\}/, "Save is a green go button");
 assert.match(css, /z-index:2147483000/, "the sheet sits above every floating control");
-const people = fs.readFileSync("assets/i18n-people.js", "utf8");
+const people = read("assets/i18n-people.js");
 for (const word of ["Move to fit", "Drag to move. Pinch or slide to zoom.", "Zoom in", "Zoom out", "Tribe picture", "Saved on this phone. Everyone else sees it after DanzStak's next update."]) {
   assert.equal(people.split(JSON.stringify(word) + ":").length - 1, 3, `"${word}" is translated in it, fr and es`);
 }
 
 // Server: call-signaling keeps the cover and photo positions (a new picture without one starts centred) and lets a re-crop
 // of the profile picture replace it instead of adding a past picture; the Auth API keeps the Tribe cover's.
-const signaling = fs.readFileSync("infrastructure/call-signaling/template.yaml", "utf8");
+const signaling = read("infrastructure/call-signaling/template.yaml");
 assert.match(signaling, /coverZoom:Number\(item\?\.profileCoverZoom\?\.N\|\|1\),showcaseX:Number\(item\?\.profileShowcaseX\?\.N\|\|50\),showcaseY:Number\(item\?\.profileShowcaseY\?\.N\|\|50\),showcaseZoom:Number\(item\?\.profileShowcaseZoom\?\.N\|\|1\)/);
 assert.match(signaling, /\['coverZoom','profileCoverZoom',1,3,1,'coverKey'\]/);
 assert.match(signaling, /\['showcaseX','profileShowcaseX',0,100,50,'showcaseKey'\],\['showcaseY','profileShowcaseY',0,100,50,'showcaseKey'\],\['showcaseZoom','profileShowcaseZoom',1,3,1,'showcaseKey'\]/);
 assert.match(signaling, /replaced=Object\.prototype\.hasOwnProperty\.call\(body,picture\)&&String\(body\[picture\]\|\|''\)!==\(current\.Item\?\.\[mediaFields\[picture\]\]\?\.S\|\|''\);if\(!given&&!replaced\)continue;const raw=given\?Number\(body\[field\]\):start/, "a new picture without a position starts centred");
 assert.match(signaling, /stored==='profileAvatarKey'&&value&&body\.avatarRecrop!==true&&/, "a re-crop doesn't become a past picture");
-const auth = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
+const auth = read("infrastructure/auth-api/index.mjs");
 assert.match(auth, /coverPosition: groupCoverPosition\(item\)/);
 assert.match(auth, /UpdateExpression: "SET coverX = :x, coverY = :y, coverZoom = :zoom, updatedAt = :updated",\n\s+ConditionExpression: "attribute_exists\(userEmail\) AND attribute_not_exists\(deletionState\) AND coverKey = :cover"/, "moving the cover is tied to the cover it was placed on");
 console.log("Image position checks passed: clamped positions, CDN/bucket match on this phone, img and background drawing, finger-following drag, pinch, Cancel, 44px green Save, translations, and the server fields for the profile and Tribe covers.");
