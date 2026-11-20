@@ -221,33 +221,8 @@ shopManagementLink.textContent = "Open my shop";
 shopManagementLink.setAttribute("role", "button"); shopManagementLink.dataset.icon = "store"; shopManagementLink.setAttribute("aria-label", "Open my shop");
 shopManagementLink.hidden = viewingOtherProfile;
 actions.appendChild(shopManagementLink);
-// Owner 2026-11-19 (screenshot next to Facebook's profile): "Friends should be a 50% stacked to the right of the 3
-// buttons". Up to four friends' photos, each overlapping the next by half, at the right end of the action row; the
-// whole pile opens the Friends tab. Own profile only for now: a visitor's view needs /friends/of (#572, a call-signaling
-// deploy).
-const facepile = document.createElement("button");
-facepile.type = "button"; facepile.className = "profile-facepile"; facepile.hidden = true; facepile.dataset.iconLayout = "label";
-facepile.addEventListener("click", () => document.querySelector('.profile-tabs [data-profile-tab="Friends"]')?.click());
-actions.appendChild(facepile);
-let facepileLoaded = false;
-async function loadFacepile() {
-  if (facepileLoaded || viewingOtherProfile) return;
-  facepileLoaded = true;
-  try {
-    const response = await profileFetch(profileApi + "/friends", { credentials: "include", cache: "no-store" });
-    if (!response.ok) return;
-    const friends = ((await response.json()).friends || []).filter(Boolean);
-    if (!friends.length) return;
-    facepile.replaceChildren(...friends.slice(0, 4).map(friend => {
-      const face = document.createElement("span"); face.className = "profile-facepile-face";
-      if (friend.picture) { const image = document.createElement("img"); image.src = friend.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; face.append(image); }
-      else face.textContent = String(friend.name || "").trim().charAt(0).toUpperCase() || "•"; // never from an email (privacy)
-      return face;
-    }));
-    const label = profileTranslate(friends.length === 1 ? "1 friend" : "{count} friends").replace("{count}", String(friends.length));
-    facepile.setAttribute("aria-label", label); facepile.title = label; facepile.hidden = false;
-  } catch { facepileLoaded = false; }
-}
+// Owner 2026-11-19: the friends facepile at the right end of this action row ("Friends should be a 50% stacked to the
+// right of the 3 buttons") is drawn by friends-row.js (5a3), which also opens the one Friends screen from it.
 bioElement.insertAdjacentElement("afterend", actions);
 
 const mediaTools = document.createElement("div");
@@ -1664,7 +1639,6 @@ function applyProfile(profile) {
   // Owner 2026-11-19 (A12): no @username line under the name; the friends facepile (#572) sits there instead.
   // The element stays (hidden) because the editor reads the handle from it.
   handleElement.hidden = true;
-  loadFacepile();
   bioElement.textContent = profile.bio || "";
   bioElement.hidden = !profile.bio;
   // Owner 2026-11-19: no "+ bio" button in the profile header — it duplicated Edit profile ("4 of those 5 buttons do

@@ -38,5 +38,7 @@
     const update = () => { share.hidden = !/^[a-f0-9-]{36}$/.test(window.danzstakCurrentProfile?.memberId || ''); };
     window.addEventListener('danzstak:profile-loaded', update); update();
   }
+  // The Friends screen's owner row opens the same translated Invite People dialog (queue 5a3).
+  window.danzstakInvitePeople = opener => show('Invite People', new URL('./', location.href).href, 'Join me on DanzStak. Create an account to connect and share your original content.', opener);
   if (document.readyState !== 'complete') document.addEventListener('DOMContentLoaded', start, {once:true}); else start();
 })();

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#121418">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; style-src 'self'; script-src 'self'; img-src 'self' data: https:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <title>Friends | DanzStak</title>
+  <meta name="description" content="Your friends on DanzStak, who you follow, and what you have in common.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
+  <link rel="stylesheet" href="assets/mobile-design-system.css?v=21">
+  <link rel="stylesheet" href="assets/icon-buttons.css?v=5">
+  <link rel="stylesheet" href="assets/app-feedback.css?v=3">
+  <link rel="stylesheet" href="assets/buttons.css?v=5">
+  <link rel="stylesheet" href="assets/friends-screen.css?v=1">
+</head>
+<body class="friends-page">
+  <a class="skip-link" href="#friendsMain">Skip to friends</a>
+  <header class="friends-topbar">
+    <button type="button" id="friendsBack" class="friends-topbar-button" data-icon="back" aria-label="Back" title="Back"></button>
+    <h1 id="friendsTitle">Friends</h1>
+    <button type="button" id="friendsSearchToggle" class="friends-topbar-button" data-icon="search" aria-label="Search friends" title="Search friends" aria-expanded="false" aria-controls="friendsSearchRow"></button>
+  </header>
+  <div id="friendsSearchRow" class="friends-search" hidden>
+    <label class="visually-hidden" for="friendsSearch">Search friends</label>
+    <input id="friendsSearch" type="search" placeholder="Search friends" autocomplete="off">
+  </div>
+  <main id="friendsMain" class="friends-main" tabindex="-1">
+    <section id="friendsOwnerRow" class="friends-owner-row" aria-label="Requests, find friends and invite" hidden>
+      <button type="button" id="friendsRequestsToggle" class="friends-chip" aria-expanded="false" aria-controls="friendsRequests" hidden></button>
+      <button type="button" id="friendsFindToggle" class="friends-chip" aria-expanded="false" aria-controls="friendsFind">Find friends</button>
+      <button type="button" id="friendsInvite" class="friends-chip">Invite</button>
+    </section>
+    <section id="friendsRequests" class="friends-requests" aria-label="Friend requests" hidden></section>
+    <section id="friendsFind" class="friends-find" aria-label="Find friends" hidden></section>
+
+    <div id="friendsTabs" class="friends-tabs" role="tablist" aria-label="Friends">
+      <button type="button" role="tab" id="tab-friends" data-panel="panelFriends" aria-controls="panelFriends" aria-selected="true">Friends</button>
+      <button type="button" role="tab" id="tab-following" data-panel="panelFollowing" aria-controls="panelFollowing" aria-selected="false" tabindex="-1">Following</button>
+      <button type="button" role="tab" id="tab-common" data-panel="panelCommon" aria-controls="panelCommon" aria-selected="false" tabindex="-1">Things in common</button>
+    </div>
+    <section id="panelFriends" class="friends-panel" role="tabpanel" aria-labelledby="tab-friends"><p id="friendsStatus" class="friends-status" role="status" aria-live="polite">Loading friends…</p><ul id="friendsList" class="friends-list"></ul></section>
+    <section id="panelFollowing" class="friends-panel" role="tabpanel" aria-labelledby="tab-following" hidden>
+      <p class="friends-empty">Artists, venues and shops you follow will show here once Follow opens.</p>
+    </section>
+    <section id="panelCommon" class="friends-panel" role="tabpanel" aria-labelledby="tab-common" hidden><ul id="commonList" class="friends-common"></ul></section>
+    <p id="friendsMore" class="friends-more" hidden><a href="profile.html">Add more about you to find people who share it</a></p>
+  </main>
+  <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
+    <a role="button" data-icon="home" aria-label="Mix" title="Mix" href="feed.html?view=feed"></a>
+    <a role="button" data-icon="disc" aria-label="Music HQ" title="Music HQ" href="feed.html?view=hq"></a>
+    <a role="button" data-icon="calendar" aria-label="Events" title="Events" href="feed.html?view=events"></a>
+    <a role="button" data-icon="store" aria-label="Bazaar" title="Bazaar" href="bazaar.html"></a>
+    <a role="button" data-icon="chat" aria-label="SYNC" title="SYNC" href="messages.html"></a>
+    <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1" aria-current="page"></a>
+  </nav>
+  <script src="assets/app-feedback.js?v=4" defer></script>
+  <script src="assets/icon-buttons.js?v=14" defer></script>
+  <script src="assets/people-search.js?v=424" defer></script>
+  <script src="assets/profile-sharing.js?v=419" defer></script>
+  <script src="assets/friends-screen.js?v=1" defer></script>
+</body>
+</html>

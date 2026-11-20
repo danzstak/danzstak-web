@@ -1,0 +1,60 @@
+/* Queue 5a3: the one Friends screen and the friends row under the profile name. Phone first, one fluid page,
+   hairline dividers instead of boxes, 44px targets. */
+.friends-page [hidden]{display:none!important}
+.friends-page{margin:0;min-height:100vh;background:var(--ds-canvas,#fff);color:var(--ds-ink,#172033);font-family:var(--ds-font,Arial,sans-serif)}
+.friends-topbar{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:4px;min-height:56px;padding:4px max(8px,env(safe-area-inset-left));padding-top:max(4px,env(safe-area-inset-top));background:var(--ds-canvas,#fff);border-bottom:1px solid var(--ds-border,#e4e8ef)}
+.friends-topbar h1{margin:0;overflow:hidden;font-size:18px;font-weight:900;white-space:nowrap;text-overflow:ellipsis}
+.friends-topbar-button{width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer}
+.friends-topbar-button:focus-visible{outline:2px solid var(--ds-accent,#ef6c20);outline-offset:2px}
+.friends-search{padding:8px 12px;border-bottom:1px solid var(--ds-border,#e4e8ef)}
+.friends-search input{width:100%;min-height:44px;padding:0 14px;border:1px solid var(--ds-border-strong,#c5cfdd);border-radius:999px;background:#f2f4f7;font:inherit}
+.friends-main{width:min(100%,720px);margin:0 auto;padding:0 0 96px}
+
+.friends-owner-row{display:flex;gap:8px;overflow-x:auto;padding:10px 12px;scrollbar-width:none}
+.friends-owner-row::-webkit-scrollbar{display:none}
+.friends-chip{flex:0 0 auto;min-height:40px;padding:0 14px;border:1px solid var(--ds-border-strong,#c5cfdd);border-radius:999px;background:#fff;color:var(--ds-ink,#172033);font:inherit;font-size:14px;font-weight:800;cursor:pointer}
+.friends-chip[aria-expanded=true]{border-color:var(--ds-ink,#172033)}
+.friends-chip.is-alert{border-color:var(--ds-accent,#ef6c20);background:#fff1e6;color:#8a3a0c}
+.friends-requests,.friends-find{padding:0 12px 6px;border-bottom:1px solid var(--ds-border,#e4e8ef)}
+.friends-subhead{margin:10px 0 2px;font-size:13px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--ds-muted,#667085)}
+
+.friends-tabs{position:sticky;top:56px;z-index:10;display:flex;background:var(--ds-canvas,#fff);border-bottom:1px solid var(--ds-border,#e4e8ef)}
+.friends-tabs [role=tab]{flex:1 1 0;min-height:48px;padding:0 6px;border:0;border-bottom:3px solid transparent;background:none;color:var(--ds-muted,#667085);font:inherit;font-size:15px;font-weight:900;white-space:nowrap;cursor:pointer}
+.friends-tabs [role=tab][aria-selected=true]{border-bottom-color:var(--ds-accent,#ef6c20);color:var(--ds-ink,#172033)}
+.friends-tabs [role=tab][hidden]{display:none}
+.friends-tabs [role=tab]:focus-visible{outline:2px solid var(--ds-accent,#ef6c20);outline-offset:-3px}
+.friends-status{margin:10px 12px 0;color:var(--ds-muted,#667085);font-size:14px;font-weight:700}
+.friends-status:empty{display:none}
+
+.friends-list,.friends-common{list-style:none;margin:0;padding:0}
+.friends-row{display:flex;align-items:center;gap:8px;min-height:64px;padding:6px 12px;border-bottom:1px solid var(--ds-border,#eef1f5)}
+.friends-person{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;min-height:52px;color:inherit;text-decoration:none}
+.friends-copy{display:grid;min-width:0}
+.friends-copy strong{overflow:hidden;font-size:16px;white-space:nowrap;text-overflow:ellipsis}
+.friends-copy small{color:var(--ds-muted,#667085);font-size:13px}
+.friends-copy small.is-online{color:#16794a;font-weight:800}
+.friends-avatar{flex:0 0 auto;display:grid;place-items:center;width:48px;height:48px;overflow:hidden;border-radius:50%;background:#dfe6ee;font-weight:900;font-size:16px;color:#fff}
+.friends-avatar img{width:100%;height:100%;object-fit:cover}
+.friends-avatar.is-initials{background:hsl(var(--friend-hue,210) 45% 42%)}
+.friends-avatar.is-small{width:28px;height:28px;font-size:11px;border:2px solid #fff}
+.friends-message{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border-radius:999px;background:#eef2f7;color:var(--ds-ink,#172033);font-weight:800;text-decoration:none}
+.friends-actions{display:flex;gap:6px;flex:0 0 auto}
+.friends-actions button{min-height:44px;padding:0 14px;border:0;border-radius:10px;background:#eef2f7;color:var(--ds-ink,#172033);font:inherit;font-weight:900;cursor:pointer}
+.friends-actions button.primary{background:var(--ds-brand,#121418);color:#fff}
+.friends-actions button:disabled{opacity:.5}
+.friends-common-item{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:12px;min-height:64px;padding:8px 12px;border-bottom:1px solid var(--ds-border,#eef1f5)}
+.friends-common-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#eef2f7}
+.friends-common-icon::before{content:"";width:20px;height:20px;background:var(--ds-ink,#172033);-webkit-mask:var(--friends-icon) center/contain no-repeat;mask:var(--friends-icon) center/contain no-repeat}
+.friends-common-icon[data-kind=place]{--friends-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z'/%3E%3C/svg%3E")}
+.friends-common-icon[data-kind=tribe]{--friends-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM9 13c-4 0-7 2-7 5v2h14v-2c0-3-3-5-7-5zm8 0c-.7 0-1.4.1-2 .3 1.9 1 3 2.6 3 4.7v2h4v-2c0-2.8-2.2-5-5-5z'/%3E%3C/svg%3E")}
+.friends-faces{display:flex}
+.friends-faces .friends-avatar+.friends-avatar{margin-left:-8px}
+.friends-empty{margin:16px 12px;color:var(--ds-muted,#667085);line-height:1.5}
+.friends-more{margin:18px 12px;font-weight:800}
+.friends-more a{display:inline-flex;align-items:center;min-height:44px;color:var(--ds-ink,#172033)}
+.friends-page .visually-hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.friends-page .skip-link{position:fixed;left:12px;top:-80px;z-index:100;padding:10px;background:#fff}
+.friends-page .skip-link:focus{top:12px}
+
+/* Friends row under the profile name (profile.html). */
+@media (max-width:360px){.friends-tabs [role=tab]{font-size:14px;padding:0 3px}}

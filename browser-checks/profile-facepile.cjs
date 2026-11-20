@@ -2,7 +2,8 @@
 // Owner 2026-11-19 (his profile next to Facebook's): "Friends should be a 50% stacked to the right of the 3 buttons".
 // Real browser, touch, own profile at 320/360/390/430px: the friends' photos sit at the right end of the action row
 // (after edit, shop and share), each overlapping the next by half (36px faces, 18px apart), all on screen and on one row
-// with the buttons; it is named "N friends"; a tap at its centre opens the Friends tab.
+// with the buttons; it is named "N friends"; a tap at its centre opens the one Friends screen (5a3, friends.html).
+// Someone else's profile: the same pile from GET /friends/of, mutual friends first, named "N mutual friends".
 // Run: DANZSTAK_BASE_URL=http://127.0.0.1:8132 node browser-checks/profile-facepile.cjs
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
@@ -52,12 +53,41 @@ const FRIENDS = ["#ff5a1f", "#3366ff", "#22aa66", "#aa22aa", "#999999"].map((col
       if (!layout.hit || layout.pile.h < 44) failures.push(`${label}: the facepile must be a 44px target reachable at its centre`);
       if (width === 390) await page.screenshot({ path: "docs/screenshots/profile-facepile-390.png" });
       await page.touchscreen.tap(layout.pile.l + layout.pile.w / 2, layout.pile.t + layout.pile.h / 2);
-      const friendsOpen = await page.waitForFunction(() => document.querySelector('.profile-tabs [data-profile-tab="Friends"]')?.getAttribute("aria-selected") === "true" || document.querySelector('.profile-tabs [data-profile-tab="Friends"]')?.classList.contains("active"), null, { timeout: 5000 }).then(() => true).catch(() => false);
-      if (!friendsOpen) failures.push(`${label}: tapping the facepile did not open the Friends tab`);
+      const friendsOpen = await page.waitForURL(/\/friends\.html$/, { timeout: 5000 }).then(() => true).catch(() => false);
+      if (!friendsOpen) failures.push(`${label}: tapping the facepile did not open the Friends screen (${page.url()})`);
+      if (errors.length) failures.push(`${label}: page errors ${errors.join(" | ")}`);
+      await context.close();
+    }
+    // Someone else's profile (5a3): mutual friends from /friends/of, the same place, opens their Friends screen.
+    for (const width of [360, 390]) {
+      const label = `${width}px visitor`, them = "33333333-3333-4333-8333-333333333333";
+      const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
+      const page = await context.newPage(), errors = [];
+      page.on("pageerror", error => errors.push(error.message));
+      await page.route(`${base}/__face-*.svg`, route => route.fulfill({ status: 200, contentType: "image/svg+xml", body: svg("#3366ff") }));
+      await page.route("https://api.danzstak.com/**", route => {
+        const url = new URL(route.request().url()), p = url.pathname;
+        const json = body => route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": base, "access-control-allow-credentials": "true" }, body: JSON.stringify(body) });
+        if (p === "/auth/session") return json({ authenticated: true, user: { sub: me } });
+        if (p === "/profiles" || p === "/profile") return json({ profile: { memberId: them, name: "Mara Voss", username: "mara", handle: "mara", isOwner: false, cloudProfile: true, bio: "" } });
+        if (p === "/friends/of") return json({ isOwner: false, isFriend: true, listVisible: true, count: 5, mutualCount: 3, common: [], friends: FRIENDS.map((friend, i) => ({ ...friend, mutual: i >= 2 })) });
+        return json({});
+      });
+      await page.goto(`${base}/profile.html?member=${them}`, { waitUntil: "domcontentloaded" });
+      const pile = page.locator(".profile-actions .profile-facepile");
+      const shown = await pile.waitFor({ timeout: 10000 }).then(() => true).catch(() => false);
+      if (!shown) { failures.push(`${label}: no facepile on someone else's profile`); await context.close(); continue; }
+      const name = await pile.getAttribute("aria-label"), faces = await pile.locator(".profile-facepile-face").count();
+      if (name !== "3 mutual friends") failures.push(`${label}: named "${name}"`);
+      if (faces !== 4) failures.push(`${label}: ${faces} faces (4 expected, mutual friends first)`);
+      const box = await pile.boundingBox();
+      await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      const opened = await page.waitForURL(new RegExp(`/friends\\.html\\?member=${them}$`), { timeout: 5000 }).then(() => true).catch(() => false);
+      if (!opened) failures.push(`${label}: tapping the facepile did not open their Friends screen (${page.url()})`);
       if (errors.length) failures.push(`${label}: page errors ${errors.join(" | ")}`);
       await context.close();
     }
   } finally { await browser.close(); }
   assert.deepEqual(failures, [], failures.join("\n"));
-  console.log("Profile facepile checks passed at 320, 360, 390, 430px: friends' photos stacked by half at the right end of the action row, on screen, named \"N friends\", a tap opens Friends.");
+  console.log("Profile facepile checks passed at 320, 360, 390, 430px: friends' photos stacked by half at the right end of the action row, on screen, named \"N friends\", a tap opens the Friends screen; someone else's pile shows mutual friends.");
 })().catch(error => { console.error(error.message || error); process.exitCode = 1; });

@@ -124,7 +124,8 @@ async function refreshNotificationCount() {
       if (result.status !== "fulfilled" || !result.value.ok) continue;
       const key = index === 0 ? "social" : "engagement";
       const notices = ((await result.value.json()).notifications || []);
-      notificationSourceCounts[key] = key === "engagement" ? notices.filter(notice => notice.unread !== false).length : notices.length;
+      // 5a3: "X accepted your friend request" stays in the list for a week but never keeps the badge lit (the phone push is the alert).
+      notificationSourceCounts[key] = key === "engagement" ? notices.filter(notice => notice.unread !== false).length : notices.filter(notice => notice.type !== "friend_accepted").length;
       succeeded = true;
     }
     const reminder = window.danzstakDeviceReminder;
@@ -1627,6 +1628,8 @@ function renderWorkspace(name) {
                   ? feedFormat("{name} replied to you: {preview}", { name: displayName, preview: notice.preview || feedTranslate("New reply") })
                 : notice.type === "comment"
                 ? feedFormat("{name} commented: {preview}", { name: displayName, preview: notice.preview || feedTranslate("New comment") })
+                : notice.type === "friend_accepted"
+                ? feedFormat("{name} accepted your friend request.", { name: displayName })
                 : feedFormat("{name} sent you a friend request.", { name: displayName });
           const copy = document.createElement("div");
           copy.className = "notification-copy";
@@ -1687,6 +1690,14 @@ function renderWorkspace(name) {
                 if ((featurePanel.dataset?.workspaceName || featureHeading.textContent) === "Notifications") renderWorkspace("Notifications");
               }, 1500);
             });
+            actions.appendChild(open);
+          } else if (notice.type === "friend_accepted") {
+            row.classList.add("is-read");
+            const open = document.createElement("a");
+            open.className = "button secondary";
+            open.href = memberId ? `profile.html?member=${encodeURIComponent(memberId)}` : "friends.html";
+            open.textContent = feedTranslate("View profile");
+            open.setAttribute("aria-label", `${feedTranslate("View profile")}: ${displayName}`);
             actions.appendChild(open);
           } else for (const [label, accept] of [["Accept", true], ["Decline", false]]) {
             const button = document.createElement("button");

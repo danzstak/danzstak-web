@@ -181,7 +181,7 @@ body.profile-page{background:#fff!important}
 .profile-past-delete .ds-action-icon{width:20px;height:20px}
 .profile-photo-sheet button:focus-visible{outline:3px solid #ff5a1f;outline-offset:2px}
 /* Owner 2026-11-19: friends' photos stacked by half at the right end of the action row (like Facebook's). */
-.profile-actions .profile-facepile{order:9;display:flex;align-items:center;margin-left:auto;min-width:44px;min-height:44px;padding:0 0 0 18px;border:0;background:none;cursor:pointer}
+.profile-actions .profile-facepile{order:9;display:flex;align-items:center;margin-left:auto;min-width:44px;min-height:44px;padding:0 0 0 18px;border:0;background:none;color:inherit;text-decoration:none;cursor:pointer}
 .profile-actions .profile-facepile[hidden]{display:none}
 .profile-facepile-face{display:grid;place-items:center;width:36px;height:36px;margin-left:-18px;overflow:hidden;border:2px solid #fff;border-radius:50%;background:#2c3036;color:#fff;font-weight:800;font-size:.9rem}
 .profile-facepile-face img{display:block;width:100%;height:100%;object-fit:cover}

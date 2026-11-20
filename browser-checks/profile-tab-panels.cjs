@@ -34,7 +34,10 @@ const postsFor = owner => [{ postId: "photo-1", userId: owner ? me : them, autho
       await page.locator('[data-profile-tab="Posts"][aria-selected="true"]').waitFor({ timeout: 15000 });
       for (const tab of ["Posts", "Friends", "Photos", "Videos", "About"]) {
         const label = `${who} ${width}px ${tab}`;
-        await page.locator(`[data-profile-tab="${tab}"]`).click();
+        // 5a3: a real tap on Friends opens the one Friends screen (checked after this loop); keyboard and scripted
+        // selection still switch the tab in place, which is what this panel check needs.
+        if (tab === "Friends") await page.locator('[data-profile-tab="Friends"]').evaluate(element => element.click());
+        else await page.locator(`[data-profile-tab="${tab}"]`).click();
         await page.waitForTimeout(500);
         const view = await page.evaluate(() => {
           const details = document.querySelector(".details");
@@ -52,9 +55,11 @@ const postsFor = owner => [{ postId: "photo-1", userId: owner ? me : them, autho
         assert.equal(view.overflow, false, `${label}: no sideways scroll`);
       }
       assert.deepEqual(errors, [], `${who} ${width}px: page errors: ${errors.join(" | ")}`);
+      await page.locator('[data-profile-tab="Friends"]').click();
+      await page.waitForURL(/\/friends\.html/, { timeout: 10000 });
       await context.close();
     }
-    console.log(`Profile tab panel checks passed at ${viewports.map(([width]) => width).join(", ")}px for owner and visitor: the About details show on About only, and nothing marked hidden is drawn.`);
+    console.log(`Profile tab panel checks passed at ${viewports.map(([width]) => width).join(", ")}px for owner and visitor: the About details show on About only, nothing marked hidden is drawn, and a tap on Friends opens the Friends screen.`);
   } finally {
     await browser.close();
   }
