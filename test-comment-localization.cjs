@@ -39,7 +39,7 @@ assert.match(html, /<script src="assets\/time-label\.js\?v=\d+"><\/script>/, "Mi
 assert.match(feed, /attributeFilter: \["lang"\]/, "comment translations must observe live language changes");
 assert.match(feed, /dataset\.replyName/, "member names must be preserved separately from translated interface copy");
 assert.match(html, /assets\/i18n\.js\?v=411/);
-assert.match(html, /assets\/feed-enhancements\.js\?v=595/);
-assert.match(serviceWorker, /danzstak-shell-v1004/);
+assert.match(html, /assets\/feed-enhancements\.js\?v=596/);
+assert.match(serviceWorker, /danzstak-shell-v1005/);
 
 console.log("Comment localization checks passed: all 15 languages cover composing, sorting, named replies, accessibility labels, and live language changes.");

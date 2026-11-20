@@ -27,7 +27,7 @@ function png(width, height, pixel) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]);
 }
 // A wide photo (wider than 16:7, so it can move sideways) and a tall red-over-green one for the profile picture.
-const wide = png(2000, 700, x => (x < 1000 ? [255, 90, 31] : [20, 40, 120]));
+const wide = png(2400, 700, x => (x < 1200 ? [255, 90, 31] : [20, 40, 120])); // 3.4:1, wider than every box it is placed in at 320-430px
 const tall = png(600, 900, (x, y) => (y < 450 ? [220, 20, 20] : [20, 160, 60]));
 const media = { "/users/me/wide.png": wide, "/users/me/tall.png": tall };
 const cors = { "access-control-allow-origin": base, "access-control-allow-credentials": "true" };
@@ -237,7 +237,7 @@ function checkSheet(state, label, aspect, failures, { round = false } = {}) {
         if (!sent || !(sent.x < 45) || "mediaKey" in run.sent.covers.at(-1)) failures.push(`${label}: Save did not send the moved position alone ${JSON.stringify(run.sent.covers)}`);
         const drawn = await run.page.evaluate(() => getComputedStyle(document.querySelector(".tribe-hero-cover")).backgroundPosition);
         if (!sent || Math.abs(parseFloat(drawn) - sent.x) > 0.6) failures.push(`${label}: the cover is not drawn where it was placed (${drawn} vs ${sent?.x})`);
-        await run.tap(run.page.locator(".tribe-back"));
+        await run.tap(run.page.locator(".ds-app-bar-screen-back")); // F13: the bar's ← goes back to the list
         await run.page.locator(".group-card-cover.has-photo").first().waitFor({ timeout: 8000 });
         const tile = await run.page.evaluate(() => getComputedStyle(document.querySelector(".group-card-cover.has-photo")).backgroundPosition);
         if (!sent || Math.abs(parseFloat(tile) - sent.x) > 0.6) failures.push(`${label}: the Tribes-list picture is not drawn from the same point (${tile})`);
