@@ -94,6 +94,12 @@ Owner, 2026-11-20: "Needs to … understand soundsystems and what the artist exp
 ## 4. Write it right
 - **Oldest release to newest.** The first line says how long the act has been going ("industrial roots from 1988,
   vinyl since 1996").
+- **The first record is not the start of the career.** Owner, 2026-11-20: "My history goes before that but that the
+  recording dates." Discogs and Bandcamp give recording and release dates only. Before them come DJing, parties,
+  sound-system crews, bands that never recorded, radio, promoting and touring. The AI looks for the earliest
+  *activity* (old flyers, interviews, scene histories, radio archives, forum and fanzine posts, in every language),
+  not just the earliest release, and never writes "started in <first release year>". When no source shows the
+  earlier years, the bio says "first recordings in 1988", never "began in 1988".
 - Bio around 200 words, short bio around 50, one-line pitch, booking pitch. Scene voice, no hype words.
 - Include:
   - every release with year, format, label, catalogue number, remixers and credits, and "Made in city, country";
@@ -123,6 +129,7 @@ Fixtures are recorded page/API responses. No live network calls run in CI.
   - **No questions:** the build reaches a full draft from the act name alone, with no question screen.
   - **Bio:**
     - names the 1988 and 1996 start;
+    - calls 1988 the first recordings, never the start of the career;
     - is in oldest-to-newest order.
   - **Releases:**
     - all 10 Bandcamp releases and all 6 Discogs releases appear;
