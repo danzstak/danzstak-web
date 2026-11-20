@@ -114,7 +114,8 @@
     }
     finally { confirmButton.disabled = false; }
   });
-  resend.addEventListener("click", () => { codeForm.hidden = true; numberForm.hidden = false; number.focus(); });
+  // Resend brings back a Send button that works (it stayed disabled while the old code was "pending").
+  resend.addEventListener("click", () => { codeForm.hidden = true; numberForm.hidden = false; send.disabled = current?.providerAvailable !== true; number.focus(); });
   remove.addEventListener("click", async () => {
     if (!globalThis.confirm(t("Remove your verified private number from SYNC?"))) return;
     remove.disabled = true; message(t("Removing number…"));

@@ -61,3 +61,15 @@ const { pathToFileURL } = require("node:url");
   for(const italian of ["Verifica privata del telefono","Prefisso internazionale","Numero di cellulare","AWS non ha ancora approvato gli SMS di verifica SYNC"])assert.ok(translations.includes(italian),`missing Italian phone verification copy: ${italian}`);
   console.log("SYNC private phone verification regression checks passed.");
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+// Owner 2026-11-19: the Italian tester's reply from "Send a test notification" came back in English,
+// and Resend left a Send button that did nothing.
+{
+  const fs = require("node:fs"), assert = require("node:assert/strict");
+  const push = fs.readFileSync("assets/push-notifications.js", "utf8"), sync = fs.readFileSync("assets/i18n-sync.js", "utf8"), phone = fs.readFileSync("assets/phone-verification.js", "utf8");
+  assert.doesNotMatch(push, /status\.textContent = "|status\.textContent = error\.message|: "No device has|`Sent to \$\{/, "test-notification replies go through t()");
+  for (const key of ["Send a test notification", "Sending…", "No device has notifications on yet. Allow notifications and try again.", "Sent to 1 device.", "Sent to {count} devices.", "This device will ring for calls when SYNC is closed.", "This device gets messages; register it to ring for calls when SYNC is closed.", "Notifications must be allowed for background alerts."])
+    for (const lang of ["it", "fr", "es", "de", "pt"]) assert.ok(sync.split(`"${lang}": {`)[1].includes(JSON.stringify(key) + ":"), `"${key}" missing in ${lang}`);
+  assert.match(phone, /resend\.addEventListener\("click", \(\) => \{[^}]*send\.disabled = current\?\.providerAvailable !== true/, "Resend brings back a Send button that works");
+  console.log("SYNC test-notification localization + Resend checks passed.");
+}
