@@ -53,13 +53,13 @@ async function tapAvatarCentre(page) {
   assert.equal(point.hit, true, "the centre of the profile picture is not covered");
   await page.touchscreen.tap(point.x, point.y);
 }
-async function swipe(page, dx, dy) {
+async function swipe(page, dx, dy, settle = 450) {
   const cdp = await page.context().newCDPSession(page), x = 195, y = 420;
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
   for (let step = 1; step <= 8; step += 1) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + dx * step / 8, y: y + dy * step / 8 }] }); await new Promise(resolve => setTimeout(resolve, 16)); }
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await cdp.detach();
-  await page.waitForTimeout(450);
+  await page.waitForTimeout(settle);
 }
 const viewer = page => page.evaluate(() => {
   const root = document.querySelector(".ds-media-viewer"); if (!root) return null;
@@ -84,8 +84,9 @@ const viewer = page => page.evaluate(() => {
       assert.deepEqual(await viewer(run.page), { count: "3 / 3", src: "__pic-2024.svg", sideways: true }, `${label}: two swipes left show the oldest`);
       await swipe(run.page, 240, 0);
       assert.deepEqual(await viewer(run.page), { count: "2 / 3", src: "__pic-2025.svg", sideways: true }, `${label}: a swipe right goes back one`);
-      await swipe(run.page, 0, -220);
+      await swipe(run.page, 0, -220, 100);
       assert.equal((await viewer(run.page)).count, "2 / 3", `${label}: an up/down swipe doesn't change picture`);
+      // ✕ right after a quick flick still closes (a tap during the browser's own fling used to only stop the fling).
       const close = await run.page.locator(".ds-media-viewer-close").boundingBox();
       await run.page.touchscreen.tap(close.x + close.width / 2, close.y + close.height / 2);
       await run.page.waitForSelector(".ds-media-viewer", { state: "detached", timeout: 5000 });

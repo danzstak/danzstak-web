@@ -291,7 +291,7 @@ function applyDataSaver(enabled) {
     video.autoplay = false;
     if (enabled) video.pause();
   });
-  if (typeof renderPlayableReels === "function" && typeof reelsList !== "undefined") renderPlayableReels();
+  if (typeof renderPlayableReels === "function" && typeof reelsList !== "undefined") renderPlayableReels({ force: true });
 }
 
 function field(label, type, placeholder) {
@@ -4213,6 +4213,7 @@ function setRollFullscreen(open, { updateHistory = true, fromHistory = false, st
     window.danzstakMediaCoordinator?.endSession?.(reelsList);
     rollSessionStatus.hidden = true;
     restoreRollBackground();
+    if (reelsRenderPending) renderPlayableReels();
     rollOpen.focus({ preventScroll: true });
   }
 }
@@ -4428,10 +4429,18 @@ function reelPlayer(url) {
   return null;
 }
 
-function renderPlayableReels() {
+// Owner 2026-11-19: "every 3rd video the sound goes off in the roll". Rebuilding The Roll replaced every video, the one
+// playing too: it stopped and nothing played (reproduced by Mix reloading its posts during full-screen playback, which a
+// phone does after its connection drops and comes back). The Roll now keeps its cards when its list of videos hasn't
+// changed, and while it is full screen a real change waits until it closes. Adding, removing and data saver still rebuild.
+var renderedReelIds = null, reelsRenderPending = false; // var: the data-saver switch can call the Roll before this line runs
+function renderPlayableReels({ force = false } = {}) {
+  const reels = getReels(), ids = reels.map(reel => String(reel.id || reel.url || "")).join("|"), shown = Boolean(reelsList.querySelector(".reel-card"));
+  if (!force && shown && ids === renderedReelIds) return;
+  if (!force && shown && reelsRail.classList.contains("roll-fullscreen")) { reelsRenderPending = true; return; }
+  renderedReelIds = ids; reelsRenderPending = false;
   window.danzstakMediaCoordinator?.endSession?.(reelsList);
   reelsList.replaceChildren();
-  const reels = getReels();
   reelsRail.classList.toggle("has-reels", reels.length > 0);
   rollOpen.disabled = reels.length === 0;
   rollOpen.hidden = reels.length === 0;
