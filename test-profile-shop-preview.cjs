@@ -23,7 +23,11 @@ console.log("profile shop preview ok");
   assert.match(showcase, /Add a photo: your dog, your rig, anything/);
   assert.match(showcase, /or open your shop/);
   assert.match(showcase, /\/\^image\\\/\(jpeg\|png\|webp\|gif\)\$\/\.test\(file\.type\) \|\| file\.size > 15 \* 1024 \* 1024/);
-  assert.match(showcase, /const mediaKey = await uploadCloudMedia\(file\); await save\(\{ showcaseKey: mediaKey \}\);/);
+  // F12: a new photo is placed in its 16:7 box first and saved with where it sits; "Move to fit" in the ⋯ moves it later.
+  assert.match(showcase, /await savePlace\(position, \{ showcaseKey: await uploadCloudMedia\(file\) \}\);/);
+  assert.match(showcase, /if \(!position\) \{ box\.removeAttribute\("aria-busy"\); return; \}/, "Cancel uploads nothing");
+  assert.match(showcase, /if \(position\) await savePlace\(position\);/);
+  assert.match(showcase, /fitPictures\(\)\?\.apply\(image, profilePlace\(profile, "showcase"\)\);/);
   assert.match(showcase, /save\(\{ showcaseKey: "" \}\)/, "the owner can remove it");
   assert.match(editor, /if \(!data\.shop\) \{ renderProfileShowcase\(null, profile\); return; \}/);
   // Server keeps the photo like the avatar and cover, and never cleans it up while it's in use.

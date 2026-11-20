@@ -1,0 +1,36 @@
+/* Directive F12: "Move to fit", the one sheet every picture is placed with (assets/image-position.js). Full screen, dark,
+   the exact box in the middle, Cancel and a green Save in a frosted bar. Above every floating control. */
+.ds-fit-sheet{--fit-go:#15803d;--fit-accent:#ff5a1f;position:fixed;inset:0;width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:0;border:0;background:#0b0b0c;color:#f4f4f2;font-family:var(--ds-font,system-ui,sans-serif);overscroll-behavior:contain;z-index:2147483000}
+.ds-fit-sheet[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto auto}
+.ds-fit-sheet::backdrop{background:#0b0b0c}
+.ds-fit-bar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 6px) 12px 6px;background:#151517d9;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.ds-fit-bar h2{margin:0;font-size:17px;font-weight:800;line-height:1.2;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds-fit-cancel,.ds-fit-save{min-width:44px;min-height:44px;padding:0 14px;border:0;border-radius:999px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}
+.ds-fit-cancel{justify-self:start;background:transparent;color:#f4f4f2}
+.ds-fit-save{justify-self:end;background:var(--fit-go);color:#fff}
+.ds-fit-cancel:active,.ds-fit-save:active,.ds-fit-step:active{transform:scale(.97)}
+.ds-fit-cancel:focus-visible,.ds-fit-save:focus-visible,.ds-fit-step:focus-visible,.ds-fit-range:focus-visible,.ds-fit-box:focus-visible{outline:2px solid var(--fit-accent);outline-offset:3px}
+.ds-fit-stage{display:grid;place-items:center;min-height:0;padding:16px}
+.ds-fit-box{position:relative;overflow:hidden;border-radius:12px;background:#151517;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.ds-fit-box.is-moving{cursor:grabbing}
+.ds-fit-box.is-round{border-radius:50%}
+.ds-fit-image{display:block;width:100%;height:100%;pointer-events:none;-webkit-user-drag:none}
+/* Thirds while moving, like a camera's grid. */
+.ds-fit-grid{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .15s;background:linear-gradient(90deg,transparent calc(33.333% - .5px),#fff8 calc(33.333% - .5px),#fff8 calc(33.333% + .5px),transparent calc(33.333% + .5px),transparent calc(66.666% - .5px),#fff8 calc(66.666% - .5px),#fff8 calc(66.666% + .5px),transparent calc(66.666% + .5px)),linear-gradient(180deg,transparent calc(33.333% - .5px),#fff8 calc(33.333% - .5px),#fff8 calc(33.333% + .5px),transparent calc(33.333% + .5px),transparent calc(66.666% - .5px),#fff8 calc(66.666% - .5px),#fff8 calc(66.666% + .5px),transparent calc(66.666% + .5px))}
+.ds-fit-box.is-moving .ds-fit-grid{opacity:1}
+.ds-fit-extras{display:flex;justify-content:center;gap:16px;padding:0 16px 4px}
+.ds-fit-extras[hidden]{display:none}
+.ds-fit-extra{display:grid;justify-items:center;gap:4px;margin:0}
+.ds-fit-extra-frame{display:block;height:56px;overflow:hidden;border-radius:10px;background:#151517}
+.ds-fit-extra.is-round .ds-fit-extra-frame{border-radius:50%}
+.ds-fit-extra img{display:block;width:100%;height:100%}
+.ds-fit-extra figcaption{color:#c9ccd1;font:600 11px/1.2 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase}
+.ds-fit-zoom{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:8px;width:min(100%,420px);margin:0 auto;padding:8px 16px 0}
+.ds-fit-step{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:#ffffff1a;color:#fff;font:700 22px/1 system-ui,sans-serif;cursor:pointer}
+.ds-fit-range{-webkit-appearance:none;appearance:none;width:100%;height:44px;margin:0;background:transparent;cursor:pointer}
+.ds-fit-range::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:#ffffff40}
+.ds-fit-range::-moz-range-track{height:4px;border-radius:2px;background:#ffffff40}
+.ds-fit-range::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-10px;border:0;border-radius:50%;background:var(--fit-accent);box-shadow:0 1px 6px #0008}
+.ds-fit-range::-moz-range-thumb{width:24px;height:24px;border:0;border-radius:50%;background:var(--fit-accent);box-shadow:0 1px 6px #0008}
+.ds-fit-hint{margin:0;padding:6px 16px calc(env(safe-area-inset-bottom,0px) + 14px);color:#c9ccd1;font-size:13px;line-height:1.35;text-align:center}
+@media (prefers-reduced-motion:reduce){.ds-fit-grid{transition:none}.ds-fit-cancel:active,.ds-fit-save:active,.ds-fit-step:active{transform:none}}

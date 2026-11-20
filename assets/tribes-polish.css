@@ -33,6 +33,6 @@
    and a Tribe with its own picture shows that picture filling the box. */
 .groups-workspace .group-card-cover{position:relative}
 .groups-workspace .group-card-cover:not(.has-photo)::after{position:absolute;inset:0;display:grid;place-items:center;line-height:1}
-.groups-workspace .group-card-cover.has-photo{background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}
+.groups-workspace .group-card-cover.has-photo{background-size:cover;background-position:center;background-repeat:no-repeat}
 .groups-workspace .group-card-cover.has-photo::after{content:none}
 .groups-workspace .group-card-cover:not(.has-photo){background-image:none!important}

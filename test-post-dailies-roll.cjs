@@ -106,11 +106,11 @@ function sandbox({ storiesFail = false } = {}) {
   assert.match(profileEditor, /mediaKey, mediaType, reel: mediaType === "video" \};/, "profile composer");
   assert.doesNotMatch(enhancements, /toggle = document\.getElementById\("shareToReels"\)/, "linked videos go to The Roll without a checkbox");
 
-  // Deploy: the managed policy for the Stories write, attached to the Auth API role.
+  // Deploy: the Stories write is part of the Auth API's managed access policy (2026-11-20: the separate DanzStakPostDailies
+  // policy folded in when the inline policy moved to a managed one; test-auth-api-deploy-policy.cjs checks that move).
   const deploy = read("aws-deploy-auth-api.ps1");
-  assert.match(deploy, /\$dailiesPolicyName = "DanzStakPostDailies"/);
-  assert.match(deploy, /Action = @\("dynamodb:PutItem"\)\s*\n\s*Resource = "arn:aws:dynamodb:us-west-1:\$\(\$identity\.Account\):table\/DANZSTAK-Stories"/);
-  assert.match(deploy, /aws iam attach-role-policy --role-name \$RoleName --policy-arn \$dailiesPolicyArn/);
+  assert.match(deploy, /Sid = "PostDailies"\s*\n\s*Effect = "Allow"\s*\n\s*Action = @\("dynamodb:PutItem"\)\s*\n\s*Resource = "arn:aws:dynamodb:us-west-1:635288116224:table\/DANZSTAK-Stories"/);
+  assert.match(deploy, /aws iam attach-role-policy --role-name \$RoleName --policy-arn \$accessPolicyArn/);
 
   // Backfill (owner session, once): existing video posts become Roll videos; imports, shares and photos are left alone.
   const backfill = read("infrastructure/auth-api/backfill-video-reels.mjs");
