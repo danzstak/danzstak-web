@@ -129,6 +129,10 @@ const CRAWLERS = [
   assert.ok(at("/@<handle>/card.jpg") >= 0 && at("/@<handle>/card.jpg") < at("/@<handle>") && at("/@<handle>") < at("/<*>"), "card rewrite, then page rewrite, then the 404 rule");
   assert.deepEqual(rules[at("/@<handle>")], { source: "/@<handle>", target: "https://api.danzstak.com/share/profile/<handle>", status: "200" });
   assert.deepEqual(rules[at("/@<handle>/card.jpg")], { source: "/@<handle>/card.jpg", target: "https://api.danzstak.com/share/profile/<handle>/card", status: "200" });
+  // Amplify sends an extensionless path that matches no rule to the same path with a slash (live log 2026-11-21: /@x 301 →
+  // /@x/ 404), so the slash form is rewritten too.
+  assert.deepEqual(rules[at("/@<handle>/")], { source: "/@<handle>/", target: "https://api.danzstak.com/share/profile/<handle>", status: "200" });
+  assert.ok(at("/@<handle>/") < at("/<*>"), "before the 404 rule");
   const robots = fs.readFileSync("robots.txt", "utf8");
   assert.ok(!/Disallow: \/@/.test(robots), "robots.txt lets crawlers read /@ links");
   // The live check's robots.txt reading (scripts/verify-share-preview.cjs) agrees with how crawlers read this file.
