@@ -15,22 +15,6 @@ const json = body => ({ status: 200, contentType: "application/json", headers: {
 async function open(browser, width, { verified = false } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 800 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
   const page = await context.newPage(), errors = [];
-  // The verified case stores this browser's SYNC credential first, on the site's own origin, and waits until the write
-  // has finished. (An init script raced the app on CI's Edge: the write could land after the reminder had already
-  // looked, and the init script's about:blank document has no IndexedDB, which threw a page error.)
-  if (verified) {
-    await page.goto(`${base}/manifest.webmanifest`, { waitUntil: "domcontentloaded" });
-    await page.evaluate(() => new Promise((resolve, reject) => {
-      const request = indexedDB.open("danzstak-call-device", 1);
-      request.onupgradeneeded = () => request.result.createObjectStore("credentials");
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        const db = request.result, tx = db.transaction("credentials", "readwrite");
-        tx.objectStore("credentials").put([{ deviceId: "d1", deviceToken: "t".repeat(43), accountTag: "a1", physicalDeviceId: "p1" }], "accounts");
-        tx.oncomplete = () => { db.close(); resolve(); }; tx.onerror = () => reject(tx.error);
-      };
-    }));
-  }
   page.on("pageerror", error => errors.push(error.message));
   await page.route("https://api.danzstak.com/**", route => {
     const p = new URL(route.request().url()).pathname;
@@ -38,10 +22,24 @@ async function open(browser, width, { verified = false } = {}) {
     if (p === "/profiles") return route.fulfill(json({ profile: { isOwner: true, cloudProfile: true, name: "Night Shift", handle: "nightshift" } }));
     if (p === "/notifications" || p === "/engagement-notifications") return route.fulfill(json({ notifications: [] }));
     if (p === "/calls/directory") return route.fulfill(json({ users: [] }));
+    // The server agrees with this browser: a verified device is registered, an unverified one isn't.
+    if (p === "/calls/devices") return route.fulfill(json({ accountTag: "a1", currentDeviceRegistered: verified, devices: [] }));
     if (p === "/friends") return route.fulfill(json({ friends: [] }));
     return route.fulfill(json({}));
   });
   await page.route(`${base}/sync/**`, route => route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>SYNC</title><p>SYNC</p>" }));
+  // The SYNC credential is written and committed before the app loads, in the format call-devices.js accepts (a UUID device
+  // id). The old "d1" id was thrown out by call-devices.js as invalid, which emptied the store while the reminder was
+  // reading it, so "verified" passed or failed by timing.
+  if (verified) {
+    await page.goto(`${base}/sync/`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(() => new Promise((resolve, reject) => {
+      const request = indexedDB.open("danzstak-call-device", 1);
+      request.onupgradeneeded = () => request.result.createObjectStore("credentials");
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => { const db = request.result, tx = db.transaction("credentials", "readwrite"); tx.objectStore("credentials").put([{ deviceId: "d1d1d1d1-1111-4111-8111-111111111111", deviceToken: "t".repeat(43), accountTag: "a1", physicalDeviceId: "p1" }], "accounts"); tx.oncomplete = () => { db.close(); resolve(); }; tx.onerror = () => reject(tx.error); };
+    }));
+  }
   await page.goto(`${base}/feed.html`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => window.danzstakDeviceReminder && document.querySelector('[data-feature="Notifications"]'), null, { timeout: 10000 });
   return { context, page, errors };

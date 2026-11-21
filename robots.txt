@@ -1,3 +1,21 @@
+# Link-preview crawlers may read profile pages so shared links show a card (owner 2026-11-21).
+# Search engines stay out: profile.html also carries noindex.
+User-agent: facebookexternalhit
+User-agent: Facebot
+User-agent: Twitterbot
+User-agent: WhatsApp
+User-agent: TelegramBot
+User-agent: Slackbot-LinkExpanding
+User-agent: LinkedInBot
+User-agent: Discordbot
+User-agent: Applebot
+Allow: /profile.html
+Disallow: /feed.html
+Disallow: /messages.html
+Disallow: /settings.html
+Disallow: /notifications.html
+Disallow: /booking-selections.html
+
 User-agent: *
 Allow: /
 Disallow: /feed.html

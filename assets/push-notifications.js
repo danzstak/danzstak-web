@@ -2,6 +2,8 @@
 
 (() => {
   const API = "https://api.danzstak.com";
+  // Every word in the member's own language (owner 2026-11-16; Italian tester 2026-11-19).
+  const t = value => window.danzstakTranslate?.(value) || value;
 
   function applicationServerKey(value) {
     const padding = "=".repeat((4 - value.length % 4) % 4);
@@ -169,13 +171,13 @@
     const button = document.getElementById("pushTestButton"), status = document.getElementById("pushTestStatus");
     if (!button || !status) return;
     button.addEventListener("click", async () => {
-      button.disabled = true; status.textContent = "Sending…";
+      button.disabled = true; status.textContent = t("Sending…");
       try {
         if (typeof window.danzstakEnablePush === "function") await window.danzstakEnablePush();
         const result = await api("/push/test", { method: "POST", body: "{}" });
-        status.textContent = !result.sent ? "No device has notifications on yet. Allow notifications and try again."
-          : `Sent to ${result.sent} device${result.sent === 1 ? "" : "s"}. ${result.thisDeviceRings ? "This device will ring for calls when SYNC is closed." : "This device gets messages; register it to ring for calls when SYNC is closed."}`;
-      } catch (error) { status.textContent = error.message; }
+        status.textContent = !result.sent ? t("No device has notifications on yet. Allow notifications and try again.")
+          : `${result.sent === 1 ? t("Sent to 1 device.") : t("Sent to {count} devices.").replace("{count}", String(result.sent))} ${result.thisDeviceRings ? t("This device will ring for calls when SYNC is closed.") : t("This device gets messages; register it to ring for calls when SYNC is closed.")}`;
+      } catch (error) { status.textContent = t(error.message); }
       finally { button.disabled = false; }
     });
   });

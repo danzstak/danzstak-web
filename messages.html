@@ -35,14 +35,14 @@
 <link rel="stylesheet" href="assets/mobile-design-system.css?v=22">
 <link rel="stylesheet" href="assets/responsive-media.css?v=9">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=237">
-<link rel="stylesheet" href="assets/phone-verification.css?v=3">
+<link rel="stylesheet" href="assets/phone-verification.css?v=4">
 <link rel="stylesheet" href="assets/sync-network-number.css?v=1">
 <title>SYNC | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
-<script src="assets/i18n-sync.js?v=31" defer></script>
+<script src="assets/i18n-sync.js?v=33" defer></script>
 <script src="assets/i18n-people.js?v=28" defer></script>
-<script src="assets/i18n.js?v=411" defer></script>
+<script src="assets/i18n.js?v=412" defer></script>
 <script src="assets/sync-app.js?v=6" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/user-content-links.js?v=1" defer></script>
@@ -153,11 +153,11 @@
 </dialog>
 <dialog id="callingDevicesDialog" class="calling-devices-dialog" aria-labelledby="callingDevicesTitle">
   <header><div><span class="eyebrow">SYNC device</span><h2 id="callingDevicesTitle">Verify this device by SMS</h2></div><button id="closeCallingDevices" type="button" data-icon="close" aria-label="Close registered devices" title="Close">×</button></header>
-  <p id="callingDeviceReason" class="calling-device-reason">Calls and voice messages need this device's own SMS code. Text messaging works without registering.</p>
-  <p class="calling-device-account"><span>Account name</span><strong id="callingAccountName">Loading account…</strong></p>
+  <p id="callingDeviceReason" class="calling-device-reason">Calls and voice messages need this phone verified. Texting already works.</p>
+  <p class="calling-device-account" hidden><span>Account name</span><strong id="callingAccountName">Loading account…</strong></p>
   <p id="deviceStatus" class="device-status" role="status">Checking this device…</p>
   <ul id="registeredDevices" class="registered-devices" aria-label="Your registered calling devices"></ul>
-  <p class="push-test-row"><button id="pushTestButton" type="button">Send a test notification</button><span id="pushTestStatus" role="status"></span></p>
+  <p class="push-test-row" hidden><button id="pushTestButton" type="button">Send a test notification</button><span id="pushTestStatus" role="status"></span></p>
   <section class="sync-phone-verification" aria-labelledby="syncPhoneTitle">
     <h3 id="syncPhoneTitle" class="sr-only">Verify this device by SMS</h3>
     <p id="syncPhoneIntro" hidden>DanzStak stores only a protected phone fingerprint and the last four digits. The number stays private, unsearchable, and is never a public SYNC identity.</p>
@@ -170,6 +170,7 @@
     <form id="syncPhoneCodeForm" class="sync-phone-form" hidden>
       <label>Six-digit code<input id="syncPhoneCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>
       <div><button id="syncPhoneConfirm" type="submit" class="primary" data-music-icon="laminate" aria-label="Verify this device"><span class="ds-cue-label">Verify</span></button> <button id="syncPhoneResend" type="button" class="secondary" data-music-icon="rewind" aria-label="Resend code"><span class="ds-cue-label">Resend</span></button></div>
+      <button id="syncPhoneChangeNumber" type="button" class="sync-phone-change">Wrong number? Change it</button>
     </form>
     <div id="syncPhoneVerified" hidden><button id="syncPhoneRemove" type="button" class="secondary" data-music-icon="eject" aria-label="Remove private number"><span class="ds-cue-label">Remove</span></button></div>
   </section>
@@ -182,11 +183,11 @@
     <p class="sync-network-number-test-note">Use Stripe's Test Mode checkout. No real money is charged.</p>
   </section>
 </dialog>
-<script src="assets/call-devices.js?v=17" defer></script>
-<script src="assets/phone-verification.js?v=10" defer></script>
+<script src="assets/call-devices.js?v=18" defer></script>
+<script src="assets/phone-verification.js?v=12" defer></script>
 <script src="assets/purchase-terms.js?v=2" defer></script>
 <script src="assets/sync-network-number.js?v=3" defer></script>
-<script src="assets/push-notifications.js?v=310" defer></script>
+<script src="assets/push-notifications.js?v=312" defer></script>
 <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"></nav>
 <script src="assets/media-scale.js?v=1" defer></script>
 <script src="assets/icon-buttons.js?v=17" defer></script>

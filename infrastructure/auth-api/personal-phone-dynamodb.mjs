@@ -75,8 +75,15 @@ export function createPersonalPhoneDynamoAdapter({ db, tableName, commands, now 
       // One text per tap: a second tap while the first code is still in its resend cooldown fails here, atomically.
       { Put:{TableName:tableName,Item:accountItem(record),ConditionExpression:"attribute_not_exists(recordKey) OR #status <> :pending OR resendAfter <= :nowSeconds",ExpressionAttributeNames:{"#status":"status"},ExpressionAttributeValues:{":pending":{S:"pending"},":nowSeconds":{N:String(seconds)}}} }
     );
-    try { await db.send(new TransactWriteItemsCommand({TransactItems:transactions})); return {accepted:true}; }
+    // The counters this send used, so a send that fails on DanzStak's side can give them back (directive L2).
+    const rateKeys = transactions.filter(item => item.Update && String(item.Update.Key?.recordKey?.S || "").startsWith("RATE#")).map(item => item.Update.Key.recordKey.S);
+    try { await db.send(new TransactWriteItemsCommand({TransactItems:transactions})); return {accepted:true,rateKeys}; }
     catch (error) { if (["TransactionCanceledException","ConditionalCheckFailedException"].includes(error?.name)) return {accepted:false,rateLimited:true}; throw error; }
+  }
+  // Directive L2 (owner 2026-11-19): a send that fails on our side (provider down, 5xx) never uses up the member's
+  // hourly, daily or resend limits. Each counter goes back down by one, never below zero.
+  async function releaseRateCounters(keys = []) {
+    await Promise.all(keys.filter(key => /^RATE#/.test(String(key))).map(key => db.send(new UpdateItemCommand({TableName:tableName,Key:{recordKey:{S:key}},UpdateExpression:"ADD #count :minus",ConditionExpression:"#count > :zero",ExpressionAttributeNames:{"#count":"count"},ExpressionAttributeValues:{":minus":{N:"-1"},":zero":{N:"0"}}})).catch(error => { if (error?.name !== "ConditionalCheckFailedException") throw error; })));
   }
   async function markSent(record) {
     // Twilio Verify: keep only the verification SID (VE...), never the code or the number.
@@ -120,5 +127,5 @@ export function createPersonalPhoneDynamoAdapter({ db, tableName, commands, now 
     try { await db.send(new TransactWriteItemsCommand({TransactItems:transactions})); return true; }
     catch (error) { if (["TransactionCanceledException","ConditionalCheckFailedException"].includes(error?.name)) return false; throw error; }
   }
-  return { getByUser, reserveChallenge, markSent, cancelChallenge, recordFailedAttempt, markVerified, remove, limitCheck, cancelAfterWrongCode, linkCapacity };
+  return { getByUser, reserveChallenge, releaseRateCounters, markSent, cancelChallenge, recordFailedAttempt, markVerified, remove, limitCheck, cancelAfterWrongCode, linkCapacity };
 }
