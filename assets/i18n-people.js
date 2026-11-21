@@ -4,6 +4,14 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+// Directive F13: the Tribe page (feed-enhancements.js, app-bar.js)
+"Joined": "Iscritto",
+"Join": "Unisciti",
+"Leave Tribe": "Lascia la Tribe",
+"Leave this Tribe?": "Lasciare questa Tribe?",
+"You can join again any time.": "Puoi unirti di nuovo quando vuoi.",
+"Back to Tribes": "Torna alle Tribe",
+"Membership options": "Opzioni di iscrizione",
 // Directive F12: Move to fit (image-position.js), profile and Tribe pictures
 "Move to fit": "Sposta per adattare",
 "Save": "Salva",
@@ -147,6 +155,14 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+// Directive F13: the Tribe page (feed-enhancements.js, app-bar.js)
+"Joined": "Membre",
+"Join": "Rejoindre",
+"Leave Tribe": "Quitter la Tribe",
+"Leave this Tribe?": "Quitter cette Tribe ?",
+"You can join again any time.": "Tu peux la rejoindre quand tu veux.",
+"Back to Tribes": "Retour aux Tribes",
+"Membership options": "Options d’adhésion",
 // Directive F12: Move to fit (image-position.js), profile and Tribe pictures
 "Move to fit": "Déplacer pour ajuster",
 "Save": "Enregistrer",
@@ -290,6 +306,14 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+// Directive F13: the Tribe page (feed-enhancements.js, app-bar.js)
+"Joined": "Unido",
+"Join": "Unirse",
+"Leave Tribe": "Salir de la Tribe",
+"Leave this Tribe?": "¿Salir de esta Tribe?",
+"You can join again any time.": "Puedes volver a unirte cuando quieras.",
+"Back to Tribes": "Volver a las Tribes",
+"Membership options": "Opciones de membresía",
 // Directive F12: Move to fit (image-position.js), profile and Tribe pictures
 "Move to fit": "Mover para ajustar",
 "Save": "Guardar",
