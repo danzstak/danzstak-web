@@ -43,3 +43,38 @@ placeholder.
 - The facepile's first tile is a dark letter avatar ("D") half hidden behind a photo: show real photos only, or
   drop the tile.
 - The selected "Posts" tab has a boxed orange outline: use the pill/underline style of the UI kit, not a focus box.
+
+## Sharing a profile shows the profile (owner, 2026-11-21)
+Owner, after sharing a profile link (`profile.html?member=…`): "When a user share their profile it should show just
+like the image I uploaded not like this." The quality bar is the invite share card
+(`docs/screenshots/owner-reference/invite-share-card-quality-bar-2026-11-19.png`): a clean preview image, a clear
+title and the domain.
+
+**Why it fails today:** `profile.html` has no Open Graph tags at all (only `<title>My Profile | DanzStak</title>`),
+and it's a static page filled in by JavaScript. Link previews (Messages, WhatsApp, Instagram, Facebook, Telegram,
+X, Slack) never run JavaScript, so every profile shares as a bare "My Profile" link with no picture.
+
+**Fix:**
+- **Share link:** `https://danzstak.com/@username` (the profile Share button, the share sheet and copy-link all use
+  it). Amplify rewrites `/@<username>` with a **200 reverse-proxy rewrite** to an Auth API route
+  `GET /share/profile/{username}`, so the preview shows the `danzstak.com` domain.
+- **The route** returns a tiny HTML page: `og:title` "Eroticon on DanzStak", `og:description` the one-line bio,
+  `og:image` the profile card, `og:url`, `twitter:card=summary_large_image`, then sends people (not crawlers) on to
+  `profile.html?member=…`. Only for profiles whose visibility is public; anything else gets the general DanzStak
+  card and no name, photo or bio.
+- **The profile card image** (1200×630 PNG, under 300 KB) is drawn on the server when the member changes their
+  name, picture, cover or shop items, and stored in the media bucket behind the CDN with a versioned key (so apps
+  that cache previews pick up a new one). It looks like the profile itself: the cover across the top, the round
+  profile picture overlapping it, the name in bold beside it, up to three shop tiles when there is a shop, and a
+  small DanzStak mark. Positions come from Move to fit (F12).
+- **Same mechanism, same look** for posts, EPKs, events and shop items (task 17 share previews), one shared card
+  renderer.
+
+**Checks:**
+- `test-share-preview.cjs`: the route answers a crawler user agent (`facebookexternalhit`, `WhatsApp`, `Twitterbot`,
+  `TelegramBot`, iMessage's `facebookexternalhit/1.1 Facebot Twitterbot`) with the right `og:*` tags; a private
+  profile gets the general card with no personal data; a browser is sent on to the profile.
+- The card renderer turns a fixture profile into a 1200×630 PNG under 300 KB; a golden-image comparison guards the
+  layout.
+- The F26 live check fetches `https://danzstak.com/@eroticon` as a crawler and asserts the tags and a 200 image.
+- The owner shares his profile to his own phone's Messages and WhatsApp and it looks like the reference.
