@@ -8,6 +8,10 @@ for (const tag of ["og:title", "og:description", "og:image", "og:site_name"]) {
   assert.ok(new RegExp(`property="${tag}" content="[^"]+"`).test(head), `profile.html is missing ${tag}`);
 }
 assert.ok(/name="twitter:card" content="summary_large_image"/.test(head), "profile.html is missing twitter:card");
+// Owner 2026-11-21 (Facebook composer, after the tags went live): a small grey square titled "danzstak.com". Facebook read
+// the page and its picture (Amplify log: 200s), but og:type "profile" makes it a person object; the home page, whose
+// card works, says "website". Same here.
+assert.ok(/property="og:type" content="website"/.test(head), 'og:type must be "website" (as on the home page, whose card works)');
 const image = head.match(/property="og:image" content="https:\/\/danzstak\.com\/([^"]+)"/);
 assert.ok(image && fs.existsSync(__dirname + "/" + image[1]), "og:image must be an existing danzstak.com asset");
 // The declared size and type match the file, and it stays under 300 KB (WhatsApp skips bigger preview images).

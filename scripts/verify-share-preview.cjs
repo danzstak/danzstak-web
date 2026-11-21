@@ -50,13 +50,15 @@ async function run() {
   if (!profile.ok) failures.push(`/profile.html answered ${profile.status}`);
   const title = tag(html, "property", "og:title");
   if (!title) failures.push("/profile.html has no og:title");
+  if (tag(html, "property", "og:type") !== "website") failures.push(`/profile.html og:type is "${tag(html, "property", "og:type")}" (Facebook shows "profile" pages as a person, with the domain as the title)`);
   console.log(`/profile.html: ${profile.status}, og:title "${title}"`);
   await checkImage("/profile.html", tag(html, "property", "og:image"));
 
-  // An unknown username gets the share route's general card (og:type profile from the route, not the app page).
+  // An unknown username gets the share route's general card: its tiny page (noindex, a script that sends people on), not
+  // the app page Amplify serves for unknown paths.
   const share = await get(`${base}/@danzstak-share-check`);
   const page = await share.text();
-  if (tag(page, "property", "og:type") === "profile" && /location\.replace\(/.test(page)) {
+  if (/<meta name="robots" content="noindex">/.test(page) && /location\.replace\(/.test(page)) {
     if (!share.ok) failures.push(`/@ answered ${share.status}`);
     if (tag(page, "property", "og:title") !== "A profile on DanzStak") failures.push(`/@ unknown username: og:title "${tag(page, "property", "og:title")}"`);
     console.log(`/@ share route: ${share.status}, og:title "${tag(page, "property", "og:title")}"`);
