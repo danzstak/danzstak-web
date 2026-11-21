@@ -39,7 +39,13 @@ export function createPersonalPhoneService({ adapter, sender = null, verifier = 
       else { await sender.send({ number, code, challengeId: challenge.challengeId }); await adapter.markSent(challenge); }
     } catch (error) {
       await adapter.cancelChallenge(challenge).catch(() => null);
-      throw providerError(error) || serviceError("The verification text could not be sent. No number was verified.", 503, "send_failed");
+      const mapped = providerError(error) || serviceError("The verification text could not be sent. No number was verified.", 503, "send_failed");
+      // Our side failed (provider down, timeout, 5xx): the member keeps every send they had (directive L2).
+      // A refusal about the number itself (invalid, blocked, too many codes) still counts, so the anti-abuse limits hold.
+      if (mapped.statusCode >= 500 && typeof adapter.releaseRateCounters === "function") {
+        await adapter.releaseRateCounters(reserved.rateKeys || []).catch(releaseError => log("phone send counters not released", { error: releaseError?.name || "Error" }));
+      }
+      throw mapped;
     }
     return publicPhoneStatus(challenge, currentTime);
   }
