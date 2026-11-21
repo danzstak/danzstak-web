@@ -26,4 +26,11 @@ for (const check of checks) {
   assert.match(source, /process\.env\.DANZSTAK_BASE_URL/, `${check} reads the site address, so it checks the live site (not a copy of the files)`);
   assert.match(source, /route\("https:\/\/api\.danzstak\.com\/\*\*"/, `${check} mocks the API: no member data is read or changed on the live site`);
 }
+// The diagnostics preload only on our own check steps: at job level it broke actions/checkout (the file doesn't exist
+// yet) and every live run failed in seconds (2026-11-20).
+{
+  const job = workflow.split(/\n    steps:\n/)[0];
+  assert.doesNotMatch(job, /^\s+NODE_OPTIONS:/m, "no job-level NODE_OPTIONS (it reaches actions/checkout before the preload exists)");
+  assert.equal((workflow.match(/\n        env:\n          NODE_OPTIONS: --require \.\/scripts\/check-diagnostics\.cjs\n/g) || []).length, 2, "the preload is set on the two check steps");
+}
 console.log(`Live check workflow checks passed: every 30 min, after each push to main (waits for Amplify) and on demand; ${checks.length} public browser checks against danzstak.com with the API mocked; screenshots kept; one "Live check failing" issue; read + issues permissions only.`);
