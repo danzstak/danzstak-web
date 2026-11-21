@@ -79,6 +79,7 @@ const CRAWLERS = [
     assert.equal(tag(page.body, "property", "og:image:height"), "630");
     assert.equal(tag(page.body, "property", "og:image:type"), "image/jpeg");
     assert.equal(tag(page.body, "name", "twitter:card"), "summary_large_image");
+    assert.equal(tag(page.body, "property", "og:type"), "website", "not \"profile\": Facebook shows those as a person, with the domain as the title");
     assert.equal(tag(page.body, "name", "twitter:image"), tag(page.body, "property", "og:image"));
   }
   const page = await site.get("/share/profile/eroticon", "Mozilla/5.0");
