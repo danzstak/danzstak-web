@@ -1065,7 +1065,7 @@
  function start(){
   let language=document.documentElement.lang||'en';
   let saved='';try{saved=localStorage.getItem('danzstak_language')||'';}catch{}
-  let regional='';try{regional=(navigator.languages||[navigator.language]).map(normalize).find(code=>code!=='en')||normalize(navigator.language);}catch{}
+  let regional='';try{regional=normalize((navigator.languages&&navigator.languages[0])||navigator.language||'en');}catch{}
   language=saved||regional||language;
   document.documentElement.lang=normalize(language);apply();
   new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});
