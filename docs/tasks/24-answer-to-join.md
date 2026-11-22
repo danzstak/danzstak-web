@@ -21,7 +21,7 @@ Today a member can only call another member who is a friend or shares a Tribe (`
 ### Invitee (not a member)
 1. **Open the link:** caller's name and avatar, one big **Answer** button, one line: "Answering joins you to DanzStak." Terms and Privacy links are visible here.
 2. **Tick Terms/Privacy, tap Answer → create account** through the existing legal acceptance and hosted signup (`/auth/legal-acceptance`, `/auth/signup?next=…`). The return path is stored on the server's OAuth pending record and only `/messages.html?invite=<43-char token>` is accepted (no open redirect). Never in browser storage.
-3. **Name and @username** (the existing onboarding step, owner 2026-11-16), prefilled from the signup where possible.
+3. **Name and @username** (the existing onboarding step, owner 2026-11-16), prefilled from the signup where possible. The signup itself takes **email + password** (owner 2026-11-18: everyone joining through a SYNC invite is a full member) and sends the **welcome email confirming membership** described in `24-sync-contacts-and-invites.md`.
 4. **Phone number → Text me a code → code** — the existing one-flow device registration (Twilio Verify, SMS only, language from `navigator.languages`). No skip here: the call needs a registered device. "Later — text only" is still offered and opens the chat with the caller.
 5. **Verified → the call connects.** The server redeems the invite, the caller's device rings (or connects at once if the caller is still on the waiting screen). Media starts only after this point.
 6. After hangup the member lands in **that SYNC conversation**. Avatar, profile and everything else can wait.
