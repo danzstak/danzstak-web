@@ -31,7 +31,7 @@ async function open(browser, width, { owner = true, language = "", visitorShareU
   const page = await context.newPage(), errors = [], saves = [], uploads = [];
   const state = { shareCard: undefined, shareCardSig: undefined };
   const profile = () => ({ memberId: me, name: "Night Shift Collective", handle: "nightshift", isOwner: owner, cloudProfile: true, bio: "Techno from the van.", picture: `${CDN}/face.png`, cover: `${CDN}/cover.jpg`, coverX: 50, coverY: 40, coverZoom: 1, avatarKey: "users/owner/a.jpg", coverKey: "users/owner/c.jpg",
-    ...(owner ? { shareCard: state.shareCard, shareCardSig: state.shareCardSig, shareUrl: state.shareCard ? "https://danzstak.com/@nightshift" : undefined } : { shareUrl: visitorShareUrl || undefined }) });
+    ...(owner ? { shareCard: state.shareCard, shareCardSig: state.shareCardSig, shareUrl: state.shareCard ? "https://danzstak.com/u/nightshift" : undefined } : { shareUrl: visitorShareUrl || undefined }) });
   page.on("pageerror", error => errors.push(error.message));
   const media = async route => {
     const request = route.request(), url = new URL(request.url()), cors = { "access-control-allow-origin": base };
@@ -78,9 +78,9 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
       const label = `${width}px`, { context, page, errors, saves, uploads } = await open(browser, width);
       try {
         await tapShare(page);
-        const ready = await page.waitForFunction(() => { const image = document.querySelector(".profile-share-preview img"); return image && !image.closest("figure").hidden && image.complete && image.naturalWidth === 1200 && document.querySelector(".profile-share-dialog input[type=url]").value.includes("/@"); }, null, { timeout: 15000 }).then(() => true).catch(() => false);
+        const ready = await page.waitForFunction(() => { const image = document.querySelector(".profile-share-preview img"); return image && !image.closest("figure").hidden && image.complete && image.naturalWidth === 1200 && document.querySelector(".profile-share-dialog input[type=url]").value.includes("/u/"); }, null, { timeout: 15000 }).then(() => true).catch(() => false);
         if (!ready) { failures.push(`${label}: the card preview and the @username link did not appear (${await page.$eval(".profile-share-dialog [role=status]", el => el.textContent).catch(() => "")})`); continue; }
-        if (await linkValue(page) !== "https://danzstak.com/@nightshift") failures.push(`${label}: link is ${await linkValue(page)}`);
+        if (await linkValue(page) !== "https://danzstak.com/u/nightshift") failures.push(`${label}: link is ${await linkValue(page)}`);
         if (uploads.length !== 1) failures.push(`${label}: ${uploads.length} uploads, expected 1`);
         const card = uploads[0];
         if (card) {
@@ -115,14 +115,14 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
         // On again: a fresh card (the switch moved up when the preview hid, so find it again).
         const swAgain = await centre(page, ".profile-share-toggle input");
         await page.touchscreen.tap(swAgain.x, swAgain.y);
-        const again = await page.waitForFunction(() => document.querySelector(".profile-share-dialog input[type=url]").value.includes("/@") && !document.querySelector(".profile-share-preview").hidden, null, { timeout: 15000 }).then(() => true).catch(() => false);
+        const again = await page.waitForFunction(() => document.querySelector(".profile-share-dialog input[type=url]").value.includes("/u/") && !document.querySelector(".profile-share-preview").hidden, null, { timeout: 15000 }).then(() => true).catch(() => false);
         if (!again || uploads.length !== 2 || saves.at(-1)?.shareCard !== true) failures.push(`${label}: turning it on again didn't upload a fresh card (${uploads.length} uploads)`);
         // Reopen with an up-to-date card: the preview, the @ link, and nothing uploaded.
         await page.keyboard.press("Escape");
         await page.waitForFunction(() => !document.querySelector(".profile-share-dialog")?.open, null, { timeout: 3000 });
         await tapShare(page);
         const reopened = await page.waitForFunction(() => { const image = document.querySelector(".profile-share-preview img"); return image && !image.closest("figure").hidden && image.naturalWidth === 1200; }, null, { timeout: 15000 }).then(() => true).catch(() => false);
-        if (!reopened || uploads.length !== 2 || await linkValue(page) !== "https://danzstak.com/@nightshift") failures.push(`${label}: reopening with an up-to-date card should only show it (${uploads.length} uploads)`);
+        if (!reopened || uploads.length !== 2 || await linkValue(page) !== "https://danzstak.com/u/nightshift") failures.push(`${label}: reopening with an up-to-date card should only show it (${uploads.length} uploads)`);
         if (errors.length) failures.push(`${label}: page errors ${errors.join(" | ")}`);
       } finally { await context.close(); }
     }
@@ -141,7 +141,7 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
     }
     // A visitor: the member's @username link, no switch, nothing uploaded.
     {
-      const { context, page, uploads, saves } = await open(browser, 390, { owner: false, visitorShareUrl: "https://danzstak.com/@nightshift" });
+      const { context, page, uploads, saves } = await open(browser, 390, { owner: false, visitorShareUrl: "https://danzstak.com/u/nightshift" });
       try {
         // Visitors find Share in the profile's ⋯ menu.
         await page.waitForFunction(() => { const more = document.querySelector(".profile-actions .profile-more"); return more && more.getBoundingClientRect().width > 0 && window.danzstakCurrentProfile?.memberId; }, null, { timeout: 20000, polling: 200 });
@@ -151,7 +151,7 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
         await page.touchscreen.tap(item.x, item.y);
         await page.waitForFunction(() => document.querySelector(".profile-share-dialog")?.open, null, { timeout: 5000 });
         await page.waitForTimeout(500);
-        if (await linkValue(page) !== "https://danzstak.com/@nightshift") failures.push(`visitor: link is ${await linkValue(page)}`);
+        if (await linkValue(page) !== "https://danzstak.com/u/nightshift") failures.push(`visitor: link is ${await linkValue(page)}`);
         if (await page.$(".profile-share-toggle") || uploads.length || saves.length) failures.push("visitor: no switch, no upload, no save");
       } finally { await context.close(); }
     }

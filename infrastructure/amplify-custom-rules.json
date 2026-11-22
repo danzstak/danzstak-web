@@ -5,17 +5,17 @@
     "status": "301"
   },
   {
-    "source": "/@<handle>/card.jpg",
+    "source": "/u/<handle>/card.jpg",
     "target": "https://api.danzstak.com/share/profile/<handle>/card",
     "status": "200"
   },
   {
-    "source": "/@<handle>",
+    "source": "/u/<handle>",
     "target": "https://api.danzstak.com/share/profile/<handle>",
     "status": "200"
   },
   {
-    "source": "/@<handle>/",
+    "source": "/u/<handle>/",
     "target": "https://api.danzstak.com/share/profile/<handle>",
     "status": "200"
   },

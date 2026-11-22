@@ -3,8 +3,8 @@
 // crawlers do, from GitHub Actions (the cloud session can't reach danzstak.com):
 // - robots.txt lets Facebook's crawler read /profile.html;
 // - /profile.html, fetched as facebookexternalhit, carries og:title and an og:image that loads as an image under 300 KB;
-// - /@<username> (Amplify rewrite → call-signaling's share route) answers with the share page's tags and its image loads.
-//   Until the owner's call-signaling and Amplify deploys are done, Amplify answers /@… with the app page; that is reported
+// - /u/<username> (Amplify rewrite → call-signaling's share route) answers with the share page's tags and its image loads.
+//   Until the owner's call-signaling and Amplify deploys are done, Amplify answers /u/… with the app page; that is reported
 //   as a notice. Once the route answers, anything wrong with it fails.
 // Run: DANZSTAK_LIVE_URL=https://danzstak.com node scripts/verify-share-preview.cjs
 const base = String(process.env.DANZSTAK_LIVE_URL || "https://danzstak.com").replace(/\/$/, "");
@@ -43,7 +43,7 @@ async function checkImage(label, url) {
 async function run() {
   const robots = await (await get(`${base}/robots.txt`, "text/plain")).text();
   if (!robotsAllows(robots, CRAWLER, "/profile.html")) failures.push("robots.txt keeps Facebook's crawler out of /profile.html");
-  if (!robotsAllows(robots, CRAWLER, "/@someone")) failures.push("robots.txt keeps Facebook's crawler out of /@ links");
+  if (!robotsAllows(robots, CRAWLER, "/u/someone")) failures.push("robots.txt keeps Facebook's crawler out of /u/ links");
 
   const profile = await get(`${base}/profile.html?member=00000000-0000-4000-8000-000000000000`);
   const html = await profile.text();
@@ -56,15 +56,15 @@ async function run() {
 
   // An unknown username gets the share route's general card: its tiny page (noindex, a script that sends people on), not
   // the app page Amplify serves for unknown paths.
-  const share = await get(`${base}/@danzstak-share-check`);
+  const share = await get(`${base}/u/danzstak-share-check`);
   const page = await share.text();
   if (/<meta name="robots" content="noindex">/.test(page) && /location\.replace\(/.test(page)) {
-    if (!share.ok) failures.push(`/@ answered ${share.status}`);
-    if (tag(page, "property", "og:title") !== "A profile on DanzStak") failures.push(`/@ unknown username: og:title "${tag(page, "property", "og:title")}"`);
-    console.log(`/@ share route: ${share.status}, og:title "${tag(page, "property", "og:title")}"`);
-    await checkImage("/@ share route", tag(page, "property", "og:image"));
+    if (!share.ok) failures.push(`/u/ answered ${share.status}`);
+    if (tag(page, "property", "og:title") !== "A profile on DanzStak") failures.push(`/u/ unknown username: og:title "${tag(page, "property", "og:title")}"`);
+    console.log(`/u/ share route: ${share.status}, og:title "${tag(page, "property", "og:title")}"`);
+    await checkImage("/u/ share route", tag(page, "property", "og:image"));
   } else {
-    console.log("::notice::/@ links are not served by the share route yet (waiting for the call-signaling and Amplify deploys).");
+    console.log("::notice::/u/ links are not served by the share route yet (waiting for the call-signaling and Amplify deploys).");
   }
 
   if (failures.length) { console.error(failures.join("\n")); process.exit(1); }
