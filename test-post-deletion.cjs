@@ -31,6 +31,7 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
   let mediaAttempts = 0;
   let noticeAttempts = 0;
   const context = vm.createContext({
+    postMoreMedia: vm.runInNewContext("(" + source.match(/const postMoreMedia = (.*);/)[1] + ")"), // the post's other photos (owner 2026-11-22)
     corsHeaders: () => ({}),
     allowedOrigins: new Set(['https://danzstak.com']),
     getAuthenticatedUser: async () => authenticatedUser,
