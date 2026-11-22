@@ -3,7 +3,7 @@
 // Owner 2026-11-22: "+ Create album" in the row, and the automatic "Mobile uploads" / "Computer uploads" albums made from
 // the member's own photo posts by where each was made (a post from before that was recorded counts as mobile; every photo
 // of a multi-photo post counts), which the owner can rename.
-//   python3 -m http.server 8132   (repo root), then: node browser-checks/profile-albums.cjs
+//   node scripts/static-server.cjs 8132 (repo root), then: node browser-checks/profile-albums.cjs (in CI's account list)
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -22,7 +22,7 @@ const png = path.join(os.tmpdir(), "danzstak-album-photo.png");
 fs.writeFileSync(png, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"));
 
 (async () => {
-  const browser = await chromium.launch(process.env.DANZSTAK_BROWSER_CHANNEL ? { channel: process.env.DANZSTAK_BROWSER_CHANNEL } : {});
+  const browser = await chromium.launch({ channel: process.env.DANZSTAK_BROWSER_CHANNEL || "msedge", headless: true });
   try {
     for (const width of widths) {
       const context = await browser.newContext({ viewport: { width, height: width < 700 ? 844 : 900 }, serviceWorkers: "block", reducedMotion: "reduce", deviceScaleFactor: 1 });

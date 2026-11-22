@@ -213,6 +213,7 @@ jobs:
             '.\browser-checks\profile-tab-panels.cjs'
             '.\browser-checks\dailies-set-call-fit.cjs'
             '.\browser-checks\dailies-tile-opens-dailies.cjs'
+            '.\browser-checks\profile-albums.cjs'
             '.\browser-checks\dailies-rotate.cjs'
             '.\browser-checks\app-tabs.cjs'
             '.\browser-checks\app-bar.cjs'
