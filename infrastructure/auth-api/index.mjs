@@ -1923,6 +1923,8 @@ async function getSecurePosts(event) {
       mediaUrl: item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S, 3600) : "",
       mediaType: item.mediaType?.S ?? "",
       moreMediaUrls: postMoreMedia(item).map(key => signedMediaUrl(key, 3600)),
+      uploadSource: item.uploadSource?.S || "",
+      albumId: item.albumId?.S || "",
       reel: item.reel?.BOOL === true,
       commentPolicy: item.commentPolicy?.S ?? "everyone",
       editHistory: postEditHistory(item),
@@ -2473,6 +2475,21 @@ async function createSecurePost(event) {
     || moreMediaKeys.some(key => typeof key !== "string" || !/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif)$/.test(key) || !key.startsWith(`users/${ownerPrefix}/`))) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: `A post can hold up to ${morePhotosAllowed + 1} photos.` }) };
   }
+  // Owner 2026-11-22: "User should get to choose what album that the images go into or what album the videos go into".
+  // A photo or video post may name one of the poster's own albums; its photos then show in that album instead of
+  // "Mobile uploads" / "Computer uploads". Albums live in the tours table under ALBUMS#<member> (albums.mjs).
+  const albumId = data.albumId === undefined || data.albumId === "" ? "" : data.albumId;
+  if (albumId && (typeof albumId !== "string" || !/^[a-f0-9]{32}$/.test(albumId) || !mediaKey || facebookImport || sharedSource)) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose one of your albums." }) };
+  }
+  if (albumId && !(await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: `ALBUMS#${userId}` }, tourId: { S: `ALBUM#${albumId}` } }, ProjectionExpression: "albumId", ConsistentRead: true }))).Item) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "That album is gone. Choose another one." }) };
+  }
+  // Owner 2026-11-22: "photo should automatically go to mobile uploads", "If they're uploaded from a computer should be a
+  // computer uploads". Which automatic album a post's photos and videos belong to: the browser says ("mobile" or
+  // "computer"; it can tell an iPad that reports itself as a Mac); an older app that doesn't is judged by its browser name.
+  const agent = String(event.headers?.["user-agent"] || event.headers?.["User-Agent"] || "");
+  const uploadSource = data.uploadSource === "mobile" || data.uploadSource === "computer" ? data.uploadSource : /Android|iPhone|iPad|iPod|Mobile/i.test(agent) ? "mobile" : "computer";
   const postId = facebookImport ? importPostId : randomUUID();
   const importedAt = new Date().toISOString();
   const createdAt = facebookImport ? importedDate.toISOString() : importedAt;
@@ -2492,6 +2509,8 @@ async function createSecurePost(event) {
       audience: { S: audience },
       ...(facebookImport ? { importSource: { S: "facebook" }, importKey: { S: data.importKey }, importedAt: { S: importedAt } } : {}),
       ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {}),
+      ...(mediaKey && !facebookImport ? { uploadSource: { S: uploadSource } } : {}),
+      ...(albumId ? { albumId: { S: albumId } } : {}),
       ...(moreMediaKeys.length ? { moreMedia: { L: moreMediaKeys.map(key => ({ S: key })) } } : {})
     },
     ConditionExpression: "attribute_not_exists(postId)"
@@ -2769,6 +2788,14 @@ async function updateSecurePost(event) {
     const audience = String(data.audience || "");
     if (!["public", "friends", "private"].includes(audience)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid audience." }) };
     updates.push("audience = :audience"); values[":audience"] = { S: audience };
+  }
+  // Owner 2026-11-22: "they could go back through it and move those images to the specific album that they should be in".
+  // A photo or video post moves to one of its owner's albums, or back ("") to Mobile uploads / Computer uploads.
+  if (Object.prototype.hasOwnProperty.call(data, "albumId")) {
+    const albumId = data.albumId;
+    if (typeof albumId !== "string" || (albumId && !/^[a-f0-9]{32}$/.test(albumId)) || !["image", "video"].includes(found.Item.mediaType?.S) || found.Item.importSource?.S) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose one of your albums." }) };
+    if (albumId && !(await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: `ALBUMS#${userId}` }, tourId: { S: `ALBUM#${albumId}` } }, ProjectionExpression: "albumId", ConsistentRead: true }))).Item) return { statusCode: 400, headers, body: JSON.stringify({ error: "That album is gone. Choose another one." }) };
+    updates.push("albumId = :albumId"); values[":albumId"] = { S: albumId };
   }
   if (Object.prototype.hasOwnProperty.call(data, "commentPolicy")) {
     const commentPolicy = String(data.commentPolicy || "");

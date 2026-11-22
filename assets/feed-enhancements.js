@@ -3058,6 +3058,9 @@ if (composerActions && publishButton) {
         scanStatus.textContent = isLocalHost() ? "Rights certification: local preview only" : "Rights certification required; automated content matching is not currently available.";
         preview.appendChild(scanStatus);
       }
+      // Owner 2026-11-22: the member chooses the album the photos or video go into (default: Mobile/Computer uploads).
+      const albumChoice = window.danzstakPostPhotos?.albumChoice?.();
+      if (albumChoice) { selectedMedia.albumChoice = albumChoice; preview.appendChild(albumChoice.element); }
     });
     mediaTools.append(button, input);
   }

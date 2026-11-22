@@ -1001,7 +1001,9 @@ function profileWallComposer(profile) {
     remove.className = "secondary";
     remove.textContent = "Remove media";
     remove.addEventListener("click", clearMedia);
-    preview.append(media, remove);
+    // Owner 2026-11-22: the member chooses the album the photos or video go into (default: Mobile/Computer uploads).
+    selectedMedia.albumChoice = window.danzstakPostPhotos?.albumChoice?.() || null;
+    preview.append(media, ...(selectedMedia.albumChoice ? [selectedMedia.albumChoice.element] : []), remove);
     preview.hidden = false;
     form.hidden = false;
     opener.setAttribute("aria-expanded", "true");
@@ -1083,7 +1085,7 @@ function profileWallComposer(profile) {
         if (mediaType === "image" && selectedMedia.more?.length && window.danzstakPostPhotos) uploadedMoreKeys = await window.danzstakPostPhotos.upload(selectedMedia.more.map(item => item.file), profileFetch);
       }
       // T0-A1: every posted video goes to The Roll (the server also adds Dailies by itself).
-      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType, reel: mediaType === "video" };
+      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType, reel: mediaType === "video", ...(mediaKey ? { uploadSource: window.danzstakPostPhotos?.uploadSource?.(), ...(selectedMedia?.albumChoice?.value() ? { albumId: selectedMedia.albumChoice.value() } : {}) } : {}) };
       if (!profile.isOwner) body.profileMemberId = profile.memberId;
       const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(uploadedMoreKeys.length ? { ...body, moreMediaKeys: uploadedMoreKeys } : body) });
       const data = await response.json().catch(() => ({}));

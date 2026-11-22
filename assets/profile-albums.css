@@ -3,15 +3,17 @@
 .profile-albums-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px}
 .profile-albums-head h3{margin:0;font-size:16px;color:var(--ds-ink,#172033)}
 .profile-albums-new{min-height:44px;padding:0 12px;border:0;border-radius:999px;background:#eef2f7;color:var(--ds-ink,#172033);font:inherit;font-weight:800;cursor:pointer}
-.profile-albums-strip{display:flex;gap:10px;overflow-x:auto;padding:8px 12px 2px;scroll-snap-type:x proximity;scrollbar-width:none}
-.profile-albums-strip::-webkit-scrollbar{display:none}
-.profile-album-tile{flex:0 0 112px;display:grid;gap:2px;padding:0;border:0;background:none;color:inherit;text-align:left;font:inherit;cursor:pointer;scroll-snap-align:start}
-.profile-album-cover{display:block;width:112px;height:112px;overflow:hidden;border-radius:12px;background:#dfe6ee;border:2px solid transparent}
+/* Owner 2026-11-22 ("a few albums in there full of images or videos"): the tab opens on a grid of album covers, two
+   across on phones, three from 600px, like the familiar apps' Albums view. */
+.profile-albums-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 10px;padding:10px 12px 4px}
+@media(min-width:600px){.profile-albums-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.profile-album-tile{min-width:0;display:grid;gap:2px;padding:0;border:0;background:none;color:inherit;text-align:left;font:inherit;cursor:pointer}
+.profile-album-cover{display:block;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:12px;background:#dfe6ee;border:2px solid transparent}
 .profile-album-cover img,.profile-album-cover video{width:100%;height:100%;object-fit:cover;display:block}
 .profile-album-cover.is-empty{background:repeating-linear-gradient(135deg,#eef2f7 0 10px,#e3e8ef 10px 20px)}
 .profile-albums .profile-album-tile,.profile-albums .profile-album-tile[aria-pressed=true],.profile-albums .profile-album-tile:hover{min-height:0;background:none;box-shadow:none}
 .profile-album-tile.is-selected .profile-album-cover{border-color:var(--ds-accent,#ef6c20)}
-.profile-album-tile strong{overflow:hidden;color:var(--ds-ink,#172033);font-size:14px;white-space:nowrap;text-overflow:ellipsis}
+.profile-album-tile strong{overflow:hidden;margin-top:4px;color:var(--ds-ink,#172033);font-size:15px;white-space:nowrap;text-overflow:ellipsis}
 .profile-album-tile small{overflow:hidden;color:var(--ds-muted,#667085);font-size:12px;white-space:nowrap;text-overflow:ellipsis}
 .profile-album-tile:focus-visible .profile-album-cover{outline:2px solid var(--ds-accent,#ef6c20);outline-offset:2px}
 .profile-album-page{padding:0 0 12px}
@@ -43,3 +45,15 @@
 .profile-album-error{margin:0 0 6px;color:#b42318;font-size:14px;font-weight:700}
 .profile-album-error:empty{display:none}
 [data-album-hidden]{display:none!important}
+/* An album view: "← Albums" back, then the title and the owner's actions. */
+.profile-album-back{display:inline-flex;align-items:center;min-height:44px;margin:2px 4px 0;padding:0 10px;border:0;border-radius:999px;background:none;color:var(--ds-ink,#172033);font:inherit;font-weight:800;cursor:pointer}
+.profile-album-back:active{background:#eef2f7}
+.profile-album-hint{margin:-4px 0 10px;color:var(--ds-muted,#667085);font-size:14px;line-height:1.4}
+/* Move to album: one tappable row per album. */
+.profile-album-choices{display:grid;gap:2px;max-height:min(50vh,360px);overflow-y:auto;margin:0 0 10px}
+.profile-album-choice{display:flex!important;align-items:center;gap:12px;min-height:48px;margin:0!important;padding:0 10px;border-radius:10px;font-weight:700!important;cursor:pointer}
+.profile-album-choice:has(input:checked){background:#fff1e8}
+.profile-album-choice input{width:20px;height:20px;min-height:0!important;margin:0;accent-color:var(--ds-accent,#ef6c20)}
+.profile-album-move>form>input{width:100%;box-sizing:border-box;margin:0 0 10px}
+.profile-album-bar button.primary{background:var(--ds-btn-go,#15803d);color:#fff}
+.profile-album-bar button:disabled{opacity:.5;cursor:not-allowed}

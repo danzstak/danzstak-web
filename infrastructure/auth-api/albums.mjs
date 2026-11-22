@@ -7,6 +7,17 @@
 // Records live in the tours table in their own partition, so a member's tour list never sees them:
 //   ALBUMS#<memberId> / ALBUM#<albumId>                         the album (name, date, place, visibility, counts, cover)
 //   ALBUMS#<memberId> / ITEM#<albumId>#<createdAt>#<itemId>     one photo or video in it
+//   ALBUMS#<memberId> / AUTO#<mobile|computer>#<until>          a renamed automatic album: its name and when it closed
+//
+// Automatic albums (owner 2026-11-22: "photo should automatically go to mobile uploads", "If they're uploaded from a
+// computer should be a computer uploads", "Or user gets to change the name of that album"): "Mobile uploads" and
+// "Computer uploads" hold the photos and videos of the member's own posts, by where each post was made (the post's
+// uploadSource), unless the post names an album. They are drawn from the posts the viewer can already see, so nothing is
+// copied, a post's own audience still decides who sees its photos, and deleting a post takes its photos out.
+// Renaming one closes it ("If users change the name of the mobile album … and then they reupload new images it should
+// create a new mobile or computer album"): the photos posted up to that moment keep the new name as their own album, and
+// the next photo posted without an album starts a fresh "Mobile uploads" / "Computer uploads". Only the name and the
+// moment are stored here.
 import { randomUUID } from "node:crypto";
 
 export const MAX_ALBUMS = 100;
@@ -17,6 +28,8 @@ const PARTITION = "ALBUMS#";
 const MEMBER = /^[a-f0-9-]{36}$/;
 const ALBUM_ID = /^[a-f0-9]{32}$/;
 const ITEM_ID = /^[a-f0-9]{32}$/;
+export const AUTOMATIC = { mobile: "Mobile uploads", computer: "Computer uploads" };
+const AUTO_ID = /^auto-(mobile|computer)(?:-(\d{13}))?$/; // the open album, or a renamed one by when it closed (ms)
 const MEDIA = /^users\/([a-f0-9]{24})\/[a-f0-9-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/;
 const VIDEO_EXTENSIONS = new Set(["mp4", "webm", "mov"]);
 
@@ -104,6 +117,8 @@ export function createAlbums({ db, commands, tableName, authenticate, accountEma
       if (who.error) return who.error;
       const kind = ["image", "video"].includes(params.kind) ? params.kind : "";
       const albums = (await query(who.ownerId, "ALBUM#", MAX_ALBUMS)).filter(item => canSee(attr(item, "visibility"), who.rules)).map(item => albumView(item));
+      const renamed = (await query(who.ownerId, "AUTO#", MAX_ALBUMS)).map(item => ({ id: `auto-${attr(item, "source")}-${Date.parse(attr(item, "until"))}`, source: attr(item, "source"), name: attr(item, "name"), until: attr(item, "until") }))
+        .filter(album => AUTOMATIC[album.source] && album.until).sort((a, b) => a.until.localeCompare(b.until));
       const shown = kind ? albums.filter(album => (kind === "image" ? album.photoCount : album.videoCount) > 0 || (who.isOwner && !album.photoCount && !album.videoCount)) : albums;
       shown.sort((a, b) => (b.date || b.createdAt).localeCompare(a.date || a.createdAt));
       if (params.full === "1" && who.isOwner) {
@@ -111,7 +126,7 @@ export function createAlbums({ db, commands, tableName, authenticate, accountEma
         const items = await query(who.ownerId, "ITEM#");
         return [200, { albums: shown.map(album => ({ ...album, cover: null, items: items.filter(item => attr(item, "albumId") === album.albumId).map(item => ({ itemId: attr(item, "itemId"), mediaType: attr(item, "mediaType"), mediaKey: attr(item, "mediaKey"), createdAt: attr(item, "createdAt") })) })) }];
       }
-      return [200, { isOwner: who.isOwner, albums: shown }];
+      return [200, { isOwner: who.isOwner, albums: shown, automatic: AUTOMATIC, renamed }];
     },
     // GET /albums/{albumId}[?member=]
     async get({ userId, event, albumId }) {
@@ -147,6 +162,24 @@ export function createAlbums({ db, commands, tableName, authenticate, accountEma
         await db.send(new UpdateItemCommand({ TableName: tableName, Key: albumKey(userId, albumId), UpdateExpression: `SET ${sets.join(", ")}`, ConditionExpression: "attribute_exists(userId)", ...(Object.keys(names).length ? { ExpressionAttributeNames: names } : {}), ExpressionAttributeValues: values }));
       } catch (error) { if (error.name === "ConditionalCheckFailedException") return [404, "Album not found."]; throw error; }
       return routes.get({ userId, event: { queryStringParameters: {} }, albumId });
+    },
+    // PATCH /albums/auto-mobile | /albums/auto-computer {name}: renames the open automatic album, which closes it under that
+    // name; the next photo posted without an album opens a fresh one. PATCH /albums/auto-mobile-<ms> {name} renames a
+    // closed one again.
+    async renameAutomatic({ userId, body, albumId }) {
+      const [, source, closed] = albumId.match(AUTO_ID), name = text(body.name, 80);
+      if (!name) return [400, "Give the album a name."];
+      if (closed) {
+        const until = new Date(Number(closed)).toISOString();
+        try {
+          await db.send(new UpdateItemCommand({ TableName: tableName, Key: { userId: { S: `${PARTITION}${userId}` }, tourId: { S: `AUTO#${source}#${until}` } }, UpdateExpression: "SET #name = :name, updatedAt = :at", ConditionExpression: "attribute_exists(userId)", ExpressionAttributeNames: { "#name": "name" }, ExpressionAttributeValues: { ":name": { S: name }, ":at": { S: nowIso() } } }));
+        } catch (error) { if (error.name === "ConditionalCheckFailedException") return [404, "Album not found."]; throw error; }
+        return [200, { renamed: { id: albumId, source, name, until } }];
+      }
+      if ((await query(userId, "AUTO#", MAX_ALBUMS + 1)).length >= MAX_ALBUMS) return [409, `You have ${MAX_ALBUMS} renamed albums. Rename an older one instead.`];
+      const until = nowIso();
+      await db.send(new PutItemCommand({ TableName: tableName, Item: { userId: { S: `${PARTITION}${userId}` }, tourId: { S: `AUTO#${source}#${until}` }, source: { S: source }, name: { S: name }, until: { S: until }, updatedAt: { S: until } }, ConditionExpression: "attribute_not_exists(userId)" }));
+      return [200, { renamed: { id: `auto-${source}-${Date.parse(until)}`, source, name, until } }];
     },
     // POST /albums/{albumId}/items {items:[{mediaKey, mediaType}]}: files already uploaded with the post upload ticket.
     async addItems({ userId, body, albumId }) {
@@ -198,6 +231,7 @@ export function createAlbums({ db, commands, tableName, authenticate, accountEma
     const albumId = parts[1] || "", itemId = parts[3] || "";
     let route = "";
     if (parts.length === 1) route = method === "GET" ? "list" : method === "POST" ? "create" : "";
+    else if (parts.length === 2 && AUTO_ID.test(albumId)) route = method === "PATCH" ? "renameAutomatic" : "";
     else if (parts.length === 2) route = { GET: "get", PATCH: "update", DELETE: "remove" }[method] || "";
     else if (parts.length === 3 && parts[2] === "items" && method === "POST") route = "addItems";
     else if (parts.length === 4 && parts[2] === "items" && method === "DELETE") route = "removeItem";
@@ -205,7 +239,7 @@ export function createAlbums({ db, commands, tableName, authenticate, accountEma
     const origin = event.headers?.origin || event.headers?.Origin, headers = { ...corsHeaders(origin), "cache-control": "no-store, private" };
     const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
     if (!originAllowed(origin)) return reply(403, { error: "Forbidden origin" });
-    if (albumId && !ALBUM_ID.test(albumId)) return reply(404, { error: "Album not found." });
+    if (albumId && !ALBUM_ID.test(albumId) && !(route === "renameAutomatic" && AUTO_ID.test(albumId))) return reply(404, { error: "Album not found." });
     if (itemId && !ITEM_ID.test(itemId)) return reply(404, { error: "That photo or video is not in this album." });
     const userId = await authenticate(event);
     if (!userId) return reply(401, { error: "Authentication required." });

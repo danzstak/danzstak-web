@@ -134,5 +134,75 @@
     return posts;
   }
 
-  globalThis.danzstakPostPhotos = { mount, pick, tooMany, upload, attach, discard, MAX };
+  // Owner 2026-11-22: "photo should automatically go to mobile uploads", "If they're uploaded from a computer should be a
+  // computer uploads". Where this post is made, sent with it: a phone or tablet (iPadOS reports a Mac with touch) is
+  // "mobile", anything else "computer".
+  function uploadSource() {
+    const agent = navigator.userAgent || "";
+    if (/Android|iPhone|iPad|iPod|Mobile/i.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1) || navigator.userAgentData?.mobile === true) return "mobile";
+    return "computer";
+  }
+
+  // Owner 2026-11-22: "User should get to choose what album that the images go into or what album the videos go into",
+  // "They should get the option to create an album or to load the images or videos into a selected album", "If they don't
+  // choose … they will upload to mobile album or a computer album". Under the chosen photos or video, one chip: "Album:
+  // Mobile uploads". Tapping it lists the member's albums, "+ New album" and the default; value() is the chosen album's id,
+  // or "" for Mobile uploads / Computer uploads.
+  function albumChoice() {
+    const fallback = uploadSource() === "computer" ? "Computer uploads" : "Mobile uploads";
+    let chosen = { albumId: "", name: fallback };
+    const chip = document.createElement("button");
+    chip.type = "button"; chip.className = "post-album-chip";
+    const paint = () => { chip.textContent = `${t("Album")}: ${chosen.albumId ? chosen.name : t(fallback)} ▾`; chip.setAttribute("aria-label", `${t("Album")}: ${chosen.albumId ? chosen.name : t(fallback)}. ${t("Choose an album")}`); };
+    paint();
+    chip.addEventListener("click", async () => {
+      const dialog = document.createElement("dialog"), form = document.createElement("form");
+      dialog.className = "post-album-sheet"; form.method = "dialog";
+      const title = document.createElement("h2"); title.textContent = t("Choose an album");
+      const list = document.createElement("div"); list.className = "post-album-options"; list.setAttribute("role", "radiogroup"); list.setAttribute("aria-label", t("Albums"));
+      const status = document.createElement("p"); status.className = "post-album-status"; status.textContent = t("Loading your albums…");
+      const name = document.createElement("input"); name.maxLength = 80; name.placeholder = t("Album name"); name.hidden = true; name.setAttribute("aria-label", t("New album name"));
+      const error = document.createElement("p"); error.className = "post-album-error"; error.setAttribute("role", "alert");
+      const cancel = document.createElement("button"), done = document.createElement("button");
+      cancel.type = "button"; cancel.textContent = t("Cancel"); cancel.addEventListener("click", () => dialog.close());
+      done.type = "submit"; done.className = "primary"; done.textContent = t("Done");
+      const actions = document.createElement("div"); actions.className = "post-album-actions"; actions.append(cancel, done);
+      form.append(title, list, status, name, error, actions);
+      dialog.append(form);
+      dialog.addEventListener("close", () => dialog.remove());
+      document.body.append(dialog);
+      dialog.showModal();
+      const row = (value, label) => {
+        const option = document.createElement("label"), radio = document.createElement("input"), text = document.createElement("span");
+        option.className = "post-album-option"; radio.type = "radio"; radio.name = "post-album"; radio.value = value; radio.checked = value === (chosen.albumId || "");
+        radio.addEventListener("change", () => { name.hidden = value !== "new"; if (!name.hidden) name.focus(); });
+        text.textContent = label; option.append(radio, text); list.append(option);
+      };
+      row("", t(fallback));
+      let albums = [];
+      try {
+        const response = await fetch(API + "/albums", { credentials: "include", cache: "no-store" });
+        albums = response.ok ? ((await response.json()).albums || []) : [];
+        status.textContent = "";
+      } catch { status.textContent = t("Your albums couldn't load. You can still make a new one."); }
+      for (const album of albums) row(album.albumId, album.name);
+      row("new", t("+ New album"));
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const value = form.querySelector("input[name=post-album]:checked")?.value ?? "";
+        if (value !== "new") { chosen = value ? { albumId: value, name: albums.find(album => album.albumId === value)?.name || "" } : { albumId: "", name: fallback }; paint(); dialog.close(); return; }
+        if (!name.value.trim()) { error.textContent = t("Give the album a name."); name.focus(); return; }
+        done.disabled = true;
+        try {
+          const response = await fetch(API + "/albums", { method: "POST", credentials: "include", headers: json, body: JSON.stringify({ name: name.value, date: "", place: "", visibility: "friends" }) });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.album?.albumId) throw new Error(data.error || t("The album couldn't be made. Try again."));
+          chosen = { albumId: data.album.albumId, name: data.album.name }; paint(); dialog.close();
+        } catch (failure) { error.textContent = failure.message; done.disabled = false; }
+      });
+    });
+    return { element: chip, value: () => chosen.albumId };
+  }
+
+  globalThis.danzstakPostPhotos = { mount, pick, tooMany, upload, attach, discard, uploadSource, albumChoice, MAX };
 })();

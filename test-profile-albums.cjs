@@ -155,6 +155,55 @@ const commands = { GetItemCommand: command("Get"), PutItemCommand: command("Put"
   assert.deepEqual(exported.map(album => [album.name, album.items.length]).sort(), [["Mike & Ana's wedding", 1], ["Tour diary", 1]]);
   assert.equal((await call(STRANGER, "GET", "/albums", undefined, { member: OWNER, full: "1" })).data.albums.every(album => !album.items), true, "export detail is for the owner only");
 
+  // ---------- automatic albums (owner 2026-11-22) ----------
+  // "photo should automatically go to mobile uploads", "If they're uploaded from a computer should be a computer uploads",
+  // "Or user gets to change the name of that album". The albums come from the posts; only their names are stored.
+  // Renaming one closes it under the new name ("If users change the name of the mobile album … and then they reupload new
+  // images it should create a new mobile or computer album"): only the name and the moment are stored.
+  let list2 = (await call(OWNER, "GET", "/albums", undefined, { kind: "image" })).data;
+  assert.deepEqual(list2.automatic, { mobile: "Mobile uploads", computer: "Computer uploads" }, "default names");
+  assert.deepEqual(list2.renamed, []);
+  const renamed = await call(OWNER, "PATCH", "/albums/auto-mobile", { name: "  Bologna   trip " });
+  assert.equal(renamed.status, 200);
+  assert.equal(renamed.data.renamed.name, "Bologna trip");
+  assert.equal(renamed.data.renamed.source, "mobile");
+  assert.match(renamed.data.renamed.id, /^auto-mobile-\d{13}$/);
+  assert.equal(renamed.data.renamed.id, `auto-mobile-${Date.parse(renamed.data.renamed.until)}`, "the id is when it closed");
+  assert.equal((await call(OWNER, "PATCH", "/albums/auto-mobile", { name: "" })).status, 400, "a renamed album needs a name");
+  list2 = (await call(STRANGER, "GET", "/albums", undefined, { member: OWNER, kind: "image" })).data;
+  assert.deepEqual(list2.automatic, { mobile: "Mobile uploads", computer: "Computer uploads" }, "a fresh Mobile uploads opens");
+  assert.deepEqual(list2.renamed.map(album => album.name), ["Bologna trip"], "visitors see the renamed album (its photos still follow each post's audience)");
+  // A renamed album can be renamed again; a made-up one can't.
+  const again = await call(OWNER, "PATCH", `/albums/${renamed.data.renamed.id}`, { name: "Bologna 2026" });
+  assert.equal(again.status, 200);
+  assert.equal(again.data.renamed.until, renamed.data.renamed.until, "renaming again keeps when it closed");
+  assert.equal((await call(OWNER, "PATCH", "/albums/auto-mobile-1700000000000", { name: "x" })).status, 404);
+  assert.equal((await call(OWNER, "PATCH", "/albums/auto-tablet", { name: "x" })).status, 404, "only the two automatic albums");
+  assert.equal(await albums.handle({ user: OWNER, headers: { origin: "https://danzstak.com" } }, "DELETE", "/albums/auto-mobile"), null, "automatic albums are never deleted");
+  assert.equal((await call(OWNER, "POST", "/albums/auto-mobile/items", { items: [{ mediaKey: upload("jpg", 9), mediaType: "image" }] })).status, 404, "nothing is added to them by hand: they fill from posts");
+  const second = await call(OWNER, "PATCH", "/albums/auto-mobile", { name: "Tour 2026" });
+  list2 = (await call(OWNER, "GET", "/albums", undefined, { kind: "image" })).data;
+  assert.deepEqual(list2.renamed.map(album => album.name), ["Bologna 2026", "Tour 2026"], "renamed albums in the order they closed");
+  assert.ok(second.data.renamed.until > renamed.data.renamed.until);
+  assert.equal([...table.keys()].filter(key => key.includes("AUTO#")).length, 2, "only the names and moments are stored");
+  // The server notes where each photo/video post was made; the browser says, an older app is judged by its browser name.
+  const api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), shared = fs.readFileSync("assets/post-photos.js", "utf8");
+  assert.match(api, /const uploadSource = data\.uploadSource === "mobile" \|\| data\.uploadSource === "computer" \? data\.uploadSource : \/Android\|iPhone\|iPad\|iPod\|Mobile\/i\.test\(agent\) \? "mobile" : "computer";/);
+  assert.match(api, /\.\.\.\(mediaKey && !facebookImport \? \{ uploadSource: \{ S: uploadSource \} \} : \{\}\),/, "photo and video posts keep it (Facebook imports don't)");
+  assert.match(api, /uploadSource: item\.uploadSource\?\.S \|\| "",/, "posts carry it to the profile");
+  assert.match(shared, /function uploadSource\(\)/);
+  for (const [file, text] of [["feed.html", fs.readFileSync("feed.html", "utf8")], ["profile-editor.js", fs.readFileSync("assets/profile-editor.js", "utf8")]]) {
+    assert.match(text, /\.\.\.\(mediaKey \? \{ uploadSource: window\.danzstakPostPhotos\?\.uploadSource\?\.\(\), \.\.\.\(selectedMedia\?\.albumChoice\?\.value\(\) \? \{ albumId: selectedMedia\.albumChoice\.value\(\) \} : \{\}\) \} : \{\}\)/, `${file} sends where the post was made and the album chosen`);
+  }
+  // The browser decides phone or computer: Android, iPhone, an iPad that reports itself as a Mac are phones.
+  const vm = require("node:vm"), source = shared.slice(shared.indexOf("function uploadSource()"), shared.indexOf("globalThis.danzstakPostPhotos ="));
+  const judge = (userAgent, maxTouchPoints = 0, userAgentData) => vm.runInNewContext(`${source}; uploadSource()`, { navigator: { userAgent, maxTouchPoints, userAgentData } });
+  assert.equal(judge("Mozilla/5.0 (Linux; Android 13; SM-A136U) Mobile Safari/537.36"), "mobile");
+  assert.equal(judge("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)"), "mobile");
+  assert.equal(judge("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15", 5), "mobile", "iPad");
+  assert.equal(judge("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15", 0), "computer", "MacBook");
+  assert.equal(judge("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0"), "computer");
+
   // ---------- wiring ----------
   const index = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8");
   assert.match(index, /import \{ createAlbums \} from "\.\/albums\.mjs";/);

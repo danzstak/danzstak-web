@@ -46,7 +46,8 @@ const fillerPost = { postId: FILLER, userId: me, authorMemberId: me, authorName:
 const wallPost = { postId: POST, userId: me, authorMemberId: me, authorName: "Night Shift", authorPicture: "", content: "Three from the gig", createdAt: new Date(Date.now() - 864e5).toISOString(), audience: "public", isOwner: true, byProfileOwner: true, mediaType: "image", mediaUrl: `${origin}/__shown/0.svg`, moreMediaUrls: [`${origin}/__shown/1.svg`, `${origin}/__shown/2.svg`] };
 
 async function open(browser, width, pathName, { oldServer = false, posts = [] } = {}) {
-  const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
+  // An Android phone's browser name, so the post counts as a phone upload ("Mobile uploads").
+  const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block", userAgent: "Mozilla/5.0 (Linux; Android 14; SM-A146U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36" });
   const page = await context.newPage(), seen = { posts: [], tickets: 0, uploads: 0, discards: 0, errors: [] };
   page.on("pageerror", error => seen.errors.push(error.message));
   await page.route(`${origin}/**`, route => {
@@ -78,6 +79,7 @@ async function open(browser, width, pathName, { oldServer = false, posts = [] } 
       return reply({ postId, userId: me, content: body.content, createdAt: new Date().toISOString(), audience: body.audience || "public", mediaKey: body.mediaKey, mediaType: body.mediaType, dailyCreated: true, ...(oldServer ? {} : { moreMediaKeys: body.moreMediaKeys || [] }) }, 201);
     }
     if (p === "/secure-posts") return reply({ posts });
+    if (p === "/albums" && method === "GET") return reply({ isOwner: true, albums: [{ albumId: "c".repeat(32), name: "Hellfest 2026", visibility: "public", photoCount: 3, videoCount: 0, cover: null }], automatic: { mobile: "Mobile uploads", computer: "Computer uploads" }, renamed: [] });
     if (p === "/engagement") return reply({ reactionCounts: {}, comments: [] });
     if (p === "/settings/posts") return reply({ hiddenPostIds: [] });
     return reply({});
@@ -104,7 +106,7 @@ async function postFromMix(browser, width, { oldServer = false, count = 3 } = {}
   await page.locator("#postText").fill("Three from the gig");
   await page.locator(".composer-media-image + input[type=file]").setInputFiles(Array.from({ length: count }, (_, index) => photoFile(index)));
   await page.waitForFunction(() => window.danzstakSelectedMedia?.kind === "image", null, { timeout: 8000 });
-  const preview = await page.evaluate(() => ({ thumbs: document.querySelectorAll(".post-photos-picked img").length, count: document.querySelector(".post-photos-picked-count")?.textContent.trim() || "", feedback: document.body.innerText.includes("A post holds up to 20 photos") }));
+  const preview = await page.evaluate(() => ({ thumbs: document.querySelectorAll(".post-photos-picked img").length, count: document.querySelector(".post-photos-picked-count")?.textContent.trim() || "", feedback: document.body.innerText.includes("A post holds up to 20 photos"), chip: document.querySelector(".post-album-chip")?.textContent.trim() || "" }));
   if (count === 3 && (width === 360 || width === 390) && !oldServer) await page.screenshot({ path: path.join(output, `composer-${width}.png`) });
   if (count > 3) { await context.close(); return { preview, seen }; }
   await page.evaluate(() => { const box = document.getElementById("originalContentCertification"); if (box && !box.checked) box.click(); });
@@ -126,11 +128,13 @@ async function postFromMix(browser, width, { oldServer = false, count = 3 } = {}
       // Mix composer, current server.
       let run = await postFromMix(browser, width);
       check(run.preview.thumbs === 3 && run.preview.count === "3 photos", `${width}px: the composer did not show 3 photos (${JSON.stringify(run.preview)})`);
+      check(run.preview.chip.startsWith("Album: Mobile uploads"), `${width}px: the Mix composer has no "Album: Mobile uploads" chip (${JSON.stringify(run.preview.chip)})`);
       check(run.seen.tickets === 3 && run.seen.uploads === 3, `${width}px: expected 3 uploads, got ${run.seen.tickets} tickets / ${run.seen.uploads} uploads`);
       check(run.seen.posts.length === 1, `${width}px: expected one post, sent ${run.seen.posts.length}`);
       const body = run.seen.posts[0] || {};
       check(body.mediaType === "image" && body.mediaKey && Array.isArray(body.moreMediaKeys) && body.moreMediaKeys.length === 2 && !body.moreMediaKeys.includes(body.mediaKey), `${width}px: the post did not carry the first photo + 2 more (${JSON.stringify(body)})`);
       check(run.drawn?.frames === 1 && run.drawn.count === "1/3", `${width}px: the new post did not show one 3-photo frame (${JSON.stringify(run.drawn)})`);
+      check(body.uploadSource === "mobile" && body.albumId === undefined, `${width}px: a Mix post with no album chosen should go to Mobile uploads (${JSON.stringify({ uploadSource: body.uploadSource, albumId: body.albumId })})`);
       check(!run.seen.errors.length, `${width}px: script errors: ${run.seen.errors.join(" | ")}`);
 
       // Mix composer, Auth API from before multi-photo posts.
@@ -216,10 +220,21 @@ async function postFromMix(browser, width, { oldServer = false, count = 3 } = {}
         check(picked === 3, `${width}px profile composer: expected 3 photos picked, saw ${picked}`);
         const text = page.locator(".profile-create-preview").locator("xpath=ancestor::form//textarea").first();
         if (await text.count()) await text.fill("Three from the gig");
+        // Owner 2026-11-22: choose the album the photos go into ("Album: Mobile uploads" until the member picks one).
+        const chip = page.locator(".profile-create-preview .post-album-chip");
+        check((await chip.innerText()).includes("Mobile uploads"), `${width}px profile composer: the album chip does not say Mobile uploads (${await chip.innerText().catch(() => "missing")})`);
+        await chip.scrollIntoViewIfNeeded();
+        const chipBox = await chip.boundingBox();
+        await page.touchscreen.tap(chipBox.x + chipBox.width / 2, chipBox.y + chipBox.height / 2);
+        await page.locator(".post-album-sheet .post-album-option", { hasText: "Hellfest 2026" }).click();
+        await page.locator(".post-album-sheet").getByRole("button", { name: "Done" }).click();
+        check((await chip.innerText()).includes("Hellfest 2026"), `${width}px profile composer: the chosen album does not show on the chip`);
+        if (width === 390) await page.screenshot({ path: path.join(output, `profile-composer-album-${width}.png`) });
         await page.evaluate(() => { const form = document.querySelector(".profile-create-preview")?.closest("form"); form?.querySelectorAll("input[type=checkbox][required]").forEach(box => { box.checked = true; }); form?.requestSubmit(); });
         await page.waitForTimeout(2000);
         const body = seen.posts[0] || {};
         check(seen.posts.length === 1 && Array.isArray(body.moreMediaKeys) && body.moreMediaKeys.length === 2, `${width}px profile composer: expected one post with 2 more photos (${JSON.stringify(seen.posts)})`);
+        check(body.albumId === "c".repeat(32) && body.uploadSource === "mobile", `${width}px profile composer: the post did not carry the chosen album and "mobile" (${JSON.stringify({ albumId: body.albumId, uploadSource: body.uploadSource })})`);
         check(!seen.errors.length, `${width}px profile composer: script errors: ${seen.errors.join(" | ")}`);
         await context.close();
       }
