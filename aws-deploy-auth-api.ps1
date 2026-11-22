@@ -219,8 +219,9 @@ try {
       @{
         Sid = "SavedTourPlans"
         Effect = "Allow"
-        # UpdateItem: venue freshness signals. Scan: club database counts (owner 2026-11-16).
-        Action = @("dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:Query", "dynamodb:DeleteItem", "dynamodb:TransactWriteItems", "dynamodb:UpdateItem", "dynamodb:Scan")
+        # UpdateItem: venue freshness signals. Scan: club database counts (owner 2026-11-16). ConditionCheckItem: the
+        # booking-email send checks the suppression list and opt-out token inside its transaction (L1, 2026-11-19).
+        Action = @("dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:Query", "dynamodb:DeleteItem", "dynamodb:TransactWriteItems", "dynamodb:ConditionCheckItem", "dynamodb:UpdateItem", "dynamodb:Scan")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Tours"
       },
       @{
@@ -258,7 +259,9 @@ try {
       @{
         Sid = "PrivatePhoneVerification"
         Effect = "Allow"
-        Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:UpdateItem", "dynamodb:TransactWriteItems")
+        # ConditionCheckItem: the 10-accounts-per-number claim is checked inside the send transaction. Without it every
+        # "Text me a code" failed (L1, 2026-11-19); test-iam-condition-checks.cjs keeps every ConditionCheck table granted.
+        Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:UpdateItem", "dynamodb:TransactWriteItems", "dynamodb:ConditionCheckItem")
         Resource = "arn:aws:dynamodb:us-west-1:$($identity.Account):table/$PhoneVerificationTable"
       },
       @{
