@@ -2996,10 +2996,17 @@ if (composerActions && publishButton) {
     input.type = "file";
     input.accept = accept;
     input.hidden = true;
+    // Owner 2026-11-22: several photos at once, up to 20 in one post (post-photos.js).
+    if (kind === "image") input.multiple = true;
     button.addEventListener("click", () => { expandComposer(); input.click(); });
     input.addEventListener("change", () => {
-      const file = input.files[0];
+      let file = input.files[0], more = [];
       if (!file) return;
+      if (kind === "image" && input.files.length > 1 && window.danzstakPostPhotos) {
+        const { photos, dropped } = window.danzstakPostPhotos.pick(input.files);
+        if (dropped) showAppFeedback(window.danzstakPostPhotos.tooMany());
+        if (photos.length) [file, ...more] = photos;
+      }
       if (!file.type.startsWith(kind + "/") || (maxBytes && file.size > maxBytes)) {
         input.value = "";
         showAppFeedback(maxBytes
@@ -3008,7 +3015,8 @@ if (composerActions && publishButton) {
         return;
       }
       if (selectedMedia?.url) URL.revokeObjectURL(selectedMedia.url);
-      selectedMedia = { file, kind, url: URL.createObjectURL(file) };
+      selectedMedia?.more?.forEach(item => URL.revokeObjectURL(item.url));
+      selectedMedia = { file, kind, url: URL.createObjectURL(file), more: more.map(photo => ({ file: photo, url: URL.createObjectURL(photo) })) };
       window.danzstakSelectedMedia = selectedMedia;
       const storyToggle = document.getElementById("shareToStory");
       if (storyToggle) {
@@ -3030,6 +3038,20 @@ if (composerActions && publishButton) {
       media.style.borderRadius = "10px";
       if (kind === "video") media.controls = true;
       preview.replaceChildren(media);
+      if (selectedMedia.more.length) {
+        // Several photos: one row of squares with the count (they post as one swipeable photo post).
+        const strip = document.createElement("div");
+        strip.className = "post-photos-picked";
+        for (const url of [selectedMedia.url, ...selectedMedia.more.map(item => item.url)]) {
+          const thumb = document.createElement("img");
+          thumb.src = url; thumb.alt = "";
+          strip.append(thumb);
+        }
+        const count = document.createElement("p");
+        count.className = "post-photos-picked-count";
+        count.textContent = (window.danzstakTranslate?.("{count} photos") || "{count} photos").replace("{count}", String(selectedMedia.more.length + 1));
+        preview.replaceChildren(strip, count);
+      }
       if (kind === "video") {
         const scanStatus = document.createElement("p");
         scanStatus.className = "copyright-scan-status";

@@ -705,6 +705,7 @@ async function refreshProfilePostMedia(post) {
   if (!refreshed?.mediaUrl || !["image", "video"].includes(refreshed.mediaType)) return "";
   post.mediaUrl = refreshed.mediaUrl;
   post.mediaType = refreshed.mediaType;
+  post.moreMediaUrls = Array.isArray(refreshed.moreMediaUrls) ? refreshed.moreMediaUrls : [];
   return post.mediaUrl;
 }
 
@@ -751,6 +752,8 @@ function installProfilePostMedia(article, post) {
     media.addEventListener("click", openWhole);
     media.addEventListener("keydown", openWhole);
     insert(media);
+    // Owner 2026-11-22: a post can hold up to 20 photos, swiped sideways in one frame (post-photos.js).
+    if (post.mediaType === "image" && post.moreMediaUrls?.length) window.danzstakPostPhotos?.mount(media, post.moreMediaUrls);
   };
   retry.addEventListener("click", () => { post.mediaUrl = ""; void install(); });
   void install();
@@ -822,6 +825,8 @@ function profilePostCard(post) {
   text.className = "profile-post-content";
   const postContent = String(post.content || "Shared media");
   window.danzstakRenderUserText?.(text, post.content || "Shared media") || (text.textContent = postContent);
+  // A photo or video posted without words carries the filler "Shared media": show the media alone (owner 2026-11-22).
+  if (post.mediaType && postContent.trim() === "Shared media") text.hidden = true;
   article.append(header, text);
   if (postContent.trim().length > 280) {
     text.classList.add("is-collapsed");
@@ -942,6 +947,7 @@ function profileWallComposer(profile) {
   const mediaInput = document.createElement("input");
   mediaInput.type = "file";
   mediaInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime";
+  mediaInput.multiple = true; // owner 2026-11-22: several photos at once, up to 20 in one post (post-photos.js)
   mediaInput.hidden = true;
   const preview = document.createElement("div");
   preview.className = "profile-create-preview";
@@ -949,14 +955,21 @@ function profileWallComposer(profile) {
   let selectedMedia = null;
   const clearMedia = () => {
     if (selectedMedia?.previewUrl) URL.revokeObjectURL(selectedMedia.previewUrl);
+    selectedMedia?.more?.forEach(item => URL.revokeObjectURL(item.url));
     selectedMedia = null;
     mediaInput.value = "";
     preview.replaceChildren();
     preview.hidden = true;
   };
   mediaInput.addEventListener("change", () => {
-    const file = mediaInput.files?.[0];
+    let file = mediaInput.files?.[0], more = [];
     if (!file) return;
+    // Several chosen: the photos among them make one photo post (a video posts on its own).
+    if (mediaInput.files.length > 1 && window.danzstakPostPhotos) {
+      const { photos, dropped } = window.danzstakPostPhotos.pick(mediaInput.files);
+      if (dropped) showProfileFeedback(window.danzstakPostPhotos.tooMany(), { urgent: true });
+      if (photos.length) [file, ...more] = photos;
+    }
     const mediaType = file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "";
     if (!mediaType || mediaType === "video" && file.size > 100 * 1024 * 1024) {
       mediaInput.value = "";
@@ -964,11 +977,25 @@ function profileWallComposer(profile) {
       return;
     }
     clearMedia();
-    selectedMedia = { file, mediaType, previewUrl: URL.createObjectURL(file) };
-    const media = document.createElement(mediaType === "image" ? "img" : "video");
+    selectedMedia = { file, mediaType, previewUrl: URL.createObjectURL(file), more: more.map(photo => ({ file: photo, url: URL.createObjectURL(photo) })) };
+    let media = document.createElement(mediaType === "image" ? "img" : "video");
     media.src = selectedMedia.previewUrl;
     media.alt = "";
     if (mediaType === "video") { media.controls = true; media.muted = true; media.playsInline = true; }
+    if (selectedMedia.more.length) {
+      const strip = document.createElement("div");
+      strip.className = "post-photos-picked";
+      for (const url of [selectedMedia.previewUrl, ...selectedMedia.more.map(item => item.url)]) {
+        const thumb = document.createElement("img");
+        thumb.src = url; thumb.alt = "";
+        strip.append(thumb);
+      }
+      const count = document.createElement("p");
+      count.className = "post-photos-picked-count";
+      count.textContent = profileTranslate("{count} photos").replace("{count}", String(selectedMedia.more.length + 1));
+      media = document.createElement("div");
+      media.append(strip, count);
+    }
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "secondary";
@@ -1040,7 +1067,7 @@ function profileWallComposer(profile) {
     if (!textarea.value.trim() && !selectedMedia) return textarea.focus();
     if (!form.reportValidity()) return;
     submit.disabled = true; status.textContent = "Posting…";
-    let uploadedMediaKey = "";
+    let uploadedMediaKey = "", uploadedMoreKeys = [];
     try {
       let mediaKey = "", mediaType = "";
       if (selectedMedia) {
@@ -1053,19 +1080,24 @@ function profileWallComposer(profile) {
         mediaKey = ticket.mediaKey;
         mediaType = ticket.mediaType;
         uploadedMediaKey = mediaKey;
+        if (mediaType === "image" && selectedMedia.more?.length && window.danzstakPostPhotos) uploadedMoreKeys = await window.danzstakPostPhotos.upload(selectedMedia.more.map(item => item.file), profileFetch);
       }
       // T0-A1: every posted video goes to The Roll (the server also adds Dailies by itself).
       const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType, reel: mediaType === "video" };
       if (!profile.isOwner) body.profileMemberId = profile.memberId;
-      const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(uploadedMoreKeys.length ? { ...body, moreMediaKeys: uploadedMoreKeys } : body) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "The post could not be published.");
       uploadedMediaKey = "";
+      const moreKeys = uploadedMoreKeys; uploadedMoreKeys = [];
+      // An Auth API from before multi-photo posts keeps only the first photo: the others become their own posts.
+      if (moreKeys.length) await window.danzstakPostPhotos.attach(data, moreKeys, body, profileFetch);
       closeForm();
       showProfileFeedback("Posted to this profile.");
       await loadProfilePosts(false);
     } catch (error) {
       if (uploadedMediaKey) profileFetch(profileApi + "/stories", { method: "POST", credentials: "include", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "discard", mediaKey: uploadedMediaKey }) }, 5000).catch(() => {});
+      if (uploadedMoreKeys.length) window.danzstakPostPhotos?.discard(uploadedMoreKeys, profileFetch);
       status.textContent = error.message;
     }
     finally { submit.disabled = false; }
@@ -1112,7 +1144,11 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
     // Owner 2026-11-18: Photos the same way: photos only, tap → full screen, scroll through all of them.
     const videoGrid = mediaOnly && (mediaType === "video" || mediaType === "image") && window.danzstakProfileVideos ? window.danzstakProfileVideos.createGrid({ kind: mediaType }) : null;
     const addVideo = item => { if (!videoGrid) return false; videoGrid.add(item); if (videoGrid.items.length && !videoGrid.element.isConnected) tabMessage.appendChild(videoGrid.element); return true; };
-    for (const post of posts) if (!addVideo({ mediaUrl: post.mediaUrl, content: post.content || "", refresh: () => refreshProfilePostMedia(post) })) tabMessage.appendChild(profilePostCard(post));
+    for (const post of posts) {
+      if (!addVideo({ mediaUrl: post.mediaUrl, content: post.content || "", refresh: () => refreshProfilePostMedia(post) })) { tabMessage.appendChild(profilePostCard(post)); continue; }
+      // Every photo of a multi-photo post is its own tile in Photos (owner 2026-11-22).
+      if (mediaType === "image") (post.moreMediaUrls || []).forEach((mediaUrl, index) => addVideo({ mediaUrl, content: post.content || "", refresh: async () => { await refreshProfilePostMedia(post); return post.moreMediaUrls?.[index] || ""; } }));
+    }
     if (mediaOnly && mediaType !== "image") {
       const params = new URLSearchParams();
       const profileMemberId = String(window.danzstakCurrentProfile?.memberId || "");
