@@ -12,5 +12,10 @@ assert.match(scale, /width >= height \? \[LONG, SHORT\] : \[SHORT, LONG\]/, "lan
 assert.match(scale, /Math\.min\(1, maxW \/ width, maxH \/ height\)/, "never scaled up, aspect kept");
 assert.match(scale, /\/\^image\\\/\(jpeg\|png\|webp\)\$\/i/, "GIF and other files pass through");
 assert.match(scale, /hasAttribute\("data-no-scale"\)/, "inputs can opt out");
-assert.match(scale, /blob\.size >= file\.size\) return file/, "never uploads a bigger file");
+assert.match(scale, /blob\.size >= file\.size\) return \{ file \}/, "never uploads a bigger file");
+// Owner 2026-11-22: a cut-off photo (createImageBitmap refuses it) never reaches the page's upload, on any picker, and the
+// member is told to pick it again (translated).
+assert.match(scale, /catch \{ return \{ broken: true \}; \}/, "a photo the browser can't read is marked broken");
+assert.match(scale, /if \(good\.length < results\.length\) tellBroken\(\)/, "the member is told");
+assert.match(read("assets/i18n.js"), /This photo didn't finish loading on your phone\. Open it in your gallery, then pick it again\./, "the message is translated");
 console.log("Media scale wiring checks passed: 720p photo box on every upload page.");
