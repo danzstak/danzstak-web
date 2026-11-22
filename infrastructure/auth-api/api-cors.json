@@ -1,7 +1,7 @@
 {
   "AllowCredentials": true,
   "AllowHeaders": ["content-type", "x-danzstak-device-id", "x-danzstak-device-token"],
-  "AllowMethods": ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-  "AllowOrigins": ["https://danzstak.com", "https://www.danzstak.com"],
+  "AllowMethods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  "AllowOrigins": ["https://danzstak.com", "https://www.danzstak.com", "https://review.danzstak.com"],
   "MaxAge": 300
 }
