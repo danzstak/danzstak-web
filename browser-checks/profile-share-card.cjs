@@ -25,9 +25,12 @@ const CDN = connect.find(host => /cloudfront\.net$/.test(host)), BUCKET = connec
 const MEDIA = { "/cover.jpg": ["image/jpeg", file("assets/danzstak-share-card.jpg")], "/face.png": ["image/png", file("assets/favicon-512.png")], "/item-1.png": ["image/png", file("assets/apple-touch-icon.png")], "/item-2.png": ["image/png", file("assets/favicon-192.png")] };
 const jpegSize = bytes => { if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null; let at = 2; while (at < bytes.length) { const marker = bytes[at + 1], length = bytes.readUInt16BE(at + 2); if (marker >= 0xc0 && marker <= 0xc2) return { height: bytes.readUInt16BE(at + 5), width: bytes.readUInt16BE(at + 7) }; at += 2 + length; } return null; };
 
-async function open(browser, width, { owner = true, language = "", visitorShareUrl = "", avatar = null } = {}) {
+async function open(browser, width, { owner = true, language = "", visitorShareUrl = "", avatar = null, phoneCanvas = false } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
   if (language) await context.addInitScript(lang => { try { localStorage.setItem("danzstak_language", lang); } catch {} }, language);
+  // The owner's Android phone (2026-11-22): a picture that isn't fully decodable draws nothing on a canvas (the HTML rule),
+  // where a computer's Chromium draws the part that arrived. Model the phone: canvas draws of an <img> on a blob: address do nothing.
+  if (phoneCanvas) await context.addInitScript(() => { const draw = CanvasRenderingContext2D.prototype.drawImage; CanvasRenderingContext2D.prototype.drawImage = function (image, ...rest) { if (image instanceof HTMLImageElement && String(image.src).startsWith("blob:")) return; return draw.call(this, image, ...rest); }; });
   const page = await context.newPage(), errors = [], saves = [], uploads = [];
   const state = { shareCard: undefined, shareCardSig: undefined };
   const profile = () => ({ memberId: me, name: "Night Shift Collective", handle: "nightshift", isOwner: owner, cloudProfile: true, bio: "Techno from the van.", picture: avatar ? `${CDN}/face-cut.jpg` : `${CDN}/face.png`, cover: `${CDN}/cover.jpg`, coverX: 50, coverY: 40, coverZoom: 1, avatarKey: "users/owner/a.jpg", coverKey: "users/owner/c.jpg",
@@ -147,7 +150,7 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
       await maker.close();
       const cut = green.subarray(0, Math.floor(green.length * 0.7));
       if (cut.includes(Buffer.from([0xff, 0xd9]))) failures.push("cut-off fixture still has its end marker");
-      const { context, page, uploads } = await open(browser, 390, { avatar: cut });
+      const { context, page, uploads } = await open(browser, 390, { avatar: cut, phoneCanvas: true });
       try {
         await tapShare(page);
         const ready = await page.waitForFunction(() => { const image = document.querySelector(".profile-share-preview img"); return image && !image.closest("figure").hidden && image.naturalWidth === 1200; }, null, { timeout: 15000 }).then(() => true).catch(() => false);
@@ -156,6 +159,19 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
           // The top of the round photo (x 181, y 270) is drawn from the decoded top of the picture: green, not the letter's dark ground.
           const pixel = await page.evaluate(async b64 => { const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })); const c = document.createElement("canvas"); c.width = 1200; c.height = 630; const x = c.getContext("2d"); x.drawImage(bitmap, 0, 0); return [...x.getImageData(181, 270, 1, 1).data]; }, uploads[0].bytes.toString("base64"));
           if (!(pixel[1] > 150 && pixel[0] < 80 && pixel[2] < 80)) failures.push(`cut-off photo: the card shows ${JSON.stringify(pixel)} where the photo should be (the letter fallback?)`);
+        }
+      } finally { await context.close(); }
+    }
+    // A picture nothing can decode: the letter, never an empty white circle (owner 2026-11-22: "we lost the profile picture").
+    {
+      const { context, page, uploads } = await open(browser, 390, { avatar: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4, 5, 6, 7, 8]), phoneCanvas: true });
+      try {
+        await tapShare(page);
+        const ready = await page.waitForFunction(() => { const image = document.querySelector(".profile-share-preview img"); return image && !image.closest("figure").hidden && image.naturalWidth === 1200; }, null, { timeout: 15000 }).then(() => true).catch(() => false);
+        if (!ready || !uploads[0]) failures.push("broken photo: no card was made");
+        else {
+          const pixel = await page.evaluate(async b64 => { const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })); const c = document.createElement("canvas"); c.width = 1200; c.height = 630; const x = c.getContext("2d"); x.drawImage(bitmap, 0, 0); return [...x.getImageData(181, 270, 1, 1).data]; }, uploads[0].bytes.toString("base64"));
+          if (!(pixel[0] < 80 && pixel[1] < 80 && pixel[2] < 80)) failures.push(`broken photo: the round photo is ${JSON.stringify(pixel)}, not the letter's dark ground (an empty circle?)`);
         }
       } finally { await context.close(); }
     }
