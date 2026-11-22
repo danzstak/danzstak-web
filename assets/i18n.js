@@ -541,6 +541,25 @@
   id:["Tampilkan foto dan nama saya di pratinjau tautan","Siapa pun yang Anda kirimi tautan ini akan melihat nama, foto, dan sampul Anda.","Pratinjau tautan Anda","Menyiapkan pratinjau tautan Anda…","Pratinjau tautan tidak dapat disimpan. Tautan Anda tetap berfungsi."]
  };
  for(const [language,values] of Object.entries(shareCardGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(shareCardKeys.map((key,index)=>[key,values[index]])));
+ // Owner 2026-11-22: a shared profile link opened signed out shows only that member's shop (shop.html).
+ const publicShopKeys=["Nothing for sale right now.","shipping","SOLD OUT","Loading shop…","Leave the shop","Checkout opens soon","The shop couldn't be loaded. Try again."];
+ const publicShopGuidance={
+  es:["No hay nada a la venta ahora mismo.","de envío","AGOTADO","Cargando la tienda…","Salir de la tienda","El pago se abre pronto","No se pudo cargar la tienda. Inténtalo de nuevo."],
+  fr:["Rien à vendre pour le moment.","de livraison","ÉPUISÉ","Chargement de la boutique…","Quitter la boutique","Le paiement ouvre bientôt","La boutique n’a pas pu être chargée. Réessayez."],
+  de:["Gerade gibt es nichts zu kaufen.","Versand","AUSVERKAUFT","Shop wird geladen…","Shop verlassen","Der Checkout öffnet bald","Der Shop konnte nicht geladen werden. Versuche es noch einmal."],
+  pt:["Nada à venda no momento.","de frete","ESGOTADO","Carregando a loja…","Sair da loja","O pagamento abre em breve","Não foi possível carregar a loja. Tente novamente."],
+  it:["Niente in vendita al momento.","di spedizione","ESAURITO","Caricamento del negozio…","Esci dal negozio","Il pagamento apre a breve","Impossibile caricare il negozio. Riprova."],
+  ko:["지금은 판매 중인 상품이 없어요.","배송비","품절","숍을 불러오는 중…","숍에서 나가기","결제는 곧 열려요","숍을 불러오지 못했어요. 다시 시도해 주세요."],
+  ja:["現在、販売中の商品はありません。","送料","売り切れ","ショップを読み込み中…","ショップを出る","購入手続きはまもなく開始します","ショップを読み込めませんでした。もう一度お試しください。"],
+  "zh-Hans":["目前没有在售商品。","运费","已售罄","正在加载店铺…","离开店铺","结账即将开放","无法加载店铺。请重试。"],
+  "zh-Hant":["目前沒有在售商品。","運費","已售罄","正在載入商店…","離開商店","結帳即將開放","無法載入商店。請再試一次。"],
+  fil:["Walang ibinebenta sa ngayon.","pagpapadala","UBOS NA","Nilo-load ang shop…","Umalis sa shop","Malapit nang magbukas ang checkout","Hindi ma-load ang shop. Subukan ulit."],
+  hi:["अभी बिक्री के लिए कुछ नहीं है।","शिपिंग","बिक गया","दुकान लोड हो रही है…","दुकान से बाहर निकलें","चेकआउट जल्द खुलेगा","दुकान लोड नहीं हो सकी। फिर से कोशिश करें।"],
+  vi:["Hiện chưa có gì để bán.","phí vận chuyển","HẾT HÀNG","Đang tải cửa hàng…","Rời cửa hàng","Thanh toán sắp mở","Không thể tải cửa hàng. Hãy thử lại."],
+  th:["ตอนนี้ยังไม่มีสินค้าขาย","ค่าส่ง","ขายหมดแล้ว","กำลังโหลดร้านค้า…","ออกจากร้านค้า","การชำระเงินจะเปิดเร็ว ๆ นี้","โหลดร้านค้าไม่ได้ ลองอีกครั้ง"],
+  id:["Belum ada yang dijual saat ini.","ongkos kirim","HABIS","Memuat toko…","Keluar dari toko","Pembayaran segera dibuka","Toko tidak dapat dimuat. Coba lagi."]
+ };
+ for(const [language,values] of Object.entries(publicShopGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(publicShopKeys.map((key,index)=>[key,values[index]])));
  const inviteKeys=["Invite a friend","Bring someone you know to DanzStak. You choose who receives it and you press Send in your own app.","Invitation message","Text message","Share via apps","Copy invitation link","Invitation link copied.","Select and copy the invitation above.","Your device could not open the share sheet. Copy the invitation link instead.","Hey! Come join me on DanzStak. It’s an independent social network where we can chat, call, share things, and make plans together."];
  const inviteGuidance={
   es:["Invitar a un amigo","Trae a DanzStak a alguien que conoces. Tú eliges quién lo recibe y pulsas Enviar en tu propia aplicación.","Mensaje de invitación","Mensaje de texto","Compartir mediante aplicaciones","Copiar enlace de invitación","Enlace de invitación copiado.","Selecciona y copia la invitación de arriba.","Tu dispositivo no pudo abrir el menú para compartir. Copia el enlace de invitación.","¡Hola! Únete a mí en DanzStak. Es una red social independiente donde podemos chatear, llamar, compartir cosas y hacer planes."],
