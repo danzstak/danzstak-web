@@ -6,12 +6,11 @@
 // server serves it at danzstak.com/@username/card.jpg, only while the member keeps "Show my photo and name in link
 // previews" on. It is drawn again when the profile changes (a signature of what it was drawn from).
 (() => {
-  const API = "https://api.danzstak.com", W = 1200, H = 630, COVER = 360, LIMIT = 290 * 1024, VERSION = "card-2";
+  const API = "https://api.danzstak.com", W = 1200, H = 630, COVER = 360, LIMIT = 290 * 1024, VERSION = "card-3";
   const FONT = '"DanzStak Sans", Archivo, system-ui, sans-serif';
 
   // Pictures are read with fetch (CORS) so the canvas is never tainted; a picture that can't be read is left out. Never from
   // the HTTP cache: the page's own <img> loaded them without CORS, and a cached copy has no CORS headers to show.
-  const objectUrls = [];
   async function picture(url) {
     if (!url) return null;
     let blob;
@@ -21,19 +20,29 @@
       blob = await response.blob();
     } catch { return null; }
     try { return await createImageBitmap(blob); }
-    catch { return partialPicture(blob); }
+    catch { return repairedJpeg(blob); }
   }
   // A JPEG that was cut off on upload (the owner's own profile picture, 2026-11-22: 21 KB, no end marker) shows on the page,
-  // because an <img> draws what it can, but createImageBitmap refuses it and the card fell back to a letter. Draw it the
-  // way the page does: through an <img> on a same-origin blob: address (the canvas stays clean).
-  function partialPicture(blob) {
-    return new Promise(resolve => {
-      const url = URL.createObjectURL(blob), image = new Image();
-      objectUrls.push(url);
-      image.onload = () => resolve(image.naturalWidth && image.naturalHeight ? image : null);
-      image.onerror = () => resolve(null);
-      image.src = url;
-    });
+  // because an <img> draws what it can, but createImageBitmap refuses it. Drawing it through an <img> worked on a computer
+  // and left an empty white circle on the owner's Android phone (a picture that isn't fully decodable draws nothing on a
+  // canvas). Adding the missing end marker lets the browser decode the part that arrived, the same as the page shows.
+  async function repairedJpeg(blob) {
+    try {
+      const bytes = new Uint8Array(await blob.arrayBuffer()), end = bytes.length;
+      if (end < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || (bytes[end - 2] === 0xff && bytes[end - 1] === 0xd9)) return null;
+      return await createImageBitmap(new Blob([bytes, new Uint8Array([0xff, 0xd9])], { type: "image/jpeg" }));
+    } catch { return null; }
+  }
+  // The round photo is the picture or the letter, never an empty circle: the photo is drawn on its own layer first and only
+  // used when something was drawn.
+  function faceLayer(avatar, size) {
+    if (!avatar) return null;
+    const layer = document.createElement("canvas"); layer.width = layer.height = size;
+    const context = layer.getContext("2d");
+    drawCovered(context, avatar, 0, 0, size, size);
+    const pixels = context.getImageData(0, 0, size, size).data;
+    for (let at = 3; at < pixels.length; at += 4 * 61) if (pixels[at]) return layer;
+    return null;
   }
   // The same placement as the page: object-fit cover, the saved point (0-100%) and zoom (1-3).
   function drawCovered(context, image, x, y, w, h, px = 50, py = 50, zoom = 1) {
@@ -84,7 +93,8 @@
     const size = 250, ax = 56, ay = COVER - size / 2;
     context.fillStyle = "#ffffff"; context.beginPath(); context.arc(ax + size / 2, ay + size / 2, size / 2 + 10, 0, Math.PI * 2); context.fill();
     context.save(); context.beginPath(); context.arc(ax + size / 2, ay + size / 2, size / 2, 0, Math.PI * 2); context.clip();
-    if (avatar) drawCovered(context, avatar, ax, ay, size, size);
+    const face = faceLayer(avatar, size);
+    if (face) context.drawImage(face, ax, ay);
     else { context.fillStyle = "#121418"; context.fillRect(ax, ay, size, size); context.fillStyle = "#ff5a1f"; context.font = `800 120px ${FONT}`; context.textAlign = "center"; context.textBaseline = "middle"; context.fillText(String(profile.name || "D").trim().charAt(0).toUpperCase() || "D", ax + size / 2, ay + size / 2 + 6); }
     context.restore();
     // Up to three shop photos at the right of the white band.
@@ -103,7 +113,6 @@
     context.save(); context.globalAlpha = 0.92; context.fillStyle = "#0b0b0c"; roundRect(context, W - 48 - 196, 28, 196, 56, 28); context.fill(); context.restore();
     if (mark) context.drawImage(mark, W - 48 - 188, 36, 40, 40);
     context.fillStyle = "#ffffff"; context.font = `800 26px ${FONT}`; context.textBaseline = "middle"; context.fillText("DanzStak", W - 48 - 140, 57);
-    objectUrls.splice(0).forEach(url => URL.revokeObjectURL(url));
     // JPEG under the limit (WhatsApp skips bigger previews).
     for (const quality of [0.86, 0.8, 0.72, 0.64, 0.56]) {
       const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", quality));
