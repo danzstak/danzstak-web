@@ -10,7 +10,7 @@
  async function refreshSession(){
   if(document.hidden||refreshing||Date.now()-lastRefresh<refreshEvery)return;
   refreshing=true;
-  try{const response=await request('/auth/refresh',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json'},body:'{}'});if(response.ok)lastRefresh=Date.now();else if(response.status===401)location.replace('./');}
+  try{const response=await request('/auth/refresh',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json'},body:'{}'});if(response.ok)lastRefresh=Date.now();else if(response.status===401)location.replace(globalThis.danzstakSignedOutPage?.()||'./');}
   catch{/* Retry after connectivity returns; inactivity never signs the user out. */}
   finally{refreshing=false;}
  }
