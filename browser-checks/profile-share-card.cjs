@@ -91,6 +91,14 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
           if (card.type !== "image/jpeg" || !size || size.width !== 1200 || size.height !== 630) failures.push(`${label}: the card is ${card.type} ${JSON.stringify(size)}, expected a 1200x630 JPEG`);
           if (card.bytes.length >= 300 * 1024) failures.push(`${label}: the card is ${card.bytes.length} bytes (keep it under 300 KB)`);
           if (width === 390) fs.writeFileSync(path.join(shots, "profile-share-card-390.jpg"), card.bytes);
+          // Owner 2026-11-22 ("Sizing changed"): Facebook's post box shows only the middle square (x 285-915). The photo and the
+          // name are drawn there.
+          if (width === 390) {
+            const square = await page.evaluate(async b64 => { const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })); const c = document.createElement("canvas"); c.width = 1200; c.height = 630; const x = c.getContext("2d"); x.drawImage(bitmap, 0, 0); const d = x.getImageData(315, 455, 570, 60).data; let dark = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 90 && d[i + 1] < 90 && d[i + 2] < 90) dark += 1; const p = x.getImageData(530, 260, 140, 140).data; let drawn = 0; for (let i = 0; i < p.length; i += 4) if (p[i] + p[i + 1] + p[i + 2] < 690) drawn += 1; const ring = [[600, 220], [710, 330], [490, 330]].map(([px, py]) => x.getImageData(px, py, 1, 1).data).every(v => v[0] > 240 && v[1] > 240 && v[2] > 240); return { drawn, dark, ring }; }, card.bytes.toString("base64"));
+            if (!square.ring) failures.push(`${label}: the round photo's white ring isn't centred on the card`);
+            if (square.drawn < 4000) failures.push(`${label}: no round photo in the middle square of the card (${square.drawn} drawn pixels)`);
+            if (square.dark < 400) failures.push(`${label}: the name isn't in the middle square of the card (${square.dark} dark pixels)`);
+          }
         }
         const on = saves.find(body => body.shareCard === true);
         if (!on || on.shareCardKey !== card?.key || !/^[a-f0-9]{32}$/.test(on.shareCardSig || "")) failures.push(`${label}: the save didn't turn the card on with its key and signature (${JSON.stringify(saves)})`);
@@ -156,8 +164,8 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
         const ready = await page.waitForFunction(() => { const image = document.querySelector(".profile-share-preview img"); return image && !image.closest("figure").hidden && image.naturalWidth === 1200; }, null, { timeout: 15000 }).then(() => true).catch(() => false);
         if (!ready || !uploads[0]) failures.push("cut-off photo: no card was made");
         else {
-          // The top of the round photo (x 181, y 270) is drawn from the decoded top of the picture: green, not the letter's dark ground.
-          const pixel = await page.evaluate(async b64 => { const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })); const c = document.createElement("canvas"); c.width = 1200; c.height = 630; const x = c.getContext("2d"); x.drawImage(bitmap, 0, 0); return [...x.getImageData(181, 270, 1, 1).data]; }, uploads[0].bytes.toString("base64"));
+          // The top of the round photo (x 600, y 245: the middle square Facebook's post box shows) is drawn from the decoded top of the picture: green, not the letter's dark ground.
+          const pixel = await page.evaluate(async b64 => { const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })); const c = document.createElement("canvas"); c.width = 1200; c.height = 630; const x = c.getContext("2d"); x.drawImage(bitmap, 0, 0); return [...x.getImageData(600, 245, 1, 1).data]; }, uploads[0].bytes.toString("base64"));
           if (!(pixel[1] > 150 && pixel[0] < 80 && pixel[2] < 80)) failures.push(`cut-off photo: the card shows ${JSON.stringify(pixel)} where the photo should be (the letter fallback?)`);
         }
       } finally { await context.close(); }
@@ -170,7 +178,7 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
         const ready = await page.waitForFunction(() => { const image = document.querySelector(".profile-share-preview img"); return image && !image.closest("figure").hidden && image.naturalWidth === 1200; }, null, { timeout: 15000 }).then(() => true).catch(() => false);
         if (!ready || !uploads[0]) failures.push("broken photo: no card was made");
         else {
-          const pixel = await page.evaluate(async b64 => { const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })); const c = document.createElement("canvas"); c.width = 1200; c.height = 630; const x = c.getContext("2d"); x.drawImage(bitmap, 0, 0); return [...x.getImageData(181, 270, 1, 1).data]; }, uploads[0].bytes.toString("base64"));
+          const pixel = await page.evaluate(async b64 => { const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })); const c = document.createElement("canvas"); c.width = 1200; c.height = 630; const x = c.getContext("2d"); x.drawImage(bitmap, 0, 0); return [...x.getImageData(600, 245, 1, 1).data]; }, uploads[0].bytes.toString("base64"));
           if (!(pixel[0] < 80 && pixel[1] < 80 && pixel[2] < 80)) failures.push(`broken photo: the round photo is ${JSON.stringify(pixel)}, not the letter's dark ground (an empty circle?)`);
         }
       } finally { await context.close(); }
