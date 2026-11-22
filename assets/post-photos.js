@@ -2,8 +2,11 @@
 // Owner 2026-11-22: "should be able to upload multiple photos at once", "set a limit of 20 photos". A photo post holds up
 // to 20 photos (its first, mediaKey, and up to 19 more, moreMediaKeys); every photo is also its own Daily (the server adds
 // them). One shared piece for the Mix and profile composers and posts:
-// - mount(first, urls): on the post the photos sit in one frame shaped like the first photo (4:5 to 1.91:1, F22) that the
-//   member swipes through sideways (scroll snap, like the familiar apps), with a small "2/5" counter;
+// - mount(first, urls): on the post the photos sit in one frame the member swipes through sideways (scroll snap, like the
+//   familiar apps), with a small "2/5" counter. Owner 2026-11-22 ("Make the container the size of the image", "scale the
+//   images and the videos and the containers all fit together"): the frame is the shape of the photo on show (media-fit's
+//   range, 9:20..3:1), and while swiping its height moves smoothly from one photo's shape to the next, so each photo shows
+//   whole when it settles;
 // - pick(files): keeps photos only, at most 20, and says so when more were chosen;
 // - upload(files, request): uploads the extra photos (three at a time, in order) and returns their keys; if one fails, the
 //   ones already uploaded are discarded;
@@ -14,7 +17,7 @@
   const MAX = 20;
   const API = "https://api.danzstak.com";
   const t = value => globalThis.danzstakTranslate?.(value) || value;
-  const clamp = ratio => globalThis.danzstakMediaFit?.clamp?.(ratio) ?? Math.min(1.91, Math.max(0.8, ratio));
+  const clamp = ratio => globalThis.danzstakMediaFit?.clamp?.(ratio) ?? Math.min(3, Math.max(0.45, ratio));
 
   function mount(first, urls, { alt = "" } = {}) {
     const more = (Array.isArray(urls) ? urls : []).filter(url => typeof url === "string" && url).slice(0, MAX - 1);
@@ -38,7 +41,7 @@
     })];
     photos.forEach((photo, index) => {
       photo.dataset.photoIndex = String(index);
-      photo.dataset.fitWatched = "1"; // the frame takes the first photo's shape; media-fit leaves the slides alone
+      photo.dataset.fitWatched = "1"; // the frame takes each photo's shape (below); media-fit leaves the slides alone
       const slide = document.createElement("div");
       slide.className = "post-photos-slide";
       slide.setAttribute("role", "group");
@@ -47,9 +50,24 @@
       slide.append(photo);
       track.append(slide);
     });
-    const shape = () => { if (first.naturalWidth && first.naturalHeight) frame.style.setProperty("--fit-ar", clamp(first.naturalWidth / first.naturalHeight).toFixed(4)); };
-    if (first.complete) shape();
-    first.addEventListener("load", shape);
+    // Each photo's shape once it has loaded (a photo further along loads as it comes near); until then it borrows the
+    // nearest known shape before it, so the frame never jumps to a guess.
+    const ratios = photos.map(() => 0);
+    const ratioAt = index => { for (let at = index; at >= 0; at -= 1) if (ratios[at]) return ratios[at]; return ratios.find(Boolean) || 0; };
+    const shape = () => {
+      const position = track.scrollLeft / Math.max(1, track.clientWidth);
+      const at = Math.max(0, Math.min(total - 1, Math.floor(position))), part = Math.max(0, Math.min(1, position - at));
+      const from = ratioAt(at), to = ratioAt(Math.min(total - 1, at + 1)) || from;
+      if (!from) return;
+      // Height moves in a straight line between the two photos' heights: 1 / ratio is height per unit of width.
+      const ratio = part && to !== from ? 1 / ((1 - part) / from + part / to) : from;
+      frame.style.setProperty("--fit-ar", ratio.toFixed(4));
+    };
+    photos.forEach((photo, index) => {
+      const measure = () => { if (photo.naturalWidth && photo.naturalHeight) { ratios[index] = clamp(photo.naturalWidth / photo.naturalHeight); shape(); } };
+      if (photo.complete) measure();
+      photo.addEventListener("load", measure);
+    });
     const count = document.createElement("span");
     count.className = "post-photos-count";
     count.setAttribute("aria-hidden", "true");
@@ -58,6 +76,7 @@
     let current = 0, frameRequest = 0;
     const update = () => {
       frameRequest = 0;
+      shape();
       const index = Math.max(0, Math.min(total - 1, Math.round(track.scrollLeft / Math.max(1, track.clientWidth))));
       if (index === current) return;
       current = index; count.textContent = `${index + 1}/${total}`;

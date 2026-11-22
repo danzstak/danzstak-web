@@ -1,10 +1,12 @@
 "use strict";
 // Directive F22 (owner 2026-11-22, "Sizing is off" + the original 2000x1125 photo): a post's photo frame takes the
 // photo's own shape. Before: on phones (<=700px) Mix forced every photo to a 4:5 frame (height:125vw) and cut the sides
-// off landscape photos. Now the frame is the photo's own ratio, between 4:5 (tall photos are cropped to 4:5) and 1.91:1,
-// full column width, with no bars.
-// Checks Mix and your profile Posts at 320/360/390/430px with a landscape (16:9), square, 4:5 and very tall (9:16) photo:
-// the photo is full width and its height is width / ratio (within 2px).
+// off landscape photos.
+// Then (owner 2026-11-22, a post of 720x1600 phone screenshots shown cut to 4:5): "Make the container the size of the
+// image or the video", "So it looks like it's full". The frame is the photo's own shape, full column width, no bars and
+// nothing cut off; only extremes are limited: 9:20 (a phone screenshot, shown whole) to 3:1.
+// Checks Mix and your profile Posts at 320/360/390/430px with a landscape (16:9), square, 4:5, 9:16, 9:20 screenshot,
+// 3:1 and a 4:1 panorama (cut to 3:1): the photo is full width and its height is width / ratio (within 2px).
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
@@ -17,7 +19,10 @@ const photos = [
   { name: "landscape", width: 2000, height: 1125, colour: "#2a6" },
   { name: "square", width: 1080, height: 1080, colour: "#c63" },
   { name: "portrait", width: 1080, height: 1350, colour: "#36c" },
-  { name: "tall", width: 1080, height: 1920, colour: "#a3a" }
+  { name: "tall", width: 1080, height: 1920, colour: "#a3a" },
+  { name: "screenshot", width: 720, height: 1600, colour: "#3aa" },
+  { name: "wide", width: 3000, height: 1000, colour: "#aa3" },
+  { name: "panorama", width: 4000, height: 1000, colour: "#633" }
 ];
 const svg = photo => `<svg xmlns="http://www.w3.org/2000/svg" width="${photo.width}" height="${photo.height}" viewBox="0 0 ${photo.width} ${photo.height}"><rect width="100%" height="100%" fill="${photo.colour}"/><circle cx="${photo.width / 2}" cy="${photo.height / 2}" r="${Math.min(photo.width, photo.height) / 4}" fill="#fff"/></svg>`;
 const day = 864e5;
@@ -87,7 +92,7 @@ async function open(browser, width, pathName) {
       for (const photo of photos) {
         const frame = frames.find(item => item.name === photo.name);
         if (!frame) { failures.push(`${label}: no frame for the ${photo.name} photo`); continue; }
-        const ratio = Math.min(1.91, Math.max(0.8, photo.width / photo.height));
+        const ratio = Math.min(3, Math.max(0.45, photo.width / photo.height));
         const want = frame.width / ratio;
         if (Math.abs(frame.height - want) > 2) failures.push(`${label}: the ${photo.name} photo (${photo.width}x${photo.height}) shows in a ${Math.round(frame.width)}x${Math.round(frame.height)} frame, expected ${Math.round(frame.width)}x${Math.round(want)}`);
         if (frame.cardWidth && frame.width + 1 < frame.cardWidth) failures.push(`${label}: the ${photo.name} photo is ${Math.round(frame.width)}px wide in a ${Math.round(frame.cardWidth)}px post`);
@@ -101,5 +106,5 @@ async function open(browser, width, pathName) {
     }
   } finally { await browser.close(); }
   if (failures.length) { console.error(failures.join("\n")); process.exit(1); }
-  console.log("Photo frame checks passed: Mix and profile photos keep their own shape (4:5 to 1.91:1), full width, at 320-430px.");
+  console.log("Photo frame checks passed: Mix and profile photos keep their own shape (9:20 to 3:1), full width, at 320-430px.");
 })();

@@ -7,7 +7,8 @@
 // - an Auth API from before this change (no moreMediaKeys in its answer): the 2 other photos become their own posts with
 //   the same words, so nothing picked is lost;
 // - picking 21 photos keeps the first 20 and says so;
-// - Mix post with 3 photos: one full-width frame shaped like the first photo, "1/3"; a touch swipe left shows "2/3";
+// - Mix post with 3 photos: one full-width frame shaped like the first photo, "1/3"; a touch swipe left shows "2/3" and
+//   the frame turns into the second photo's shape (square), the photo filling it;
 //   tapping the centre of that photo opens it full screen at the same photo (the viewer has all 3);
 // - profile: the same post shows the frame, and the Photos tab has a tile for each photo;
 // - profile composer: picking 3 photos sends one post with 2 moreMediaKeys.
@@ -163,6 +164,16 @@ async function postFromMix(browser, width, { oldServer = false, count = 3 } = {}
         await swipeLeft(page, frame);
         const after = await page.evaluate(selector => document.querySelector(`${selector} .post-photos-count`).textContent.trim(), frame);
         check(after === "2/3", `${width}px: a swipe left did not move to the second photo (${after})`);
+        // Owner 2026-11-22 ("Make the container the size of the image"): the frame turns into the shape of the photo on
+        // show. The second photo is square, so the frame settles square and the photo fills it.
+        await page.waitForFunction(selector => { const img = document.querySelector(`${selector} img[data-photo-index="1"]`); return img?.complete && img.naturalWidth > 0; }, frame, { timeout: 8000 }).catch(() => {});
+        await page.waitForTimeout(400);
+        const square = await page.evaluate(selector => {
+          const box = document.querySelector(selector).getBoundingClientRect(), img = document.querySelector(`${selector} img[data-photo-index="1"]`).getBoundingClientRect();
+          return { width: box.width, height: box.height, img: [img.left - box.left, img.width, img.height] };
+        }, frame);
+        check(Math.abs(square.height - square.width) <= 2, `${width}px: on the square second photo the frame is not square (${JSON.stringify(square)})`);
+        check(Math.abs(square.img[0]) <= 1 && Math.abs(square.img[1] - square.width) <= 1 && Math.abs(square.img[2] - square.height) <= 1, `${width}px: the second photo does not fill its frame (${JSON.stringify(square)})`);
         const second = await page.locator(`${frame} img[data-photo-index="1"]`).boundingBox();
         await page.touchscreen.tap(second.x + second.width / 2, second.y + second.height / 2);
         await page.waitForTimeout(500);
@@ -215,5 +226,5 @@ async function postFromMix(browser, width, { oldServer = false, count = 3 } = {}
     }
   } finally { await browser.close(); }
   if (failures.length) { console.error(failures.join("\n")); process.exit(1); }
-  console.log("Post photos checks passed at 360 and 390px: up to 20 photos in one post from the Mix and profile composers, older server fallback, swipeable frame shaped like the first photo, full screen at the tapped photo, a Photos tile each.");
+  console.log("Post photos checks passed at 360 and 390px: up to 20 photos in one post from the Mix and profile composers, older server fallback, swipeable frame shaped like the photo on show, full screen at the tapped photo, a Photos tile each.");
 })();
