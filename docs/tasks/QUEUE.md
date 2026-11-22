@@ -66,6 +66,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T2g | Bazaar: one search, Bazaar / My Shop tabs, one-line empty state | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2h | Menu = full-screen grid with Radio stations | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2i | Radio stations directory page (empty state + Suggest a station) | CLAUDE.md "T2 checklist", 18 | TODO |
+| DIR | **Directory import + use (radio, record shops, press)**: DIR-1 import to DynamoDB, DIR-2 Radio stations / Record shops pages + nearby suggestions (builds T2i on real data), DIR-3 monthly website check, DIR-4 member suggestions. **Week 3, before F15g/F15i.** Claude planned it 2026-11-22; Claude Code builds it, one PR per step. | 09 ("Build plan for Claude Code") | TODO (week 3) |
 | T2j | Share sheet tidy (until 5a8) | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2k | Site-wide 16-C buttons outside SYNC | CLAUDE.md "T2 checklist", 18 | TODO |
 | T2l | About tab = one fluid page | CLAUDE.md "T2 checklist", 18 | TODO |
