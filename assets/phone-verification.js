@@ -22,7 +22,10 @@
     resend_window: "You can resend once. Try again in 10 minutes.",
     number_limit: "This number is already linked to 10 DanzStak accounts.",
     provider_unavailable: "SYNC verification texts aren't available yet. No text was sent.",
-    send_failed: "The verification text could not be sent. No number was verified."
+    send_failed: "The verification text could not be sent. No number was verified.",
+    send_try_again: "Couldn't send the code right now. Try again in a minute.",
+    confirm_try_again: "Couldn't check the code right now. Try again in a minute.",
+    try_again: "Something went wrong on our side. Try again in a minute."
   };
   // The phone's languages, so Twilio texts the code in the member's language (the server allowlists them).
   const phoneLanguages = () => (Array.isArray(navigator.languages) && navigator.languages.length ? navigator.languages : [navigator.language || "en"]).slice(0, 8);

@@ -326,6 +326,9 @@
 "SYNC verification texts aren't available yet. No text was sent.": "Gli SMS di verifica SYNC non sono ancora disponibili. Nessun SMS è stato inviato.",
 "SYNC verification texts aren't available yet. No text will be sent and no device will be marked verified.": "Gli SMS di verifica SYNC non sono ancora disponibili. Non verrà inviato alcun SMS e nessun dispositivo sarà verificato.",
 "The verification text could not be sent. No number was verified.": "Non è stato possibile inviare l'SMS di verifica. Nessun numero è stato verificato.",
+"Couldn't send the code right now. Try again in a minute.": "Non è stato possibile inviare il codice. Riprova tra un minuto.",
+"Couldn't check the code right now. Try again in a minute.": "Non è stato possibile controllare il codice. Riprova tra un minuto.",
+"Something went wrong on our side. Try again in a minute.": "Qualcosa non ha funzionato da parte nostra. Riprova tra un minuto.",
 "That code is incorrect. Request a new code.": "Il codice non è corretto. Richiedi un nuovo codice.",
 "This verification request is no longer active.": "Questa richiesta di verifica non è più attiva.",
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
@@ -653,6 +656,9 @@
 "SYNC verification texts aren't available yet. No text was sent.": "Les SMS de vérification SYNC ne sont pas encore disponibles. Aucun SMS n'a été envoyé.",
 "SYNC verification texts aren't available yet. No text will be sent and no device will be marked verified.": "Les SMS de vérification SYNC ne sont pas encore disponibles. Aucun SMS ne sera envoyé et aucun appareil ne sera vérifié.",
 "The verification text could not be sent. No number was verified.": "Le SMS de vérification n'a pas pu être envoyé. Aucun numéro n'a été vérifié.",
+"Couldn't send the code right now. Try again in a minute.": "Impossible d'envoyer le code pour le moment. Réessaie dans une minute.",
+"Couldn't check the code right now. Try again in a minute.": "Impossible de vérifier le code pour le moment. Réessaie dans une minute.",
+"Something went wrong on our side. Try again in a minute.": "Un problème est survenu de notre côté. Réessaie dans une minute.",
 "That code is incorrect. Request a new code.": "Ce code est incorrect. Demande un nouveau code.",
 "This verification request is no longer active.": "Cette demande de vérification n'est plus active.",
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
@@ -979,6 +985,9 @@
 "SYNC verification texts aren't available yet. No text was sent.": "Los SMS de verificación de SYNC aún no están disponibles. No se envió ningún SMS.",
 "SYNC verification texts aren't available yet. No text will be sent and no device will be marked verified.": "Los SMS de verificación de SYNC aún no están disponibles. No se enviará ningún SMS ni se verificará ningún dispositivo.",
 "The verification text could not be sent. No number was verified.": "No se pudo enviar el SMS de verificación. No se verificó ningún número.",
+"Couldn't send the code right now. Try again in a minute.": "No se pudo enviar el código ahora. Inténtalo de nuevo en un minuto.",
+"Couldn't check the code right now. Try again in a minute.": "No se pudo comprobar el código ahora. Inténtalo de nuevo en un minuto.",
+"Something went wrong on our side. Try again in a minute.": "Algo falló de nuestro lado. Inténtalo de nuevo en un minuto.",
 "That code is incorrect. Request a new code.": "Ese código es incorrecto. Pide un código nuevo.",
 "This verification request is no longer active.": "Esta solicitud de verificación ya no está activa.",
 "You can resend once. Try again in 10 minutes.": "Solo puedes reenviar una vez. Inténtalo de nuevo en 10 minutos."
@@ -1125,6 +1134,9 @@
 "SYNC verification texts aren't available yet. No text was sent.": "SYNC-Bestätigungs-SMS sind noch nicht verfügbar. Es wurde keine SMS gesendet.",
 "SYNC verification texts aren't available yet. No text will be sent and no device will be marked verified.": "SYNC-Bestätigungs-SMS sind noch nicht verfügbar. Es wird keine SMS gesendet und kein Gerät bestätigt.",
 "The verification text could not be sent. No number was verified.": "Die Bestätigungs-SMS konnte nicht gesendet werden. Keine Nummer wurde bestätigt.",
+"Couldn't send the code right now. Try again in a minute.": "Der Code konnte gerade nicht gesendet werden. Versuch es in einer Minute noch einmal.",
+"Couldn't check the code right now. Try again in a minute.": "Der Code konnte gerade nicht geprüft werden. Versuch es in einer Minute noch einmal.",
+"Something went wrong on our side. Try again in a minute.": "Bei uns ist etwas schiefgelaufen. Versuch es in einer Minute noch einmal.",
 "That code is incorrect. Request a new code.": "Dieser Code ist falsch. Fordere einen neuen Code an.",
 "This verification request is no longer active.": "Diese Bestätigungsanfrage ist nicht mehr aktiv.",
 "You can resend once. Try again in 10 minutes.": "Du kannst nur einmal erneut senden. Versuche es in 10 Minuten erneut."
@@ -1270,6 +1282,9 @@
 "SYNC verification texts aren't available yet. No text was sent.": "Os SMS de verificação do SYNC ainda não estão disponíveis. Nenhum SMS foi enviado.",
 "SYNC verification texts aren't available yet. No text will be sent and no device will be marked verified.": "Os SMS de verificação do SYNC ainda não estão disponíveis. Nenhum SMS será enviado e nenhum dispositivo será verificado.",
 "The verification text could not be sent. No number was verified.": "Não foi possível enviar o SMS de verificação. Nenhum número foi verificado.",
+"Couldn't send the code right now. Try again in a minute.": "Não foi possível enviar o código agora. Tente de novo em um minuto.",
+"Couldn't check the code right now. Try again in a minute.": "Não foi possível verificar o código agora. Tente de novo em um minuto.",
+"Something went wrong on our side. Try again in a minute.": "Algo deu errado do nosso lado. Tente de novo em um minuto.",
 "That code is incorrect. Request a new code.": "Esse código está incorreto. Peça um novo código.",
 "This verification request is no longer active.": "Este pedido de verificação não está mais ativo.",
 "You can resend once. Try again in 10 minutes.": "Você pode reenviar só uma vez. Tente de novo em 10 minutos."

@@ -60,6 +60,7 @@ import { enrichPromoter } from "./promoter-contact.mjs";
 import { bookingReplyNotice, bookingNoticeWrites } from "./booking-reply-notice.mjs";
 import { unopenedRefunds, unopenedRefundTransaction } from "./unopened-credit.mjs";
 import { isDirectoryEditor, parseTrustedContact, trustedContactItems, trustedContactUpdate, trustedPromotersNear, contactId as trustedContactId } from "./trusted-contacts.mjs";
+import { publicError, sanitizeErrorResponse } from "./public-errors.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -5612,7 +5613,9 @@ async function sendPersonalPhoneCode(event) {
     const result = await service.send({ userId, countryCode: String(body.countryCode || "").slice(0, 8), localNumber: String(body.localNumber || "").slice(0, 40), requestKey, purpose, locale, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 202, headers, body: JSON.stringify(result) };
   } catch (error) {
-    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
+    if (Number(error?.statusCode || 0) >= 500 || !error?.statusCode) console.error("Phone send failed", { errorName: error?.name || "Error", errorMessage: error?.message || "" });
+    const mapped = publicError(error, { fallback: "Couldn't send the code right now. Try again in a minute.", code: "send_try_again" });
+    return { statusCode: mapped.statusCode, headers, body: JSON.stringify({ error: mapped.error, code: mapped.code }) };
   }
 }
 
@@ -5629,7 +5632,9 @@ async function confirmPersonalPhoneCode(event) {
     const result = await service.confirm({ userId, code: String(body.code || "").slice(0, 12), purpose, requestKey, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (error) {
-    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
+    if (Number(error?.statusCode || 0) >= 500 || !error?.statusCode) console.error("Phone confirm failed", { errorName: error?.name || "Error", errorMessage: error?.message || "" });
+    const mapped = publicError(error, { fallback: "Couldn't check the code right now. Try again in a minute.", code: "confirm_try_again" });
+    return { statusCode: mapped.statusCode, headers, body: JSON.stringify({ error: mapped.error, code: mapped.code }) };
   }
 }
 
@@ -5646,7 +5651,10 @@ async function removePersonalPhone(event) {
 }
 
 // API GATEWAY ROUTES
-export const handler = async event => {
+// Every reply passes the error mapper: no AWS, Stripe or stack details ever reach a member (directive L1).
+export const handler = async event => sanitizeErrorResponse(await routeRequest(event), { route: `${event?.requestContext?.http?.method || ""} ${event?.requestContext?.routeKey || event?.rawPath || ""}`.trim() });
+
+async function routeRequest(event) {
   const method = event?.requestContext?.http?.method;
   const path = event?.rawPath;
   await mediaCdn.ready().catch(() => false);
@@ -5869,7 +5877,7 @@ export const handler = async event => {
 
     return errorResponse(500, "Authentication service error");
   }
-};
+}
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
