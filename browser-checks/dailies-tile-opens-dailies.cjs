@@ -165,6 +165,23 @@ const viewerEvents = page => page.evaluate(() => (window.__viewerEvents || []).j
       await touchSwipe(run.page, width * 0.2, width * 0.8, 400);
       state = await stateAt(run.page, "2 / 3");
       assert.deepEqual([state.caption, state.count], ["Merch table", "2 / 3"], `${label}: a finger swipe right goes back`);
+      // Owner 2026-11-19: "lost the horizontal swipe in dailies". On a phone the browser may cancel the pointer stream of a
+      // swipe (pointercancel) while the touch events still finish; the swipe must still move card to card, once.
+      const cancelledSwipe = dx => run.page.evaluate(dx => {
+        const viewer = document.getElementById("storyViewer"), at = (x, y) => new Touch({ identifier: 7, target: viewer, clientX: x, clientY: y });
+        viewer.dispatchEvent(new PointerEvent("pointerdown", { clientX: 200, clientY: 400, bubbles: true, pointerType: "touch" }));
+        viewer.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerType: "touch" }));
+        viewer.dispatchEvent(new TouchEvent("touchstart", { touches: [at(200, 400)], changedTouches: [at(200, 400)], bubbles: true }));
+        viewer.dispatchEvent(new TouchEvent("touchend", { touches: [], changedTouches: [at(200 + dx, 412)], bubbles: true }));
+      }, dx);
+      await run.page.waitForTimeout(400);
+      await cancelledSwipe(-160);
+      state = await stateAt(run.page, "3 / 3");
+      assert.equal(state.count, "3 / 3", `${label}: a swipe whose pointer was cancelled still moves to the next Daily`);
+      await run.page.waitForTimeout(400);
+      await cancelledSwipe(160);
+      state = await stateAt(run.page, "2 / 3");
+      assert.equal(state.count, "2 / 3", `${label}: and back`);
       await run.page.keyboard.press("ArrowLeft");
       state = await stateAt(run.page, "1 / 3");
       assert.equal(state.count, "1 / 3", `${label}: arrow keys move too`);

@@ -70,6 +70,9 @@
     ,"eject": ["M12 5 4 14h16Z", "M4 18h16"]
     ,"plus": ["M12 5v14", "M5 12h14"]
     ,"chevron-down": ["m6 9 6 6 6-6"]
+    // F15k call screen: the same microphone and camera, struck through when off.
+    ,"microphone-off": ["M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z", "M19 10v2a7 7 0 0 1-14 0v-2", "M12 19v3", "M8 22h8", "m3 3 18 18"]
+    ,"video-off": ["M15 10 21 6v12l-6-4", "M3 6h12v12H3Z", "m2 2 20 20"]
   };
   const labels = new Map([
     ["open full screen", "expand"], ["open fullscreen", "expand"], ["exit full screen", "minimize"], ["exit fullscreen", "minimize"],

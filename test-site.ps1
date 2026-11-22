@@ -64,7 +64,7 @@ $bookingClientCompact = $bookingClient -replace '\s+', ''
 foreach ($bookingControl in @('DanzStak Booking Agent', 'Where do you want to play?', 'id="venueSearchMap"', 'Search where you want to play', 'id="searchVisibleVenueArea"', 'Search this area', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public contacts for clubs', 'Find a show near home', 'id="performerType"', '<option value="dj">DJ</option>', 'id="musicGenre"', '<option>DJ / Electronic</option>')) {
   if (-not $bookingMarkup.Contains($bookingControl)) { Add-Failure "Booking Agent: required planning control is missing: $bookingControl" }
 }
-if (-not $bookingMarkup.Contains('assets/session-activity.js?v=270')) {
+if ($bookingMarkup -notmatch 'assets/session-activity\.js\?v=\d+') {
   Add-Failure 'Booking Agent: signed-in users do not publish site-wide online presence'
 }
 foreach ($bookingClientControl in @('Send me out and bring me home', 'First show / leave home', 'Back home', 'route-map', 'My upcoming and past gigs', 'Upcoming gigs', 'Past gigs')) {
@@ -241,7 +241,9 @@ foreach ($backgroundCallControl in @('window.openMessageDrawer(event.senderEmail
 foreach ($callBehavior in @('setCallMode(kind)', 'showCallConversation()', 'setCallMode("")')) {
   if (-not $chatScript.Contains($callBehavior)) { Add-Failure "Calls: missing call layout state behavior: $callBehavior" }
 }
-foreach ($callLayout in @('body[data-call-mode="phone"] .video-grid', 'body[data-call-mode="phone"] #toggleCamera', 'body[data-call-mode="video"] .video-grid', '.receiver-hangup[hidden]')) {
+# F15k: the camera button stays in the call panel (disabled on voice calls), so the panel keeps its 2x3 grid; checked by
+# browser-checks/sync-call-screen-ui.cjs.
+foreach ($callLayout in @('body[data-call-mode="phone"] .video-grid', 'body[data-call-mode="video"] .video-grid', '.receiver-hangup[hidden]')) {
   if (-not $chatStyles.Contains($callLayout)) { Add-Failure "Calls: missing phone/video layout rule: $callLayout" }
 }
 foreach ($relationshipStatus in @('relationship=document.createElement("span")', 'relationship.className="connection-status"', 'relationship.setAttribute("role","status")')) {

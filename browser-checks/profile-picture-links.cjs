@@ -123,7 +123,7 @@ function judge(label, rows) {
       await page.locator("#profileInitial").click();
       await page.locator(".profile-photo-sheet[open]").waitFor({ timeout: 3000 });
       const sheet = await page.evaluate(() => { const d = document.querySelector(".profile-photo-sheet"), r = d.getBoundingClientRect(); return { title: d.querySelector("h2").textContent, choices: [...d.querySelectorAll(".profile-photo-choices button")].filter(b => !b.hidden).map(b => b.textContent), fits: r.left >= 0 && r.right <= innerWidth + 0.5 && r.bottom <= innerHeight + 0.5, tall: [...d.querySelectorAll("button")].filter(b => !b.hidden && b.offsetParent).every(b => b.getBoundingClientRect().height >= 44) }; });
-      assert.deepEqual(sheet.choices, ["Choose from this phone", "Choose from your DanzStak photos", "Past profile pictures", "Remove profile picture"], `${label} own profile: the change-picture choices (F4c adds Past profile pictures)`);
+      assert.deepEqual(sheet.choices, ["Choose from this phone", "Choose from your DanzStak photos", "Move to fit", "Past profile pictures", "Remove profile picture"], `${label} own profile: the change-picture choices (F4c adds Past profile pictures, F12 Move to fit)`);
       assert.ok(sheet.title === "Change profile picture" && sheet.fits && sheet.tall, `${label} own profile: the sheet fits with 44px buttons`);
       if (shots) await page.screenshot({ path: path.join(output, `own-picture-sheet-${width}.png`) });
       // From this phone: the existing photo flow (rights check, then the phone's picker).
@@ -139,6 +139,9 @@ function judge(label, rows) {
       if (shots) await page.screenshot({ path: path.join(output, `own-picture-danzstak-photos-${width}.png`) });
       const oldAvatars = await page.evaluate(src => [...document.querySelectorAll("img")].filter(i => i.getAttribute("src") === src && !i.closest(".profile-photo-sheet")).length, pic);
       await page.locator(".profile-photo-tile").first().click();
+      // F12: the photo opens in the round Move-to-fit sheet first; Save uploads the crop.
+      await page.locator(".ds-fit-sheet[open] .ds-fit-box.is-round").waitFor({ timeout: 8000 });
+      await page.locator(".ds-fit-sheet[open] .ds-fit-save").click();
       await page.waitForFunction(() => !document.querySelector(".profile-photo-sheet")?.open, null, { timeout: 8000 });
       assert.equal(uploaded, true, `${label} own profile: the DanzStak photo was uploaded as the new picture`);
       const after = await page.evaluate(([src, fresh]) => ({ header: getComputedStyle(document.getElementById("profileInitial")).backgroundImage.includes("favicon-192.png"), stale: [...document.querySelectorAll("img")].filter(i => i.getAttribute("src") === src && !i.closest(".profile-photo-sheet")).length, fresh: [...document.querySelectorAll("img")].filter(i => i.getAttribute("src") === fresh).length }), [pic, newPic]);

@@ -23,15 +23,19 @@ console.log("profile shop preview ok");
   assert.match(showcase, /Add a photo: your dog, your rig, anything/);
   assert.match(showcase, /or open your shop/);
   assert.match(showcase, /\/\^image\\\/\(jpeg\|png\|webp\|gif\)\$\/\.test\(file\.type\) \|\| file\.size > 15 \* 1024 \* 1024/);
-  assert.match(showcase, /const mediaKey = await uploadCloudMedia\(file\); await save\(\{ showcaseKey: mediaKey \}\);/);
+  // F12: a new photo is placed in its 16:7 box first and saved with where it sits; "Move to fit" in the ⋯ moves it later.
+  assert.match(showcase, /await savePlace\(position, \{ showcaseKey: await uploadCloudMedia\(file\) \}\);/);
+  assert.match(showcase, /if \(!position\) \{ box\.removeAttribute\("aria-busy"\); return; \}/, "Cancel uploads nothing");
+  assert.match(showcase, /if \(position\) await savePlace\(position\);/);
+  assert.match(showcase, /fitPictures\(\)\?\.apply\(image, profilePlace\(profile, "showcase"\)\);/);
   assert.match(showcase, /save\(\{ showcaseKey: "" \}\)/, "the owner can remove it");
   assert.match(editor, /if \(!data\.shop\) \{ renderProfileShowcase\(null, profile\); return; \}/);
   // Server keeps the photo like the avatar and cover, and never cleans it up while it's in use.
   const template = fs.readFileSync("infrastructure/call-signaling/template.yaml", "utf8"), auth = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
-  assert.match(template, /mediaFields=\{avatarKey:'profileAvatarKey',coverKey:'profileCoverKey',showcaseKey:'profileShowcaseKey'\}/);
+  assert.match(template, /mediaFields=\{avatarKey:'profileAvatarKey',coverKey:'profileCoverKey',showcaseKey:'profileShowcaseKey',shareCardKey:'profileShareCardKey'\}/);
   assert.match(template, /showcase:profileMediaUrl\(item,'profileShowcaseKey'\)/);
   assert.match(template, /\['profileShowcaseKey','expectedShowcase'\]/);
-  assert.match(template, /AND \(attribute_not_exists\(profileShowcaseKey\) OR profileShowcaseKey <> :candidate\) AND \(attribute_not_exists\(profileAvatarHistory\) OR NOT contains\(profileAvatarHistory, :candidate\)\)'/); // F4c: never a past profile picture
+  assert.match(template, /AND \(attribute_not_exists\(profileShowcaseKey\) OR profileShowcaseKey <> :candidate\) AND \(attribute_not_exists\(profileShareCardKey\) OR profileShareCardKey <> :candidate\) AND \(attribute_not_exists\(profileAvatarHistory\) OR NOT contains\(profileAvatarHistory, :candidate\)\)'/); // F4c: never a past profile picture; SHARE: never the live link-preview card
   assert.match(auth, /AND \(attribute_not_exists\(profileShowcaseKey\) OR profileShowcaseKey <> :candidate\)"/);
   assert.match(auth, /"profileShowcaseKey = :candidate"\]\.join\(" OR "\)/);
   assert.match(auth, /\["profileShowcaseKey", "showcase"\]/);

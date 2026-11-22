@@ -28,7 +28,7 @@ assert.equal(sandbox.window.danzstakSyncListPolish.initial("  the pit"), "T");
 assert.equal(sandbox.window.danzstakSyncListPolish.initial(""), "·", "no empty circle even without a name");
 
 for (const word of ["More options", "New video call", "Call alerts", "Invite a friend", "Share your DanzStak link", "Pick someone from your chats", "Ring this device when someone calls"]) {
-  assert.equal((i18n.match(new RegExp(`"${word}":`, "g")) || []).length, 3, `it/fr/es for "${word}"`);
+  assert.ok((i18n.match(new RegExp(`"${word}":`, "g")) || []).length >= 3, `it/fr/es for "${word}" (more languages are welcome)`);
 }
 // Fix-it 18 (SYNC list canvas): no music-staff box on the list (wallpaper belongs in threads), and an empty list is
 // one centred line + a "Start a chat" action that opens the same new-chat picker as the floating button.

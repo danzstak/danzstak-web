@@ -71,6 +71,32 @@
     (bell || topbar.lastElementChild).after(sync);
   }
 
+  // ---- An in-page screen's ← (directive F13: an open Tribe has no "← Back to Tribes" box; the bar's arrow does it) ----
+  // setBack(label, onBack, screen): the arrow sits first in the Mix bar while `screen` is on show and goes when it does
+  // (a ResizeObserver sees the screen leave: closed, another tab, another workspace). System Back should do the same as
+  // the arrow; that is the caller's history.
+  let screenBack = null, screenWatch = null;
+  function setBack(label, onBack, screen) {
+    const bar = document.querySelector("header.topbar.ds-feed-bar");
+    if (!bar) return;
+    if (!screenBack) {
+      screenBack = document.createElement("button"); screenBack.type = "button";
+      screenBack.className = "ds-app-bar-icon ds-app-bar-back ds-app-bar-screen-back"; screenBack.innerHTML = icons.back;
+      screenBack.addEventListener("click", () => screenBack.onBack?.());
+    }
+    screenBack.onBack = onBack; screenBack.setAttribute("aria-label", t(label)); screenBack.title = t(label);
+    if (screenBack.parentElement !== bar) bar.prepend(screenBack);
+    screenWatch?.disconnect();
+    const paint = () => { const shown = Boolean(screen?.isConnected && screen.getClientRects().length); screenBack.hidden = !shown; bar.classList.toggle("ds-has-screen-back", shown); };
+    paint();
+    if (screen) { screenWatch = new ResizeObserver(paint); screenWatch.observe(screen); }
+  }
+  function clearBack() {
+    screenWatch?.disconnect(); screenWatch = null;
+    screenBack?.parentElement?.classList.remove("ds-has-screen-back"); screenBack?.remove();
+  }
+  window.danzstakAppBar = Object.freeze({ setBack, clearBack });
+
   // ---- Menu: Pivot (also in the bar) and Install ----
   function mountMenu() {
     const menu = document.getElementById("mobileNavMenu");

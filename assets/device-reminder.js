@@ -8,7 +8,8 @@
 (() => {
   const DB_NAME = "danzstak-call-device", STORE = "credentials", SEEN_KEY = "danzstak_device_reminder_seen", AGAIN_MS = 3 * 24 * 60 * 60 * 1000;
   const t = value => window.danzstakTranslate?.(value) || value;
-  const valid = item => Boolean(item && typeof item.deviceId === "string" && item.deviceId && typeof item.deviceToken === "string" && item.deviceToken);
+  // The same rule as call-devices.js, so both agree on what counts as this device's SYNC credential.
+  const valid = item => Boolean(item && /^[a-f0-9-]{36}$/.test(String(item.deviceId || "")) && /^[A-Za-z0-9_-]{43}$/.test(String(item.deviceToken || "")));
 
   function hasCredential() {
     if (!window.indexedDB) return Promise.resolve(false);
@@ -46,7 +47,14 @@
     const line = document.createElement("span"); line.textContent = t("Calls and voice messages need it. Texting already works.");
     text.append(title, line);
     link.append(icon, text);
-    return link;
+    // Owner 2026-11-19: "if they don't wish to put their phone number in [they] can get a ds- number … they have to buy
+    // the ds- number … just offer it in the notification" ($3, the existing Stripe checkout in SYNC's device panel).
+    const ds = document.createElement("a");
+    ds.className = "notification-ds-link"; ds.href = "/sync/?device=register&ds=1";
+    ds.textContent = t("No phone number? Get a DS number");
+    const both = document.createDocumentFragment();
+    both.append(link, ds);
+    return both;
   }
   window.danzstakDeviceReminder = Object.freeze({ needed, unread, markSeen, row });
 })();

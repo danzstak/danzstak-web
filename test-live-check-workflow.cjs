@@ -18,6 +18,7 @@ assert.match(workflow, /if: always\(\)\n\s+uses: actions\/upload-artifact@v4/, "
 assert.match(workflow, /if: failure\(\)\n\s+uses: actions\/github-script@v7/, "a failure opens or updates the issue");
 assert.match(workflow, /const title = "Live check failing";[\s\S]*issue\.title === title && !issue\.pull_request[\s\S]*createComment[\s\S]*issues\.create/, "one issue: updated, not duplicated");
 assert.doesNotMatch(workflow, /secrets\./, "no secrets: the live checks are public and mock the API");
+assert.match(workflow, /- name: Link previews read like a crawler\n\s+shell: pwsh\n\s+run: node \.\\scripts\\verify-share-preview\.cjs/, "shared links are read the way Facebook's crawler reads them");
 
 const checks = [...workflow.matchAll(/'\.\\browser-checks\\([\w-]+\.cjs)'/g)].map(match => match[1]);
 assert.ok(checks.length >= 8, `a real set of public checks (${checks.length})`);
@@ -25,5 +26,12 @@ for (const check of checks) {
   const source = fs.readFileSync(`browser-checks/${check}`, "utf8");
   assert.match(source, /process\.env\.DANZSTAK_BASE_URL/, `${check} reads the site address, so it checks the live site (not a copy of the files)`);
   assert.match(source, /route\("https:\/\/api\.danzstak\.com\/\*\*"/, `${check} mocks the API: no member data is read or changed on the live site`);
+}
+// The diagnostics preload only on our own check steps: at job level it broke actions/checkout (the file doesn't exist
+// yet) and every live run failed in seconds (2026-11-20).
+{
+  const job = workflow.split(/\n    steps:\n/)[0];
+  assert.doesNotMatch(job, /^\s+NODE_OPTIONS:/m, "no job-level NODE_OPTIONS (it reaches actions/checkout before the preload exists)");
+  assert.equal((workflow.match(/\n        env:\n          NODE_OPTIONS: --require \.\/scripts\/check-diagnostics\.cjs\n/g) || []).length, 2, "the preload is set on the two check steps");
 }
 console.log(`Live check workflow checks passed: every 30 min, after each push to main (waits for Amplify) and on demand; ${checks.length} public browser checks against danzstak.com with the API mocked; screenshots kept; one "Live check failing" issue; read + issues permissions only.`);

@@ -291,7 +291,7 @@ function applyDataSaver(enabled) {
     video.autoplay = false;
     if (enabled) video.pause();
   });
-  if (typeof renderPlayableReels === "function" && typeof reelsList !== "undefined") renderPlayableReels();
+  if (typeof renderPlayableReels === "function" && typeof reelsList !== "undefined") renderPlayableReels({ force: true });
 }
 
 function field(label, type, placeholder) {
@@ -967,8 +967,12 @@ function renderWorkspace(name) {
       writeSections(saved);
     }
 
+    // System Back from an open Tribe (its ?tribe= step) shows the Tribes list again.
+    let tribePushedFor = "", openGroup = null;
+    addEventListener("popstate", () => { if (!detail.hidden && !new URLSearchParams(location.search).get("tribe")) showTribeDirectory(); });
     function showTribeDirectory() {
       detail.hidden = true;
+      tribePushedFor = ""; openGroup = null;
       toolbar.hidden = false;
       grid.hidden = false;
       featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
@@ -1041,6 +1045,9 @@ function renderWorkspace(name) {
       } catch (error) { loading.textContent = error.message; }
     }
 
+    // Where the Tribe cover sits (F12): the server's position, else one kept on this phone until the Auth API deploy.
+    function tribeCoverPosition(group) { return group.coverPosition || window.danzstakImagePosition?.recall(group.coverUrl) || null; }
+
     function openTribe(group, { updateHistory = true } = {}) {
       if (updateHistory && /^[a-f0-9-]{36}$/i.test(String(group.id || ""))) {
         const tribeUrl = new URL(location.href);
@@ -1049,22 +1056,50 @@ function renderWorkspace(name) {
           tribeUrl.searchParams.set("tribe", group.id);
           tribeUrl.hash = "groups";
           history.pushState({ workspace: "Groups", tribe: group.id }, "", tribeUrl.pathname + tribeUrl.search + tribeUrl.hash);
+          tribePushedFor = group.id;
         }
       }
-      toolbar.hidden = true; createBox.hidden = true; grid.hidden = true; detail.hidden = false; detail.replaceChildren();
-      featureText.textContent = group.name;
-      const back = document.createElement("button"); back.type = "button"; back.className = "tribe-back"; back.textContent = "← Back to Tribes"; back.addEventListener("click", showTribeDirectory);
+      toolbar.hidden = true; createBox.hidden = true; grid.hidden = true; detail.hidden = false; detail.replaceChildren(); openGroup = group;
+      featureText.textContent = ""; // the name shows once, in the Tribe's own header (F13/F14)
       const hero = document.createElement("header"); hero.className = "tribe-hero";
       const cover = document.createElement("div"); cover.className = "tribe-hero-cover";
-      if (group.coverUrl) { cover.style.backgroundImage = `linear-gradient(180deg,transparent 45%,rgba(8,12,20,.72)),url("${String(group.coverUrl).replace(/["\\]/g, "")}")`; cover.classList.add("has-photo"); }
+      // Directive F12: the Tribe cover sits where its Elders placed it; the same point fills the square Tribe picture.
+      const fit = window.danzstakImagePosition;
+      if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); fit?.apply(cover, tribeCoverPosition(group), group.coverUrl); }
       else if (window.danzstakTribeArt) { cover.classList.add("has-art"); cover.setAttribute("aria-hidden", "true"); cover.append(window.danzstakTribeArt.art(group.name, group.category)); }
       else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); cover.setAttribute("aria-hidden", "true"); }
       if ((group.isElder || group.isOwner) && group.custom) {
+        // Elders only (F13): change the cover, and move it to fit its box (F12).
+        const tools = document.createElement("div"); tools.className = "tribe-cover-tools";
         const editCover = document.createElement("button"); editCover.type = "button"; editCover.className = "tribe-cover-edit"; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
+        const moveCover = document.createElement("button"); moveCover.type = "button"; moveCover.className = "tribe-cover-move"; moveCover.textContent = "Move to fit"; moveCover.hidden = !group.coverUrl || !fit;
         const coverInput = document.createElement("input"); coverInput.type = "file"; coverInput.accept = "image/jpeg,image/png,image/webp,image/gif"; coverInput.hidden = true;
+        const coverBox = () => { const box = cover.getBoundingClientRect(); return box.width && box.height ? box.width / box.height : 2.4; };
+        const placeCover = (src, position) => fit ? fit.open({ src, aspect: coverBox(), position, title: "Move your cover", extras: [{ aspect: 1, label: "Tribe picture" }] }) : Promise.resolve(position || { x: 50, y: 50, zoom: 1 });
+        // Until the Auth API stores positions (owner deploy), a position is kept on this phone and the Elder is told so.
+        const keepHere = (url, position) => {
+          fit?.remember(url, position);
+          const p = fit?.normalize(position);
+          if (p && (p.x !== 50 || p.y !== 50 || p.zoom !== 1)) showAppFeedback(window.danzstakTranslate?.("Saved on this phone. Everyone else sees it after DanzStak's next update.") || "Saved on this phone. Everyone else sees it after DanzStak's next update.");
+        };
         editCover.addEventListener("click", () => coverInput.click());
+        moveCover.addEventListener("click", async () => {
+          const position = await placeCover(group.coverUrl, tribeCoverPosition(group));
+          if (!position) return;
+          moveCover.disabled = true;
+          try {
+            const response = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/cover", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ position }) });
+            const saved = await response.json().catch(() => ({}));
+            if (response.ok && saved.coverPosition) group.coverPosition = saved.coverPosition;
+            else if ((response.status === 400 || response.status === 403) && !/Elder/i.test(String(saved.error || ""))) keepHere(group.coverUrl, position);
+            else throw new Error(saved.error || "That position couldn't be saved. Try again.");
+            openTribe(group);
+          } catch (error) { showAppFeedback(error.message, { urgent: true }); moveCover.disabled = false; }
+        });
         coverInput.addEventListener("change", async () => {
-          const file = coverInput.files?.[0]; if (!file || !file.type.startsWith("image/")) return;
+          const file = coverInput.files?.[0]; coverInput.value = ""; if (!file || !file.type.startsWith("image/")) return;
+          const position = await placeCover(file, null);
+          if (!position) return;
           editCover.disabled = true; editCover.textContent = "Uploading…"; let uploadedMediaKey = "";
           try {
             const ticketResponse = await postActionFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: file.type, purpose: "post" }) }, 15000);
@@ -1073,25 +1108,50 @@ function renderWorkspace(name) {
             const uploadResponse = typeof window.fetchWithDeadline === "function" ? await window.fetchWithDeadline(ticket.uploadUrl, uploadOptions, typeof window.mediaUploadDeadline === "function" ? window.mediaUploadDeadline(file) : 120000) : await fetch(ticket.uploadUrl, uploadOptions);
             if (!uploadResponse.ok) throw new Error("Cover upload failed");
             uploadedMediaKey = ticket.mediaKey;
-            const saveResponse = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/cover", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey: ticket.mediaKey }) });
+            const saveResponse = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/cover", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey: ticket.mediaKey, position }) });
             const savedCover = await saveResponse.json().catch(() => ({})); if (!saveResponse.ok || !savedCover.coverUrl) throw new Error(savedCover.error || "Cover could not be saved");
-            uploadedMediaKey = ""; group.coverUrl = savedCover.coverUrl; openTribe(group);
+            uploadedMediaKey = ""; group.coverUrl = savedCover.coverUrl; group.coverPosition = savedCover.coverPosition || null;
+            if (!savedCover.coverPosition) keepHere(savedCover.coverUrl, position);
+            openTribe(group);
           } catch (error) {
             if (uploadedMediaKey && typeof window.discardUploadedMedia === "function") await window.discardUploadedMedia(uploadedMediaKey).catch(() => {});
             showAppFeedback(error.message, { urgent: true }); editCover.disabled = false; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
           }
         });
-        cover.append(editCover, coverInput);
+        tools.append(moveCover, editCover);
+        cover.append(tools, coverInput);
       }
       const identity = document.createElement("div"); identity.className = "tribe-hero-identity";
       const title = document.createElement("h4"); title.textContent = group.name;
       const meta = document.createElement("p"); const count = Number(group.memberCount || 0); meta.textContent = `🔒 Tribe · ${count ? count + " in The Crew" : "The Crew"}`;
       const elder = document.createElement("span"); elder.className = "tribe-elder-badge"; elder.textContent = group.isElder || group.isOwner ? "Elder" : groupCategoryName(group.category);
       identity.append(title, meta, elder);
-      const membership = document.createElement("button"); membership.type = "button"; membership.className = "primary tribe-membership";
-      const paintMembership = () => { const joined = Boolean(saved.GroupsJoined?.[group.id]); membership.textContent = joined ? "✓ Joined" : "+ Join Tribe"; membership.classList.toggle("is-selected", joined); };
-      paintMembership();
-      membership.addEventListener("click", async () => { membership.disabled = true; try { await saveGroupMembership(group, !saved.GroupsJoined?.[group.id]); paintMembership(); openTribe(group); } catch (error) { showAppFeedback(error.message, { urgent: true }); } finally { membership.disabled = false; } });
+      // Directive F13: a small "Joined ▾" chip (Leave Tribe inside) instead of a full-width "✓ Joined" bar; "Join" is one
+      // green pill. The Tribe's founder can't leave, so their chip is a plain label.
+      const membership = document.createElement("div"); membership.className = "tribe-actions";
+      const setMembership = async (joined, control) => {
+        control.disabled = true;
+        try { await saveGroupMembership(group, joined); openTribe(group, { updateHistory: false }); }
+        catch (error) { showAppFeedback(error.message, { urgent: true }); control.disabled = false; }
+      };
+      if (saved.GroupsJoined?.[group.id] && group.isOwner) {
+        const chip = document.createElement("span"); chip.className = "tribe-joined-chip"; chip.textContent = "Joined"; membership.append(chip);
+      } else if (saved.GroupsJoined?.[group.id]) {
+        const menu = document.createElement("details"); menu.className = "tribe-joined";
+        const chip = document.createElement("summary"); chip.className = "tribe-joined-chip"; chip.textContent = "Joined"; chip.setAttribute("aria-label", "Membership options");
+        const options = document.createElement("div"); options.className = "tribe-joined-menu";
+        const leave = document.createElement("button"); leave.type = "button"; leave.className = "tribe-leave"; leave.textContent = "Leave Tribe";
+        leave.addEventListener("click", async () => {
+          menu.open = false;
+          const sure = typeof window.danzstakConfirm === "function" ? await window.danzstakConfirm("You can join again any time.", { title: "Leave this Tribe?", confirmLabel: "Leave Tribe", danger: true }) : true;
+          if (sure) await setMembership(false, leave);
+        });
+        options.append(leave); menu.append(chip, options); membership.append(menu);
+      } else {
+        const join = document.createElement("button"); join.type = "button"; join.className = "tribe-join"; join.textContent = "Join";
+        join.addEventListener("click", () => void setMembership(true, join));
+        membership.append(join);
+      }
       hero.append(cover, identity, membership);
       const nav = document.createElement("div"); nav.className = "tribe-nav"; nav.setAttribute("role", "tablist"); nav.setAttribute("aria-label", group.name + " sections");
       const panels = document.createElement("div"); panels.className = "tribe-panels";
@@ -1170,7 +1230,9 @@ function renderWorkspace(name) {
       }
       const feed = document.createElement("div"); feed.className = "tribe-feed"; discussion.appendChild(feed); renderTribePosts(group, feed);
       const aboutCard = document.createElement("div"); aboutCard.className = "tribe-about-card"; const aboutTitle = document.createElement("h5"); aboutTitle.textContent = "About this Tribe"; const description = document.createElement("p"); description.textContent = group.description; const standard = document.createElement("p"); standard.textContent = "Community standards: no hate speech, harassment, threats, or targeted abuse."; aboutCard.append(aboutTitle, description, standard); about.appendChild(aboutCard);
-      panels.append(discussion, crew, about); detail.append(back, hero, nav, panels); detail.scrollIntoView({ block: "start" });
+      panels.append(discussion, crew, about); detail.append(hero, nav, panels); detail.scrollIntoView({ block: "start" });
+      // The bar's ← goes back to the Tribes list: the same step as system Back when opening the Tribe added one.
+      window.danzstakAppBar?.setBack("Back to Tribes", () => { if (tribePushedFor === group.id && history.state?.tribe === group.id) history.back(); else showTribeDirectory(); }, detail);
     }
 
     if (window.danzstakOpenTribeHandler) window.removeEventListener("danzstak:open-tribe", window.danzstakOpenTribeHandler);
@@ -1219,7 +1281,7 @@ function renderWorkspace(name) {
         cover.setAttribute("aria-hidden", "true");
         // Owner 2026-11-18: the Tribe's own picture fills the box when its Elders set one (Add cover inside the Tribe);
         // otherwise the initial sits dead centre.
-        if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); }
+        if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); window.danzstakImagePosition?.apply(cover, tribeCoverPosition(group), group.coverUrl); }
         else if (window.danzstakTribeArt) { cover.classList.add("has-art"); cover.append(window.danzstakTribeArt.art(group.name, group.category)); }
         else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); }
         const title = document.createElement("h4");
@@ -1414,10 +1476,13 @@ function renderWorkspace(name) {
       .then(response => response.ok ? response.json() : null)
       .then(data => {
         if (!Array.isArray(data?.groupIds)) return;
+        const wasJoined = openGroup ? Boolean(saved.GroupsJoined?.[openGroup.id]) : false;
         saved.GroupsJoined = Object.fromEntries([...data.groupIds.map(groupId => [groupId, true]), ...membershipChanges]);
         markRunTribesJoined();
         writeSections(saved);
         renderGroups();
+        // A Tribe opened from a link before the list arrived drew "Join" for a member: draw it again when that changed.
+        if (openGroup && !detail.hidden && Boolean(saved.GroupsJoined?.[openGroup.id]) !== wasJoined) openTribe(openGroup, { updateHistory: false });
       })
       .catch(() => {});
     return;
@@ -4396,6 +4461,7 @@ function setRollFullscreen(open, { updateHistory = true, fromHistory = false, st
     window.danzstakMediaCoordinator?.endSession?.(reelsList);
     rollSessionStatus.hidden = true;
     restoreRollBackground();
+    if (reelsRenderPending) renderPlayableReels();
     rollOpen.focus({ preventScroll: true });
   }
 }
@@ -4611,10 +4677,18 @@ function reelPlayer(url) {
   return null;
 }
 
-function renderPlayableReels() {
+// Owner 2026-11-19: "every 3rd video the sound goes off in the roll". Rebuilding The Roll replaced every video, the one
+// playing too: it stopped and nothing played (reproduced by Mix reloading its posts during full-screen playback, which a
+// phone does after its connection drops and comes back). The Roll now keeps its cards when its list of videos hasn't
+// changed, and while it is full screen a real change waits until it closes. Adding, removing and data saver still rebuild.
+var renderedReelIds = null, reelsRenderPending = false; // var: the data-saver switch can call the Roll before this line runs
+function renderPlayableReels({ force = false } = {}) {
+  const reels = getReels(), ids = reels.map(reel => String(reel.id || reel.url || "")).join("|"), shown = Boolean(reelsList.querySelector(".reel-card"));
+  if (!force && shown && ids === renderedReelIds) return;
+  if (!force && shown && reelsRail.classList.contains("roll-fullscreen")) { reelsRenderPending = true; return; }
+  renderedReelIds = ids; reelsRenderPending = false;
   window.danzstakMediaCoordinator?.endSession?.(reelsList);
   reelsList.replaceChildren();
-  const reels = getReels();
   reelsRail.classList.toggle("has-reels", reels.length > 0);
   rollOpen.disabled = reels.length === 0;
   rollOpen.hidden = reels.length === 0;

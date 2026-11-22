@@ -40,8 +40,8 @@ assert.ok(html.includes('id="callingDevices"'),"SYNC must expose a discoverable 
 assert.ok(!html.includes('id="registerThisDevice"'),"device enrollment must not expose a registration bypass before SMS confirmation");
 assert.ok(html.includes('id="syncPhoneNumberForm"')&&html.includes('id="syncPhoneSend"'),"the current installation needs one phone-to-SMS enrollment action");
 assert.ok(html.includes('id="callingAccountName"'),"device registration must identify the signed-in account name");
-assert.ok(html.includes("Text messaging works without registering"),"the UI must disclose that text still works before calling-device registration");
-assert.ok(html.includes("Calls and voice messages need this device's own SMS code."),"the UI must disclose, in one line, which functions registration protects (owner SYNC call test 2026-11-17)");
+assert.ok(html.includes("Texting already works."),"the UI must disclose that text still works before calling-device registration");
+assert.ok(html.includes("Calls and voice messages need this phone verified. Texting already works."),"the UI must disclose, in one short line, which functions registration protects (owner 2026-11-17; directive L2 short screen)");
 assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential must remain in origin-scoped storage");
 assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"SYNC requests need the current installation credential");
 assert.match(client,/window\.danzstakRequireCallingDevice=options=>openPanel\(\{required:true,\.\.\.\(options\|\|\{\}\)\}\)/,"blocked call actions need one shared registration recovery");
@@ -52,7 +52,7 @@ assert.match(chatCss,/\.messages-page\.sync-device-registered:not\(\.is-conversa
 assert.doesNotMatch(client,/if\(state\.required\)event\.preventDefault\(\)/,"call registration must not trap members or block text chat");
 assert.match(client,/close\?\.addEventListener\("click",\(\)=>dialog\.close\(\)\)/,"call registration must always provide a close path back to text chat");
 assert.doesNotMatch(client,/if\(!state\.registered\)openPanel/ ,"unregistered devices must not auto-open enrollment before text chat loads");
-assert.ok(feed.indexOf('assets/call-devices.js?v=17')<feed.indexOf('assets/incoming-calls.js?v=312'),"the feed must load the installation credential before its global incoming-call listener");
+assert.ok(feed.indexOf('assets/call-devices.js?v=18')<feed.indexOf('assets/incoming-calls.js?v=313'),"the feed must load the installation credential before its global incoming-call listener");
 assert.match(client,/api\("\/profiles"\)[\s\S]{0,220}callingAccountName|callingAccountName[\s\S]{0,220}api\("\/profiles"\)/,"device registration must load the private signed-in account label from the profile API");
 assert.match(incoming,/path\.startsWith\("\/calls\/"\)[\s\S]*globalThis\.danzstakCallingDeviceHeaders/,"the feed's incoming-call requests must authenticate the registered installation");
 assert.match(incoming,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*callDeviceRegistrationRequired = true/,"unregistered feed installations must stop wasteful incoming-call polling");

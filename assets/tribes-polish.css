@@ -1,6 +1,7 @@
 /* Tribes like Facebook Groups (owner 2026-11-16): a compact discover list (cover, name, crew count, Join),
    typographic covers in DanzStak black/orange instead of emoji, one continuous surface. */
-.groups-workspace .groups-grid{display:block!important;gap:0!important;margin:0!important}
+/* :not([hidden]) — an open Tribe hides the list (audit F13: it used to stay on top of every open Tribe). */
+.groups-workspace .groups-grid:not([hidden]){display:block;gap:0;margin:0}
 .groups-workspace .group-card{display:grid!important;grid-template-columns:64px minmax(0,1fr) auto;grid-template-areas:"cover title join" "cover meta join" "cover desc desc" "cover mod mod";column-gap:12px;row-gap:2px;align-items:center;padding:10px 12px!important;margin:0!important;border:0!important;border-bottom:1px solid #ececE8!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
 .groups-workspace .group-card-cover{grid-area:cover;align-self:start;width:64px!important;height:64px!important;min-height:0!important;border-radius:10px!important;display:grid;place-items:center;font-size:0!important;background-color:#121418!important;overflow:hidden}
 .groups-workspace .group-card-cover::after,.tribe-hero-cover:not(.has-photo)::after{content:attr(data-initial);font:900 30px/1 "DanzStak Sans",sans-serif;font-stretch:125%;color:#ff5a1f;letter-spacing:-.02em}
@@ -26,13 +27,11 @@
 .tribe-hero{border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
 .tribe-hero-cover:not(.has-photo){display:grid!important;place-items:center;font-size:0!important;background:#121418!important}
 .tribe-hero-cover:not(.has-photo)::after{font-size:72px}
-.tribe-nav{border-radius:0!important;box-shadow:none!important}
-.tribe-nav [role=tab][aria-selected=true]{color:#121418!important;box-shadow:inset 0 -3px 0 #ff5a1f!important;background:transparent!important}
-.tribe-join-prompt,.tribe-feed > .empty,.tribe-about-card,.tribe-crew-member{border-radius:0!important;box-shadow:none!important}
+.tribe-feed > .empty,.tribe-crew-member{border-radius:0!important;box-shadow:none!important}
 /* Owner 2026-11-18: the Tribe initial sits dead centre in its box (the hidden icon text no longer pushes it down),
    and a Tribe with its own picture shows that picture filling the box. */
 .groups-workspace .group-card-cover{position:relative}
 .groups-workspace .group-card-cover:not(.has-photo)::after{position:absolute;inset:0;display:grid;place-items:center;line-height:1}
-.groups-workspace .group-card-cover.has-photo{background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}
+.groups-workspace .group-card-cover.has-photo{background-size:cover;background-position:center;background-repeat:no-repeat}
 .groups-workspace .group-card-cover.has-photo::after{content:none}
 .groups-workspace .group-card-cover:not(.has-photo){background-image:none!important}

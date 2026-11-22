@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const path = require("node:path");
 const { chromium } = require("playwright");
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ channel: "msedge", headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await page.setContent(`<!doctype html><input type="file" id="pick" multiple><input type="file" id="raw" data-no-scale><script>
@@ -42,6 +42,19 @@ const { chromium } = require("playwright");
     await page.waitForFunction(() => window.seen.length >= 2);
     const raw = (await page.evaluate(() => window.seen[1])).out[0];
     assert.deepEqual([raw.w, raw.h], [4000, 3000], "data-no-scale opts out");
-    console.log("Media scale browser check passed: 4000×3000 → 960×720, 1000×3000 → 427×1280, small and opt-out untouched, one handler call.");
+    // Owner 2026-11-22: a photo whose end never arrived (the owner's profile picture was saved that way) never reaches the
+    // page's upload, with or without scaling, and the member is told to pick it again; a good photo picked with it goes on.
+    const cut = files[2].buffer.subarray(0, Math.floor(files[2].buffer.length * 0.6));
+    await page.setInputFiles("#pick", [{ name: "cut.jpg", mimeType: "image/jpeg", buffer: cut }, files[2]]);
+    await page.waitForFunction(() => window.seen.length >= 3, null, { timeout: 10000 });
+    const mixed = (await page.evaluate(() => window.seen[2])).out;
+    assert.deepEqual(mixed.map(file => file.name), ["small.jpg"], "only the photo that can be read is handed on");
+    const note = await page.evaluate(() => { const n = document.getElementById("danzstakPhotoNotice"); return n && !n.hidden ? n.textContent : ""; });
+    assert.match(note, /didn't finish loading/, "the member is told to pick it again");
+    await page.setInputFiles("#raw", [{ name: "cut.jpg", mimeType: "image/jpeg", buffer: cut }]);
+    await page.waitForTimeout(800);
+    assert.equal(await page.evaluate(() => window.seen.length), 3, "a cut-off photo alone never reaches the page, even with data-no-scale");
+    assert.equal(await page.evaluate(() => document.getElementById("raw").files.length), 0, "the picker is cleared so the same photo can be picked again");
+    console.log("Media scale browser check passed: 4000×3000 → 960×720, 1000×3000 → 427×1280, small and opt-out untouched, one handler call, cut-off photos stopped with a message.");
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

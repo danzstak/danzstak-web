@@ -522,6 +522,48 @@
   id:["Bagikan profil","Undang orang","Tautan yang dapat dibagikan","Salin tautan","Tautan disalin.","Pilih dan salin tautan di atas.","Gunakan Salin tautan untuk membagikan tautan ini.","Bagikan profil ini dengan teman dan orang-orang di Suku Anda di DanzStak.","Bergabunglah dengan saya di DanzStak. Buat akun untuk terhubung dan membagikan konten asli Anda.","Bagikan","Tutup"]
  };
  for(const [language,values] of Object.entries(profileShareGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(profileShareKeys.map((key,index)=>[key,values[index]])));
+ // SHARE (spec 44): the link-preview switch on your own profile's share sheet.
+ const shareCardKeys=["Show my photo and name in link previews","Anyone you send this link to sees your name, photo and cover.","Your link preview","Preparing your link preview…","The link preview couldn't be saved. Your link still works."];
+ const shareCardGuidance={
+  es:["Mostrar mi foto y mi nombre en las vistas previas de enlaces","Quien reciba este enlace verá tu nombre, tu foto y tu portada.","Vista previa de tu enlace","Preparando la vista previa de tu enlace…","No se pudo guardar la vista previa. Tu enlace sigue funcionando."],
+  fr:["Afficher ma photo et mon nom dans les aperçus de lien","Toute personne à qui vous envoyez ce lien voit votre nom, votre photo et votre couverture.","Aperçu de votre lien","Préparation de l’aperçu de votre lien…","L’aperçu n’a pas pu être enregistré. Votre lien fonctionne toujours."],
+  de:["Mein Foto und meinen Namen in Linkvorschauen zeigen","Alle, denen du diesen Link schickst, sehen deinen Namen, dein Foto und dein Titelbild.","Deine Linkvorschau","Deine Linkvorschau wird vorbereitet…","Die Linkvorschau konnte nicht gespeichert werden. Dein Link funktioniert trotzdem."],
+  pt:["Mostrar minha foto e meu nome nas prévias de links","Quem receber este link verá seu nome, sua foto e sua capa.","Prévia do seu link","Preparando a prévia do seu link…","Não foi possível salvar a prévia. Seu link continua funcionando."],
+  it:["Mostra la mia foto e il mio nome nelle anteprime dei link","Chi riceve questo link vede il tuo nome, la tua foto e la tua copertina.","Anteprima del tuo link","Preparo l’anteprima del tuo link…","Non è stato possibile salvare l’anteprima. Il tuo link funziona comunque."],
+  ko:["링크 미리보기에 내 사진과 이름 표시","이 링크를 받는 사람은 누구나 내 이름, 사진, 커버를 볼 수 있습니다.","내 링크 미리보기","링크 미리보기를 준비하는 중…","링크 미리보기를 저장하지 못했습니다. 링크는 그대로 작동합니다."],
+  ja:["リンクのプレビューに写真と名前を表示する","このリンクを受け取った人は誰でも、あなたの名前、写真、カバーを見られます。","リンクのプレビュー","リンクのプレビューを準備しています…","プレビューを保存できませんでした。リンクはそのまま使えます。"],
+  "zh-Hans":["在链接预览中显示我的照片和名字","收到此链接的任何人都能看到你的名字、照片和封面。","你的链接预览","正在准备你的链接预览…","无法保存链接预览。你的链接仍然可用。"],
+  "zh-Hant":["在連結預覽中顯示我的照片和名字","收到此連結的任何人都能看到你的名字、照片和封面。","你的連結預覽","正在準備你的連結預覽…","無法儲存連結預覽。你的連結仍可使用。"],
+  fil:["Ipakita ang aking larawan at pangalan sa mga preview ng link","Makikita ng sinumang padalhan mo ng link na ito ang iyong pangalan, larawan at cover.","Preview ng iyong link","Inihahanda ang preview ng iyong link…","Hindi ma-save ang preview ng link. Gumagana pa rin ang iyong link."],
+  hi:["लिंक प्रीव्यू में मेरी फ़ोटो और नाम दिखाएँ","जिसे भी आप यह लिंक भेजेंगे, वह आपका नाम, फ़ोटो और कवर देखेगा।","आपका लिंक प्रीव्यू","आपका लिंक प्रीव्यू तैयार हो रहा है…","लिंक प्रीव्यू सेव नहीं हो सका। आपका लिंक फिर भी काम करता है।"],
+  vi:["Hiện ảnh và tên của tôi trong bản xem trước liên kết","Bất kỳ ai bạn gửi liên kết này đều thấy tên, ảnh và ảnh bìa của bạn.","Bản xem trước liên kết của bạn","Đang chuẩn bị bản xem trước liên kết…","Không lưu được bản xem trước. Liên kết của bạn vẫn hoạt động."],
+  th:["แสดงรูปและชื่อของฉันในตัวอย่างลิงก์","ทุกคนที่คุณส่งลิงก์นี้ให้จะเห็นชื่อ รูป และภาพหน้าปกของคุณ","ตัวอย่างลิงก์ของคุณ","กำลังเตรียมตัวอย่างลิงก์ของคุณ…","บันทึกตัวอย่างลิงก์ไม่ได้ ลิงก์ของคุณยังใช้ได้"],
+  id:["Tampilkan foto dan nama saya di pratinjau tautan","Siapa pun yang Anda kirimi tautan ini akan melihat nama, foto, dan sampul Anda.","Pratinjau tautan Anda","Menyiapkan pratinjau tautan Anda…","Pratinjau tautan tidak dapat disimpan. Tautan Anda tetap berfungsi."]
+ };
+ for(const [language,values] of Object.entries(shareCardGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(shareCardKeys.map((key,index)=>[key,values[index]])));
+ // Owner 2026-11-22: a shared profile link opened signed out shows only that member's shop (shop.html).
+ const publicShopKeys=["Nothing for sale right now.","shipping","SOLD OUT","Loading shop…","Leave the shop","Checkout opens soon","The shop couldn't be loaded. Try again."];
+ const publicShopGuidance={
+  es:["No hay nada a la venta ahora mismo.","de envío","AGOTADO","Cargando la tienda…","Salir de la tienda","El pago se abre pronto","No se pudo cargar la tienda. Inténtalo de nuevo."],
+  fr:["Rien à vendre pour le moment.","de livraison","ÉPUISÉ","Chargement de la boutique…","Quitter la boutique","Le paiement ouvre bientôt","La boutique n’a pas pu être chargée. Réessayez."],
+  de:["Gerade gibt es nichts zu kaufen.","Versand","AUSVERKAUFT","Shop wird geladen…","Shop verlassen","Der Checkout öffnet bald","Der Shop konnte nicht geladen werden. Versuche es noch einmal."],
+  pt:["Nada à venda no momento.","de frete","ESGOTADO","Carregando a loja…","Sair da loja","O pagamento abre em breve","Não foi possível carregar a loja. Tente novamente."],
+  it:["Niente in vendita al momento.","di spedizione","ESAURITO","Caricamento del negozio…","Esci dal negozio","Il pagamento apre a breve","Impossibile caricare il negozio. Riprova."],
+  ko:["지금은 판매 중인 상품이 없어요.","배송비","품절","숍을 불러오는 중…","숍에서 나가기","결제는 곧 열려요","숍을 불러오지 못했어요. 다시 시도해 주세요."],
+  ja:["現在、販売中の商品はありません。","送料","売り切れ","ショップを読み込み中…","ショップを出る","購入手続きはまもなく開始します","ショップを読み込めませんでした。もう一度お試しください。"],
+  "zh-Hans":["目前没有在售商品。","运费","已售罄","正在加载店铺…","离开店铺","结账即将开放","无法加载店铺。请重试。"],
+  "zh-Hant":["目前沒有在售商品。","運費","已售罄","正在載入商店…","離開商店","結帳即將開放","無法載入商店。請再試一次。"],
+  fil:["Walang ibinebenta sa ngayon.","pagpapadala","UBOS NA","Nilo-load ang shop…","Umalis sa shop","Malapit nang magbukas ang checkout","Hindi ma-load ang shop. Subukan ulit."],
+  hi:["अभी बिक्री के लिए कुछ नहीं है।","शिपिंग","बिक गया","दुकान लोड हो रही है…","दुकान से बाहर निकलें","चेकआउट जल्द खुलेगा","दुकान लोड नहीं हो सकी। फिर से कोशिश करें।"],
+  vi:["Hiện chưa có gì để bán.","phí vận chuyển","HẾT HÀNG","Đang tải cửa hàng…","Rời cửa hàng","Thanh toán sắp mở","Không thể tải cửa hàng. Hãy thử lại."],
+  th:["ตอนนี้ยังไม่มีสินค้าขาย","ค่าส่ง","ขายหมดแล้ว","กำลังโหลดร้านค้า…","ออกจากร้านค้า","การชำระเงินจะเปิดเร็ว ๆ นี้","โหลดร้านค้าไม่ได้ ลองอีกครั้ง"],
+  id:["Belum ada yang dijual saat ini.","ongkos kirim","HABIS","Memuat toko…","Keluar dari toko","Pembayaran segera dibuka","Toko tidak dapat dimuat. Coba lagi."]
+ };
+ for(const [language,values] of Object.entries(publicShopGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(publicShopKeys.map((key,index)=>[key,values[index]])));
+ // Owner 2026-11-22: a photo that didn't finish loading on the phone is stopped before upload (media-scale.js).
+ const brokenPhoto="This photo didn't finish loading on your phone. Open it in your gallery, then pick it again.";
+ const brokenPhotoGuidance={es:"Esta foto no terminó de cargarse en tu teléfono. Ábrela en tu galería y vuelve a elegirla.",fr:"Cette photo n’a pas fini de se charger sur votre téléphone. Ouvrez-la dans votre galerie, puis choisissez-la à nouveau.",de:"Dieses Foto wurde auf deinem Handy nicht vollständig geladen. Öffne es in deiner Galerie und wähle es dann noch einmal aus.",pt:"Esta foto não terminou de carregar no seu telefone. Abra-a na sua galeria e escolha-a novamente.",it:"Questa foto non si è caricata del tutto sul telefono. Aprila nella galleria, poi sceglila di nuovo.",ko:"이 사진이 휴대폰에 완전히 불러와지지 않았어요. 갤러리에서 사진을 연 다음 다시 선택해 주세요.",ja:"この写真はスマートフォンへの読み込みが完了していません。ギャラリーで開いてから、もう一度選んでください。","zh-Hans":"这张照片尚未在手机上完整加载。请先在相册中打开它，然后重新选择。","zh-Hant":"這張照片尚未在手機上完整載入。請先在相簿中開啟它，然後重新選擇。",fil:"Hindi pa tapos mag-load ang larawang ito sa iyong telepono. Buksan ito sa iyong gallery, saka piliin ulit.",hi:"यह फ़ोटो आपके फ़ोन पर पूरी तरह लोड नहीं हुई। इसे अपनी गैलरी में खोलें, फिर दोबारा चुनें।",vi:"Ảnh này chưa tải xong trên điện thoại của bạn. Hãy mở ảnh trong thư viện, rồi chọn lại.",th:"รูปนี้ยังโหลดบนโทรศัพท์ไม่เสร็จ เปิดรูปในแกลเลอรีก่อน แล้วเลือกใหม่อีกครั้ง",id:"Foto ini belum selesai dimuat di ponselmu. Buka di galeri, lalu pilih lagi."};
+ for(const [language,value] of Object.entries(brokenPhotoGuidance))(dictionaries[language]||(dictionaries[language]={}))[brokenPhoto]=value;
  const inviteKeys=["Invite a friend","Bring someone you know to DanzStak. You choose who receives it and you press Send in your own app.","Invitation message","Text message","Share via apps","Copy invitation link","Invitation link copied.","Select and copy the invitation above.","Your device could not open the share sheet. Copy the invitation link instead.","Hey! Come join me on DanzStak. It’s an independent social network where we can chat, call, share things, and make plans together."];
  const inviteGuidance={
   es:["Invitar a un amigo","Trae a DanzStak a alguien que conoces. Tú eliges quién lo recibe y pulsas Enviar en tu propia aplicación.","Mensaje de invitación","Mensaje de texto","Compartir mediante aplicaciones","Copiar enlace de invitación","Enlace de invitación copiado.","Selecciona y copia la invitación de arriba.","Tu dispositivo no pudo abrir el menú para compartir. Copia el enlace de invitación.","¡Hola! Únete a mí en DanzStak. Es una red social independiente donde podemos chatear, llamar, compartir cosas y hacer planes."],
@@ -1065,7 +1107,7 @@
  function start(){
   let language=document.documentElement.lang||'en';
   let saved='';try{saved=localStorage.getItem('danzstak_language')||'';}catch{}
-  let regional='';try{regional=(navigator.languages||[navigator.language]).map(normalize).find(code=>code!=='en')||normalize(navigator.language);}catch{}
+  let regional='';try{regional=normalize((navigator.languages&&navigator.languages[0])||navigator.language||'en');}catch{}
   language=saved||regional||language;
   document.documentElement.lang=normalize(language);apply();
   new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});

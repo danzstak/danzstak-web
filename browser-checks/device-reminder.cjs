@@ -14,11 +14,6 @@ const json = body => ({ status: 200, contentType: "application/json", headers: {
 
 async function open(browser, width, { verified = false } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 800 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
-  if (verified) await context.addInitScript(() => {
-    const request = indexedDB.open("danzstak-call-device", 1);
-    request.onupgradeneeded = () => request.result.createObjectStore("credentials");
-    request.onsuccess = () => { const db = request.result; db.transaction("credentials", "readwrite").objectStore("credentials").put([{ deviceId: "d1", deviceToken: "t".repeat(43), accountTag: "a1", physicalDeviceId: "p1" }], "accounts"); };
-  });
   const page = await context.newPage(), errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.route("https://api.danzstak.com/**", route => {
@@ -27,10 +22,24 @@ async function open(browser, width, { verified = false } = {}) {
     if (p === "/profiles") return route.fulfill(json({ profile: { isOwner: true, cloudProfile: true, name: "Night Shift", handle: "nightshift" } }));
     if (p === "/notifications" || p === "/engagement-notifications") return route.fulfill(json({ notifications: [] }));
     if (p === "/calls/directory") return route.fulfill(json({ users: [] }));
+    // The server agrees with this browser: a verified device is registered, an unverified one isn't.
+    if (p === "/calls/devices") return route.fulfill(json({ accountTag: "a1", currentDeviceRegistered: verified, devices: [] }));
     if (p === "/friends") return route.fulfill(json({ friends: [] }));
     return route.fulfill(json({}));
   });
   await page.route(`${base}/sync/**`, route => route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>SYNC</title><p>SYNC</p>" }));
+  // The SYNC credential is written and committed before the app loads, in the format call-devices.js accepts (a UUID device
+  // id). The old "d1" id was thrown out by call-devices.js as invalid, which emptied the store while the reminder was
+  // reading it, so "verified" passed or failed by timing.
+  if (verified) {
+    await page.goto(`${base}/sync/`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(() => new Promise((resolve, reject) => {
+      const request = indexedDB.open("danzstak-call-device", 1);
+      request.onupgradeneeded = () => request.result.createObjectStore("credentials");
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => { const db = request.result, tx = db.transaction("credentials", "readwrite"); tx.objectStore("credentials").put([{ deviceId: "d1d1d1d1-1111-4111-8111-111111111111", deviceToken: "t".repeat(43), accountTag: "a1", physicalDeviceId: "p1" }], "accounts"); tx.oncomplete = () => { db.close(); resolve(); }; tx.onerror = () => reject(tx.error); };
+    }));
+  }
   await page.goto(`${base}/feed.html`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => window.danzstakDeviceReminder && document.querySelector('[data-feature="Notifications"]'), null, { timeout: 10000 });
   return { context, page, errors };
@@ -65,6 +74,9 @@ async function openNotifications(page) {
       assert.deepEqual({ tag: row.tag, href: row.href, title: row.title, line: row.line, buttons: row.buttons }, { tag: "A", href: "/sync/?device=register", title: "Verify this device for SYNC calls", line: "Calls and voice messages need it. Texting already works.", buttons: 0 }, `${label}: one tappable row, no extra button`);
       assert.ok(row.tall && row.fits && row.hit, `${label}: 44px row on screen, its centre reachable (${JSON.stringify(row)})`);
       assert.equal(row.empty, false, `${label}: no "No new notifications" under the reminder`);
+      // Owner 2026-11-19: "just offer it in the notification" — the DS number, for members who won't enter a phone number.
+      const ds = await run.page.evaluate(() => { const a = document.querySelector(".notification-list .notification-ds-link"); if (!a) return null; const r = a.getBoundingClientRect(); return { href: a.getAttribute("href"), text: a.textContent, tall: r.height >= 44, fits: r.right <= innerWidth + 0.5, hit: Boolean(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest(".notification-ds-link")) }; });
+      assert.deepEqual(ds, { href: "/sync/?device=register&ds=1", text: "No phone number? Get a DS number", tall: true, fits: true, hit: true }, `${label}: the DS number is offered under the reminder`);
       if (width === 390) await run.page.screenshot({ path: "docs/screenshots/device-reminder-390.png" });
       await run.page.touchscreen.tap(row.x, row.y);
       await run.page.waitForURL(/\/sync\/\?device=register$/, { timeout: 8000 });
