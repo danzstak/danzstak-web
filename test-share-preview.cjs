@@ -1,6 +1,6 @@
 "use strict";
 // SHARE (owner 2026-11-21, spec 44): "When a user share their profile it should show just like the image I uploaded."
-// danzstak.com/@username is rewritten by Amplify to call-signaling's GET /share/profile/{username}, a tiny page whose
+// danzstak.com/u/username is rewritten by Amplify to call-signaling's GET /share/profile/{username}, a tiny page whose
 // Open Graph tags show the member's own card; its picture is GET /share/profile/{username}/card. This checks:
 // - every link-preview crawler (Facebook, WhatsApp, X, Telegram, iMessage) gets the member's name, one-line bio and card,
 //   with the domain danzstak.com, and people (who run scripts) are sent on to the profile;
@@ -73,8 +73,8 @@ const CRAWLERS = [
     assert.match(page.headers["cache-control"], /^public/);
     assert.equal(tag(page.body, "property", "og:title"), "Eroticon on DanzStak", agent);
     assert.equal(tag(page.body, "property", "og:description"), "Electro &amp; techno since 1988");
-    assert.equal(tag(page.body, "property", "og:url"), "https://danzstak.com/@Eroticon");
-    assert.equal(tag(page.body, "property", "og:image"), "https://danzstak.com/@Eroticon/card.jpg?v=abcdef0123456789");
+    assert.equal(tag(page.body, "property", "og:url"), "https://danzstak.com/u/Eroticon");
+    assert.equal(tag(page.body, "property", "og:image"), "https://danzstak.com/u/Eroticon/card.jpg?v=abcdef0123456789");
     assert.equal(tag(page.body, "property", "og:image:width"), "1200");
     assert.equal(tag(page.body, "property", "og:image:height"), "630");
     assert.equal(tag(page.body, "property", "og:image:type"), "image/jpeg");
@@ -124,26 +124,29 @@ const CRAWLERS = [
   assert.ok(handler.indexOf("startsWith('/share/profile/'))return await shareProfile(event)") > 0);
   assert.match(template, /RouteKey: 'GET \/share\/profile\/\{handle\}'/);
   assert.match(template, /RouteKey: 'GET \/share\/profile\/\{handle\}\/card'/);
+  // The API may only call the function on paths a Lambda permission names (2026-11-22: without this one every share link
+  // answered 500 and the function never ran).
+  assert.match(template, /ShareProfileInvokePermission: \{Type: AWS::Lambda::Permission, Properties: \{Action: 'lambda:InvokeFunction', FunctionName: !Ref SignalingFunction, Principal: apigateway\.amazonaws\.com, SourceArn: !Sub 'arn:\$\{AWS::Partition\}:execute-api:\$\{AWS::Region\}:\$\{AWS::AccountId\}:\$\{ApiId\}\/\*\/GET\/share\/profile\/\*'\}\}/, "the API may call the function for /share/profile/*");
   const rules = JSON.parse(fs.readFileSync("infrastructure/amplify-custom-rules.json", "utf8"));
   const at = source => rules.findIndex(rule => rule.source === source);
-  assert.ok(at("/@<handle>/card.jpg") >= 0 && at("/@<handle>/card.jpg") < at("/@<handle>") && at("/@<handle>") < at("/<*>"), "card rewrite, then page rewrite, then the 404 rule");
-  assert.deepEqual(rules[at("/@<handle>")], { source: "/@<handle>", target: "https://api.danzstak.com/share/profile/<handle>", status: "200" });
-  assert.deepEqual(rules[at("/@<handle>/card.jpg")], { source: "/@<handle>/card.jpg", target: "https://api.danzstak.com/share/profile/<handle>/card", status: "200" });
+  assert.ok(at("/u/<handle>/card.jpg") >= 0 && at("/u/<handle>/card.jpg") < at("/u/<handle>") && at("/u/<handle>") < at("/<*>"), "card rewrite, then page rewrite, then the 404 rule");
+  assert.deepEqual(rules[at("/u/<handle>")], { source: "/u/<handle>", target: "https://api.danzstak.com/share/profile/<handle>", status: "200" });
+  assert.deepEqual(rules[at("/u/<handle>/card.jpg")], { source: "/u/<handle>/card.jpg", target: "https://api.danzstak.com/share/profile/<handle>/card", status: "200" });
   // Amplify sends an extensionless path that matches no rule to the same path with a slash (live log 2026-11-21: /@x 301 →
-  // /@x/ 404), so the slash form is rewritten too.
-  assert.deepEqual(rules[at("/@<handle>/")], { source: "/@<handle>/", target: "https://api.danzstak.com/share/profile/<handle>", status: "200" });
-  assert.ok(at("/@<handle>/") < at("/<*>"), "before the 404 rule");
+  // /@x/ 404), so the slash form is rewritten too. (Amplify could not match "@" inside a path piece at all, 2026-11-22, so links are /u/<username>.)
+  assert.deepEqual(rules[at("/u/<handle>/")], { source: "/u/<handle>/", target: "https://api.danzstak.com/share/profile/<handle>", status: "200" });
+  assert.ok(at("/u/<handle>/") < at("/<*>"), "before the 404 rule");
   const robots = fs.readFileSync("robots.txt", "utf8");
-  assert.ok(!/Disallow: \/@/.test(robots), "robots.txt lets crawlers read /@ links");
+  assert.ok(!/Disallow: \/u\b/.test(robots), "robots.txt lets crawlers read /u/ links");
   // The live check's robots.txt reading (scripts/verify-share-preview.cjs) agrees with how crawlers read this file.
   const { robotsAllows } = require("./scripts/verify-share-preview.cjs");
   for (const agent of ["facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)", "WhatsApp/2.24", "Twitterbot/1.0", "TelegramBot (like TwitterBot)"]) {
     assert.equal(robotsAllows(robots, agent, "/profile.html"), true, `${agent} may read profiles`);
-    assert.equal(robotsAllows(robots, agent, "/@eroticon"), true, `${agent} may read /@ links`);
+    assert.equal(robotsAllows(robots, agent, "/u/eroticon"), true, `${agent} may read /u/ links`);
     assert.equal(robotsAllows(robots, agent, "/feed.html"), false, `${agent} stays out of Mix`);
   }
   assert.equal(robotsAllows(robots, "Googlebot/2.1", "/profile.html"), false, "search engines stay out of profiles");
-  assert.equal(robotsAllows(robots, "Googlebot/2.1", "/@eroticon"), true);
+  assert.equal(robotsAllows(robots, "Googlebot/2.1", "/u/eroticon"), true);
   assert.equal(robotsAllows("User-agent: *\nDisallow: /profile.html\n", "facebookexternalhit/1.1", "/profile.html"), false, "the old robots.txt would fail the live check");
 
   // getProfile gives the share link only when the card is on, and the choice and signature only to the owner.
