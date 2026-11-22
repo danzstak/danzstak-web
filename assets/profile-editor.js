@@ -762,6 +762,7 @@ function installProfilePostMedia(article, post) {
 function profilePostCard(post) {
   const article = document.createElement("article");
   article.className = "profile-post-card";
+  window.danzstakPostPhotos?.presetShape?.(article, post.mediaRatio); // F22: the frame is right before the media loads
   if (post.postId) {
     article.dataset.postId = post.postId;
     article.dataset.isOwner = String(post.isOwner === true);
@@ -1001,7 +1002,9 @@ function profileWallComposer(profile) {
     remove.className = "secondary";
     remove.textContent = "Remove media";
     remove.addEventListener("click", clearMedia);
-    preview.append(media, remove);
+    // Owner 2026-11-22: the member chooses the album the photos or video go into (default: Mobile/Computer uploads).
+    selectedMedia.albumChoice = window.danzstakPostPhotos?.albumChoice?.() || null;
+    preview.append(media, ...(selectedMedia.albumChoice ? [selectedMedia.albumChoice.element] : []), remove);
     preview.hidden = false;
     form.hidden = false;
     opener.setAttribute("aria-expanded", "true");
@@ -1069,8 +1072,9 @@ function profileWallComposer(profile) {
     submit.disabled = true; status.textContent = "Posting…";
     let uploadedMediaKey = "", uploadedMoreKeys = [];
     try {
-      let mediaKey = "", mediaType = "";
+      let mediaKey = "", mediaType = "", mediaRatio = 0; // the media's own shape, kept with the post (F22: nothing jumps)
       if (selectedMedia) {
+        mediaRatio = await (window.danzstakPostPhotos?.shapeOf?.(selectedMedia.file) || 0);
         const ticketResponse = await profileFetch(profileApi + "/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: selectedMedia.file.type, purpose: "post" }) }, 15000);
         const ticket = await ticketResponse.json().catch(() => ({}));
         if (!ticketResponse.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || "Media upload could not start.");
@@ -1083,7 +1087,7 @@ function profileWallComposer(profile) {
         if (mediaType === "image" && selectedMedia.more?.length && window.danzstakPostPhotos) uploadedMoreKeys = await window.danzstakPostPhotos.upload(selectedMedia.more.map(item => item.file), profileFetch);
       }
       // T0-A1: every posted video goes to The Roll (the server also adds Dailies by itself).
-      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType, reel: mediaType === "video" };
+      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType, reel: mediaType === "video", ...(mediaKey ? { uploadSource: window.danzstakPostPhotos?.uploadSource?.(), ...(mediaRatio ? { mediaRatio } : {}), ...(selectedMedia?.albumChoice?.value() ? { albumId: selectedMedia.albumChoice.value() } : {}) } : {}) };
       if (!profile.isOwner) body.profileMemberId = profile.memberId;
       const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(uploadedMoreKeys.length ? { ...body, moreMediaKeys: uploadedMoreKeys } : body) });
       const data = await response.json().catch(() => ({}));
@@ -1184,7 +1188,9 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
     }
     // Fix-it 18: an empty wall says so in one friendly line, below the composer and any Dailies.
     if (!posts.length && !mediaOnly && collection === "posts" && tabMessage.childElementCount) { const empty = document.createElement("p"); empty.className = "profile-empty-wall"; empty.textContent = profileTranslate("No posts yet"); tabMessage.appendChild(empty); return; }
-    if (!posts.length && !tabMessage.childElementCount) { tabMessage.textContent = mediaOnly ? `No ${mediaType === "image" ? "photos" : mediaType === "video" ? "videos" : "photos or videos"} to show yet.` : "No posts to show yet."; return; }
+    if (!posts.length && !tabMessage.childElementCount) { tabMessage.textContent = mediaOnly ? `No ${mediaType === "image" ? "photos" : mediaType === "video" ? "videos" : "photos or videos"} to show yet.` : "No posts to show yet."; if (!mediaOnly) return; }
+    // Queue 5a2 (an empty grid still gets the Albums row: photos can live only in albums): the Photos and Videos tabs get the Albums row and album pages (assets/profile-albums.js).
+    if (mediaOnly && version === profileTabVersion && typeof CustomEvent === "function") window.dispatchEvent(new CustomEvent("danzstak:profile-media-tab", { detail: { mediaType, container: tabMessage } }));
   } catch (error) {
     if (version !== profileTabVersion) return;
     if (tabMessage.childElementCount) {

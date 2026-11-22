@@ -1,18 +1,23 @@
 "use strict";
 // Owner directive 2026-11-16: every video and image in Mix, The Roll and profiles fills the
-// full width of its card, like a familiar social feed. Each item gets its own aspect ratio,
-// clamped between 4:5 (tall) and 1.91:1 (wide), and fills it with object-fit: cover — never
-// stretched, no black bars, no 150px empty strips before the video has loaded.
+// full width of its card, like a familiar social feed, with object-fit: cover — never stretched,
+// no black bars, no 150px empty strips before the video has loaded.
+// Owner 2026-11-22 ("Make the container the size of the image or the video", "So it looks like it's full", "scale the
+// images and the videos and the containers all fit together"): a post's photo or video frame is the media's own shape,
+// so nothing is cut off and nothing is padded. Only extremes are limited: no taller than a phone screenshot (9:20) and
+// no wider than 3:1. The Roll's preview cards in Mix keep 4:5..1.91:1 so the strip stays one even row.
 (() => {
   const VIDEO = "#feed .post video.post-media, video.profile-post-media, .reels-rail:not(.roll-fullscreen) video.reel-player";
   const IMAGE = "#feed .post > img.post-media, img.profile-post-media";
-  const MIN = 0.8, MAX = 1.91;
+  const MIN = 0.45, MAX = 3;
+  const ROLL_MIN = 0.8, ROLL_MAX = 1.91;
   const clamp = ratio => Math.min(MAX, Math.max(MIN, ratio));
+  const clampRoll = ratio => Math.min(ROLL_MAX, Math.max(ROLL_MIN, ratio));
   const dataSaver = () => { try { return localStorage.getItem("danzstak_data_saver") === "1"; } catch { return false; } };
 
   function apply(media, width, height) {
     if (!width || !height) return;
-    const ratio = clamp(width / height).toFixed(4);
+    const ratio = (media.closest(".reels-rail") ? clampRoll : clamp)(width / height).toFixed(4);
     media.style.setProperty("--fit-ar", ratio);
     const holder = media.closest(".danzstak-media-shell, .reel-media-stage, .danzstak-reel-shell");
     if (holder) holder.style.setProperty("--fit-ar", ratio);

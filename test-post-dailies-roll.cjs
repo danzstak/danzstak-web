@@ -105,7 +105,7 @@ function sandbox({ storiesFail = false } = {}) {
   assert.match(feed, /if \(selectedMedia\?\.file && savedPost\?\.dailyCreated !== true\) \{/, "Mix only uploads a Daily itself when the server did not add one");
   assert.match(enhancements, /groupId: group\.id, mediaKey, mediaType, reel: mediaType === "video"/, "Tribe composer");
   assert.match(enhancements, /reel: mediaFields\.mediaType === "video"/, "event composer");
-  assert.match(profileEditor, /mediaKey, mediaType, reel: mediaType === "video" \};/, "profile composer");
+  assert.match(profileEditor, /mediaKey, mediaType, reel: mediaType === "video", \.\.\.\(mediaKey \? \{ uploadSource:/, "profile composer (also says phone or computer for the automatic albums)");
   assert.doesNotMatch(enhancements, /toggle = document\.getElementById\("shareToReels"\)/, "linked videos go to The Roll without a checkbox");
 
   // Deploy: the Stories write is part of the Auth API's managed access policy (2026-11-20: the separate DanzStakPostDailies
