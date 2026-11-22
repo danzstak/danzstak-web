@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-cnG44HWytd9JvFiI/F65VPWtO5sK8TKnMQmaCh+eAPI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-/bFJMIYUJxlpqEzUDPBoTp4BaL5+rELQ028cjgvACS8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -331,7 +331,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 }
 </style>
 <link rel="stylesheet" href="assets/soft-ui.css?v=428">
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=532">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=533">
 <link rel="stylesheet" href="assets/image-position.css?v=1">
 <link rel="stylesheet" href="assets/facebook-import.css?v=342">
 <link rel="stylesheet" href="assets/pivot.css?v=3">
@@ -340,7 +340,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <link rel="stylesheet" href="assets/user-content-links.css?v=2">
 <link rel="stylesheet" href="assets/app-feedback.css?v=3">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=237">
-<link rel="stylesheet" href="assets/call-ringer.css?v=2">
+<link rel="stylesheet" href="assets/call-ringer.css?v=4">
 <link rel="stylesheet" href="assets/call-setup.css?v=2">
 <link rel="stylesheet" href="assets/responsive-media.css?v=9">
 <link rel="stylesheet" href="assets/mobile-design-system.css?v=22">
@@ -351,7 +351,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <script src="assets/i18n-people.js?v=27" defer></script>
 <script src="assets/time-label.js?v=1"></script>
 <script src="assets/i18n-music.js?v=17" defer></script>
-<script src="assets/i18n.js?v=415" defer></script>
+<script src="assets/i18n.js?v=416" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/identity-media.js?v=2"></script>
 <script src="assets/user-content-links.js?v=1" defer></script>
@@ -360,8 +360,8 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <link rel="stylesheet" href="assets/media-fit.css?v=2">
 <link rel="stylesheet" href="assets/media-viewer.css?v=3">
 <link rel="stylesheet" href="assets/media-actions.css?v=1">
-<link rel="stylesheet" href="assets/post-photos.css?v=1">
-<script src="assets/post-photos.js?v=1"></script>
+<link rel="stylesheet" href="assets/post-photos.css?v=3">
+<script src="assets/post-photos.js?v=3"></script>
 <link rel="stylesheet" href="assets/link-preview-cards.css?v=5">
 <link rel="stylesheet" href="assets/mix-polish.css?v=26">
 <link rel="stylesheet" href="assets/tribes-polish.css?v=4">
@@ -1181,11 +1181,14 @@ async function loadStories() {
     document.getElementById("storiesLoading")?.remove();
     storiesRail.querySelector(".story-empty")?.remove();
     storiesRail.querySelectorAll(".story[data-story-id]").forEach(item => item.remove());
-    // T0-A2: the strip is your own tile (which opens your Dailies) plus friends' Dailies; yours are not repeated.
+    // The strip is your own tile, then your live Dailies (owner 2026-11-22: "it's not populating dailies" when they hid
+    // behind the tile), newest post first and a post's photos in their order, then friends' Dailies in a fresh order.
     const allStories = Array.isArray(data.stories) ? data.stories : [];
     ownDailies = allStories.filter(story => story.isOwner === true);
     paintOwnDailiesTile();
-    const visibleStories = rotateDailiesForVisit(allStories.filter(story => story.isOwner !== true)).slice(0, 12);
+    const postSecond = story => Math.floor((Date.parse(story.createdAt) || 0) / 1000);
+    const ownInStrip = [...ownDailies].sort((a, b) => postSecond(b) - postSecond(a) || String(a.createdAt).localeCompare(String(b.createdAt)));
+    const visibleStories = [...ownInStrip, ...rotateDailiesForVisit(allStories.filter(story => story.isOwner !== true)).slice(0, 12)];
     const entering = !storiesRail.dataset.settled; // directive F15: the tiles bounce in once per page load
     storiesRail.dataset.settled = "true";
     const dailyTakeCount = Math.max(0, Number(data.dailyTakeCount) || 0);
@@ -1445,6 +1448,8 @@ async function loadPosts() {
         post.moreMediaUrls
       );
       if (post.sharedPostId) article.dataset.sharedPostId = post.sharedPostId;
+      // F22: the stored shape sizes the frame before the media loads, so nothing below it jumps.
+      window.danzstakPostPhotos?.presetShape?.(article, post.mediaRatio);
       // F15b: the DanzStak welcome post is pinned first (the server sends pinnedUntil only while it is in the future and
       // orders it first); it shows a small pin label, and its official text is read in the member's language.
       if (Date.parse(post.pinnedUntil || "") > Date.now()) {
@@ -1621,7 +1626,9 @@ publishBtn.addEventListener("click", async () => {
     let mediaKey = "";
     let mediaType = "";
     let mediaUrl = "";
+    let mediaRatio = 0; // the media's own shape, kept with the post so its frame is right before it loads (F22)
     if (selectedMedia) {
+      mediaRatio = await (window.danzstakPostPhotos?.shapeOf?.(selectedMedia.file) || 0);
       const ticketResponse = await fetchWithDeadline("https://api.danzstak.com/stories", {
         method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
         body: JSON.stringify({ contentType: selectedMedia.file.type, purpose: "post" })
@@ -1645,7 +1652,7 @@ publishBtn.addEventListener("click", async () => {
         "Content-Type": "application/json"
       },
       credentials: "include",
-      body: JSON.stringify({ content: content || "Shared media", location: submittedLocation.trim(), audience, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true, ...(uploadedMoreKeys.length ? { moreMediaKeys: uploadedMoreKeys } : {}) })
+      body: JSON.stringify({ content: content || "Shared media", location: submittedLocation.trim(), audience, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true, ...(uploadedMoreKeys.length ? { moreMediaKeys: uploadedMoreKeys } : {}), ...(mediaKey ? { uploadSource: window.danzstakPostPhotos?.uploadSource?.(), ...(mediaRatio ? { mediaRatio } : {}), ...(selectedMedia?.albumChoice?.value() ? { albumId: selectedMedia.albumChoice.value() } : {}) } : {}) })
     });
 
     if (response.status === 401) {
@@ -1718,6 +1725,7 @@ publishBtn.addEventListener("click", async () => {
         morePhotos
       )
     );
+    window.danzstakPostPhotos?.presetShape?.(feed.firstElementChild, mediaRatio);
     separatePosts.forEach((post, index) => feed.prepend(createPostElement(post.content, "You", post.createdAt, post.audience || audience,
       selectedMedia.more?.[index]?.url || "", "image", post.postId, true, String(post.userId || ""))));
     window.dispatchEvent(new CustomEvent("danzstak:post-published", { detail: { postId: savedPost.postId, mediaUrl } }));
@@ -1953,21 +1961,21 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/pivot.js?v=6" defer></script>
 <script src="assets/device-settings.js?v=233" defer></script>
 <script src="assets/activity-history-core.js?v=287" defer></script>
-<script src="assets/account-export-core.js?v=288" defer></script>
-<script src="assets/account-export.js?v=288" defer></script>
+<script src="assets/account-export-core.js?v=289" defer></script>
+<script src="assets/account-export.js?v=289" defer></script>
 <script src="assets/artist-hq.js?v=6" defer></script>
 <script src="assets/invite-sharing.js?v=1" defer></script>
 <script src="assets/tribes-art.js?v=1" defer></script>
 <script src="assets/tribe-create.js?v=1" defer></script>
 <script src="assets/device-reminder.js?v=3" defer></script>
 <script src="assets/image-position.js?v=1" defer></script>
-<script src="assets/feed-enhancements.js?v=596" defer></script>
+<script src="assets/feed-enhancements.js?v=598" defer></script>
 <script src="assets/profile-onboarding.js?v=12" defer></script>
 <script src="assets/session-activity.js?v=297" defer></script>
 <script src="assets/call-setup.js?v=3" defer></script>
-<script src="assets/sync-tones.js?v=5" defer></script>
-<script src="assets/call-ringer.js?v=2" defer></script>
-<script src="assets/incoming-calls.js?v=311" defer></script>
+<script src="assets/sync-tones.js?v=7" defer></script>
+<script src="assets/call-ringer.js?v=4" defer></script>
+<script src="assets/incoming-calls.js?v=313" defer></script>
 <script src="assets/session-cleanup.js?v=295" defer></script>
 <script src="assets/app-feedback.js?v=4" defer></script>
 <script src="assets/logout.js?v=313" defer></script>
@@ -1983,7 +1991,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/media-actions.js?v=1" defer></script>
 <script src="assets/media-viewer.js?v=7" defer></script>
 <script src="assets/responsive-media.js?v=3" defer></script>
-<script src="assets/media-fit.js?v=3" defer></script>
+<script src="assets/media-fit.js?v=4" defer></script>
 <script src="assets/link-preview-cards.js?v=4" defer></script>
 <script src="assets/text-emojis.js?v=231" defer></script>
 <script src="assets/people-search.js?v=424" defer></script>

@@ -40,6 +40,11 @@ function fixture(pathname) {
         await page.locator('.post[data-post-id="friend-photo"]').waitFor({ timeout: 15000 });
         await page.goto(`${base}/feed.html#${route}`, { waitUntil: "domcontentloaded" });
         await page.waitForURL(url => url.pathname.endsWith("/profile.html") && url.hash === `#${route}`, { timeout: 10000 });
+        // Owner 2026-11-22: the tab opens on album covers ("a few albums… not a lot of loose images"); "All photos" /
+        // "All videos" holds every one.
+        const all = page.locator(".profile-albums .profile-album-tile", { hasText: route === "photos" ? "All photos" : "All videos" });
+        await all.waitFor({ timeout: 10000 });
+        await all.click();
         const grid = page.locator(route === "photos" ? ".profile-photo-grid" : ".profile-video-grid:not(.profile-photo-grid)");
         await grid.waitFor({ timeout: 10000 });
         await page.waitForTimeout(400);
@@ -54,13 +59,16 @@ function fixture(pathname) {
         assert.ok(!view.labels.some(text => text.includes(theirs)), `${label}: another member's ${route} must not be listed: ${JSON.stringify(view.labels)}`);
         assert.equal(view.gallery, 0, `${label}: no text-card gallery of Mix posts`);
         assert.equal(view.overflow, false, `${label}: no sideways scroll`);
+        // Back closes the album first (back to the covers), then returns to Mix.
+        await page.goBack();
+        await page.locator(".profile-albums").waitFor({ state: "visible", timeout: 10000 });
         await page.goBack();
         await page.waitForURL(url => url.pathname.endsWith("/feed.html") && !url.hash, { timeout: 10000 });
         assert.deepEqual(errors, [], `${label}: page errors: ${errors.join(" | ")}`);
         await context.close();
       }
     }
-    console.log(`Own-media checks passed at ${viewports.map(([width]) => width).join(", ")}px: Photos and Videos open your own profile grids, never other members' posts, and Back returns to Mix.`);
+    console.log(`Own-media checks passed at ${viewports.map(([width]) => width).join(", ")}px: Photos and Videos open on your albums, All photos / All videos hold only your own, never other members' posts, and Back returns to the albums, then Mix.`);
   } finally {
     await browser.close();
   }

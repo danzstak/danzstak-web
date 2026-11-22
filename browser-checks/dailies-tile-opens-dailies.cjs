@@ -3,7 +3,8 @@
 // - your own tile opens your Dailies full screen (swipe left/right, ‹ ›, arrow keys), or the Mix post box when you have
 //   none today; it never opens a file picker;
 // - a friend's tile opens friends' Dailies at that friend; a finger swipe moves card to card (directive F3);
-// - your own Dailies are not repeated in the strip (it is your tile + friends'), and you can delete one from the viewer.
+// - your own Dailies show in the strip right after your tile, newest first, then friends' (owner 2026-11-22: "it's not
+//   populating dailies" when they only sat behind the tile), and you can delete one from the viewer.
 // Real Chromium at 320, 360, 390, 414 and 430px with real touch input (Chrome DevTools touch events, so the swipe is
 // tested the way a phone sends it). Served from this checkout under a non-local host name, API mocked:
 //   node browser-checks/dailies-tile-opens-dailies.cjs
@@ -146,7 +147,8 @@ const viewerEvents = page => page.evaluate(() => (window.__viewerEvents || []).j
       run = await openFeed(browser, width, [...mine.slice(0, 1), ...friends.slice(0, 1), ...mine.slice(1), ...friends.slice(1)]);
       tile = await run.page.evaluate(() => ({ label: document.querySelector(".story-create").getAttribute("aria-label"), ids: [...document.querySelectorAll("#storiesRail .story[data-story-id]")].map(n => n.dataset.storyId) }));
       assert.equal(tile.label, "Open your Dailies (3)", `${label}: own tile opens your Dailies`);
-      assert.deepEqual([...tile.ids].sort(), ["f1", "f2"], `${label}: your own Dailies are behind your tile, not repeated in the strip`);
+      assert.deepEqual(tile.ids.slice(0, 3), ["m1", "m2", "m3"], `${label}: your own Dailies come right after your tile, newest first`);
+      assert.deepEqual([...tile.ids.slice(3)].sort(), ["f1", "f2"], `${label}: then friends' Dailies`);
       if (width === 360 || width === 390) await run.page.screenshot({ path: path.join(output, `strip-${width}.png`), clip: { x: 0, y: 0, width, height: 340 } });
       await run.page.locator(".story-create").tap();
       await run.page.waitForFunction(() => document.getElementById("storyViewer")?.open);
