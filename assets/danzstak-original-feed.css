@@ -545,12 +545,12 @@ body.danzstak-original .right :is(h3,h2) {
     max-width:100vw!important;
     margin-inline:-12px!important;
   }
+  /* The photo's own shape (media-fit.css/js, 4:5 to 1.91:1), never a fixed 4:5 frame (F22, owner 2026-11-22). */
   body.danzstak-original #feed .post > img.post-media {
     width:100vw!important;
-    height:125vw!important;
+    height:auto!important;
     max-height:none!important;
     margin-inline:-12px!important;
-    aspect-ratio:4/5;
     object-fit:cover!important;
     object-position:center;
   }
