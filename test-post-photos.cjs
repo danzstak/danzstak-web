@@ -54,6 +54,9 @@ function sandbox() {
   assert.ok(dailies.every((daily, index) => index === 0 || Date.parse(daily.createdAt.S) > Date.parse(dailies[index - 1].createdAt.S)), "Dailies keep the photos' order");
   assert.deepEqual(result.body.moreMediaKeys, more, "the answer says the other photos were kept (the browser relies on it)");
   assert.equal(result.body.dailyCreated, true);
+  const take = box.writes("DanzStak-UserSettings");
+  assert.equal(take.length, 1, "one take-count update for the post");
+  assert.equal(take[0].input.ExpressionAttributeValues[":count"].N, "3", "three photos add 3 to TAKE N (owner: 15 + 4 photos = take 19)");
 
   // A one-photo post has no moreMedia at all.
   box = sandbox();

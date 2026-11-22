@@ -2514,6 +2514,7 @@ async function createSecurePost(event) {
   if (mediaKey && !facebookImport && !sharedSource) {
     const expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
     // Every photo of a multi-photo post is its own Daily (owner 2026-11-22), in the post's order.
+    let dailies = 0;
     for (const [index, key] of [mediaKey, ...moreMediaKeys].entries()) {
       const storyId = randomUUID(), at = new Date(Date.parse(createdAt) + index).toISOString();
       try {
@@ -2523,12 +2524,14 @@ async function createSecurePost(event) {
           ConditionExpression: "attribute_not_exists(storyId)"
         }));
         if (!daily) daily = { storyId, expiresAt };
-        // The clapper's TAKE N counts the member's lifetime Dailies videos (same rule as a Daily added directly).
-        if (mediaType === "video") await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :one", ExpressionAttributeValues: { ":one": { N: "1" }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count could not be updated", { postId, error: error.name }));
+        dailies += 1;
       } catch (error) {
         console.error("Post Daily could not be created", { postId, error: error.name });
       }
     }
+    // The clapper's TAKE N counts every Daily the member has ever posted, photos and videos (owner 2026-11-22: "I had 15
+    // before and now I just uploaded four more so it should be … take 19"). It never goes down.
+    if (dailies) await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :count", ExpressionAttributeValues: { ":count": { N: String(dailies) }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count could not be updated", { postId, error: error.name }));
   }
 
   return {
