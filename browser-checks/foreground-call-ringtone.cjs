@@ -111,7 +111,8 @@ const device = { deviceId: "44444444-4444-4444-8444-444444444444", deviceToken: 
       await authenticatedInbox;
       const popup = page.locator(".global-incoming-call");
       await popup.waitFor({ state: "visible", timeout: 5000 });
-      await page.waitForFunction(() => window.__toneStarts > 0, null, { timeout: 2000 });
+      // 5a00: the shared ringer plays an <audio> ringtone first and falls back to Web Audio.
+      await page.waitForFunction(() => window.__toneStarts > 0 || ["audio", "webaudio"].includes(window.danzstakCallRinger?.state?.()), null, { timeout: 2000 });
 
       const geometry = await popup.evaluate(element => {
         const rect = element.getBoundingClientRect();
