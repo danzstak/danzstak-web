@@ -20,6 +20,8 @@ assert.match(chat, /document\.addEventListener\("visibilitychange",\(\)=>\{if\(d
 
 const scheduled = new Map();
 let nextTimer = 1;
+const param = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {} });
+const node = extra => ({ ...extra, connect(next) { return next || this; } });
 const state = vm.createContext({
   window: {},
   ringTimer: null,
@@ -31,8 +33,11 @@ const state = vm.createContext({
   document: { hidden: false, body: { dataset: {}, classList: { contains() { return false; } } } },
   audioContext: {
     state: "running", currentTime: 0, destination: {},
-    createOscillator() { return { frequency: { value: 0 }, connect() { return this; }, start() {}, stop() {} }; },
-    createGain() { return { gain: { value: 0 }, connect() { return this; } }; }
+    createOscillator() { return { frequency: { value: 0 }, connect(n) { return n || this; }, start() {}, stop() {} }; },
+    createGain() { return node({ gain: param() }); },
+    createBiquadFilter() { return node({ type: "", frequency: param() }); },
+    createWaveShaper() { return node({ curve: null, oversample: "" }); },
+    createDynamicsCompressor() { return node({ threshold: param(), knee: param(), ratio: param(), attack: param(), release: param() }); }
   },
   els: {
     incoming: { hidden: true },
@@ -45,7 +50,7 @@ const state = vm.createContext({
   clearTimeout() {},
   Date
 });
-vm.runInContext(["playTone", "startIncomingRingtone", "stopIncomingRingtone", "updateRingbackControl", "stopRingback", "stopRing", "startRingback"].map(extract).join("\n"), state);
+vm.runInContext(["playTone", "ringbackBurst", "loudRingback", "startIncomingRingtone", "stopIncomingRingtone", "updateRingbackControl", "stopRingback", "stopRing", "startRingback"].map(extract).join("\n"), state);
 
 state.startIncomingRingtone();
 assert.ok(state.ringTimer, "an unlocked visible incoming call must have a ringtone cadence");

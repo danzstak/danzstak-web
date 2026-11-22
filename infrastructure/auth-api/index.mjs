@@ -1282,7 +1282,7 @@ async function listGroups(event) {
     const id = item.userEmail.S.slice(6), isOwner = item.ownerId?.S === userId, membership = viewerMemberships.get(id);
     const storedDescription = item.description?.S || "";
     const description = storedDescription === "A new DanzStak community group." ? "A new DanzStak Tribe." : storedDescription || "A DanzStak Tribe.";
-    return { id, name: item.name?.S || "Tribe", category: item.category?.S || "Creators", description, coverUrl: item.coverKey?.S ? signedMediaUrl(item.coverKey.S, 3600) : "", createdAt: item.createdAt?.S || "", memberCount: counts.get(id) || 0, joined: Boolean(membership), isOwner, isElder: isOwner || membership?.role?.S === "elder" };
+    return { id, name: item.name?.S || "Tribe", category: item.category?.S || "Creators", description, coverUrl: item.coverKey?.S ? signedMediaUrl(item.coverKey.S, 3600) : "", coverPosition: groupCoverPosition(item), createdAt: item.createdAt?.S || "", memberCount: counts.get(id) || 0, joined: Boolean(membership), isOwner, isElder: isOwner || membership?.role?.S === "elder" };
   }).sort((a, b) => a.name.localeCompare(b.name));
   return { statusCode: 200, headers, body: JSON.stringify({ groups }) };
 }
@@ -1438,6 +1438,18 @@ async function cleanupGroupCoverObjects(id, keys, { allowActive = false } = {}) 
   return { cleaned: candidates.length - pending.length, pending: pending.length };
 }
 
+// Directive F12: where the Tribe cover sits in its box (the wide cover and the square Tribe picture use the same point).
+function groupCoverPosition(item) {
+  const read = (field, low, high, start) => { const value = Number(item?.[field]?.N); return Number.isFinite(value) ? Math.max(low, Math.min(high, value)) : start; };
+  return { x: read("coverX", 0, 100, 50), y: read("coverY", 0, 100, 50), zoom: read("coverZoom", 1, 3, 1) };
+}
+function requestedCoverPosition(data) {
+  const position = data?.position;
+  if (!position || typeof position !== "object") return null;
+  const read = (value, low, high, start) => { const number = Number(value); return Math.round(Math.max(low, Math.min(high, Number.isFinite(number) ? number : start)) * 100) / 100; };
+  return { x: read(position.x, 0, 100, 50), y: read(position.y, 0, 100, 50), zoom: read(position.zoom, 1, 3, 1) };
+}
+
 async function updateGroupCover(event) {
   const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -1446,21 +1458,38 @@ async function updateGroupCover(event) {
   if (!meta) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
   const callerEmail = await accountForSub(userId), membership = await groupMembership(id, callerEmail);
   if (meta.ownerId?.S !== userId && membership?.role?.S !== "elder") return { statusCode: 403, headers, body: JSON.stringify({ error: "Only an Elder can change the Tribe cover." }) };
-  const data = parseJsonBody(event), mediaKey = String(data?.mediaKey || ""), ownerPrefix = sha256(callerEmail).slice(0, 24);
+  const data = parseJsonBody(event), mediaKey = String(data?.mediaKey || ""), ownerPrefix = sha256(callerEmail).slice(0, 24), position = requestedCoverPosition(data);
+  if (!mediaKey && position) {
+    if (!meta.coverKey?.S) return { statusCode: 400, headers, body: JSON.stringify({ error: "Add a cover photo first." }) };
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: groupsTable,
+        Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+        UpdateExpression: "SET coverX = :x, coverY = :y, coverZoom = :zoom, updatedAt = :updated",
+        ConditionExpression: "attribute_exists(userEmail) AND attribute_not_exists(deletionState) AND coverKey = :cover",
+        ExpressionAttributeValues: { ":x": { N: String(position.x) }, ":y": { N: String(position.y) }, ":zoom": { N: String(position.zoom) }, ":updated": { S: new Date().toISOString() }, ":cover": { S: meta.coverKey.S } }
+      }));
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "The Tribe cover changed on another device. Try again." }) };
+      throw error;
+    }
+    return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(meta.coverKey.S, 3600), coverPosition: position }) };
+  }
   if (!new RegExp(`^users/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|gif)$`).test(mediaKey)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Choose a photo you uploaded." }) };
   try { await s3.send(new HeadObjectCommand({ Bucket: mediaBucket, Key: mediaKey })); }
   catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded cover photo was not found." }) }; }
   const oldKey = meta.coverKey?.S || "";
   const replacedKey = oldKey && oldKey !== mediaKey && groupCoverKeyPattern.test(oldKey) ? oldKey : "";
   const pendingCoverCleanup = [...new Set([...(meta.coverCleanup?.SS || []), replacedKey].filter(key => key && key !== mediaKey))];
-  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
+  const placed = position || { x: 50, y: 50, zoom: 1 };
+  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) }, ":x": { N: String(placed.x) }, ":y": { N: String(placed.y) }, ":zoom": { N: String(placed.zoom) } };
   if (pendingCoverCleanup.length) expressionValues[":coverCleanup"] = { SS: pendingCoverCleanup };
   if (oldKey) expressionValues[":oldCover"] = { S: oldKey };
   try {
     await db.send(new UpdateItemCommand({
       TableName: groupsTable,
       Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
-      UpdateExpression: "SET coverKey = :cover, updatedAt = :updated" + (pendingCoverCleanup.length ? ", coverCleanup = :coverCleanup REMOVE " : " REMOVE coverCleanup, ") + "coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
+      UpdateExpression: "SET coverKey = :cover, coverX = :x, coverY = :y, coverZoom = :zoom, updatedAt = :updated" + (pendingCoverCleanup.length ? ", coverCleanup = :coverCleanup REMOVE " : " REMOVE coverCleanup, ") + "coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
       ExpressionAttributeValues: expressionValues,
       ConditionExpression: "attribute_exists(userEmail) AND attribute_not_exists(deletionState) AND (attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now) AND " + (oldKey ? "coverKey = :oldCover" : "attribute_not_exists(coverKey)")
     }));
@@ -1469,7 +1498,7 @@ async function updateGroupCover(event) {
     throw error;
   }
   const cleanup = await cleanupGroupCoverObjects(id, pendingCoverCleanup);
-  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600), cleanupPending: cleanup.pending }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600), coverPosition: placed, cleanupPending: cleanup.pending }) };
 }
 
 async function deleteGroup(event) {
@@ -1894,11 +1923,22 @@ async function getSecurePosts(event) {
       commentPolicy: item.commentPolicy?.S ?? "everyone",
       editHistory: postEditHistory(item),
       updatedAt: item.updatedAt?.S ?? "",
+      pinnedUntil: activePinUntil(item),
       createdAt: item.createdAt.S
-    }))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }));
 
-  return { statusCode: 200, headers, body: JSON.stringify({ posts }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ posts: orderMixPosts(posts) }) };
+}
+
+// F15b (owner 2026-11-19): the DanzStak welcome post stays first in Mix until its pinnedUntil date, then falls back into
+// its chronological place. Only the owner's CloudShell script (set-welcome-post.mjs) writes pinnedUntil; no API route
+// accepts it (updateSecurePost takes content, audience and comment policy only), so members can't pin.
+function activePinUntil(item, now = Date.now()) {
+  const until = Date.parse(item?.pinnedUntil?.S || "");
+  return Number.isFinite(until) && until > now ? new Date(until).toISOString() : "";
+}
+function orderMixPosts(posts) {
+  return [...posts].sort((a, b) => Number(Boolean(b.pinnedUntil)) - Number(Boolean(a.pinnedUntil)) || b.createdAt.localeCompare(a.createdAt));
 }
 
 async function postForEngagement(postId, userId) {
@@ -2039,8 +2079,9 @@ async function getEngagement(event) {
     const list = children.get(comment.parentCommentId) || []; list.push(comment); children.set(comment.parentCommentId, list);
   }
   const comments = [], appendThread = comment => { comments.push(comment); for (const reply of (children.get(comment.commentId) || []).sort((a,b) => a.createdAt.localeCompare(b.createdAt))) appendThread(reply); };
+  // Directive F1a (owner 2026-11-19): comments by time only (the app shows Newest or Oldest), never ranked by reactions.
   commentRecords.filter(comment => !comment.parentCommentId || !commentById.has(comment.parentCommentId))
-    .sort((a,b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
+    .sort((a,b) => a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
   return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments }) };
 }
 
@@ -5814,4 +5855,4 @@ export const handler = async event => {
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };
+export { activePinUntil, orderMixPosts, geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };

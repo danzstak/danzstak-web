@@ -7,7 +7,7 @@
 .groups-workspace .groups-tab{flex:0 0 auto;min-height:40px!important;padding:0 16px!important;border:0!important;border-radius:999px!important;background:#f2f2ef!important;color:#16191f!important;font-weight:800!important;font-size:15px!important}
 .groups-workspace .groups-tab[aria-selected=true]{background:#16191f!important;color:#fff!important}
 .tribes-head-actions{display:flex;gap:4px;margin-left:auto;flex:0 0 auto}
-.tribes-head-actions .ds-icon-button,.tribes-head-actions .groups-create-toggle{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;padding:0!important;border-radius:50%!important;display:inline-grid!important;place-items:center;background:#f2f2ef!important;color:#16191f!important;border:0!important;position:relative;grid-column:auto!important;grid-row:auto!important}
+.tribes-head-actions .ds-icon-button,.tribes-head-actions .groups-create-toggle{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;padding:0!important;border-radius:50%!important;display:inline-grid!important;place-items:center;background:#f2f2ef!important;color:#fff!important;border:0!important;position:relative;grid-column:auto!important;grid-row:auto!important}
 .tribes-head-actions .groups-create-toggle{background:#ff5a1f!important;color:#121418!important}
 .tribes-head-actions .groups-create-toggle::before{color:#121418!important}
 .groups-workspace .tribes-head:not(.is-searching) .groups-discovery-controls{display:none!important}
@@ -26,7 +26,7 @@
 .groups-workspace .group-moderation-notice{grid-area:auto!important;grid-column:2/-1!important;margin:0!important}
 .groups-workspace .group-card .tribe-pin{grid-area:pin;width:44px;height:44px;min-height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:#5b6472;display:inline-grid;place-items:center}
 .groups-workspace .group-card .tribe-pin[aria-pressed=true]{color:#ff5a1f}
-.groups-workspace .group-card > button.primary{grid-area:join;background:#ff5a1f!important;color:#121418!important;border:0!important;font-weight:800!important}
+.groups-workspace .group-card > button.primary{grid-area:join;background:var(--ds-btn-go,#15803d)!important;color:#fff!important;border:0!important;font-weight:800!important}
 .groups-workspace .group-card > button.primary.is-selected{display:none!important} /* joined rows show the pin, like Facebook */
 /* Tribe page hero: art instead of a big letter */
 .tribe-hero-cover.has-art{background:none!important;overflow:hidden}

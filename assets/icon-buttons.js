@@ -24,7 +24,7 @@
     video: ["M15 10 21 6v12l-6-4", "M3 6h12v12H3Z"],
     more: ["M5 12h.01", "M12 12h.01", "M19 12h.01"],
     back: ["M19 12H5", "M12 19 5 12l7-7"],
-    refresh: ["M20 6v5h-5", "M4 18v-5h5", "M6.1 9A7 7 0 0 1 18 6l2 5", "M17.9 15A7 7 0 0 1 6 18l-2-5"],
+    refresh: ["M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", "M21 3v5h-5", "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", "M8 16H3v5"], // refresh-cw (ISC, copied in): Pivot, the same paths as app-bar.js (directive F15j)
     save: ["M5 3h12l2 2v16H5Z", "M8 3v6h8V3", "M8 21v-7h8v7"],
     eye: ["M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"],
     link: ["M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1", "M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1"],
@@ -49,6 +49,7 @@
     bookmark: ["M6 3h12v18l-6-4-6 4Z"],
     help: ["M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4", "M12 18h.01", "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"],
     lock: ["M5 10h14v11H5Z", "M8 10V7a4 4 0 0 1 8 0v3"],
+    shield: ["M12 22s8-3.6 8-10V5l-8-3-8 3v7c0 6.4 8 10 8 10Z"], // audit 36 D7: Settings → Account security showed "•"
     file: ["M6 2h8l4 4v16H6Z", "M14 2v5h5"],
     logout: ["M10 17l5-5-5-5", "M15 12H3", "M21 3v18h-6"],
     tag: ["M20 13 13 20 4 11V4h7Z", "M8.5 8.5h.01"],
@@ -69,6 +70,9 @@
     ,"eject": ["M12 5 4 14h16Z", "M4 18h16"]
     ,"plus": ["M12 5v14", "M5 12h14"]
     ,"chevron-down": ["m6 9 6 6 6-6"]
+    // F15k call screen: the same microphone and camera, struck through when off.
+    ,"microphone-off": ["M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z", "M19 10v2a7 7 0 0 1-14 0v-2", "M12 19v3", "M8 22h8", "m3 3 18 18"]
+    ,"video-off": ["M15 10 21 6v12l-6-4", "M3 6h12v12H3Z", "m2 2 20 20"]
   };
   const labels = new Map([
     ["open full screen", "expand"], ["open fullscreen", "expand"], ["exit full screen", "minimize"], ["exit fullscreen", "minimize"],
@@ -104,7 +108,8 @@
   }
 
   function iconFromAccessibleName(control, visible) {
-    if (/^[\p{P}\p{S}\s]+$/u.test(visible) || !visible) {
+    // Symbols only (marks and joiners count too: "🗑️" ends in a variation selector, which kept EPK's delete an emoji, audit 36 D6).
+    if (/^[\p{P}\p{S}\p{M}\u200d\s]+$/u.test(visible) || !visible) {
       const name = readableLabel(control, visible).toLocaleLowerCase("en-US");
       for (const [prefix, icon] of [["delete", "trash"], ["remove", "trash"], ["close", "close"], ["cancel", "close"], ["minimize", "minimize"], ["more", "more"], ["send", "send"], ["attach", "paperclip"], ["take a photo", "camera"], ["open camera", "camera"], ["phone", "phone"], ["video", "video"], ["reply", "reply"]]) if (name.startsWith(prefix)) return icon;
     }

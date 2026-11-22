@@ -16,7 +16,7 @@
 .reels-rail:not(.roll-fullscreen) .reel-details>*{display:none!important}
 .reels-rail:not(.roll-fullscreen) .reel-details>strong,.reels-rail:not(.roll-fullscreen) .reel-details>.reel-author-link{display:block!important;color:#fff!important;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}
 .reels-rail:not(.roll-fullscreen) .reel-details>strong{display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal}
-.reels-rail:not(.roll-fullscreen) .reels-empty{flex:1 0 100%;aspect-ratio:auto;padding:16px 0;margin:0}
+.reels-rail:not(.roll-fullscreen) .reels-empty{flex:1 0 100%;aspect-ratio:auto;padding:16px calc(var(--mix-pad,12px) * 2);margin:0} /* audit 36 D5: the list bleeds out by the rail's padding and the heading is inset by --mix-pad inside the rail, so this lines the text up with "The Roll" (roll-empty.cjs measures it) */
 .reels-heading>span:not([class]){display:none!important}
 /* Full screen: one video per screen, vertical snap, media centered and never stretched. */
 .reels-rail.roll-fullscreen .reel-card{display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;background:#000!important}

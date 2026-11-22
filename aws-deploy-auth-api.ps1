@@ -14,11 +14,13 @@ $PhoneServiceSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-
 $PhoneDynamoSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-phone-dynamodb.mjs"
 $Package = Join-Path $PSScriptRoot "infrastructure\auth-api\package.json"
 $PackageLock = Join-Path $PSScriptRoot "infrastructure\auth-api\package-lock.json"
-$Bundle = Join-Path $env:TEMP "danzstak-auth-api.zip"
-$Stage = Join-Path $env:TEMP ("danzstak-auth-api-" + [guid]::NewGuid().ToString("N"))
-$Policy = Join-Path $env:TEMP "danzstak-auth-api-policy.json"
-$Environment = Join-Path $env:TEMP "danzstak-auth-api-environment.json"
-$SesEventDestination = Join-Path $env:TEMP "danzstak-tour-manager-ses-events.json"
+# Windows sets TEMP; CloudShell (Linux) doesn't, so fall back to the system's temp folder (/tmp there).
+$TempRoot = if ($env:TEMP) { $env:TEMP } else { [IO.Path]::GetTempPath() }
+$Bundle = Join-Path $TempRoot "danzstak-auth-api.zip"
+$Stage = Join-Path $TempRoot ("danzstak-auth-api-" + [guid]::NewGuid().ToString("N"))
+$Policy = Join-Path $TempRoot "danzstak-auth-api-policy.json"
+$Environment = Join-Path $TempRoot "danzstak-auth-api-environment.json"
+$SesEventDestination = Join-Path $TempRoot "danzstak-tour-manager-ses-events.json"
 $ApiId = "0872gqal4m"
 $AuthIntegrationId = "5pipi5a"
 $ToursTable = "DANZSTAK-Tours"
@@ -141,6 +143,12 @@ try {
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/$SessionDevicesTable"
       },
       @{
+        Sid = "PostDailies"
+        Effect = "Allow"
+        Action = @("dynamodb:PutItem")
+        Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Stories"
+      },
+      @{
         Sid = "DeletePostStoryReferences"
         Effect = "Allow"
         Action = @("dynamodb:Scan", "dynamodb:DeleteItem")
@@ -245,34 +253,36 @@ try {
     )
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Policy -Encoding ascii
 
-  aws iam put-role-policy `
-    --region $Region `
-    --role-name $RoleName `
-    --policy-name DanzStakPostAuthorization `
-    --policy-document "file://$Policy"
-  if ($LASTEXITCODE -ne 0) { throw "Auth API authorization policy update failed." }
-
-  # T0-A1 (owner 2026-11-18): a post with a photo or video also adds the member's 24-hour Daily (DANZSTAK-Stories PutItem).
-  # The role's inline policy is at its 10 KB limit, so this one permission is a separate managed policy attached once.
-  $dailiesPolicyName = "DanzStakPostDailies"
-  $dailiesPolicyArn = "arn:aws:iam::$($identity.Account):policy/$dailiesPolicyName"
-  $dailiesPolicy = Join-Path $env:TEMP "danzstak-post-dailies-policy.json"
-  @{
-    Version = "2012-10-17"
-    Statement = @(@{
-      Sid = "PostDailies"
-      Effect = "Allow"
-      Action = @("dynamodb:PutItem")
-      Resource = "arn:aws:dynamodb:us-west-1:$($identity.Account):table/DANZSTAK-Stories"
-    })
-  } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $dailiesPolicy -Encoding ascii
-  aws iam get-policy --policy-arn $dailiesPolicyArn --output json 2>$null | Out-Null
+  # The role's inline policies share one 10,240-character quota, and with the others this one outgrew it (deploy
+  # 2026-11-20: LimitExceeded on PutRolePolicy). It is a managed policy now, with its own 6,144-character quota (about
+  # 5,200 used): created, or given a new default version, then attached, and only then is the old inline copy removed,
+  # so access never lapses. The Dailies permission (T0-A1) moved into it, so the role keeps the same number of
+  # attached policies.
+  $accessPolicyName = "DanzStakAuthApiAccess"
+  $accessPolicyArn = "arn:aws:iam::$($identity.Account):policy/$accessPolicyName"
+  aws iam get-policy --policy-arn $accessPolicyArn --output json 2>$null | Out-Null
   if ($LASTEXITCODE -ne 0) {
-    aws iam create-policy --policy-name $dailiesPolicyName --policy-document "file://$dailiesPolicy" --output json | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Post Dailies policy could not be created." }
+    aws iam create-policy --policy-name $accessPolicyName --policy-document "file://$Policy" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Auth API access policy could not be created." }
+  } else {
+    # A managed policy keeps at most 5 versions: the oldest non-default one goes before the new default is added.
+    $versions = aws iam list-policy-versions --policy-arn $accessPolicyArn --output json | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0) { throw "Auth API access policy versions could not be read." }
+    $older = @($versions.Versions | Where-Object { -not $_.IsDefaultVersion } | Sort-Object CreateDate)
+    if (@($versions.Versions).Count -ge 5 -and $older.Count -gt 0) {
+      aws iam delete-policy-version --policy-arn $accessPolicyArn --version-id $older[0].VersionId
+      if ($LASTEXITCODE -ne 0) { throw "An old Auth API access policy version could not be removed." }
+    }
+    aws iam create-policy-version --policy-arn $accessPolicyArn --policy-document "file://$Policy" --set-as-default --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Auth API access policy update failed." }
   }
-  aws iam attach-role-policy --role-name $RoleName --policy-arn $dailiesPolicyArn
-  if ($LASTEXITCODE -ne 0) { throw "Post Dailies policy could not be attached to the Auth API role." }
+  aws iam attach-role-policy --role-name $RoleName --policy-arn $accessPolicyArn
+  if ($LASTEXITCODE -ne 0) { throw "Auth API access policy could not be attached to the Auth API role." }
+  # Now covered by the managed policy: the old inline copy and the separate Dailies policy come off (a later run finds
+  # them gone, which is fine).
+  aws iam delete-role-policy --role-name $RoleName --policy-name DanzStakPostAuthorization 2>$null
+  aws iam detach-role-policy --role-name $RoleName --policy-arn "arn:aws:iam::$($identity.Account):policy/DanzStakPostDailies" 2>$null
+  $global:LASTEXITCODE = 0
 
   $mediaBucket = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query 'StackResourceDetail.PhysicalResourceId' --output text
   if ($LASTEXITCODE -ne 0 -or -not $mediaBucket) { throw "DanzStak media bucket could not be resolved." }
@@ -455,7 +465,7 @@ try {
   Remove-Item -LiteralPath $Environment -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $SesEventDestination -Force -ErrorAction SilentlyContinue
   $resolvedStage = [IO.Path]::GetFullPath($Stage)
-  $resolvedTemp = [IO.Path]::GetFullPath($env:TEMP).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+  $resolvedTemp = [IO.Path]::GetFullPath($TempRoot).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
   if ($resolvedStage.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) {
     Remove-Item -LiteralPath $resolvedStage -Recurse -Force -ErrorAction SilentlyContinue
   }

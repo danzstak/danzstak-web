@@ -8,8 +8,10 @@
    onto the same tokens (SYNC below; the site-wide sweep maps one area per PR). */
 :root{
   --ds-btn-accent:#ef6c20;            /* brand orange: glyphs, tonal tint, focus */
-  --ds-btn-primary:#c2410c;           /* primary fill: white text stays above 4.5:1 */
-  --ds-btn-primary-press:#9a3412;
+  --ds-btn-go:#15803d;                /* owner 2026-11-19: "go buttons green, not red" (white text 5.0:1) */
+  --ds-btn-go-press:#166534;
+  --ds-btn-primary:var(--ds-btn-go);  /* primary = the go action */
+  --ds-btn-primary-press:var(--ds-btn-go-press);
   --ds-btn-on-primary:#fff;
   --ds-btn-tonal:rgba(239,108,32,.12);
   --ds-btn-tonal-press:rgba(239,108,32,.22);
@@ -33,7 +35,7 @@
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   min-height:var(--ds-btn-size);border:0;border-radius:var(--ds-btn-radius);box-shadow:none;
   font:inherit;font-weight:600;letter-spacing:0;text-transform:none;white-space:nowrap;line-height:1.1;
-  cursor:pointer;touch-action:manipulation;user-select:none;
+  cursor:pointer;touch-action:manipulation;user-select:none;text-decoration:none; /* also on links styled as buttons */
   transition:background-color .12s ease,transform .08s ease,color .12s ease;
 }
 .ds-btn-icon{width:var(--ds-btn-size);min-width:var(--ds-btn-size);height:var(--ds-btn-size);padding:0;background:transparent;color:var(--ds-btn-ink)}
@@ -180,8 +182,6 @@ body.messages-page .contact-details-block:active{transform:scale(.97)}
 /* Post "⋯": a 44px icon button with a round press state. */
 #feed .post .post-menu-toggle{width:var(--ds-btn-size)!important;min-width:var(--ds-btn-size)!important;height:var(--ds-btn-size)!important;min-height:var(--ds-btn-size)!important;top:2px!important;right:2px!important;padding:0!important;border-radius:50%!important;-webkit-tap-highlight-color:transparent}
 #feed .post .post-menu-toggle:active{background:var(--ds-btn-press)!important}
-/* Header Pivot pill keeps its look but gets a full 44px target. */
-#pivotButton,.pivot-header-button{min-height:var(--ds-btn-size)!important}
 /* Mix action rows: instant press feedback, no grey tap flash. */
 #feed .post :is(.post-actions,.post-reactions) button{-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,transform .08s ease}
 #feed .post :is(.post-actions,.post-reactions) button:active{background:var(--ds-btn-press);transform:scale(.96)}
@@ -198,8 +198,8 @@ body.epk-skin:not(.public-mode) .epk-booking-handoff__actions a{
 body.epk-skin:not(.public-mode) main button:not(.ds-icon-button):not([data-icon]):active,
 body.epk-skin:not(.public-mode) .epk-booking-handoff__actions a:active{background:rgba(255,90,31,.26)!important;transform:scale(.97)}
 body.epk-skin:not(.public-mode) main :is(button.primary,a.primary):not(.ds-icon-button),
-body.epk-skin:not(.public-mode) .epk-booking-handoff__actions a.primary{background:#ff5a1f!important;color:#0b0b0c!important}
-body.epk-skin:not(.public-mode) main :is(button.primary,a.primary):not(.ds-icon-button):active{background:#e14a12!important}
+body.epk-skin:not(.public-mode) .epk-booking-handoff__actions a.primary{background:var(--ds-btn-go,#15803d)!important;color:#fff!important}
+body.epk-skin:not(.public-mode) main :is(button.primary,a.primary):not(.ds-icon-button):active{background:var(--ds-btn-go-press,#166534)!important}
 body.epk-skin:not(.public-mode) main button.danger:not(.ds-icon-button),body.epk-skin:not(.public-mode) .epk-media-delete:not(.ds-icon-button){background:rgba(255,143,128,.14)!important;color:#ff9d90!important}
 body.epk-skin:not(.public-mode) main button:not(.ds-icon-button):disabled{background:rgba(255,255,255,.08)!important;color:#8b8b91!important;opacity:1!important;transform:none}
 body.epk-skin:not(.public-mode) main button:not(.ds-icon-button):focus-visible{outline:2px solid #ff5a1f!important;outline-offset:2px}
@@ -222,7 +222,5 @@ body.booking-page .map-actions>.secondary{background:var(--ds-btn-tonal)!importa
 body.profile-page .profile-create-opener{min-height:var(--ds-btn-size)!important;-webkit-tap-highlight-color:transparent}
 body.profile-page .profile-post-comment-count{min-height:var(--ds-btn-size)!important;display:inline-flex!important;align-items:center;padding:0 8px!important;border-radius:var(--ds-btn-radius)!important;-webkit-tap-highlight-color:transparent}
 body.profile-page .profile-post-comment-count:active{background:var(--ds-btn-press)!important}
-/* Header Pivot pill: the same filled orange pill on every page (the profile drew it as a white outline). */
-.pivot-header-button,#pivotButton{border:0!important;background:#ff5a1f!important;color:#0b0b0c!important;border-radius:12px!important}
 /* Install prompt button: a 44px target wherever it shows. */
 .install-app-button{min-width:var(--ds-btn-size)!important;min-height:var(--ds-btn-size)!important}
