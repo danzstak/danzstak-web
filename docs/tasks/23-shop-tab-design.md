@@ -18,6 +18,17 @@ This is **the template every band, fan and record shop gets**:
    - one-line bio;
    - **Follow**, plus icon buttons for **SYNC message** and **Share** (44px targets).
    - Tabs: Posts · About · Friends · Photos · Videos · **Shop**. When Shop is active it has a **3px accent underline**.
+1b. **Shop stats bar across the shop's nav (owner 2026-11-18, Discogs seller-page screenshot: "should look like their Discogs shop with # of items and such across the main nav bar")**. A dark band under the cover, full width and edge to edge, with equal cells divided by hairlines, a **big number with a small label** in each cell, and sideways scroll on narrow phones:
+   - **For sale N** (taps to the shop grid)
+   - **Sold N**
+   - **Ratings ★ 4.9 (N)**, only once DanzStak ratings exist
+   - **Followers N**
+   - **In collection / Crate N**, if the member keeps a crate
+   - **Since YEAR**
+
+   Under the band, plain lines (like Discogs): **location**, **"Selling since YEAR"**, links, then the shop description.
+   - **History from other platforms (owner 2026-11-18: "a lot of guys have a long history on Discogs")**: Moving Day can bring the seller's **own record from the old shop**, entered or pasted by the seller: joined year, number of sales, rating % and number of ratings. It shows as a separate small line, **"On Discogs since 2002 · 4,812 ratings · 100% positive"**, and links to their old profile so a buyer can check it. It's clearly marked as **from Discogs**, never mixed into DanzStak's own counts, and the seller confirms it's theirs. Never invent or scrape it. The seller can remove it any time.
+   - Counts only, no rankings, no "top seller" badges.
 2. **Shop header:**
    - a mono kicker in the accent colour: **"\<LABEL OR SHOP NAME\> · SHIPS FROM \<REGION\>"**;
    - a bold heading: the **seller-editable shop title** (e.g. "Records, shirts and slipmats").
