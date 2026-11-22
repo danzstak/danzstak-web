@@ -41,10 +41,20 @@
     const member = key.slice(7);
     const owned = post => key === "profile" ? post.byProfileOwner === true : member === "self" ? post.isOwner === true : String(post.authorMemberId || post.userId || "") === member;
     const mine = posts.filter(post => post?.mediaUrl && post.mediaType === kind && !post.sharedPostId && owned(post));
-    const index = mine.findIndex(post => String(post.postId) === postId);
-    if (index < 0) return null;
-    const drawn = new Map([...document.querySelectorAll(OPENERS)].filter(item => kindOf(item) === kind && !item.closest(SKIP)).map(item => [item.closest("[data-post-id]")?.dataset.postId, item]));
-    return { items: mine.map(post => drawn.has(String(post.postId)) ? itemFor(drawn.get(String(post.postId))) : { type: kind, src: post.mediaUrl, alt: post.content || "", post: { postId: String(post.postId) } }), index };
+    // A post can hold up to 20 photos (post-photos.js): each is its own item, in the post's order.
+    const photo = Number(element.dataset?.photoIndex || 0);
+    const drawn = new Map([...document.querySelectorAll(OPENERS)].filter(item => kindOf(item) === kind && !item.closest(SKIP)).map(item => [`${item.closest("[data-post-id]")?.dataset.postId}#${item.dataset.photoIndex || 0}`, item]));
+    const items = [];
+    let index = -1;
+    for (const post of mine) {
+      const urls = kind === "image" && Array.isArray(post.moreMediaUrls) ? [post.mediaUrl, ...post.moreMediaUrls.filter(Boolean)] : [post.mediaUrl];
+      urls.forEach((src, at) => {
+        const key = `${post.postId}#${at}`;
+        if (String(post.postId) === postId && at === photo) index = items.length;
+        items.push(drawn.has(key) ? itemFor(drawn.get(key)) : { type: kind, src, alt: post.content || "", post: { postId: String(post.postId) } });
+      });
+    }
+    return index < 0 ? null : { items, index };
   }
   function collect(element) {
     const kind = kindOf(element), key = ownerKey(element);

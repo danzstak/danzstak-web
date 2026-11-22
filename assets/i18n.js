@@ -582,6 +582,25 @@
   id:["Undang teman","Ajak seseorang yang Anda kenal ke DanzStak. Anda memilih penerima dan menekan Kirim di aplikasi Anda sendiri.","Pesan undangan","Pesan teks","Bagikan lewat aplikasi","Salin tautan undangan","Tautan undangan disalin.","Pilih dan salin undangan di atas.","Perangkat tidak dapat membuka menu berbagi. Salin tautan undangan sebagai gantinya.","Hai! Bergabunglah dengan saya di DanzStak. Ini jejaring sosial independen tempat kita dapat mengobrol, menelepon, berbagi, dan membuat rencana bersama."]
  };
  for(const [language,values] of Object.entries(inviteGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(inviteKeys.map((key,index)=>[key,values[index]])));
+ // Owner 2026-11-22: several photos in one post, up to 20 (post-photos.js).
+ const postPhotosKeys=["{count} photos","A post holds up to 20 photos. The first 20 are attached."];
+ const postPhotosGuidance={
+  es:["{count} fotos","Una publicación admite hasta 20 fotos. Se adjuntan las 20 primeras."],
+  fr:["{count} photos","Une publication contient jusqu’à 20 photos. Les 20 premières sont jointes."],
+  de:["{count} Fotos","Ein Beitrag fasst bis zu 20 Fotos. Die ersten 20 sind angehängt."],
+  pt:["{count} fotos","Uma publicação comporta até 20 fotos. As 20 primeiras foram anexadas."],
+  it:["{count} foto","Un post può contenere fino a 20 foto. Sono allegate le prime 20."],
+  ko:["사진 {count}장","게시물에는 사진을 20장까지 올릴 수 있어요. 처음 20장이 첨부됐어요."],
+  ja:["写真{count}枚","1つの投稿に写真は20枚までです。最初の20枚を添付しました。"],
+  "zh-Hans":["{count} 张照片","一条帖子最多可放 20 张照片。已附上前 20 张。"],
+  "zh-Hant":["{count} 張相片","一則貼文最多可放 20 張相片。已附上前 20 張。"],
+  fil:["{count} larawan","Hanggang 20 larawan ang kasya sa isang post. Nakalakip ang unang 20."],
+  hi:["{count} फ़ोटो","एक पोस्ट में 20 फ़ोटो तक आ सकती हैं। पहली 20 जोड़ दी गई हैं।"],
+  vi:["{count} ảnh","Mỗi bài đăng chứa tối đa 20 ảnh. Đã đính kèm 20 ảnh đầu tiên."],
+  th:["{count} รูป","หนึ่งโพสต์ใส่รูปได้สูงสุด 20 รูป แนบ 20 รูปแรกแล้ว"],
+  id:["{count} foto","Satu postingan memuat hingga 20 foto. 20 foto pertama sudah dilampirkan."]
+ };
+ for(const [language,values] of Object.entries(postPhotosGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(postPhotosKeys.map((key,index)=>[key,values[index]])));
  const callMediaKeys=["Camera and microphone access is blocked. Allow both in your browser or device settings, then try again.","Microphone access is blocked. Allow it in your browser or device settings, then try again.","No camera or microphone was found on this device.","No microphone was found on this device.","The camera or microphone is being used by another app. Close it and try again.","The microphone is being used by another app. Close it and try again.","The camera or microphone could not start. Check device permissions and try again.","The microphone could not start. Check device permissions and try again."];
  const callMediaGuidance={
   es:["El acceso a la cámara y al micrófono está bloqueado. Permite ambos en la configuración del navegador o del dispositivo y vuelve a intentarlo.","El acceso al micrófono está bloqueado. Permítelo en la configuración del navegador o del dispositivo y vuelve a intentarlo.","No se encontró ninguna cámara ni micrófono en este dispositivo.","No se encontró ningún micrófono en este dispositivo.","Otra aplicación está usando la cámara o el micrófono. Ciérrala y vuelve a intentarlo.","Otra aplicación está usando el micrófono. Ciérrala y vuelve a intentarlo.","No se pudo iniciar la cámara o el micrófono. Comprueba los permisos del dispositivo y vuelve a intentarlo.","No se pudo iniciar el micrófono. Comprueba los permisos del dispositivo y vuelve a intentarlo."],

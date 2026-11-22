@@ -92,6 +92,8 @@ const sms = new PinpointSMSVoiceV2Client({ region: "us-west-1", maxAttempts: 2 }
 const tableName = process.env.SESSIONS_TABLE;
 const sessionDevicesTable = process.env.SESSION_DEVICES_TABLE || "DANZSTAK-SessionDevices";
 const postsTable = "DANZSTAK-Posts";
+// A photo post holds up to 20 photos: its first (mediaKey) and up to 19 more, moreMedia (owner 2026-11-22).
+const postMoreMedia = item => (item?.moreMedia?.L || []).map(entry => entry?.S).filter(key => typeof key === "string" && key);
 const friendsTable = "DANZSTAK-Friends";
 const reactionsTable = "DANZSTAK-Reactions";
 const commentsTable = "DANZSTAK-Comments";
@@ -1896,7 +1898,7 @@ async function getSecurePosts(event) {
   const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames], authorProfiles);
   const authorName = email => authorNames.get(String(email || "").trim().toLowerCase()) || "DanzStak member";
   const authorPicture = email => authorProfiles.get(String(email || "").trim().toLowerCase())?.picture || "";
-  const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
+  const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : "",moreMediaUrls:postMoreMedia(item).map(key => signedMediaUrl(key,3600))}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
@@ -1919,6 +1921,7 @@ async function getSecurePosts(event) {
       mediaKey: item.mediaKey?.S ?? "",
       mediaUrl: item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S, 3600) : "",
       mediaType: item.mediaType?.S ?? "",
+      moreMediaUrls: postMoreMedia(item).map(key => signedMediaUrl(key, 3600)),
       reel: item.reel?.BOOL === true,
       commentPolicy: item.commentPolicy?.S ?? "everyone",
       editHistory: postEditHistory(item),
@@ -2461,6 +2464,14 @@ async function createSecurePost(event) {
   if ((mediaKey && (!/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/.test(mediaKey) || !mediaKey.startsWith(`users/${ownerPrefix}/`))) || Boolean(mediaKey) !== Boolean(mediaType)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid media reference." }) };
   }
+  // Owner 2026-11-22: "should be able to upload multiple photos at once", "set a limit of 20 photos". A photo post carries
+  // up to 19 more photos after its first (mediaKey), each the member's own upload; members swipe through them on the post.
+  const morePhotosAllowed = 19, moreMediaKeys = data.moreMediaKeys === undefined ? [] : data.moreMediaKeys;
+  if (!Array.isArray(moreMediaKeys) || moreMediaKeys.length > morePhotosAllowed || (moreMediaKeys.length && (mediaType !== "image" || sharedSource || facebookImport))
+    || new Set([mediaKey, ...moreMediaKeys]).size !== moreMediaKeys.length + 1
+    || moreMediaKeys.some(key => typeof key !== "string" || !/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif)$/.test(key) || !key.startsWith(`users/${ownerPrefix}/`))) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: `A post can hold up to ${morePhotosAllowed + 1} photos.` }) };
+  }
   const postId = facebookImport ? importPostId : randomUUID();
   const importedAt = new Date().toISOString();
   const createdAt = facebookImport ? importedDate.toISOString() : importedAt;
@@ -2479,7 +2490,8 @@ async function createSecurePost(event) {
       createdAt: { S: createdAt },
       audience: { S: audience },
       ...(facebookImport ? { importSource: { S: "facebook" }, importKey: { S: data.importKey }, importedAt: { S: importedAt } } : {}),
-      ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {})
+      ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {}),
+      ...(moreMediaKeys.length ? { moreMedia: { L: moreMediaKeys.map(key => ({ S: key })) } } : {})
     },
     ConditionExpression: "attribute_not_exists(postId)"
   };
@@ -2500,18 +2512,22 @@ async function createSecurePost(event) {
   // privacy: their Daily is visible only to the poster. A Daily that cannot be written never fails the post itself.
   let daily = null;
   if (mediaKey && !facebookImport && !sharedSource) {
-    const storyId = randomUUID(), expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
-    try {
-      await db.send(new PutItemCommand({
-        TableName: storiesTable,
-        Item: { storyId: { S: storyId }, userEmail: { S: userEmail }, content: { S: content.slice(0, 5000) || "Story" }, audience: { S: audience === "group" ? "private" : audience }, mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, postId: { S: postId }, fromPost: { BOOL: true }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } },
-        ConditionExpression: "attribute_not_exists(storyId)"
-      }));
-      daily = { storyId, expiresAt };
-      // The clapper's TAKE N counts the member's lifetime Dailies videos (same rule as a Daily added directly).
-      if (mediaType === "video") await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :one", ExpressionAttributeValues: { ":one": { N: "1" }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count not updated", { postId, error: error.name }));
-    } catch (error) {
-      console.error("Post Daily could not be created", { postId, error: error.name });
+    const expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
+    // Every photo of a multi-photo post is its own Daily (owner 2026-11-22), in the post's order.
+    for (const [index, key] of [mediaKey, ...moreMediaKeys].entries()) {
+      const storyId = randomUUID(), at = new Date(Date.parse(createdAt) + index).toISOString();
+      try {
+        await db.send(new PutItemCommand({
+          TableName: storiesTable,
+          Item: { storyId: { S: storyId }, userEmail: { S: userEmail }, content: { S: content.slice(0, 5000) || "Story" }, audience: { S: audience === "group" ? "private" : audience }, mediaKey: { S: key }, mediaType: { S: mediaType }, postId: { S: postId }, fromPost: { BOOL: true }, createdAt: { S: at }, expiresAt: { N: String(expiresAt) } },
+          ConditionExpression: "attribute_not_exists(storyId)"
+        }));
+        if (!daily) daily = { storyId, expiresAt };
+        // The clapper's TAKE N counts the member's lifetime Dailies videos (same rule as a Daily added directly).
+        if (mediaType === "video") await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :one", ExpressionAttributeValues: { ":one": { N: "1" }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count could not be updated", { postId, error: error.name }));
+      } catch (error) {
+        console.error("Post Daily could not be created", { postId, error: error.name });
+      }
     }
   }
 
@@ -2531,6 +2547,7 @@ async function createSecurePost(event) {
       location,
       mediaKey,
       mediaType,
+      moreMediaKeys,
       reel,
       createdAt
     })
@@ -2581,23 +2598,24 @@ async function deleteSecurePost(event) {
   const deletionRecords = mode === "delete_everywhere" && !isShare ? [...shares, found.Item] : [found.Item];
   let linkedStories = [];
   let mediaKey = "";
-  if (found.Item.mediaKey?.S) {
+  // Every photo of the post (its first and up to 19 more), the files and their Dailies.
+  const postMedia = found.Item.mediaKey?.S ? [found.Item.mediaKey.S, ...postMoreMedia(found.Item)] : [];
+  if (postMedia.length) {
     const ownerPrefix = sha256(found.Item.userEmail?.S || "").slice(0, 24);
-    if (!found.Item.mediaKey.S.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
+    if (postMedia.some(key => !key.startsWith(`users/${ownerPrefix}/`))) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
     mediaKey = found.Item.mediaKey.S;
+    const mediaValues = Object.fromEntries(postMedia.map((key, index) => [`:media${index}`, { S: key }]));
     linkedStories = await scanAll({
       TableName: storiesTable,
-      FilterExpression: "mediaKey = :media AND userEmail = :owner",
-      ExpressionAttributeValues: { ":media": { S: found.Item.mediaKey.S }, ":owner": { S: found.Item.userEmail?.S || "" } },
+      FilterExpression: `mediaKey IN (${Object.keys(mediaValues).join(", ")}) AND userEmail = :owner`,
+      ExpressionAttributeValues: { ...mediaValues, ":owner": { S: found.Item.userEmail?.S || "" } },
       ProjectionExpression: "storyId"
     }, Number.MAX_SAFE_INTEGER);
   }
-  if (mediaKey) {
-    const mediaCleanupPending = await runCleanup([
-      () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey }))
-    ]);
+  if (postMedia.length) {
+    const mediaCleanupPending = await runCleanup(postMedia.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: key }))));
     if (mediaCleanupPending) {
-      console.error("Post media deletion remains pending", { postId, mediaKey });
+      console.error("Post media deletion remains pending", { postId, mediaKey, photos: postMedia.length });
       return { statusCode: 503, headers, body: JSON.stringify({ error: "Post media could not be removed yet. Try again.", deleted: false }) };
     }
   }
