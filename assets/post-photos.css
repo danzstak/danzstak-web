@@ -1,0 +1,16 @@
+/* Owner 2026-11-22: a post with several photos, swiped sideways in one frame (assets/post-photos.js). The frame takes
+   the first photo's shape (4:5 to 1.91:1, F22) and the full width of the post, like a single photo; every photo fills it. */
+.post-photos{position:relative;display:block;width:100%;max-width:100%;aspect-ratio:var(--fit-ar,4/5);overflow:hidden;background:#0b0b0c}
+#feed .post>.post-photos{width:calc(100% + (var(--post-inline-padding,14px) * 2));max-width:none;margin-inline:calc(var(--post-inline-padding,14px) * -1);border-radius:0}
+@media(max-width:700px){body.danzstak-original #feed .post>.post-photos{width:100vw;max-width:100vw;margin-inline:-12px}}
+.post-photos-track{display:flex;width:100%;height:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+.post-photos-track::-webkit-scrollbar{display:none}
+.post-photos-track:focus-visible{outline:3px solid #ff5a1f;outline-offset:-3px}
+.post-photos-slide{flex:0 0 100%;min-width:100%;height:100%;scroll-snap-align:center;scroll-snap-stop:always}
+.post-photos-slide>img{display:block;width:100%!important;max-width:100%!important;height:100%!important;max-height:none!important;margin:0!important;border-radius:0!important;aspect-ratio:auto!important;object-fit:cover;object-position:center}
+.post-photos-count{position:absolute;top:10px;right:10px;padding:3px 9px;border-radius:999px;background:rgba(11,11,12,.66);color:#fff;font:600 12px/1.4 "JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;pointer-events:none}
+/* The composer's preview of the chosen photos: one row of squares with the count. */
+.post-photos-picked{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.post-photos-picked::-webkit-scrollbar{display:none}
+.post-photos-picked img{flex:0 0 auto;width:72px;height:72px;object-fit:cover;border-radius:8px;background:#0b0b0c}
+.post-photos-picked-count{margin:6px 0 0;font:600 12px/1.4 "JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;color:var(--ds-muted,#5b5b60)}
