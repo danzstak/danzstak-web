@@ -25,19 +25,19 @@ const CDN = connect.find(host => /cloudfront\.net$/.test(host)), BUCKET = connec
 const MEDIA = { "/cover.jpg": ["image/jpeg", file("assets/danzstak-share-card.jpg")], "/face.png": ["image/png", file("assets/favicon-512.png")], "/item-1.png": ["image/png", file("assets/apple-touch-icon.png")], "/item-2.png": ["image/png", file("assets/favicon-192.png")] };
 const jpegSize = bytes => { if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null; let at = 2; while (at < bytes.length) { const marker = bytes[at + 1], length = bytes.readUInt16BE(at + 2); if (marker >= 0xc0 && marker <= 0xc2) return { height: bytes.readUInt16BE(at + 5), width: bytes.readUInt16BE(at + 7) }; at += 2 + length; } return null; };
 
-async function open(browser, width, { owner = true, language = "", visitorShareUrl = "" } = {}) {
+async function open(browser, width, { owner = true, language = "", visitorShareUrl = "", avatar = null } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
   if (language) await context.addInitScript(lang => { try { localStorage.setItem("danzstak_language", lang); } catch {} }, language);
   const page = await context.newPage(), errors = [], saves = [], uploads = [];
   const state = { shareCard: undefined, shareCardSig: undefined };
-  const profile = () => ({ memberId: me, name: "Night Shift Collective", handle: "nightshift", isOwner: owner, cloudProfile: true, bio: "Techno from the van.", picture: `${CDN}/face.png`, cover: `${CDN}/cover.jpg`, coverX: 50, coverY: 40, coverZoom: 1, avatarKey: "users/owner/a.jpg", coverKey: "users/owner/c.jpg",
+  const profile = () => ({ memberId: me, name: "Night Shift Collective", handle: "nightshift", isOwner: owner, cloudProfile: true, bio: "Techno from the van.", picture: avatar ? `${CDN}/face-cut.jpg` : `${CDN}/face.png`, cover: `${CDN}/cover.jpg`, coverX: 50, coverY: 40, coverZoom: 1, avatarKey: "users/owner/a.jpg", coverKey: "users/owner/c.jpg",
     ...(owner ? { shareCard: state.shareCard, shareCardSig: state.shareCardSig, shareUrl: state.shareCard ? "https://danzstak.com/@nightshift" : undefined } : { shareUrl: visitorShareUrl || undefined }) });
   page.on("pageerror", error => errors.push(error.message));
   const media = async route => {
     const request = route.request(), url = new URL(request.url()), cors = { "access-control-allow-origin": base };
     if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { ...cors, "access-control-allow-methods": "GET, PUT", "access-control-allow-headers": "content-type" } });
     if (request.method() === "PUT") { uploads.push({ key: url.pathname.slice(1), type: request.headers()["content-type"], bytes: request.postDataBuffer() }); return route.fulfill({ status: 200, headers: cors, body: "" }); }
-    const found = MEDIA[url.pathname];
+    const found = url.pathname === "/face-cut.jpg" && avatar ? ["image/jpeg", avatar] : MEDIA[url.pathname];
     return found ? route.fulfill({ status: 200, contentType: found[0], headers: cors, body: found[1] }) : route.fulfill({ status: 404, headers: cors, body: "" });
   };
   await page.route(`${CDN}/**`, media); await page.route(`${BUCKET}/**`, media);
@@ -139,6 +139,26 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
         if (alt !== "Anteprima del tuo link") failures.push(`it: preview alt "${alt}"`);
       } finally { await context.close(); }
     }
+    // A profile picture that was cut off on upload (the owner's own, 2026-11-22: a JPEG with no end marker) still shows on
+    // the card, as it does on the page, never the letter.
+    {
+      const maker = await browser.newPage();
+      const green = Buffer.from(await maker.evaluate(() => new Promise(resolve => { const c = document.createElement("canvas"); c.width = c.height = 400; const x = c.getContext("2d"); x.fillStyle = "#00c800"; x.fillRect(0, 0, 400, 400); c.toBlob(b => b.arrayBuffer().then(a => resolve([...new Uint8Array(a)])), "image/jpeg", 0.9); })));
+      await maker.close();
+      const cut = green.subarray(0, Math.floor(green.length * 0.7));
+      if (cut.includes(Buffer.from([0xff, 0xd9]))) failures.push("cut-off fixture still has its end marker");
+      const { context, page, uploads } = await open(browser, 390, { avatar: cut });
+      try {
+        await tapShare(page);
+        const ready = await page.waitForFunction(() => { const image = document.querySelector(".profile-share-preview img"); return image && !image.closest("figure").hidden && image.naturalWidth === 1200; }, null, { timeout: 15000 }).then(() => true).catch(() => false);
+        if (!ready || !uploads[0]) failures.push("cut-off photo: no card was made");
+        else {
+          // The top of the round photo (x 181, y 270) is drawn from the decoded top of the picture: green, not the letter's dark ground.
+          const pixel = await page.evaluate(async b64 => { const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })); const c = document.createElement("canvas"); c.width = 1200; c.height = 630; const x = c.getContext("2d"); x.drawImage(bitmap, 0, 0); return [...x.getImageData(181, 270, 1, 1).data]; }, uploads[0].bytes.toString("base64"));
+          if (!(pixel[1] > 150 && pixel[0] < 80 && pixel[2] < 80)) failures.push(`cut-off photo: the card shows ${JSON.stringify(pixel)} where the photo should be (the letter fallback?)`);
+        }
+      } finally { await context.close(); }
+    }
     // A visitor: the member's @username link, no switch, nothing uploaded.
     {
       const { context, page, uploads, saves } = await open(browser, 390, { owner: false, visitorShareUrl: "https://danzstak.com/@nightshift" });
@@ -157,5 +177,5 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
     }
   } finally { await browser.close(); }
   assert.deepEqual(failures, [], failures.join("\n"));
-  console.log("Profile share card checks passed at 320, 360, 390, 430px: the sheet shows the card and an on switch, the card is a 1200x630 JPEG under 300 KB uploaded once, the link is danzstak.com/@username; off deletes it and restores the plain link; on again uploads a fresh card; an up-to-date card isn't uploaded again; Italian; visitors get the @ link.");
+  console.log("Profile share card checks passed at 320, 360, 390, 430px: the sheet shows the card and an on switch, the card is a 1200x630 JPEG under 300 KB uploaded once, the link is danzstak.com/@username; off deletes it and restores the plain link; on again uploads a fresh card; an up-to-date card isn't uploaded again; Italian; visitors get the @ link; a cut-off profile picture still shows.");
 })().catch(error => { console.error(error.message || error); process.exitCode = 1; });
