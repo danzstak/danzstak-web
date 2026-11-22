@@ -37,8 +37,11 @@ for (const required of [
   ".groups-empty{",
   ".tribe-hero{",
   ".tribe-nav{",
-  ".tribe-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px",
-  ".tribe-nav button{min-width:0;padding-inline:4px;background:#fff;font-size:12px",
+  // Directive F13: pill tabs on one row, a flat page, a small Joined chip and a green Join (browser-checks/tribe-page.cjs).
+  ".tribe-nav{display:flex;gap:8px;",
+  ".tribe-nav button{flex:none;min-width:0;min-height:44px;padding:0 16px;border:0;border-radius:999px;",
+  ".tribe-detail{margin:0;border:0;border-radius:0;background:transparent;overflow:visible}",
+  ".tribe-join{min-height:44px;padding:0 22px;border:0;border-radius:999px;background:#15803d;",
   ".tribe-crew-member{",
   ".tribe-crew-avatar[href]",
   ".tribe-detail{scroll-margin-top:90px}",

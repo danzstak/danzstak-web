@@ -5,6 +5,21 @@
     "status": "301"
   },
   {
+    "source": "/u/<handle>/card.jpg",
+    "target": "https://api.danzstak.com/share/profile/<handle>/card",
+    "status": "200"
+  },
+  {
+    "source": "/u/<handle>",
+    "target": "https://api.danzstak.com/share/profile/<handle>",
+    "status": "200"
+  },
+  {
+    "source": "/u/<handle>/",
+    "target": "https://api.danzstak.com/share/profile/<handle>",
+    "status": "200"
+  },
+  {
     "source": "/<*>",
     "target": "/index.html",
     "status": "404-200"

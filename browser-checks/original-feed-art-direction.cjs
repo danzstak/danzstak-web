@@ -161,6 +161,9 @@ async function createPortraitVideo(browser) {
       await page.locator("body").evaluate(body => body.classList.remove("danzstak-original"));
       await page.screenshot({ path: path.join(output, `before-feed-${width}.png`), fullPage: width >= 700 });
       await page.locator("body").evaluate(body => body.classList.add("danzstak-original"));
+      // Re-adding the scope class restarts CSS transitions (0.01ms under reduced motion, but they only finish on the next
+      // frame). Until then getComputedStyle reports their start values, e.g. the 5px pre-scope gutter. Measure settled styles.
+      await page.evaluate(() => Promise.all(document.getAnimations().filter(animation => animation instanceof CSSTransition).map(animation => animation.finished.catch(() => {}))));
       await page.waitForFunction(expectedGap => {
         const feed = document.querySelector("#feed");
         const post = feed?.querySelector(":scope > .post");
@@ -307,7 +310,8 @@ async function createPortraitVideo(browser) {
         await page.waitForTimeout(80);
         await page.evaluate(videoPostId => {
           const actions = document.querySelector(`.post[data-post-id="${videoPostId}"] .post-actions`)?.getBoundingClientRect();
-          const navigation = document.querySelector(".topnav")?.getBoundingClientRect();
+          // The phone bottom bar is the shared tab bar (app-tabs.js, audit 36 B2); on desktop Mix's .topnav sits in the header.
+          const navigation = [...document.querySelectorAll("nav.ds-mobile-nav, .topnav")].find(element => element.getClientRects().length && getComputedStyle(element).display !== "none")?.getBoundingClientRect();
           if (actions && navigation && actions.bottom > navigation.top) scrollBy(0, actions.bottom - navigation.top + 1);
         }, videoPostId);
         await page.waitForTimeout(40);
@@ -317,7 +321,7 @@ async function createPortraitVideo(browser) {
           const media = post.querySelector(":scope > .danzstak-media-shell").getBoundingClientRect();
           const actions = post.querySelector(".post-actions").getBoundingClientRect();
           const appHeader = document.querySelector(".topbar").getBoundingClientRect();
-          const navigation = document.querySelector(".topnav").getBoundingClientRect();
+          const navigation = [...document.querySelectorAll("nav.ds-mobile-nav, .topnav")].find(element => element.getClientRects().length && getComputedStyle(element).display !== "none").getBoundingClientRect();
           return {
             headerBelowApp: header.top >= appHeader.bottom - 1,
             actionsAboveNavigation: actions.bottom <= navigation.top + 1,
@@ -361,7 +365,10 @@ async function createPortraitVideo(browser) {
         const mediaRect = post.querySelector(".profile-post-media").getBoundingClientRect();
         const content = post.querySelector(".profile-post-content");
         const contentStyle = getComputedStyle(content);
-        const tools = [...post.querySelectorAll(".profile-post-tools > *")].map(node => node.getBoundingClientRect());
+        // Fix-it 18 (owner 2026-11-17): no "View in Your Mix" / "Feature on profile" text buttons on a profile post; the
+        // compact row is the post's own Like / Comment / Share actions.
+        const tools = [...post.querySelectorAll(".profile-post-actions > button")].filter(node => node.checkVisibility()).map(node => node.getBoundingClientRect());
+        const retiredButtons = [...post.querySelectorAll("button, a")].map(node => node.textContent.trim()).filter(text => /^(View in Your Mix|Feature on profile|Featured)$/i.test(text));
         return {
           documentWidth: document.documentElement.scrollWidth,
           inside: card.left >= 0 && card.right <= innerWidth + 1,
@@ -379,7 +386,8 @@ async function createPortraitVideo(browser) {
           lineHeight: parseFloat(contentStyle.lineHeight),
           toolCount: tools.length,
           toolsShareRow: tools.length < 2 || tools.every(rect => Math.abs(rect.top - tools[0].top) <= 1),
-          toolsMeetTarget: tools.every(rect => rect.height >= 44)
+          toolsMeetTarget: tools.every(rect => rect.height >= 44),
+          retiredButtons
         };
       }, imagePostId);
       assert.ok(profileGeometry.documentWidth <= width && profileGeometry.inside, `${width}px Profile overflow: ${JSON.stringify(profileGeometry)}`);
@@ -392,7 +400,8 @@ async function createPortraitVideo(browser) {
       assert.equal(normalize(profileGeometry.postHeaderBackground), "rgba(0,0,0,0)", `${width}px Profile app-header paint leaked into the imported post header`);
       assert.equal(profileGeometry.postHeaderPosition, "static", `${width}px imported post header inherited sticky app-header positioning`);
       assert.ok(profileGeometry.collapsed && profileGeometry.contentHeight <= profileGeometry.lineHeight * 7.1, `${width}px imported Profile text was not compacted behind See more: ${JSON.stringify(profileGeometry)}`);
-      assert.ok(profileGeometry.toolCount >= 2 && profileGeometry.toolsShareRow && profileGeometry.toolsMeetTarget, `${width}px Profile actions are not one compact accessible row: ${JSON.stringify(profileGeometry)}`);
+      assert.deepEqual(profileGeometry.retiredButtons, [], `${width}px Profile post shows retired text buttons`);
+      assert.ok(profileGeometry.toolCount >= 3 && profileGeometry.toolsShareRow && profileGeometry.toolsMeetTarget, `${width}px Profile actions are not one compact accessible row: ${JSON.stringify(profileGeometry)}`);
       await page.screenshot({ path: path.join(output, `profile-${width}.png`), fullPage: width >= 700 });
       if (width < 700) {
         await page.locator(`.profile-post-card[data-post-id="${imagePostId}"]`).scrollIntoViewIfNeeded();

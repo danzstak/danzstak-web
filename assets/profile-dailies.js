@@ -1,47 +1,18 @@
 "use strict";
-// Fix-it 18, Profile page (owner 2026-11-17): the member's Dailies (24-hour photos and videos) sit in one edge-to-edge
-// strip directly above the posts, with no box, no side margins and no gap. Tap a tile to watch full screen; tap the right
-// or left half for next or previous; Back or × closes. Audience rules are the server's: GET /stories only returns
-// Dailies this viewer may see, and the strip keeps only the ones by the profile's member. Hidden when there are none.
+// The profile's full-screen photo/video player (fix-it 18, owner 2026-11-17): tap a post's photo or video to see it whole;
+// tap the right or left half for next or previous; Back or × closes.
+// Owner 2026-11-19: the Dailies strip that sat above the profile's posts is gone ("What is this make it just like the
+// other posts … Remove this"): every post is already on the wall, and Dailies live in Mix. A sideways two-photo frame
+// belongs only to a Before & After post the member chooses (F23, photos only).
 (() => {
   const api = "https://api.danzstak.com";
   const t = value => window.danzstakTranslate?.(value) || value;
   const fmt = (value, values) => t(value).replace(/\{(\w+)\}/g, (_, key) => values[key] ?? "");
-  let version = 0;
-
-  async function fetchStories() {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
-    try {
-      const response = await fetch(api + "/stories", { credentials: "include", cache: "no-store", signal: controller.signal });
-      if (!response.ok) return [];
-      const data = await response.json().catch(() => ({}));
-      return Array.isArray(data.stories) ? data.stories : [];
-    } catch { return []; }
-    finally { clearTimeout(timer); }
-  }
-
   function when(value) {
     const date = new Date(value);
     return Number.isFinite(date.valueOf()) ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
   }
 
-  function tile(story, index, all) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "profile-daily";
-    button.setAttribute("aria-label", fmt("Open Daily from {time}", { time: when(story.createdAt) }));
-    const media = document.createElement(story.mediaType === "video" ? "video" : "img");
-    media.className = "profile-daily-media";
-    if (story.mediaType === "video") { media.muted = true; media.playsInline = true; media.preload = "metadata"; media.setAttribute("aria-hidden", "true"); media.src = story.mediaUrl + "#t=0.1"; }
-    else { media.alt = ""; media.loading = "lazy"; media.decoding = "async"; media.src = story.mediaUrl; }
-    button.appendChild(media);
-    if (story.mediaType === "video") { const mark = document.createElement("span"); mark.className = "profile-daily-play"; mark.setAttribute("aria-hidden", "true"); button.appendChild(mark); }
-    button.addEventListener("click", () => openViewer(all, index, button));
-    return button;
-  }
-
-  // Full-screen viewer: one Daily at a time, muted by default with a real mute toggle bottom-right.
   let viewer = null, viewerReturn = null, viewerStories = [], viewerIndex = 0, viewerMuted = true, viewerHistory = false;
   function ensureViewer() {
     if (viewer) return viewer;
@@ -100,30 +71,7 @@
     if (viewerHistory) { viewerHistory = false; history.back(); } else viewer.close();
   }
 
-  // Appends the strip to `container` now (so it sits before the posts) and fills it when Dailies arrive.
-  function mount(container, memberId) {
-    const mine = ++version;
-    const strip = document.createElement("section");
-    strip.className = "profile-dailies";
-    strip.hidden = true;
-    strip.setAttribute("aria-label", t("Dailies"));
-    container.appendChild(strip);
-    if (!/^[a-f0-9-]{36}$/i.test(String(memberId || ""))) { strip.remove(); return strip; }
-    fetchStories().then(stories => {
-      if (mine !== version || !strip.isConnected) return;
-      const own = stories.filter(story => story.memberId === memberId && story.mediaUrl && ["image", "video"].includes(story.mediaType))
-        .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
-      if (!own.length) { strip.remove(); return; }
-      const row = document.createElement("div");
-      row.className = "profile-dailies-row";
-      own.forEach((story, index) => row.appendChild(tile(story, index, own)));
-      strip.replaceChildren(row);
-      strip.hidden = false;
-    });
-    return strip;
-  }
-
   // Also used by profile posts: tap a photo or video to see it whole, full screen (fix-it 18, owner 2026-11-17).
   const openMedia = (items, index, from) => { window.danzstakMediaCoordinator?.pauseAll?.(); openViewer(items, index, from); };
-  window.danzstakProfileDailies = { mount, openMedia };
+  window.danzstakProfileDailies = { openMedia };
 })();

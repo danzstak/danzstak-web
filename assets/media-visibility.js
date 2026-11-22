@@ -3,15 +3,18 @@
  const tracked=new Set(),visible=new WeakMap(),ratios=new WeakMap(),manualPlayback=new WeakSet();
  // Owner 2026-11-17: the member's last mute/unmute choice carries to the next video (feed and The Roll).
  // Kept in memory only: a reload or new visit starts muted again.
- let feedSound=false;
- let activeMedia=null,audibleMedia=null,sessionRoot=null,sessionSound=false,sessionDirection=1,sessionScrollTop=0,sessionFrame=0;
+ // T0-A3 (owner 2026-11-19): ONE choice for the feed, The Roll strip and the full-screen Roll, so it carries over
+ // inline -> full screen -> back. Only a tap on a speaker (or a player's own mute control) changes it; a full-screen
+ // session may only narrow it (sessionAllowsSound: data saver, or a player opened without sound).
+ let soundChoice=false;
+ let activeMedia=null,audibleMedia=null,sessionRoot=null,sessionAllowsSound=true,sessionDirection=1,sessionScrollTop=0,sessionFrame=0;
  const soundEnabled=()=>Boolean(audibleMedia);
  // Owner 2026-11-16: muted autoplay is ON by default (a member can set danzstak_muted_autoplay=off; data saver also stops it).
  const mutedAutoplayEnabled=()=>{try{return localStorage.getItem('danzstak_muted_autoplay')!=='off';}catch{return true;}};
  let applyingSound=false;
  const isYouTubeFrame=element=>element?.tagName==='IFRAME'&&element.src?.includes('youtube-nocookie.com/embed/');
  const inSession=element=>Boolean(sessionRoot&&element&&sessionRoot.contains(element));
- const wantsSound=element=>inSession(element)?sessionSound:feedSound;
+ const wantsSound=element=>soundChoice&&(!inSession(element)||sessionAllowsSound);
  const thresholdFor=()=>0.5; // plays at 50% visible; stops once more than 50% has scrolled out of frame
  function controlYouTube(frame,command){
   if(!isYouTubeFrame(frame)||!frame.contentWindow)return;
@@ -39,20 +42,20 @@
   if(typeof window!=='undefined'&&typeof CustomEvent!=='undefined')window.dispatchEvent(new CustomEvent('danzstak-video-sound-change',{detail:{enabled:soundEnabled()}}));
  }
  function saveSoundPreference(enabled,source){
-  if(inSession(source))sessionSound=Boolean(enabled);else if(source)feedSound=Boolean(enabled);
+  if(source)soundChoice=Boolean(enabled);
   if(enabled&&eligible(source)){claimPlayback(source,true);audibleMedia=source;}
   else if(!source||source===audibleMedia)audibleMedia=null;
   applySoundPreference();
  }
- globalThis.danzstakMediaSound={enabled:soundEnabled,apply:applySoundPreference};
+ globalThis.danzstakMediaSound={enabled:soundEnabled,choice:()=>soundChoice,apply:applySoundPreference};
  document.addEventListener('volumechange',event=>{
   const video=event.target;if(applyingSound||video?.tagName!=='VIDEO')return;
   // volumechange fires after our own muting; only a real change by the member differs from the applied state.
   if(video.muted===(video!==audibleMedia))return;
   saveSoundPreference(!video.muted,video);
  },true);
- const eligible=element=>element?.matches?.('video,iframe.reel-player')&&!element.closest('.video-grid,.call-setup-dialog');
- const supportsAudioButton=element=>element?.tagName==='VIDEO'||isYouTubeFrame(element);
+ const eligible=element=>element?.matches?.('video,iframe.reel-player')&&!element.closest('.video-grid,.call-setup-dialog,.profile-video-grid');
+ const supportsAudioButton=element=>!element?.closest?.('#storiesRail')&&(element?.tagName==='VIDEO'||isYouTubeFrame(element)); // F15a: no icons on Dailies strip tiles
  function ensureAudioControl(element){
   if(!supportsAudioButton(element)||element.closest?.('.danzstak-media-shell'))return;
   const parent=element.parentNode;if(!parent)return;
@@ -88,7 +91,7 @@
   connect();
  }
  const dataSaverEnabled=()=>document.documentElement?.classList?.contains('data-saver')||(()=>{try{return localStorage.getItem('danzstak_data_saver')==='1';}catch{return false;}})();
- const isFeedVideo=video=>video?.matches?.('video.post-media,video.profile-post-media'); // fix-it 18: profiles autoplay like Mix
+ const isFeedVideo=video=>video?.matches?.('video.post-media,video.profile-post-media,video.ds-media-viewer-video'); // 5a1: the full-screen viewer plays like Mix // fix-it 18: profiles autoplay like Mix
  function prepareVideoPreview(video){
   video.playsInline=true;
   const setLayout=()=>{
@@ -163,8 +166,11 @@
  function playCandidate(candidate){
   if(!candidate||document.hidden)return;
   if(isYouTubeFrame(candidate)){controlYouTube(candidate,'playVideo');return;}
-  if(candidate.tagName==='VIDEO')candidate.play().catch(()=>{
-   if(audibleMedia===candidate){audibleMedia=null;if(inSession(candidate))sessionSound=false;else feedSound=false;applySoundPreference();candidate.play().catch(()=>{});globalThis.dispatchEvent?.(new CustomEvent('danzstak:media-sound-blocked',{detail:{media:candidate}}));}
+  if(candidate.tagName==='VIDEO')candidate.play().catch(error=>{
+   // Only the browser refusing sound without a tap (NotAllowedError) turns the member's sound off. A play() cut short by a
+   // quick swipe or a new source (AbortError) is not a refusal (owner 2026-11-20: "sound still goes off on the Roll
+   // videos after a couple of videos"): it keeps the sound and retries below.
+   if(audibleMedia===candidate&&error?.name==='NotAllowedError'){audibleMedia=null;soundChoice=false;applySoundPreference();candidate.play().catch(()=>{});globalThis.dispatchEvent?.(new CustomEvent('danzstak:media-sound-blocked',{detail:{media:candidate}}));}
    // Fix-it 18: a play() interrupted by a reload/pause (AbortError) used to leave the chosen video stuck paused. Retry once while it is still the visible choice.
    else setTimeout(()=>{if(activeMedia===candidate&&candidate.paused&&!document.hidden&&(ratios.get(candidate)||0)>=0.5)candidate.play().catch(()=>{});},250);
   });
@@ -187,8 +193,10 @@
  }, {threshold:[0,0.15,0.5,0.6,1]});
  function track(element){if(!eligible(element)||tracked.has(element))return;ensureAudioControl(element);tracked.add(element);observer.observe(element);if(isYouTubeFrame(element))listenToYouTube(element);if(element.tagName==='VIDEO'){element.muted=true;if(element.dataset?.visibilityPrepared!=='1'){if(element.dataset)element.dataset.visibilityPrepared='1';prepareVideoPreview(element);element.addEventListener('play',()=>{const manual=manualPlayback.has(element);manualPlayback.delete(element);if(document.hidden||(ratios.get(element)||0)<thresholdFor(element)){element.pause();clearActive(element);return;}if(!claimPlayback(element,manual)){element.pause();return;}if(wantsSound(element)&&audibleMedia!==element){audibleMedia=element;applySoundPreference();}});}}}
  function added(root){
-  if(root?.tagName==='VIDEO'&&eligible(root))root.muted=true;
-  root.querySelectorAll?.('video').forEach(video=>{if(eligible(video))video.muted=true;});
+  // New media start muted. Media that is only moved keeps its sound: The Roll moves itself to <body> for full screen,
+  // and re-muting it there turned the member's sound off (T0-A3).
+  if(root?.tagName==='VIDEO'&&eligible(root)&&!tracked.has(root))root.muted=true;
+  root.querySelectorAll?.('video').forEach(video=>{if(eligible(video)&&!tracked.has(video))video.muted=true;});
   if(eligible(root))track(root);root.querySelectorAll?.('video,iframe.reel-player').forEach(track);
   updateYouTubeSound();
  }
@@ -209,11 +217,11 @@
  function startSession(root,preferred,{sound=true}={}){
   if(!root)return false;
   if(sessionRoot&&sessionRoot!==root)endSession(sessionRoot);
-  sessionRoot=root;sessionSound=Boolean(sound);sessionScrollTop=root.scrollTop||0;sessionDirection=1;
+  sessionRoot=root;sessionAllowsSound=Boolean(sound);sessionScrollTop=root.scrollTop||0;sessionDirection=1;
   root.addEventListener('scroll',sessionScrolled,{passive:true});
   const candidate=preferred&&root.contains(preferred)?preferred:bestAutomaticCandidate();
   if(!candidate)return false;
-  ratios.set(candidate,1);visible.set(candidate,true);claimPlayback(candidate,true);audibleMedia=sessionSound?candidate:null;applySoundPreference();playCandidate(candidate);return true;
+  ratios.set(candidate,1);visible.set(candidate,true);claimPlayback(candidate,true);audibleMedia=wantsSound(candidate)?candidate:null;applySoundPreference();playCandidate(candidate);return true;
  }
  function sessionScrolled(event){
   if(event.currentTarget!==sessionRoot)return;
@@ -223,9 +231,9 @@
  function endSession(root){
   if(root&&root!==sessionRoot)return;
   if(sessionRoot)sessionRoot.removeEventListener('scroll',sessionScrolled);
-  cancelAnimationFrame(sessionFrame);sessionRoot=null;sessionSound=false;pauseAll();
+  cancelAnimationFrame(sessionFrame);sessionRoot=null;sessionAllowsSound=true;pauseAll();
  }
- function pauseAll(){for(const media of [...tracked])pause(media);activeMedia=null;audibleMedia=null;sessionSound=false;applySoundPreference();}
+ function pauseAll(){for(const media of [...tracked])pause(media);activeMedia=null;audibleMedia=null;applySoundPreference();}
  document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseAll();});
  globalThis.addEventListener?.('pagehide',pauseAll);
  globalThis.addEventListener?.('blur',pauseAll);

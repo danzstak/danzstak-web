@@ -81,6 +81,13 @@ function number(item, name) {
   return Number.isFinite(value) ? value : 0;
 }
 
+// Owner 2026-11-19: shops take photos from the member's phone (a cover, an album, product photos), not only https
+// links. Stored as the member's own media keys (users/<owner prefix>/<uuid>.<ext>) and shown through short-lived
+// signed URLs, like Tribe covers and post media.
+let mediaSigner = () => "";
+const SHOP_ALBUM_MAX = 60;
+const signedKey = key => (key ? mediaSigner(key) || "" : "");
+
 function shopView(item, products, own) {
   return {
     memberId: item.ownerId?.S === OFFICIAL_OWNER ? "" : item.ownerId?.S || "",
@@ -88,6 +95,8 @@ function shopView(item, products, own) {
     name: item.name?.S || (item.ownerId?.S === OFFICIAL_OWNER ? "DanzStak Store" : "Shop"),
     description: item.description?.S || "",
     status: item.status?.S || "draft",
+    coverUrl: signedKey(item.coverKey?.S),
+    album: (item.albumKeys?.L || []).map(entry => entry?.S).filter(Boolean).map(key => own ? { key, url: signedKey(key) } : { url: signedKey(key) }),
     createdAt: item.createdAt?.S || "",
     updatedAt: item.updatedAt?.S || "",
     revision: own ? number(item, "revision") : undefined,
@@ -100,7 +109,7 @@ function productView(item, own) {
     id: String(item.sk?.S || "").replace(/^PRODUCT#/, ""),
     title: item.title?.S || "Product",
     description: item.description?.S || "",
-    imageUrl: item.imageUrl?.S || "",
+    imageUrl: item.imageKey?.S ? signedKey(item.imageKey.S) : item.imageUrl?.S || "",
     productType: item.productType?.S || "physical",
     priceCents: number(item, "priceCents"),
     shippingCents: number(item, "shippingCents"),
@@ -110,7 +119,7 @@ function productView(item, own) {
     createdAt: item.createdAt?.S || "",
     updatedAt: item.updatedAt?.S || ""
   };
-  if (own) Object.assign(result, { inventory: number(item, "inventory"), status: item.status?.S || "draft", revision: number(item, "revision") });
+  if (own) Object.assign(result, { inventory: number(item, "inventory"), status: item.status?.S || "draft", revision: number(item, "revision"), imageKey: item.imageKey?.S || "" });
   return result;
 }
 
@@ -174,6 +183,42 @@ function cleanImport(body) {
   return { status, items };
 }
 
+// Owner 2026-11-19: "the bazaar needs to have items mixed up from users, not one user's items then another's — scrambled",
+// and F15f: never the same shop twice in a row. The browser sends one seed per visit, so "Show more" pages stay
+// consistent. Identical to assets/scramble-by-seller.js (this package can't load files from assets/);
+// test-bazaar-scrambled.cjs fails if the two copies differ.
+// <scramble-by-seller>
+function seededRandom(seed) {
+  let h = 2166136261;
+  for (const char of String(seed || "")) h = Math.imul(h ^ char.charCodeAt(0), 16777619);
+  return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+}
+// Seeded shuffle, then deal the cards out shop by shop: each card goes to the shop with the most items left that is not
+// one of the previous `gap` cards (2 = the card to its left and the one above it in the phone's 2-column grid), so a
+// shop never sits next to itself while another shop still has items. Same seed, same order; never paid, never ranked.
+function scrambleBySeller(items, seed, gap = 2) {
+  const random = seededRandom(seed), shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index--) { const swap = Math.floor(random() * (index + 1)); [shuffled[index], shuffled[swap]] = [shuffled[swap], shuffled[index]]; }
+  const shopOf = item => String(item.memberId || item.shopName || "").trim().toLowerCase();
+  const queues = new Map();
+  for (const item of shuffled) { const key = shopOf(item); if (!queues.has(key)) queues.set(key, []); queues.get(key).push(item); }
+  const order = [...queues.keys()], out = [];
+  while (out.length < shuffled.length) {
+    const recent = out.slice(-gap).map(shopOf), last = recent[recent.length - 1];
+    let pick = null, pickRank = null;
+    for (const key of order) {
+      const left = queues.get(key).length;
+      if (!left) continue;
+      const rank = [key === last ? 2 : recent.includes(key) ? 1 : 0, -left];
+      if (!pickRank || rank[0] < pickRank[0] || (rank[0] === pickRank[0] && rank[1] < pickRank[1])) { pick = key; pickRank = rank; }
+    }
+    out.push(queues.get(pick).shift());
+  }
+  return out;
+}
+// </scramble-by-seller>
+export { scrambleBySeller };
+
 export function marketplaceFeeCents(subtotalCents) {
   const subtotal = positiveInteger(subtotalCents, 0, Number.MAX_SAFE_INTEGER);
   if (subtotal === null) throw new TypeError("Subtotal must be integer cents");
@@ -184,7 +229,15 @@ export function marketplaceFeeCents(subtotalCents) {
   return subtotal >= 3000 ? pct : Math.min(subtotal, Math.max(100, pct));
 }
 
-export function createMarketplace({ db, commands, authenticate, corsHeaders, tableName, env = process.env, clock = Date.now }) {
+export function createMarketplace({ db, commands, authenticate, corsHeaders, tableName, env = process.env, clock = Date.now, mediaOwnerPrefix = async () => "", signMedia = () => "" }) {
+  mediaSigner = signMedia;
+  // A photo key the member may use: their own upload, an image type. "" clears the field.
+  async function ownImageKey(id, value) {
+    if (value === "") return "";
+    const prefix = await mediaOwnerPrefix(id);
+    const key = String(value || "");
+    return prefix && new RegExp(`^users/${prefix}/[a-f0-9-]{36}\\.(jpg|png|webp|gif)$`).test(key) ? key : null;
+  }
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand } = commands;
   const browserHeaders = event => corsHeaders(event?.headers?.origin || event?.headers?.Origin);
   const nowIso = () => new Date(clock()).toISOString();
@@ -233,6 +286,7 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
       title: product.title,
       description: product.description,
       imageUrl: product.imageUrl,
+      ...(product.imageKey?.S ? { imageKey: product.imageKey } : {}),
       productType: product.productType,
       priceCents: product.priceCents,
       shippingCents: product.shippingCents,
@@ -265,9 +319,11 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     const term = String(query.q || "").trim().toLocaleLowerCase().slice(0, 80);
     const offset = Math.max(0, Math.min(Number.parseInt(query.offset, 10) || 0, 100_000));
     const limit = Math.max(1, Math.min(Number.parseInt(query.limit, 10) || BAZAAR_PAGE_MAX, BAZAAR_PAGE_MAX));
-    const all = (await queryProducts("BAZAAR", 20_000)).map(bazaarProductView)
+    let all = (await queryProducts("BAZAAR", 20_000)).map(bazaarProductView)
       .filter(item => !term || `${item.title} ${item.description} ${item.shopName}`.toLocaleLowerCase().includes(term))
-      .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
+      .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)) || String(left.id).localeCompare(String(right.id)));
+    const seed = String(query.seed || "").replace(/[^a-z0-9]/gi, "").slice(0, 32);
+    if (!term) all = scrambleBySeller(all, seed || new Date(clock()).toISOString().slice(0, 13));
     const products = all.slice(offset, offset + limit);
     return response(200, { products, total: all.length, nextOffset: offset + products.length < all.length ? offset + products.length : null }, headers);
   }
@@ -300,7 +356,25 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     const key = shopKey(access.id);
     const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
     const at = nowIso(), revision = number(existing.Item, "revision") + 1;
-    const item = { ...key, entityType: { S: "shop" }, ownerId: { S: access.id }, name: { S: body.name }, description: { S: body.description }, status: { S: body.status }, revision: { N: String(revision) }, createdAt: existing.Item?.createdAt || { S: at }, updatedAt: { S: at } };
+    const request = parseBody(event) || {};
+    let coverKey = existing.Item?.coverKey?.S || "";
+    if (request.coverKey !== undefined) {
+      coverKey = await ownImageKey(access.id, request.coverKey);
+      if (coverKey === null) return response(400, { error: "Choose a cover photo you uploaded." }, access.headers);
+    }
+    // Every shop has its album (owner 2026-11-19: "when a user creates a shop they get a shop album").
+    let albumKeys = (existing.Item?.albumKeys?.L || []).map(entry => entry?.S).filter(Boolean);
+    if (request.albumKeys !== undefined) {
+      if (!Array.isArray(request.albumKeys) || request.albumKeys.length > SHOP_ALBUM_MAX) return response(400, { error: `A shop album holds up to ${SHOP_ALBUM_MAX} photos.` }, access.headers);
+      const checked = [];
+      for (const value of [...new Set(request.albumKeys.map(String))]) {
+        const ok = await ownImageKey(access.id, value);
+        if (!ok) return response(400, { error: "Choose album photos you uploaded." }, access.headers);
+        checked.push(ok);
+      }
+      albumKeys = checked;
+    }
+    const item = { ...key, entityType: { S: "shop" }, ownerId: { S: access.id }, name: { S: body.name }, description: { S: body.description }, status: { S: body.status }, revision: { N: String(revision) }, createdAt: existing.Item?.createdAt || { S: at }, updatedAt: { S: at }, ...(coverKey ? { coverKey: { S: coverKey } } : {}), albumKeys: { L: albumKeys.map(value => ({ S: value })) } };
     await db.send(new PutItemCommand({ TableName: tableName, Item: item }));
     const products = (await queryProducts(ownerKey(access.id))).filter(product => product.status?.S !== "archived");
     await syncBazaar(item, products);
@@ -346,7 +420,9 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     const request = parseBody(event), body = cleanProduct(request);
     if (hasInflatedShipping(request)) return response(400, { error: "Shipping cannot cost more than the item price. DanzStak blocks inflated postage that could hide the sale price." }, access.headers);
     if (!body) return response(400, { error: "Enter a valid physical product, integer-cent price, inventory and HTTPS image." }, access.headers);
-    const id = randomUUID(), at = nowIso(), item = { ...productKey(target, id), entityType: { S: "product" }, ownerId: { S: target }, productId: { S: id }, title: { S: body.title }, description: { S: body.description }, imageUrl: { S: body.imageUrl }, productType: { S: body.productType }, priceCents: { N: String(body.priceCents) }, shippingCents: { N: String(body.shippingCents) }, inventory: { N: String(body.inventory) }, currency: { S: body.currency }, status: { S: body.status }, revision: { N: "1" }, createdAt: { S: at }, updatedAt: { S: at } };
+    const imageKey = request?.imageKey === undefined ? "" : await ownImageKey(access.id, request.imageKey);
+    if (imageKey === null) return response(400, { error: "Choose a product photo you uploaded." }, access.headers);
+    const id = randomUUID(), at = nowIso(), item = { ...productKey(target, id), entityType: { S: "product" }, ownerId: { S: target }, productId: { S: id }, title: { S: body.title }, description: { S: body.description }, imageUrl: { S: body.imageUrl }, ...(imageKey ? { imageKey: { S: imageKey } } : {}), productType: { S: body.productType }, priceCents: { N: String(body.priceCents) }, shippingCents: { N: String(body.shippingCents) }, inventory: { N: String(body.inventory) }, currency: { S: body.currency }, status: { S: body.status }, revision: { N: "1" }, createdAt: { S: at }, updatedAt: { S: at } };
     try {
       const transaction = [{ Put: { TableName: tableName, Item: item, ConditionExpression: "attribute_not_exists(pk)" } }];
       if (target !== OFFICIAL_OWNER) transaction.push(bazaarMutation(shop.Item, item));
@@ -402,7 +478,10 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     if (hasInflatedShipping(request)) return response(400, { error: "Shipping cannot cost more than the item price. DanzStak blocks inflated postage that could hide the sale price." }, access.headers);
     if (!body || expectedRevision === null) return response(400, { error: "Valid product fields and revision are required." }, access.headers);
     if (number(existing.Item, "revision") !== expectedRevision) return response(409, { error: "This product changed on another device. Reload it before saving." }, access.headers);
-    const item = { ...existing.Item, title: { S: body.title }, description: { S: body.description }, imageUrl: { S: body.imageUrl }, priceCents: { N: String(body.priceCents) }, shippingCents: { N: String(body.shippingCents) }, inventory: { N: String(body.inventory) }, status: { S: body.status }, revision: { N: String(expectedRevision + 1) }, updatedAt: { S: nowIso() } };
+    const imageKey = request?.imageKey === undefined ? existing.Item.imageKey?.S || "" : await ownImageKey(access.id, request.imageKey);
+    if (imageKey === null) return response(400, { error: "Choose a product photo you uploaded." }, access.headers);
+    const { imageKey: _previousImageKey, ...existingWithoutKey } = existing.Item;
+    const item = { ...existingWithoutKey, ...(imageKey ? { imageKey: { S: imageKey } } : {}), title: { S: body.title }, description: { S: body.description }, imageUrl: { S: body.imageUrl }, priceCents: { N: String(body.priceCents) }, shippingCents: { N: String(body.shippingCents) }, inventory: { N: String(body.inventory) }, status: { S: body.status }, revision: { N: String(expectedRevision + 1) }, updatedAt: { S: nowIso() } };
     try {
       const shop = await db.send(new GetItemCommand({ TableName: tableName, Key: shopKey(target), ConsistentRead: true }));
       const transaction = [{ Put: { TableName: tableName, Item: item, ConditionExpression: "revision = :revision", ExpressionAttributeValues: { ":revision": { N: String(expectedRevision) } } } }];

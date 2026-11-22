@@ -22,8 +22,8 @@ assert.match(billingBackend, /GET" && path === "\/tour-manager\/outreach"/, "The
 assert.match(billingBackend, /include its exact public link/, "Booking emails must include the saved public EPK link");
 assert.match(billing, /danzstak-tour-manager-billing/, "Billing and outreach totals must update the dashboard");
 assert.match(css, /@media\(max-width:390px\)/, "The dashboard must have a narrow-phone layout");
-assert.match(html, /booking-billing\.js\?v=9/);
-assert.match(html, /booking-selections\.css\?v=24/);
-assert.match(html, /booking-selections\.js\?v=33/);
+assert.match(html, /booking-billing\.js\?v=10/);
+assert.match(html, /booking-selections\.css\?v=25/);
+assert.match(html, /booking-selections\.js\?v=38/);
 
 console.log("Tour Manager dashboard checks passed: complete booking states, confirmation evidence, EPK enforcement, outreach history, expense totals, calendar, and mobile layout.");

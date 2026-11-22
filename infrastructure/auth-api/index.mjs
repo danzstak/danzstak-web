@@ -30,6 +30,8 @@ import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/clien
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { PinpointSMSVoiceV2Client, SendNotifyTextMessageCommand } from "@aws-sdk/client-pinpoint-sms-voice-v2";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import { createMediaCdn, createMediaInvalidator } from "./media-cdn.mjs";
+import { createRequire } from "node:module";
 import {
   GeoPlacesClient,
   GeocodeCommand,
@@ -62,6 +64,23 @@ import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUp
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
+// Task 38: every media delete also drops CloudFront's cached copy. The CloudFront SDK ships with the Lambda Node.js
+// runtime (loaded through createRequire, so no new package); without MEDIA_CDN_DISTRIBUTION_ID this does nothing.
+const mediaCdnInvalidate = (() => {
+  try {
+    const { CloudFrontClient, CreateInvalidationCommand } = createRequire(import.meta.url)("@aws-sdk/client-cloudfront");
+    const client = new CloudFrontClient({ region: "us-east-1", maxAttempts: 3 });
+    return createMediaInvalidator({ distributionId: process.env.MEDIA_CDN_DISTRIBUTION_ID, send: command => client.send(command), CreateInvalidationCommand });
+  } catch { return async () => false; }
+})();
+{
+  const send = s3.send.bind(s3);
+  s3.send = async (command, ...rest) => {
+    const result = await send(command, ...rest);
+    if (command instanceof DeleteObjectCommand && command.input?.Key) mediaCdnInvalidate([command.input.Key]).catch(() => {});
+    return result;
+  };
+}
 // SES us-east-1 has production access (us-west-1 is still in the SES sandbox and can only mail verified addresses).
 const ses = new SESv2Client({ region: "us-east-1" });
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
@@ -124,6 +143,11 @@ const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
 const siteUrl = process.env.SITE_URL;
 const mediaBucket = process.env.MEDIA_BUCKET;
+// Task 38: media through CloudFront with cacheable signed URLs once MEDIA_CDN_DOMAIN and the signing key exist; S3 until then.
+const mediaCdn = createMediaCdn({
+  domain: process.env.MEDIA_CDN_DOMAIN,
+  loadSecret: async () => (await secretsManager.send(new GetSecretValueCommand({ SecretId: process.env.MEDIA_CDN_SECRET_NAME || "danzstak/cloudfront/media-signing-key" }))).SecretString
+});
 
 const callbackUrl = "https://api.danzstak.com/auth/callback";
 const allowedOrigin = "https://danzstak.com";
@@ -305,7 +329,9 @@ const marketplace = createMarketplace({
   authenticate: getAuthenticatedUser,
   corsHeaders,
   tableName: marketplaceTable,
-  env: process.env
+  env: process.env,
+  mediaOwnerPrefix: userId => mediaOwnerPrefixForUser(userId),
+  signMedia: key => signedMediaUrl(key, 3600)
 });
 const ticketing = createTicketing({
   db,
@@ -474,6 +500,8 @@ const encodeAws = value => encodeURIComponent(value).replace(/[!'()*]/g, charact
 const hmac = (key, value, encoding) => createHmac("sha256", key).update(value).digest(encoding);
 function signedMediaUrl(key, expires = 900, responseHeaders = {}) {
   if (!mediaBucket || !key) return "";
+  // Viewing media goes through the CDN (same URL for hours, so it caches); downloads with a filename stay on S3.
+  if (!Object.keys(responseHeaders).length) { const cdn = mediaCdn.url(key); if (cdn) return cdn; }
   const region = process.env.AWS_REGION, access = process.env.AWS_ACCESS_KEY_ID, secret = process.env.AWS_SECRET_ACCESS_KEY, token = process.env.AWS_SESSION_TOKEN;
   const date = new Date(), stamp = date.toISOString().replace(/[:-]|\.\d{3}/g, ""), day = stamp.slice(0, 8), scope = `${day}/${region}/s3/aws4_request`;
   const host = `${mediaBucket}.s3.${region}.amazonaws.com`, uri = "/" + key.split("/").map(encodeAws).join("/");
@@ -1254,7 +1282,7 @@ async function listGroups(event) {
     const id = item.userEmail.S.slice(6), isOwner = item.ownerId?.S === userId, membership = viewerMemberships.get(id);
     const storedDescription = item.description?.S || "";
     const description = storedDescription === "A new DanzStak community group." ? "A new DanzStak Tribe." : storedDescription || "A DanzStak Tribe.";
-    return { id, name: item.name?.S || "Tribe", category: item.category?.S || "Creators", description, coverUrl: item.coverKey?.S ? signedMediaUrl(item.coverKey.S, 3600) : "", createdAt: item.createdAt?.S || "", memberCount: counts.get(id) || 0, joined: Boolean(membership), isOwner, isElder: isOwner || membership?.role?.S === "elder" };
+    return { id, name: item.name?.S || "Tribe", category: item.category?.S || "Creators", description, coverUrl: item.coverKey?.S ? signedMediaUrl(item.coverKey.S, 3600) : "", coverPosition: groupCoverPosition(item), createdAt: item.createdAt?.S || "", memberCount: counts.get(id) || 0, joined: Boolean(membership), isOwner, isElder: isOwner || membership?.role?.S === "elder" };
   }).sort((a, b) => a.name.localeCompare(b.name));
   return { statusCode: 200, headers, body: JSON.stringify({ groups }) };
 }
@@ -1410,6 +1438,18 @@ async function cleanupGroupCoverObjects(id, keys, { allowActive = false } = {}) 
   return { cleaned: candidates.length - pending.length, pending: pending.length };
 }
 
+// Directive F12: where the Tribe cover sits in its box (the wide cover and the square Tribe picture use the same point).
+function groupCoverPosition(item) {
+  const read = (field, low, high, start) => { const value = Number(item?.[field]?.N); return Number.isFinite(value) ? Math.max(low, Math.min(high, value)) : start; };
+  return { x: read("coverX", 0, 100, 50), y: read("coverY", 0, 100, 50), zoom: read("coverZoom", 1, 3, 1) };
+}
+function requestedCoverPosition(data) {
+  const position = data?.position;
+  if (!position || typeof position !== "object") return null;
+  const read = (value, low, high, start) => { const number = Number(value); return Math.round(Math.max(low, Math.min(high, Number.isFinite(number) ? number : start)) * 100) / 100; };
+  return { x: read(position.x, 0, 100, 50), y: read(position.y, 0, 100, 50), zoom: read(position.zoom, 1, 3, 1) };
+}
+
 async function updateGroupCover(event) {
   const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -1418,21 +1458,38 @@ async function updateGroupCover(event) {
   if (!meta) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
   const callerEmail = await accountForSub(userId), membership = await groupMembership(id, callerEmail);
   if (meta.ownerId?.S !== userId && membership?.role?.S !== "elder") return { statusCode: 403, headers, body: JSON.stringify({ error: "Only an Elder can change the Tribe cover." }) };
-  const data = parseJsonBody(event), mediaKey = String(data?.mediaKey || ""), ownerPrefix = sha256(callerEmail).slice(0, 24);
+  const data = parseJsonBody(event), mediaKey = String(data?.mediaKey || ""), ownerPrefix = sha256(callerEmail).slice(0, 24), position = requestedCoverPosition(data);
+  if (!mediaKey && position) {
+    if (!meta.coverKey?.S) return { statusCode: 400, headers, body: JSON.stringify({ error: "Add a cover photo first." }) };
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: groupsTable,
+        Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+        UpdateExpression: "SET coverX = :x, coverY = :y, coverZoom = :zoom, updatedAt = :updated",
+        ConditionExpression: "attribute_exists(userEmail) AND attribute_not_exists(deletionState) AND coverKey = :cover",
+        ExpressionAttributeValues: { ":x": { N: String(position.x) }, ":y": { N: String(position.y) }, ":zoom": { N: String(position.zoom) }, ":updated": { S: new Date().toISOString() }, ":cover": { S: meta.coverKey.S } }
+      }));
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "The Tribe cover changed on another device. Try again." }) };
+      throw error;
+    }
+    return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(meta.coverKey.S, 3600), coverPosition: position }) };
+  }
   if (!new RegExp(`^users/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|gif)$`).test(mediaKey)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Choose a photo you uploaded." }) };
   try { await s3.send(new HeadObjectCommand({ Bucket: mediaBucket, Key: mediaKey })); }
   catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded cover photo was not found." }) }; }
   const oldKey = meta.coverKey?.S || "";
   const replacedKey = oldKey && oldKey !== mediaKey && groupCoverKeyPattern.test(oldKey) ? oldKey : "";
   const pendingCoverCleanup = [...new Set([...(meta.coverCleanup?.SS || []), replacedKey].filter(key => key && key !== mediaKey))];
-  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
+  const placed = position || { x: 50, y: 50, zoom: 1 };
+  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) }, ":x": { N: String(placed.x) }, ":y": { N: String(placed.y) }, ":zoom": { N: String(placed.zoom) } };
   if (pendingCoverCleanup.length) expressionValues[":coverCleanup"] = { SS: pendingCoverCleanup };
   if (oldKey) expressionValues[":oldCover"] = { S: oldKey };
   try {
     await db.send(new UpdateItemCommand({
       TableName: groupsTable,
       Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
-      UpdateExpression: "SET coverKey = :cover, updatedAt = :updated" + (pendingCoverCleanup.length ? ", coverCleanup = :coverCleanup REMOVE " : " REMOVE coverCleanup, ") + "coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
+      UpdateExpression: "SET coverKey = :cover, coverX = :x, coverY = :y, coverZoom = :zoom, updatedAt = :updated" + (pendingCoverCleanup.length ? ", coverCleanup = :coverCleanup REMOVE " : " REMOVE coverCleanup, ") + "coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
       ExpressionAttributeValues: expressionValues,
       ConditionExpression: "attribute_exists(userEmail) AND attribute_not_exists(deletionState) AND (attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now) AND " + (oldKey ? "coverKey = :oldCover" : "attribute_not_exists(coverKey)")
     }));
@@ -1441,7 +1498,7 @@ async function updateGroupCover(event) {
     throw error;
   }
   const cleanup = await cleanupGroupCoverObjects(id, pendingCoverCleanup);
-  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600), cleanupPending: cleanup.pending }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600), coverPosition: placed, cleanupPending: cleanup.pending }) };
 }
 
 async function deleteGroup(event) {
@@ -1583,15 +1640,15 @@ async function cleanupProfileMediaObjects(accountEmail, keys) {
         TableName: settingsTable,
         Key: { userEmail: { S: accountEmail } },
         UpdateExpression: "SET profileMediaCleanupClaim = :claim, profileMediaCleanupClaimKey = :candidate, profileMediaCleanupClaimExpiresAt = :expires",
-        ConditionExpression: "contains(profileMediaCleanup, :candidate) AND (attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now) AND (attribute_not_exists(profileAvatarKey) OR profileAvatarKey <> :candidate) AND (attribute_not_exists(profileCoverKey) OR profileCoverKey <> :candidate) AND (attribute_not_exists(profileVideoKey) OR profileVideoKey <> :candidate)",
+        ConditionExpression: "contains(profileMediaCleanup, :candidate) AND (attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now) AND (attribute_not_exists(profileAvatarKey) OR profileAvatarKey <> :candidate) AND (attribute_not_exists(profileCoverKey) OR profileCoverKey <> :candidate) AND (attribute_not_exists(profileVideoKey) OR profileVideoKey <> :candidate) AND (attribute_not_exists(profileShowcaseKey) OR profileShowcaseKey <> :candidate)",
         ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key }, ":expires": { N: String(claimExpiresAt) }, ":now": { N: String(now()) } }
       }));
     } catch (error) {
       if (error.name === "ConditionalCheckFailedException") {
-        const current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: accountEmail } }, ConsistentRead: true, ProjectionExpression: "profileAvatarKey, profileCoverKey, profileVideoKey, profileMediaCleanup" }));
-        const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileVideoKey?.S].filter(Boolean));
+        const current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: accountEmail } }, ConsistentRead: true, ProjectionExpression: "profileAvatarKey, profileCoverKey, profileVideoKey, profileShowcaseKey, profileMediaCleanup" }));
+        const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileVideoKey?.S, current.Item?.profileShowcaseKey?.S].filter(Boolean));
         if (active.has(key)) {
-          const activeConditions = ["profileAvatarKey = :candidate", "profileCoverKey = :candidate", "profileVideoKey = :candidate"].join(" OR ");
+          const activeConditions = ["profileAvatarKey = :candidate", "profileCoverKey = :candidate", "profileVideoKey = :candidate", "profileShowcaseKey = :candidate"].join(" OR ");
           try {
             await db.send(new UpdateItemCommand({
               TableName: settingsTable,
@@ -1681,11 +1738,11 @@ async function setProfileVideo(event) {
     try { await s3.send(new HeadObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey })); }
     catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded profile video was not found." }) }; }
   }
-  const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, mediaKey].filter(Boolean));
+  const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileShowcaseKey?.S, mediaKey].filter(Boolean));
   const pendingProfileMedia = [...new Set([...(current.Item?.profileMediaCleanup?.SS || []), replacedKey].filter(candidate => candidate && !active.has(candidate)))];
   const expressionValues = { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
   const conditions = ["attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now"];
-  for (const [field, token] of [["profileAvatarKey", "avatar"], ["profileCoverKey", "cover"], ["profileVideoKey", "oldVideo"]]) {
+  for (const [field, token] of [["profileAvatarKey", "avatar"], ["profileCoverKey", "cover"], ["profileVideoKey", "oldVideo"], ["profileShowcaseKey", "showcase"]]) {
     const value = current.Item?.[field]?.S || "";
     if (value) { expressionValues[`:${token}`] = { S: value }; conditions.push(`${field} = :${token}`); }
     else conditions.push(`attribute_not_exists(${field})`);
@@ -1866,11 +1923,22 @@ async function getSecurePosts(event) {
       commentPolicy: item.commentPolicy?.S ?? "everyone",
       editHistory: postEditHistory(item),
       updatedAt: item.updatedAt?.S ?? "",
+      pinnedUntil: activePinUntil(item),
       createdAt: item.createdAt.S
-    }))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }));
 
-  return { statusCode: 200, headers, body: JSON.stringify({ posts }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ posts: orderMixPosts(posts) }) };
+}
+
+// F15b (owner 2026-11-19): the DanzStak welcome post stays first in Mix until its pinnedUntil date, then falls back into
+// its chronological place. Only the owner's CloudShell script (set-welcome-post.mjs) writes pinnedUntil; no API route
+// accepts it (updateSecurePost takes content, audience and comment policy only), so members can't pin.
+function activePinUntil(item, now = Date.now()) {
+  const until = Date.parse(item?.pinnedUntil?.S || "");
+  return Number.isFinite(until) && until > now ? new Date(until).toISOString() : "";
+}
+function orderMixPosts(posts) {
+  return [...posts].sort((a, b) => Number(Boolean(b.pinnedUntil)) - Number(Boolean(a.pinnedUntil)) || b.createdAt.localeCompare(a.createdAt));
 }
 
 async function postForEngagement(postId, userId) {
@@ -2011,8 +2079,9 @@ async function getEngagement(event) {
     const list = children.get(comment.parentCommentId) || []; list.push(comment); children.set(comment.parentCommentId, list);
   }
   const comments = [], appendThread = comment => { comments.push(comment); for (const reply of (children.get(comment.commentId) || []).sort((a,b) => a.createdAt.localeCompare(b.createdAt))) appendThread(reply); };
+  // Directive F1a (owner 2026-11-19): comments by time only (the app shows Newest or Oldest), never ranked by reactions.
   commentRecords.filter(comment => !comment.parentCommentId || !commentById.has(comment.parentCommentId))
-    .sort((a,b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
+    .sort((a,b) => a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
   return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments }) };
 }
 
@@ -2353,7 +2422,9 @@ async function createSecurePost(event) {
   const audience = requestedGroupId ? "group" : requestedAudience;
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
-  const reel = mediaType === "video" && data.reel === true;
+  // T0-A1 (owner 2026-11-18): every posted video goes into The Roll and stays there, from ANY composer — not only when a
+  // client ticked a box. Facebook imports keep their history out of The Roll unless the member asks.
+  const reel = mediaType === "video" && (!facebookImport || data.reel === true);
   if (sharedSource && (mediaKey || mediaType || reel)) return {statusCode:400,headers,body:JSON.stringify({error:"Shared posts reference the original media."})};
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
@@ -2423,6 +2494,27 @@ async function createSecurePost(event) {
     return { statusCode: 200, headers, body: JSON.stringify({ postId, deduplicated: true, createdAt: existing.Item.createdAt.S }) };
   }
 
+  // T0-A1: every posted photo or video also goes into the member's Dailies for 24 hours, automatically. The Daily points at
+  // the post's own media (no second upload); the Stories cleanup only deletes files under stories/, so the post's photo is
+  // never removed with it, and deleting the post removes this Daily (linked by mediaKey). Tribe posts keep their Tribe
+  // privacy: their Daily is visible only to the poster. A Daily that cannot be written never fails the post itself.
+  let daily = null;
+  if (mediaKey && !facebookImport && !sharedSource) {
+    const storyId = randomUUID(), expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
+    try {
+      await db.send(new PutItemCommand({
+        TableName: storiesTable,
+        Item: { storyId: { S: storyId }, userEmail: { S: userEmail }, content: { S: content.slice(0, 5000) || "Story" }, audience: { S: audience === "group" ? "private" : audience }, mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, postId: { S: postId }, fromPost: { BOOL: true }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } },
+        ConditionExpression: "attribute_not_exists(storyId)"
+      }));
+      daily = { storyId, expiresAt };
+      // The clapper's TAKE N counts the member's lifetime Dailies videos (same rule as a Daily added directly).
+      if (mediaType === "video") await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :one", ExpressionAttributeValues: { ":one": { N: "1" }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count not updated", { postId, error: error.name }));
+    } catch (error) {
+      console.error("Post Daily could not be created", { postId, error: error.name });
+    }
+  }
+
   return {
     statusCode: 201,
     headers,
@@ -2430,6 +2522,8 @@ async function createSecurePost(event) {
       postId,
       userId,
       userEmail,
+      dailyCreated: Boolean(daily),
+      ...(daily ? { daily } : {}),
       profileOwnerMemberId: profileOwnerId,
       content,
       audience,
@@ -5537,6 +5631,7 @@ async function removePersonalPhone(event) {
 export const handler = async event => {
   const method = event?.requestContext?.http?.method;
   const path = event?.rawPath;
+  await mediaCdn.ready().catch(() => false);
 
   try {
     if (Array.isArray(event?.Records) && event.Records.some(record => record?.EventSource === "aws:sns")) {
@@ -5760,4 +5855,4 @@ export const handler = async event => {
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };
+export { activePinUntil, orderMixPosts, geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };

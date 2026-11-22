@@ -31,7 +31,7 @@ assert.match(chat, /failure\.mediaBlocked=error\?\.name==="NotAllowedError"\|\|e
 assert.match(chat, /if\(e\.mediaBlocked\)\{const retryOffer=offer;await end\(false\);setStatus\(e\.message\);window\.danzstakCallSetup\?\.explainBlocked\?\.\(offer\.mode,\(\)=>\{pending=retryOffer;accept\(\);\}\);return;\}/);
 assert.match(setup, /function browserSteps\(kind\)/);
 // The preview isn't treated as a feed video.
-assert.match(visibility, /!element\.closest\('\.video-grid,\.call-setup-dialog'\)/);
+assert.match(visibility, /!element\.closest\('\.video-grid,\.call-setup-dialog(?:,\.profile-video-grid)?'\)/);
 assert.match(css, /#mediaControls\[hidden\]\+\.call-speaker-note\{display:none\}/);
 // Loaded and cached.
 for (const page of [html, feed]) assert.match(page, /<script src="assets\/call-setup\.js\?v=\d+" defer><\/script>/);

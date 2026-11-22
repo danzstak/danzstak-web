@@ -24,6 +24,14 @@
     "pop": { name: "Pop", kind: "message", period: 0.5, notes: [[0, 0.12, 660, "sine", 0.8, 990]] },
     "rimshot": { name: "Rimshot", kind: "message", period: 0.5, notes: [[0, 0.06, 900, "triangle", 0.6], [0, 0.04, 5000, "noise", 0.5], [0.14, 0.05, 1200, "triangle", 0.4]] }
   };
+  const RING_MAKEUP_GAIN = 3.2, RING_DRIVE = 24, RING_HIGHPASS_HZ = 600, RING_CEILING = 0.97; // see the loud chain in play()
+  const curves = {};
+  function ringCurve(kind) {
+    if (curves[kind]) return curves[kind];
+    const n = 2049, curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = kind === "tanh" ? Math.tanh(x * 3) / Math.tanh(3) : Math.max(-RING_CEILING, Math.min(RING_CEILING, x)); }
+    return (curves[kind] = curve);
+  }
   const DEFAULTS = { ring: "classic", message: "pop", ringVibrate: true, messageVibrate: true, contacts: {} };
   let ctx = null, active = null, previewTimer = null;
 
@@ -81,14 +89,33 @@
     if (quiet && window.danzstakSyncPrefs?.quiet?.(tone.kind === "ring" ? "call" : "message")) return { id, stop() {} };
     // "ambient" makes iOS/Safari respect the silent switch while a tone plays (where the browser exposes it).
     const previousSession = setSession("ambient");
-    const master = out.createGain(); master.gain.value = Math.max(0, Math.min(1, volume)); master.connect(out.destination);
+    const master = out.createGain(); master.gain.value = Math.max(0, Math.min(1, volume));
+    // Owner 2026-11-18: "the ring tones are quiet". Rings go through a compressor and make-up gain so a phone speaker
+    // plays them loud without clipping (message tones stay gentle).
+    let loudChain = null;
+    if (tone.kind === "ring" && out.createDynamicsCompressor) {
+      try {
+        // Owner 2026-11-19: "real quiet, turn it up at least 10 dB". Phone speakers barely play below ~400 Hz, where most
+        // ring notes sit, so: cut the lows, saturate (tanh) to put harmonics in the 1–5 kHz band the speaker and ear hear
+        // best, compress, lift, and hard-limit just under full scale so nothing clips at the output.
+        const hp = out.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = RING_HIGHPASS_HZ;
+        const drive = out.createGain(); drive.gain.value = RING_DRIVE;
+        const shaper = out.createWaveShaper(); shaper.curve = ringCurve("tanh"); shaper.oversample = "4x";
+        const comp = out.createDynamicsCompressor(); comp.threshold.value = -24; comp.knee.value = 4; comp.ratio.value = 12; comp.attack.value = 0.002; comp.release.value = 0.1;
+        const makeup = out.createGain(); makeup.gain.value = RING_MAKEUP_GAIN;
+        const limiter = out.createWaveShaper(); limiter.curve = ringCurve("limit");
+        master.connect(hp); hp.connect(drive); drive.connect(shaper); shaper.connect(comp); comp.connect(makeup); makeup.connect(limiter); limiter.connect(out.destination);
+        loudChain = [hp, drive, shaper, comp, makeup, limiter];
+      } catch { loudChain = null; }
+    }
+    if (!loudChain) master.connect(out.destination);
     const until = Date.now() + Math.min(maxMs, MAX_RING_MS);
     let next = out.currentTime + 0.03, timer = null, vibeTimer = null, stopped = false;
     const handle = {
       id, stop() {
         if (stopped) return; stopped = true;
         clearInterval(timer); clearInterval(vibeTimer);
-        try { master.gain.cancelScheduledValues(out.currentTime); master.gain.setValueAtTime(0, out.currentTime); master.disconnect(); } catch {}
+        try { master.gain.cancelScheduledValues(out.currentTime); master.gain.setValueAtTime(0, out.currentTime); master.disconnect(); loudChain?.forEach(node => node.disconnect()); } catch {}
         if (vibrate) try { navigator.vibrate?.(0); } catch {}
         if (previousSession !== null) setSession(previousSession);
         if (active === handle) active = null;

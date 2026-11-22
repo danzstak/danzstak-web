@@ -17,27 +17,32 @@
   <link rel="stylesheet" href="assets/accessibility.css?v=364">
   <link rel="stylesheet" href="assets/app-feedback.css?v=3">
   <link rel="stylesheet" href="assets/icon-buttons.css?v=5">
-<link rel="stylesheet" href="assets/mobile-design-system.css?v=21">
-<link rel="stylesheet" href="assets/epk-skin.css?v=1">
+<link rel="stylesheet" href="assets/mobile-design-system.css?v=22">
+<link rel="stylesheet" href="assets/epk-skin.css?v=2">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
-<script src="assets/i18n-music.js?v=13" defer></script>
-<script src="assets/i18n-people.js?v=8" defer></script>
-<script src="assets/i18n.js?v=409" defer></script>
-<link rel="stylesheet" href="assets/top-search.css?v=1">
-<link rel="stylesheet" href="assets/signup-onboarding.css?v=1">
-<link rel="stylesheet" href="assets/buttons.css?v=5">
-<link rel="stylesheet" href="assets/app-bar.css?v=2">
+<script src="assets/i18n-music.js?v=17" defer></script>
+<script src="assets/i18n-people.js?v=27" defer></script>
+<script src="assets/i18n-sync.js?v=33" defer></script>
+<script src="assets/i18n.js?v=414" defer></script>
+<link rel="stylesheet" href="assets/top-search.css?v=2">
+<link rel="stylesheet" href="assets/signup-onboarding.css?v=3">
+<link rel="stylesheet" href="assets/buttons.css?v=9">
+<link rel="stylesheet" href="assets/app-bar.css?v=10">
 <link rel="stylesheet" href="assets/site-chrome.css?v=1">
+<link rel="stylesheet" href="assets/app-tabs.css?v=1">
+<script src="assets/app-tabs.js?v=1" defer></script>
+<link rel="stylesheet" href="assets/incoming-calls.css?v=237">
+<link rel="stylesheet" href="assets/call-ringer.css?v=2">
 </head>
 <body class="ds-tool-page epk-skin">
   <a class="skip-link" href="#epkMain">Skip to EPK</a>
   <header><a href="feed.html"><img src="assets/danzstak-d-icon.png" alt="DanzStak"></a><nav><a href="feed.html">Your Mix</a><a href="booking.html">Booking Agent</a><a href="record-stores.html">Record Stores</a></nav></header>
   <main id="epkMain" tabindex="-1">
-    <section class="intro" id="builderIntro"><div><p class="eyebrow">DanzStak artist tools</p><h1>EPK Builder</h1><p>Give a booker the useful facts fast. Drafts stay private until you publish.</p></div><div class="epk-laminate" aria-hidden="true"><span class="epk-laminate__band">ALL ACCESS</span><span class="epk-laminate__photo" id="laminatePhoto"></span><span class="epk-laminate__name" id="laminateName">Your act</span><span class="epk-laminate__meta" id="laminateMeta">Genre · Home town</span><span class="epk-laminate__barcode"></span></div></section>
+    <section class="intro" id="builderIntro"><div><h1>EPK Builder</h1><p>Build it in 5 minutes. Private until you publish.</p></div><div class="epk-laminate" aria-hidden="true"><span class="epk-laminate__band">ALL ACCESS</span><span class="epk-laminate__photo" id="laminatePhoto"></span><span class="epk-laminate__name" id="laminateName">Your act</span><span class="epk-laminate__meta" id="laminateMeta">Genre · Home town</span><span class="epk-laminate__barcode"></span></div></section>
     <section id="epkGuide" class="epk-guide" aria-labelledby="epkGuideTitle">
-      <div class="epk-guide-heading"><div><p class="eyebrow">Free artist tool</p><h2 id="epkGuideTitle">Build your EPK in 5 minutes</h2><p>Start with the essentials. Your work stays private until you choose Publish.</p></div><button type="button" id="toggleMobilePreview" class="epk-preview-toggle">Preview</button></div>
-      <p id="epkGuideProgressText" class="epk-guide-progress-text">Step 1 of 5</p><progress id="epkGuideProgress" max="5" value="0" aria-label="EPK essentials completed"></progress>
+      <div class="epk-guide-heading"><h2 id="epkGuideTitle" class="epk-sr-only">Build your EPK</h2><p id="epkGuideProgressText" class="epk-guide-progress-text">Step 1 of 5</p><button type="button" id="toggleMobilePreview" class="epk-preview-toggle">Preview</button></div>
+      <progress id="epkGuideProgress" max="5" value="0" aria-label="EPK essentials completed"></progress>
       <ol id="epkGuideChecklist" class="epk-guide-checklist" aria-label="EPK essentials">
         <li data-check="identity">Name your act</li><li data-check="story">Add a pitch or short bio</li><li data-check="links">Link music or live video</li><li data-check="photo">Add a press photo</li><li data-check="contact">Add a booking contact</li>
       </ol>
@@ -60,7 +65,7 @@
         <section data-epk-step="4" aria-labelledby="epkMediaTitle"><h2 id="epkMediaTitle">Press photos and documents</h2><p class="hint">Photos up to 12 MB, PDFs up to 50 MB. Your files stay private; tick Public download on the ones bookers may download.</p><label id="epkDropZone" class="epk-drop-zone">Drop files here or choose files<input id="epkMediaInput" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf"></label><progress id="epkUploadProgress" max="100" value="0" hidden></progress><p id="epkUploadStatus" role="status" aria-live="polite"></p><div id="epkMediaList" class="epk-media-list"></div></section>
         <section data-epk-step="5"><h2>Proof and production</h2><p class="hint">Already have your rider or stage plot? Drop the file. PDF up to 50 MB or a photo.</p><div class="epk-rider-slots"><label class="epk-rider-slot" data-rider-slot="technical-rider"><span class="epk-rider-slot__icon" aria-hidden="true">⚡</span><span class="epk-rider-slot__title">Tech rider</span><span class="epk-rider-slot__hint">PDF or photo</span><span class="epk-rider-slot__state" aria-live="polite"></span><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp"></label><label class="epk-rider-slot" data-rider-slot="stage-plot"><span class="epk-rider-slot__icon" aria-hidden="true">▦</span><span class="epk-rider-slot__title">Stage plot / input list</span><span class="epk-rider-slot__hint">PDF or photo</span><span class="epk-rider-slot__state" aria-live="polite"></span><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp"></label><label class="epk-rider-slot" data-rider-slot="hospitality-rider"><span class="epk-rider-slot__icon" aria-hidden="true">☕</span><span class="epk-rider-slot__title">Hospitality rider</span><span class="epk-rider-slot__hint">PDF or photo</span><span class="epk-rider-slot__state" aria-live="polite"></span><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp"></label></div><label class="epk-public-choice"><input id="publicTechnical" type="checkbox"> Show the plot, input list and technical rider on the public EPK</label><label class="epk-public-choice"><input id="publicHospitality" type="checkbox"> Show the hospitality rider on the public EPK</label><details class="epk-type-instead" id="epkTypeInstead"><summary>No file? Type it or build the plot here</summary><label>Stage requirements<textarea id="stageRequirements" rows="4" placeholder="Space, changeover, backline, accessibility"></textarea></label><div class="epk-production-builder" aria-labelledby="productionTitle"><div><h3 id="productionTitle">Stage plot and input list</h3><p id="productionHint" class="hint">Place the performers, microphones, backline and monitors the venue should prepare.</p></div><fieldset><legend>Add equipment to the plot</legend><div class="epk-production-add"><label>Equipment type<select id="plotKind"><option value="vocal-mic">Vocal mic</option><option value="instrument-mic">Instrument mic</option><option value="di">DI box</option><option value="monitor">Monitor</option><option value="amplifier">Amplifier</option><option value="drum-kit">Drum kit</option><option value="keyboard">Keyboard</option><option value="dj-mixer">DJ mixer</option><option value="playback">Playback</option><option value="power">Power</option><option value="other">Other</option></select></label><label>Position<select id="plotPosition"><option value="rear-left">Upstage left</option><option value="rear-center">Upstage center</option><option value="rear-right">Upstage right</option><option value="front-left">Downstage left</option><option value="front-center">Downstage center</option><option value="front-right">Downstage right</option></select></label><label class="wide">Label<input id="plotLabel" maxlength="100" placeholder="Lead vocal, drums, DJ table"></label><button id="addPlotItem" type="button" class="wide">Add to plot</button></div><div id="plotItems" class="epk-production-items" aria-live="polite"></div></fieldset><fieldset><legend>Add an input channel</legend><div class="epk-production-add"><label>Source<input id="inputSource" maxlength="100" placeholder="Lead vocal, kick, left playback"></label><label>Connection<select id="inputConnection"><option value="mic">Microphone</option><option value="di">DI</option><option value="stereo-di">Stereo DI</option><option value="line">Line level</option><option value="power">Power only</option></select></label><label>Stand<select id="inputStand"><option value="none">No stand</option><option value="straight">Straight</option><option value="boom">Boom</option><option value="short">Short</option></select></label><label class="epk-check"><input id="inputPhantom" type="checkbox"> 48V phantom power</label><label class="wide">Notes<input id="inputNotes" maxlength="240" placeholder="Mic preference, connector, channel pair"></label><button id="addInputItem" type="button" class="wide">Add input channel</button></div><div id="inputItems" class="epk-production-items" aria-live="polite"></div></fieldset></div><label>Technical requirements<textarea id="techRequirements" rows="5" placeholder="Console, monitors, power, playback and changeover notes"></textarea></label><label>Hospitality requirements<textarea id="hospitalityRequirements" rows="4" placeholder="Meals, water, dressing room, accessibility"></textarea></label></details><label>Press quotes, one per line: quote | source | URL<textarea id="pressQuotes" rows="4"></textarea></label></section>
         <section data-epk-step="5"><h2>Booking contact</h2><p class="hint">Contact details stay private unless you select the public choices below and publish the EPK.</p><div class="two"><label>Contact name<input id="bookingName" maxlength="120"></label><label>Booking email<input id="bookingEmail" type="email" maxlength="254"></label><label>Phone<input id="bookingPhone" type="tel" maxlength="40"></label><label>Official website<input id="website" type="url" placeholder="https://"></label></div><label class="epk-public-choice"><input id="publicBookingEmail" type="checkbox"> Show the booking email on the public EPK</label><label class="epk-public-choice"><input id="publicBookingPhone" type="checkbox"> Show the booking phone on the public EPK</label></section>
-        <div class="form-actions"><button type="button" id="saveDraft">Save private draft</button><button type="button" id="publishEpk" class="primary">Publish EPK</button><button type="button" id="unpublishEpk">Unpublish</button><button type="button" id="deleteEpk" class="danger epk-delete" aria-label="Delete EPK" title="Delete EPK">🗑️</button></div>
+        <div class="form-actions"><button type="button" id="saveDraft">Save private draft</button><button type="button" id="publishEpk" class="primary">Publish EPK</button><button type="button" id="unpublishEpk" hidden>Unpublish</button><button type="button" id="deleteEpk" class="danger epk-delete" aria-label="Delete EPK" title="Delete EPK">🗑️</button></div>
         <p id="epkStatus" role="status" aria-live="polite">Loading your private draft...</p>
         <p id="publicLinkRow" hidden>Public link: <a id="publicLink" target="_blank" rel="noopener noreferrer"></a> <button type="button" id="copyPublicLink">Copy link</button></p>
         <section id="epkBookingHandoff" class="epk-booking-handoff" aria-labelledby="epkBookingHandoffTitle" hidden>
@@ -86,23 +91,22 @@
   </main>
   <script src="assets/app-feedback.js?v=4" defer></script>
   <script src="assets/epk-laminate.js?v=1" defer></script>
-  <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
-    <a role="button" data-icon="home" aria-label="Mix" title="Mix" href="feed.html?view=feed"></a>
-    <a role="button" data-icon="disc" aria-label="Music HQ" title="Music HQ" href="feed.html?view=hq" aria-current="page"></a>
-    <a role="button" data-icon="calendar" aria-label="Events" title="Events" href="feed.html?view=events"></a>
-    <a role="button" data-icon="store" aria-label="Bazaar" title="Bazaar" href="bazaar.html"></a>
-    <a role="button" data-icon="chat" aria-label="SYNC" title="SYNC" href="messages.html"></a>
-    <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1"></a>
-  </nav>
-<script src="assets/icon-buttons.js?v=14" defer></script>
+  <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"></nav>
+<script src="assets/media-scale.js?v=2" defer></script>
+<script src="assets/icon-buttons.js?v=17" defer></script>
   <script src="assets/epk-production.js?v=1" defer></script>
   <script src="assets/epk-reviews.js?v=3" defer></script>
-  <script src="assets/epk.js?v=24" defer></script>
+  <script src="assets/epk.js?v=25" defer></script>
   <script src="assets/responsive-media.js?v=3" defer></script>
 <script src="assets/people-search.js?v=424" defer></script>
-<script src="assets/top-search.js?v=1" defer></script>
-<script src="assets/signup-onboarding.js?v=3" defer></script>
-<script src="assets/app-bar.js?v=1" defer></script>
+<script src="assets/top-search.js?v=3" defer></script>
+<script src="assets/signup-onboarding.js?v=7" defer></script>
+<script src="assets/app-bar.js?v=8" defer></script>
 <script src="assets/site-chrome.js?v=1" defer></script>
+<!-- Calls ring and can be answered on every member page (owner 2026-11-19: "it only rings when I am on SYNC"). -->
+<script src="assets/call-devices.js?v=18" defer></script>
+<script src="assets/sync-tones.js?v=5" defer></script>
+<script src="assets/call-ringer.js?v=2" defer></script>
+<script src="assets/incoming-calls.js?v=311" defer></script>
 </body>
 </html>

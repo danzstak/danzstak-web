@@ -4,3 +4,10 @@ body.sync-list-polish #syncSectionNote{display:none!important}
 /* No gradient placeholders: the member's initial in DanzStak orange on near-black; a real photo always covers it. */
 body.sync-list-polish span.conversation-list-avatar,body.sync-list-polish span.chat-contact-avatar{background:#121418!important;border-color:#121418!important;color:#ff5a1f!important;font-weight:900}
 body.sync-list-polish img.conversation-list-avatar,body.sync-list-polish img.chat-contact-avatar{background:#121418!important}
+/* Fix-it 18 (SYNC list): the music-staff wallpaper belongs in threads, not the chat list. The list fills the page
+   edge to edge with no framed box, no watermark and no fixed height; an empty list is one centred line + Start a chat. */
+body.sync-list-polish .chat-list-panel{min-height:0!important;border-radius:0!important;background:transparent!important;background-image:none!important;box-shadow:none!important;overflow:visible}
+body.sync-list-polish .chat-list-panel::after{content:none!important;display:none!important}
+body.sync-list-polish .chat-list-panel #conversationUsers>.sync-empty-line{width:auto;margin:40px auto 12px;padding:0;background:none;box-shadow:none;border-radius:0;color:var(--sync-muted,#667085);font-size:.95rem;text-align:center}
+body.sync-list-polish .sync-empty-start{display:flex;align-items:center;justify-content:center;min-height:44px;margin:0 auto;padding:0 20px;border:0;border-radius:999px;background:var(--ds-btn-go,#15803d);color:#fff;font:inherit;font-weight:800;cursor:pointer}
+body.sync-list-polish .sync-empty-start:focus-visible{outline:3px solid #121418;outline-offset:2px}

@@ -53,6 +53,7 @@
   function mount() {
     if (document.querySelector(".ds-top-search-button")) return;
     if (document.querySelector("input.search, .profile-header-search")) return; // this page already has the header search
+    if (document.querySelector("form[data-top-search]")) return; // audit 36 B10: the page's own search (the Bazaar) is the bar's box
     const chatSearch = document.getElementById("chatSearch");
     if (chatSearch) { mountSync(chatSearch); return; }
     const header = HEADERS.map(selector => document.querySelector(selector)).find(Boolean);
@@ -60,7 +61,8 @@
     const button = document.createElement("button");
     button.type = "button";
     button.className = "ds-top-search-button";
-    button.innerHTML = icon;
+    // Audit 36 B1: a search box like Mix's (it opens the people search), not a bare icon.
+    button.innerHTML = icon + `<span class="ds-top-search-placeholder">${t("Search people")}</span>`;
     button.setAttribute("aria-label", t("Search people"));
     button.title = t("Search people");
     header.append(button);
@@ -96,5 +98,10 @@
     input.addEventListener("input", run);
     window.danzstakOpenTopSearch = open;
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount, { once: true }); else mount();
+  // Where the bar is only for signed-in members (Privacy, Terms), wait until app-bar.js has mounted it.
+  const waitForBar = () => {
+    if (!document.querySelector('script[src*="app-bar.js"][data-signed-in-only]') || document.body.classList.contains("ds-has-app-bar")) { mount(); return; }
+    new MutationObserver((records, observer) => { if (document.body.classList.contains("ds-has-app-bar")) { observer.disconnect(); mount(); } }).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", waitForBar, { once: true }); else waitForBar();
 })();

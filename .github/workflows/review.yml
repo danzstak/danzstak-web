@@ -39,18 +39,23 @@ jobs:
           node-version: 24
       - name: Run responsive, accessibility, and security checks
         shell: pwsh
+        # Every check runs and counts: a plain list of commands only fails on the last one (scripts/run-checks.ps1).
         run: |
-          node .\test-mobile-design-system.cjs
-          node .\test-navigation-layout.cjs
-          node .\test-touch-targets.cjs
-          node .\test-feed-csp.cjs
-          node .\test-external-link-privacy.cjs
-          node .\test-responsive-media.cjs
-          node .\test-skip-navigation.cjs
-          node .\test-static-link-integrity.cjs
-          node .\test-social-origins.cjs
-          node .\test-authentication.cjs
-          node .\test-booking-workspace-design.cjs
+          .\scripts\run-checks.ps1 -Checks @(
+            '.\test-mobile-design-system.cjs'
+            '.\test-navigation-layout.cjs'
+            '.\test-touch-targets.cjs'
+            '.\test-feed-csp.cjs'
+            '.\test-external-link-privacy.cjs'
+            '.\test-responsive-media.cjs'
+            '.\test-skip-navigation.cjs'
+            '.\test-static-link-integrity.cjs'
+            '.\test-social-origins.cjs'
+            '.\test-authentication.cjs'
+            '.\test-booking-workspace-design.cjs'
+            '.\test-deploy-workflow.cjs'
+            '.\test-deploy-boundary.cjs'
+          )
 
   browser-call-media:
     runs-on: windows-latest
@@ -66,7 +71,8 @@ jobs:
       - name: Start local review server
         shell: pwsh
         run: |
-          $process = Start-Process python -ArgumentList '-m','http.server','8017','--bind','127.0.0.1' -WorkingDirectory $PWD -PassThru -WindowStyle Hidden
+          # Node static server (HTTP/1.1 keep-alive, backlog 511, fixed content types), not python -m http.server (directive F0).
+          $process = Start-Process node -ArgumentList '.\scripts\static-server.cjs','8017' -WorkingDirectory $PWD -PassThru -WindowStyle Hidden
           "DANZSTAK_SERVER_PID=$($process.Id)" | Out-File -FilePath $env:GITHUB_ENV -Append
           for ($attempt = 0; $attempt -lt 20; $attempt++) {
             try {
@@ -83,17 +89,31 @@ jobs:
           DANZSTAK_LOCAL_URL: http://127.0.0.1:8017
           DANZSTAK_FEED_ORIGIN: http://127.0.0.1:8017
           DANZSTAK_PROFILE_ORIGIN: http://127.0.0.1:8017
+          # A failing check prints the browser's failed requests and errors (scripts/check-diagnostics.cjs).
+          NODE_OPTIONS: --require ./scripts/check-diagnostics.cjs
         run: |
-          node .\browser-checks\call-video-two-party.cjs
-          node .\browser-checks\call-audio-output.cjs
-          node .\browser-checks\foreground-call-ringtone.cjs
-          node .\browser-checks\sync-thread-style.cjs
-          node .\browser-checks\message-read-receipt.cjs
-          node .\browser-checks\mix-portrait-preview.cjs
-          node .\browser-checks\original-feed-art-direction.cjs
-          node .\browser-checks\profile-post-layout.cjs
-          node .\browser-checks\profile-interactions.cjs
-          node .\browser-checks\marketplace-ticketing.cjs
+          .\scripts\run-checks.ps1 -Checks @(
+            '.\browser-checks\call-video-two-party.cjs'
+            '.\browser-checks\call-note.cjs'
+            '.\browser-checks\sync-call-screen-ui.cjs'
+            '.\browser-checks\call-audio-output.cjs'
+            '.\browser-checks\foreground-call-ringtone.cjs'
+            '.\browser-checks\ringer-loudness.cjs'
+            '.\browser-checks\ringback-loudness.cjs'
+            '.\browser-checks\sync-thread-style.cjs'
+            '.\browser-checks\message-read-receipt.cjs'
+            '.\browser-checks\mix-portrait-preview.cjs'
+            '.\browser-checks\original-feed-art-direction.cjs'
+            '.\browser-checks\profile-post-layout.cjs'
+            '.\browser-checks\profile-interactions.cjs'
+            '.\browser-checks\marketplace-ticketing.cjs'
+            '.\browser-checks\roll-fullscreen-sound.cjs'
+            '.\browser-checks\registration-short-screen.cjs'
+            '.\browser-checks\media-viewer.cjs'
+            '.\browser-checks\dailies-strip-clean.cjs'
+            '.\browser-checks\dailies-empty-clapper.cjs'
+            '.\browser-checks\dailies-feed-ux.cjs'
+          )
       - name: Stop local review server
         if: always()
         shell: pwsh
@@ -113,10 +133,6 @@ jobs:
       - name: Verify release safeguards and required project guidance
         shell: pwsh
         run: |
-          node .\test-pwa-shell-refresh.cjs
-          .\test-release-verification.ps1
-          .\test-site.ps1
-          .\test-infrastructure.ps1
           if (-not (Test-Path -LiteralPath .\docs\QUALITY-ASSURANCE-POLICY.md)) {
             throw 'Missing quality assurance policy.'
           }
@@ -126,10 +142,16 @@ jobs:
           if (-not (Test-Path -LiteralPath .\CLAUDE.md)) {
             throw 'Missing root development brief.'
           }
+          .\scripts\run-checks.ps1 -Checks @(
+            '.\test-pwa-shell-refresh.cjs'
+            '.\test-release-verification.ps1'
+            '.\test-site.ps1'
+            '.\test-infrastructure.ps1'
+          )
 
   browser-account-security:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 35 # about 20 minutes of checks now (train i's run took 19.5; train j's was stopped at 20 mid-check with every check passing)
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -141,7 +163,8 @@ jobs:
       - name: Start static review server
         shell: pwsh
         run: |
-          $process = Start-Process python -ArgumentList '-m','http.server','8132','--bind','127.0.0.1' -WindowStyle Hidden -PassThru
+          # Node static server (HTTP/1.1 keep-alive, backlog 511, fixed content types), not python -m http.server (directive F0).
+          $process = Start-Process node -ArgumentList '.\scripts\static-server.cjs','8132' -WorkingDirectory $PWD -WindowStyle Hidden -PassThru
           "DANZSTAK_SERVER_PID=$($process.Id)" | Out-File -FilePath $env:GITHUB_ENV -Append
           for ($attempt = 0; $attempt -lt 20; $attempt++) {
             try {
@@ -156,22 +179,67 @@ jobs:
         shell: pwsh
         env:
           DANZSTAK_BASE_URL: http://127.0.0.1:8132
+          # A failing check prints the browser's failed requests and errors (scripts/check-diagnostics.cjs).
+          NODE_OPTIONS: --require ./scripts/check-diagnostics.cjs
         run: |
-          node .\browser-checks\account-security.cjs
-          node .\browser-checks\sync-network-number.cjs
-          node .\browser-checks\login-failure-ui.cjs
-          node .\browser-checks\pwa-install-entry.cjs
-          node .\browser-checks\profile-onboarding-identity.cjs
-          node .\browser-checks\push-alert-prompt.cjs
-          node .\browser-checks\epk-booking-connected-handoff.cjs
-          node .\browser-checks\booking-save-preview.cjs
-          node .\browser-checks\booking-contact-unlock-return.cjs
-          node .\browser-checks\booking-credit-return.cjs
-          node .\browser-checks\booking-credit-resume.cjs
-          node .\browser-checks\booking-pipeline-board.cjs
-          node .\browser-checks\booking-route-dates.cjs
-          node .\browser-checks\booking-sync.cjs http://127.0.0.1:8132
-          node .\browser-checks\artist-hq.cjs http://127.0.0.1:8132
+          .\scripts\run-checks.ps1 -Checks @(
+            '.\browser-checks\account-security.cjs'
+            '.\browser-checks\sync-network-number.cjs'
+            '.\browser-checks\login-failure-ui.cjs'
+            '.\browser-checks\pwa-install-entry.cjs'
+            '.\browser-checks\profile-onboarding-identity.cjs'
+            '.\browser-checks\push-alert-prompt.cjs'
+            '.\browser-checks\epk-booking-connected-handoff.cjs'
+            '.\browser-checks\booking-save-preview.cjs'
+            '.\browser-checks\booking-contact-unlock-return.cjs'
+            '.\browser-checks\booking-credit-return.cjs'
+            '.\browser-checks\booking-credit-resume.cjs'
+            '.\browser-checks\booking-pipeline-board.cjs'
+            '.\browser-checks\booking-route-dates.cjs'
+            '.\browser-checks\booking-sync.cjs http://127.0.0.1:8132'
+            '.\browser-checks\artist-hq.cjs http://127.0.0.1:8132'
+            '.\browser-checks\comment-icon-tap.cjs'
+            '.\browser-checks\shop-photos.cjs'
+            '.\browser-checks\profile-friends-menu.cjs'
+            '.\browser-checks\profile-one-edit.cjs'
+            '.\browser-checks\tribes-elder-joined.cjs'
+            '.\browser-checks\dailies-tile-no-picker.cjs'
+            '.\browser-checks\load-crashes.cjs'
+            '.\browser-checks\friendly-errors.cjs'
+            '.\browser-checks\menu-own-media.cjs'
+            '.\browser-checks\profile-tab-panels.cjs'
+            '.\browser-checks\dailies-set-call-fit.cjs'
+            '.\browser-checks\dailies-tile-opens-dailies.cjs'
+            '.\browser-checks\dailies-rotate.cjs'
+            '.\browser-checks\app-tabs.cjs'
+            '.\browser-checks\app-bar.cjs'
+            '.\browser-checks\own-photo.cjs'
+            '.\browser-checks\bazaar-tiles.cjs'
+            '.\browser-checks\bazaar-mix.cjs'
+            '.\browser-checks\mix-flows.cjs'
+            '.\browser-checks\pinned-welcome.cjs'
+            '.\browser-checks\media-viewer-all.cjs'
+            '.\browser-checks\pivot-header.cjs'
+            '.\browser-checks\video-rail-comments.cjs'
+            '.\browser-checks\profile-pictures.cjs'
+            '.\browser-checks\tour-manager-no-paywall.cjs'
+            '.\browser-checks\not-found-pages.cjs'
+            '.\browser-checks\epk-actions.cjs'
+            '.\browser-checks\roll-empty.cjs'
+            '.\browser-checks\profile-picture-links.cjs'
+            '.\browser-checks\profile-showcase-fit.cjs'
+            '.\browser-checks\image-position.cjs'
+            '.\browser-checks\tribe-page.cjs'
+            '.\browser-checks\sync-own-app.cjs'
+            '.\browser-checks\sync-standalone.cjs'
+            '.\browser-checks\sync-phone-setup.cjs'
+            '.\browser-checks\device-reminder.cjs'
+            '.\browser-checks\incoming-call-everywhere.cjs'
+            '.\browser-checks\profile-facepile.cjs'
+            '.\browser-checks\profile-share-card.cjs'
+            '.\browser-checks\public-shop.cjs'
+            '.\browser-checks\media-scale.cjs'
+          )
       - name: Stop static review server
         if: always()
         shell: pwsh

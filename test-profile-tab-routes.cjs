@@ -26,6 +26,6 @@ assert.equal(requested(''), 'Posts', 'fresh profiles retain the Posts default');
 assert.match(source, /history\?\.replaceState\?\.\(null, "", "#" \+ \(requestedMoreSection \|\| name\)\.toLowerCase\(\)\)/,
   'selecting a profile tab updates its bookmarkable URL');
 assert.doesNotMatch(source, /\["Featured", \.\.\./, 'Featured and Memories are removed from the profile (owner 2026-11-16)');
-assert.doesNotMatch(source, /nameEditHint\.hidden = false/, 'no "tap your name" instruction is shown');
+assert.doesNotMatch(source, /nameEditHint/, 'no "tap your name" instruction exists');
 
 console.log('Profile tab-route checks passed: Posts/About/Friends/Photos/Videos(/Shop) are bookmarkable, retired Featured/Memories/Media links fall back safely, no name-edit hint.');

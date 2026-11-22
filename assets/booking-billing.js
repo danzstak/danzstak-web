@@ -1,6 +1,6 @@
 "use strict";
 (() => {
-  const api = "https://api.danzstak.com", balance = document.getElementById("bookingCreditBalance"), summary = document.getElementById("bookingCreditSummary"), status = document.getElementById("bookingCreditStatus"), activity = document.getElementById("bookingCreditActivity"), form = document.getElementById("buyBookingCredits"), quantity = document.getElementById("bookingCreditQuantity");
+  const api = "https://api.danzstak.com", balance = document.getElementById("bookingCreditBalance"), summary = document.getElementById("bookingCreditSummary"), status = document.getElementById("bookingCreditStatus"), activity = document.getElementById("bookingCreditActivity");
   const creditCheckoutKey = "danzstakBookingCreditCheckout";
   const unlockedContacts = new Set();
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -44,10 +44,6 @@
     } catch (error) { status.textContent = error.message; if (button) button.disabled = false; return false; }
   }
   window.danzstakStartBookingCreditCheckout = ({ quantity:count = 1, venueKey = "", button = null } = {}) => startCreditCheckout(Number(count), String(venueKey || ""), button);
-  form?.addEventListener("submit", async event => {
-    event.preventDefault();
-    await startCreditCheckout(Number(quantity.value), "", form.querySelector("button"));
-  });
   window.danzstakSendBookingEmail = async payload => { const id = payload.idempotencyKey || crypto.randomUUID().replaceAll("-", ""); const data = await request("/tour-manager/emails/send", { method: "POST", body: JSON.stringify({ ...payload, idempotencyKey: id }) }); await Promise.all([refresh(), refreshOutreach()]); return data; };
   window.danzstakBookingContactUnlocked = venueKey => unlockedContacts.has(String(venueKey || ""));
   window.danzstakUnlockBookingContact = async venueKey => {

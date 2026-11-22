@@ -60,7 +60,11 @@ const json = (route, body, status = 200) => route.fulfill({ status, contentType:
       await page.locator("#messageInput").fill("I will send the stage plot next.");
       await page.locator("#messageForm").evaluate(form => form.requestSubmit());
       await page.locator(".message.mine", { hasText: "I will send the stage plot next." }).waitFor();
-      assert.equal((await page.locator("#callStatus").textContent()).trim(), "Sent", `${width}px server acceptance must be described as sent, not delivered`);
+      // The bubble above is the optimistic pending item; "Sent" is written only once the server accepts the message.
+      // Wait for that instead of reading once (a single read raced the POST under load).
+      await page.waitForFunction(() => document.getElementById("callStatus")?.textContent.trim() === "Sent", null, { timeout: 5000 }).catch(async () => {
+        assert.equal((await page.locator("#callStatus").textContent()).trim(), "Sent", `${width}px server acceptance must be described as sent, not delivered`);
+      });
       assert.equal(await page.locator(".message.mine", { hasText: "I will send the stage plot next." }).locator(".message-receipt").getAttribute("aria-label"), "Sent", `${width}px new outgoing message receipt must be truthful`);
 
       const layout = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }));

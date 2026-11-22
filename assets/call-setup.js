@@ -10,7 +10,7 @@
 //   instead of Accept silently doing nothing.
 (() => {
   const KEY = "danzstak_call_av", CHECKED = "danzstak_call_av_checked";
-  const DEFAULT_RING = 0.4; // the louder ring the owner approved 2026-11-17
+  const DEFAULT_RING = 1; // F15e (owner 2026-11-19: "10 dB louder minimum"): the loudest by default (was 0.8, before that 0.4)
   const t = value => window.danzstakTranslate?.(value) || value;
   const ua = navigator.userAgent || "";
   const isPhone = /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua) && !matchMedia?.("(pointer: fine)").matches);

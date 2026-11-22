@@ -5,7 +5,10 @@ let installDismissTimer = null;
 let updateDismissTimer = null;
 let automaticInstallPromptShown = false;
 const installStateKey = "danzstak_app_installed";
-const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+// Task 34: /sync/ is SYNC's own installable app. There its install offer belongs to SYNC (sync-app.js), and a standalone
+// window there may be the SYNC app, so it must not mark DanzStak itself as installed.
+const syncAppPage = window.location.pathname.startsWith("/sync/");
+const standalone = (window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) && !syncAppPage;
 let knownInstalled = standalone;
 try {
   knownInstalled ||= localStorage.getItem(installStateKey) === "1";
@@ -35,12 +38,15 @@ async function detectInstalledDanzStak(recheck = false) {
   })();
   return installedAppCheck;
 }
-const signedInPage = /(?:feed|profile|messages)\.html$/i.test(window.location.pathname);
+const signedInPage = syncAppPage || /(?:feed|profile|messages)\.html$/i.test(window.location.pathname);
 const installButton = document.createElement("button");
 installButton.type = "button";
 installButton.className = "install-app-button";
 installButton.textContent = "Install DanzStak";
 installButton.hidden = true;
+// Fix-it 18 (owner 2026-11-18): no install arrow in any signed-in top bar; install lives in Menu → Install DanzStak,
+// which clicks this (never visible) button. The signed-out homepage keeps its own install links.
+if (signedInPage) installButton.style.setProperty("display", "none", "important");
 const updateButton = document.createElement("button");
 updateButton.type = "button";
 updateButton.className = "app-update-button";
@@ -180,6 +186,7 @@ if ("serviceWorker" in navigator) {
 }
 
 window.addEventListener("beforeinstallprompt", event => {
+  if (syncAppPage) return; // SYNC's own install sheet takes it (sync-app.js)
   event.preventDefault();
   installPrompt = event;
   void detectInstalledDanzStak(true).then(installed => {
@@ -211,6 +218,7 @@ installButton.addEventListener("click", async () => {
 });
 
 window.addEventListener("appinstalled", () => {
+  if (syncAppPage) return; // that was SYNC, not DanzStak
   knownInstalled = true;
   try { localStorage.setItem(installStateKey, "1"); } catch { /* Display mode remains authoritative. */ }
   clearTimeout(installDismissTimer);
@@ -218,6 +226,7 @@ window.addEventListener("appinstalled", () => {
 });
 
 window.addEventListener("danzstak:show-install", () => {
+  if (syncAppPage) return;
   void detectInstalledDanzStak().then(installed => {
     if (installed) return;
     automaticInstallPromptShown = false;
@@ -225,7 +234,7 @@ window.addEventListener("danzstak:show-install", () => {
   });
 });
 
-if (!knownInstalled && signedInPage) {
+if (!knownInstalled && signedInPage && !syncAppPage) {
   void detectInstalledDanzStak().then(installed => {
     if (!installed) showInstallButtonTemporarily();
   });

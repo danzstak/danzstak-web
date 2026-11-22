@@ -7,7 +7,7 @@ const vm = require("node:vm");
 const read = file => fs.readFileSync(file, "utf8");
 const html = read("messages.html"), js = read("assets/sync-list-polish.js"), css = read("assets/sync-list-polish.css"), worker = read("service-worker.js"), i18n = read("assets/i18n-sync.js");
 
-assert.match(html, /assets\/sync-list-polish\.css\?v=1/);
+assert.match(html, /assets\/sync-list-polish\.css\?v=3/);
 assert.ok(html.indexOf("assets/sync-settings.js") < html.indexOf("assets/sync-list-polish.js"), "loads after the settings sheet it adds rows to");
 assert.match(worker, /"\/assets\/sync-list-polish\.js", "\/assets\/sync-list-polish\.css"/, "cached for offline use");
 assert.match(css, /:is\(#inviteFriend,#newVideoCall,#callingDevices,#enableRinging\)\{display:none!important\}/, "the four header buttons leave the header");
@@ -28,6 +28,15 @@ assert.equal(sandbox.window.danzstakSyncListPolish.initial("  the pit"), "T");
 assert.equal(sandbox.window.danzstakSyncListPolish.initial(""), "·", "no empty circle even without a name");
 
 for (const word of ["More options", "New video call", "Call alerts", "Invite a friend", "Share your DanzStak link", "Pick someone from your chats", "Ring this device when someone calls"]) {
-  assert.equal((i18n.match(new RegExp(`"${word}":`, "g")) || []).length, 3, `it/fr/es for "${word}"`);
+  assert.ok((i18n.match(new RegExp(`"${word}":`, "g")) || []).length >= 3, `it/fr/es for "${word}" (more languages are welcome)`);
 }
-console.log("SYNC list polish checks passed: one ⋮, actions in the sheet, no sub-line, DanzStak-colour initials, broken-picture fallback, it/fr/es.");
+// Fix-it 18 (SYNC list canvas): no music-staff box on the list (wallpaper belongs in threads), and an empty list is
+// one centred line + a "Start a chat" action that opens the same new-chat picker as the floating button.
+assert.match(css, /\.chat-list-panel\{min-height:0!important;border-radius:0!important;background:transparent!important;background-image:none!important/, "the list has no framed staves box");
+assert.match(css, /\.chat-list-panel::after\{content:none!important/, "no watermark on the list");
+const dm = read("assets/direct-messages.js");
+assert.match(dm, /\? "No chats yet\."/, "one short empty line");
+assert.match(dm, /start\.textContent = messageTranslate\("Start a chat"\);[\s\S]{0,120}querySelector\("\.sync-new-chat"\)\?\.click\(\)/, "Start a chat runs the floating new-chat button");
+assert.doesNotMatch(read("assets/sync.css").match(/\.message-list\{[^}]*\}|\.chat-list-panel,\.message-list\{[^}]*\}/)[0], /background-image:none/, "threads keep their wallpaper");
+for (const word of ["No chats yet.", "Start a chat"]) assert.equal((i18n.match(new RegExp(`"${word.replace(".", "\\.")}":`, "g")) || []).length, 5, `it/fr/es/de/pt for "${word}"`);
+console.log("SYNC list polish checks passed: one ⋮, actions in the sheet, no sub-line, DanzStak-colour initials, broken-picture fallback, no staves box on the list, one-line empty state, it/fr/es.");
