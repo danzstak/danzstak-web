@@ -104,6 +104,7 @@ jobs:
             '.\browser-checks\message-read-receipt.cjs'
             '.\browser-checks\mix-portrait-preview.cjs'
             '.\browser-checks\original-feed-art-direction.cjs'
+            '.\browser-checks\post-photos.cjs'
             '.\browser-checks\photo-frame.cjs'
             '.\browser-checks\profile-post-layout.cjs'
             '.\browser-checks\profile-interactions.cjs'

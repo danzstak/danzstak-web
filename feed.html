@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-yUvQfqo6SlA6q6CvgOKV2MHTUgS8g/CJe6052fL3qwI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-cnG44HWytd9JvFiI/F65VPWtO5sK8TKnMQmaCh+eAPI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -351,7 +351,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <script src="assets/i18n-people.js?v=27" defer></script>
 <script src="assets/time-label.js?v=1"></script>
 <script src="assets/i18n-music.js?v=17" defer></script>
-<script src="assets/i18n.js?v=414" defer></script>
+<script src="assets/i18n.js?v=415" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/identity-media.js?v=2"></script>
 <script src="assets/user-content-links.js?v=1" defer></script>
@@ -360,6 +360,8 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <link rel="stylesheet" href="assets/media-fit.css?v=2">
 <link rel="stylesheet" href="assets/media-viewer.css?v=3">
 <link rel="stylesheet" href="assets/media-actions.css?v=1">
+<link rel="stylesheet" href="assets/post-photos.css?v=1">
+<script src="assets/post-photos.js?v=1"></script>
 <link rel="stylesheet" href="assets/link-preview-cards.css?v=5">
 <link rel="stylesheet" href="assets/mix-polish.css?v=26">
 <link rel="stylesheet" href="assets/tribes-polish.css?v=4">
@@ -793,7 +795,7 @@ async function loadFriends() {
 
 // CREATE THE VISUAL DISPLAY OF A POST
 // Familiar feed timestamps: "now", "5m", "3h", "2d", then "Oct 25" (year only when different).
-function createPostElement(content, author = "DanzStak member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorMemberId = "", commentPolicy = "everyone", editHistory = [], locationLabel = "", authorPicture = "", groupId = "", groupName = "") {
+function createPostElement(content, author = "DanzStak member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorMemberId = "", commentPolicy = "everyone", editHistory = [], locationLabel = "", authorPicture = "", groupId = "", groupName = "", moreMediaUrls = []) {
 
   const article = document.createElement("article");
   article.className = "post";
@@ -857,6 +859,8 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   const body = document.createElement("p");
   body.className = "post-content";
   body.textContent = content;
+  // A photo or video posted without words carries the filler "Shared media": show the media alone (owner 2026-11-22).
+  if (mediaUrl && normalizedPostContent === "Shared media") body.hidden = true;
   let textToggle = null;
   if (normalizedPostContent.length > 280) {
     body.classList.add("is-collapsed");
@@ -898,6 +902,8 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
     if (mediaType === "image") media.alt = translateInterface("Photo shared by {name}").replace("{name}", author);
     if (mediaType === "video") { media.controls = true; media.playsInline = true; media.setAttribute("aria-label", translateInterface("Video shared by {name}").replace("{name}", author)); }
     article.appendChild(media);
+    // Owner 2026-11-22: a post can hold up to 20 photos, swiped sideways in one frame (post-photos.js).
+    if (mediaType === "image" && Array.isArray(moreMediaUrls) && moreMediaUrls.length) window.danzstakPostPhotos?.mount(media, moreMediaUrls);
   }
   article.append(actions, comments);
 
@@ -1435,7 +1441,8 @@ async function loadPosts() {
         post.location,
         post.authorPicture,
         post.groupId,
-        post.groupName
+        post.groupName,
+        post.moreMediaUrls
       );
       if (post.sharedPostId) article.dataset.sharedPostId = post.sharedPostId;
       // F15b: the DanzStak welcome post is pinned first (the server sends pinnedUntil only while it is in the future and
@@ -1607,6 +1614,7 @@ publishBtn.addEventListener("click", async () => {
 
   let savedPost;
   let uploadedPostKey = "";
+  let uploadedMoreKeys = [];
 
   try {
 
@@ -1625,6 +1633,10 @@ publishBtn.addEventListener("click", async () => {
       ({ mediaKey, mediaType } = ticket);
       uploadedPostKey = mediaKey;
       mediaUrl = selectedMedia.url;
+      // Owner 2026-11-22: up to 19 more photos in the same post (each also becomes a Daily on the server).
+      if (mediaType === "image" && selectedMedia.more?.length && window.danzstakPostPhotos) {
+        uploadedMoreKeys = await window.danzstakPostPhotos.upload(selectedMedia.more.map(item => item.file), fetchWithDeadline, mediaUploadDeadline);
+      }
     }
 
     const response = await fetchWithDeadline(API_URL, {
@@ -1633,7 +1645,7 @@ publishBtn.addEventListener("click", async () => {
         "Content-Type": "application/json"
       },
       credentials: "include",
-      body: JSON.stringify({ content: content || "Shared media", location: submittedLocation.trim(), audience, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true })
+      body: JSON.stringify({ content: content || "Shared media", location: submittedLocation.trim(), audience, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true, ...(uploadedMoreKeys.length ? { moreMediaKeys: uploadedMoreKeys } : {}) })
     });
 
     if (response.status === 401) {
@@ -1645,6 +1657,13 @@ publishBtn.addEventListener("click", async () => {
 
     savedPost = await response.json();
     uploadedPostKey = "";
+    const moreKeys = uploadedMoreKeys;
+    uploadedMoreKeys = [];
+    const morePhotos = Array.isArray(savedPost.moreMediaKeys) && savedPost.moreMediaKeys.length ? (selectedMedia.more || []).map(item => item.url) : [];
+    // An Auth API from before multi-photo posts keeps only the first photo: the others become their own posts.
+    const separatePosts = moreKeys.length && !morePhotos.length
+      ? await window.danzstakPostPhotos.attach(savedPost, moreKeys, { content: content || "Shared media", location: submittedLocation.trim(), audience, originalContentCertified: true }, fetchWithDeadline)
+      : [];
 
     // T0-A1 (owner 2026-11-18): every photo/video post goes into Dailies (24 h) and every video into The Roll, automatically —
     // no checkboxes. The server adds the Daily itself (dailyCreated); an older server that does not, gets the old upload.
@@ -1694,11 +1713,16 @@ publishBtn.addEventListener("click", async () => {
         mediaType,
         savedPost.postId,
         true,
-        String(savedPost.userId || "") // B5: your member id (photo and name are filled in from your profile)
+        String(savedPost.userId || ""), // B5: your member id (photo and name are filled in from your profile)
+        "everyone", [], "", "", "", "",
+        morePhotos
       )
     );
+    separatePosts.forEach((post, index) => feed.prepend(createPostElement(post.content, "You", post.createdAt, post.audience || audience,
+      selectedMedia.more?.[index]?.url || "", "image", post.postId, true, String(post.userId || ""))));
     window.dispatchEvent(new CustomEvent("danzstak:post-published", { detail: { postId: savedPost.postId, mediaUrl } }));
     savedPost.mediaUrl = mediaUrl;
+    if (morePhotos.length) savedPost.moreMediaUrls = morePhotos;
     window.danzstakLoadedPosts = [savedPost, ...(window.danzstakLoadedPosts || [])];
     window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts } }));
 
@@ -1712,6 +1736,7 @@ publishBtn.addEventListener("click", async () => {
   } catch (error) {
 
     await discardUploadedMedia(uploadedPostKey);
+    if (uploadedMoreKeys.length) window.danzstakPostPhotos?.discard(uploadedMoreKeys, fetchWithDeadline);
 
     console.error(
       "DanzStak posting error:",
@@ -1936,7 +1961,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/tribe-create.js?v=1" defer></script>
 <script src="assets/device-reminder.js?v=3" defer></script>
 <script src="assets/image-position.js?v=1" defer></script>
-<script src="assets/feed-enhancements.js?v=595" defer></script>
+<script src="assets/feed-enhancements.js?v=596" defer></script>
 <script src="assets/profile-onboarding.js?v=12" defer></script>
 <script src="assets/session-activity.js?v=297" defer></script>
 <script src="assets/call-setup.js?v=3" defer></script>
@@ -1956,7 +1981,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <footer class="site-ownership">&copy; 2026 DanzStak LLC. All rights reserved.<br>User content belongs to its creators.</footer>
 <script src="assets/media-visibility.js?v=404" defer></script>
 <script src="assets/media-actions.js?v=1" defer></script>
-<script src="assets/media-viewer.js?v=6" defer></script>
+<script src="assets/media-viewer.js?v=7" defer></script>
 <script src="assets/responsive-media.js?v=3" defer></script>
 <script src="assets/media-fit.js?v=3" defer></script>
 <script src="assets/link-preview-cards.js?v=4" defer></script>
