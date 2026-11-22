@@ -55,7 +55,7 @@ function loadProfileImage(target, url, onReady, onError) {
 
 async function fetchProfileRecord() {
   const response = await profileFetch(profilePath, { credentials: "include", cache: "no-store" });
-  if (response.status === 401) { window.location.replace("./"); return null; }
+  if (response.status === 401) { window.location.replace(window.danzstakSignedOutPage?.() || "./"); return null; }
   if (response.status === 403) throw Object.assign(new Error("This profile is available to accepted friends and members who share a Tribe."), { expected: true });
   if (response.status === 404) throw Object.assign(new Error("This profile is no longer available."), { expected: true });
   if (!response.ok) throw new Error("Session unavailable");
