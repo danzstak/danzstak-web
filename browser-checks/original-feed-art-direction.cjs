@@ -187,6 +187,7 @@ async function createPortraitVideo(browser) {
             media: [m.left, m.right],
             aligned: Math.abs(p.left - m.left) <= 1 && Math.abs(p.right - m.right) <= 1,
             ratio: m.width / m.height,
+            natural: media.matches("img") && media.naturalHeight ? media.naturalWidth / media.naturalHeight : 0,
             fit: player ? getComputedStyle(player).objectFit : getComputedStyle(media).objectFit,
             type: {
               author: [authorStyle.fontSize, authorStyle.fontWeight, authorStyle.lineHeight],
@@ -283,8 +284,10 @@ async function createPortraitVideo(browser) {
         assert.ok(Math.abs(geometry.image.media[0]) <= 1 && Math.abs(geometry.image.media[1] - width) <= 1, `${width}px image media is not exactly 100vw: ${JSON.stringify(geometry.image)}`);
         assert.ok(Math.abs(geometry.video.post[0]) <= 1 && Math.abs(geometry.video.post[1] - width) <= 1, `${width}px video post is not viewport-wide: ${JSON.stringify(geometry.video)}`);
         assert.ok(Math.abs(geometry.video.media[0]) <= 1 && Math.abs(geometry.video.media[1] - width) <= 1, `${width}px video media is not exactly 100vw: ${JSON.stringify(geometry.video)}`);
-        assert.ok(Math.abs(geometry.image.ratio - .8) <= .02, `${width}px image preview is not 4:5: ${JSON.stringify(geometry.image)}`);
-        assert.equal(geometry.image.fit, "cover", `${width}px image preview does not fill its 4:5 frame`);
+        // F22 (owner 2026-11-22): the photo keeps its own shape, from 4:5 to 1.91:1 (browser-checks/photo-frame.cjs).
+        const photoRatio = Math.min(1.91, Math.max(.8, geometry.image.natural));
+        assert.ok(geometry.image.natural > 0 && Math.abs(geometry.image.ratio - photoRatio) <= .02, `${width}px image preview is not the photo's own shape: ${JSON.stringify(geometry.image)}`);
+        assert.equal(geometry.image.fit, "cover", `${width}px image preview does not fill its frame`);
       }
       assert.ok(Math.abs(geometry.video.ratio - .8) <= .02, `${width}px portrait Mix preview is not 4:5: ${JSON.stringify(geometry.video)}`);
       assert.equal(geometry.video.fit, "cover", `${width}px portrait Mix preview does not fill its frame`);
