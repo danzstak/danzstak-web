@@ -53,6 +53,8 @@ jobs:
             '.\test-social-origins.cjs'
             '.\test-authentication.cjs'
             '.\test-booking-workspace-design.cjs'
+            '.\test-deploy-workflow.cjs'
+            '.\test-deploy-boundary.cjs'
           )
 
   browser-call-media:
