@@ -75,7 +75,7 @@ for (const [file, expected] of [
   ["profile.html", "assets/profile-editor.js?v=517"],
   ["booking.html", "assets/booking-agent.js?v=505"],
   ["profile.html", "assets/post-sharing.js?v=422"],
-  ["profile.html", "assets/profile.js?v=422"]
+  ["profile.html", "assets/profile.js?v=423"]
 ]) {
   assert.ok(read(file).includes(expected), `${file} must reference ${expected}`);
 }
