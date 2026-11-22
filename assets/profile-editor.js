@@ -825,6 +825,8 @@ function profilePostCard(post) {
   text.className = "profile-post-content";
   const postContent = String(post.content || "Shared media");
   window.danzstakRenderUserText?.(text, post.content || "Shared media") || (text.textContent = postContent);
+  // A photo or video posted without words carries the filler "Shared media": show the media alone (owner 2026-11-22).
+  if (post.mediaType && postContent.trim() === "Shared media") text.hidden = true;
   article.append(header, text);
   if (postContent.trim().length > 280) {
     text.classList.add("is-collapsed");

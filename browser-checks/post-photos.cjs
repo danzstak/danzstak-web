@@ -39,6 +39,9 @@ const photoFile = index => ({ name: `photo-${index + 1}.png`, mimeType: "image/p
 const svg = (width, height, colour) => `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${colour}"/></svg>`;
 const shown = [[1600, 900, "#2a6"], [1080, 1080, "#c63"], [1080, 1350, "#36c"]];
 const POST = "33333333-3333-4333-8333-333333333333";
+const FILLER = "55555555-5555-4555-8555-555555555555";
+// A photo posted without words carries the filler "Shared media" (owner 2026-11-22 screenshot): only the photo shows.
+const fillerPost = { postId: FILLER, userId: me, authorMemberId: me, authorName: "Night Shift", authorPicture: "", content: "Shared media", createdAt: new Date(Date.now() - 2 * 864e5).toISOString(), audience: "public", isOwner: true, byProfileOwner: true, mediaType: "image", mediaUrl: `${origin}/__shown/1.svg?filler` };
 const wallPost = { postId: POST, userId: me, authorMemberId: me, authorName: "Night Shift", authorPicture: "", content: "Three from the gig", createdAt: new Date(Date.now() - 864e5).toISOString(), audience: "public", isOwner: true, byProfileOwner: true, mediaType: "image", mediaUrl: `${origin}/__shown/0.svg`, moreMediaUrls: [`${origin}/__shown/1.svg`, `${origin}/__shown/2.svg`] };
 
 async function open(browser, width, pathName, { oldServer = false, posts = [] } = {}) {
@@ -140,7 +143,7 @@ async function postFromMix(browser, width, { oldServer = false, count = 3 } = {}
 
       // A Mix post with 3 photos: frame, swipe, tap → full screen at the same photo.
       {
-        const { context, page, seen } = await open(browser, width, "feed.html?view=feed", { posts: [wallPost] });
+        const { context, page, seen } = await open(browser, width, "feed.html?view=feed", { posts: [wallPost, fillerPost] });
         const frame = "#feed .post > .post-photos";
         await page.locator(frame).waitFor({ timeout: 12000 });
         await page.waitForFunction(selector => getComputedStyle(document.querySelector(selector)).getPropertyValue("--fit-ar").trim() !== "", frame, { timeout: 8000 }).catch(() => {});
@@ -154,6 +157,8 @@ async function postFromMix(browser, width, { oldServer = false, count = 3 } = {}
         check(Math.abs(geometry.height - geometry.width / (1600 / 900)) <= 2, `${width}px: the frame is not shaped like the first photo (16:9) (${JSON.stringify(geometry)})`);
         check(Math.abs(geometry.slide[0] - geometry.width) <= 1 && Math.abs(geometry.slide[1] - geometry.height) <= 1, `${width}px: the photo does not fill its frame (${JSON.stringify(geometry)})`);
         check(geometry.count === "1/3" && !geometry.overflow, `${width}px: frame count or page overflow (${JSON.stringify(geometry)})`);
+        const filler = await page.evaluate(id => { const text = document.querySelector(`#feed .post[data-post-id="${id}"] .post-content`); return text ? text.getClientRects().length : -1; }, FILLER);
+        check(filler === 0, `${width}px: Mix shows the "Shared media" filler on a photo posted without words (${filler})`);
         if (width === 360 || width === 390) await page.screenshot({ path: path.join(output, `mix-post-${width}.png`) });
         await swipeLeft(page, frame);
         const after = await page.evaluate(selector => document.querySelector(`${selector} .post-photos-count`).textContent.trim(), frame);
@@ -162,26 +167,27 @@ async function postFromMix(browser, width, { oldServer = false, count = 3 } = {}
         await page.touchscreen.tap(second.x + second.width / 2, second.y + second.height / 2);
         await page.waitForTimeout(500);
         const viewer = await page.evaluate(() => ({ open: globalThis.danzstakMediaViewer?.isOpen?.() === true, index: globalThis.danzstakMediaViewer?.index?.(), slides: document.querySelectorAll(".ds-media-viewer-slide").length }));
-        check(viewer.open && viewer.index === 1 && viewer.slides === 3, `${width}px: tapping the second photo did not open it full screen among the 3 (${JSON.stringify(viewer)})`);
+        check(viewer.open && viewer.index === 1 && viewer.slides === 4, `${width}px: tapping the second photo did not open it full screen among the member's 4 (${JSON.stringify(viewer)})`);
         check(!seen.errors.length, `${width}px Mix post: script errors: ${seen.errors.join(" | ")}`);
         await context.close();
       }
 
       // Profile: the frame on the post, and a Photos tile for each photo.
       {
-        const { context, page, seen } = await open(browser, width, `profile.html?member=${me}`, { posts: [wallPost] });
+        const { context, page, seen } = await open(browser, width, `profile.html?member=${me}`, { posts: [wallPost, fillerPost] });
         await page.locator(".post-photos").first().waitFor({ timeout: 12000 }).catch(() => {});
-        const frames = await page.evaluate(() => ({ frames: document.querySelectorAll(".post-photos").length, count: document.querySelector(".post-photos-count")?.textContent.trim() || "" }));
+        const frames = await page.evaluate(() => ({ frames: document.querySelectorAll(".post-photos").length, count: document.querySelector(".post-photos-count")?.textContent.trim() || "", filler: [...document.querySelectorAll(".profile-post-content")].filter(text => text.textContent.trim() === "Shared media" && text.getClientRects().length).length }));
+        check(frames.filler === 0, `${width}px profile: the "Shared media" filler shows on a photo posted without words`);
         check(frames.frames === 1 && frames.count === "1/3", `${width}px profile: the post did not show one 3-photo frame (${JSON.stringify(frames)})`);
         check(!seen.errors.length, `${width}px profile: script errors: ${seen.errors.join(" | ")}`);
         await context.close();
       }
       {
-        const { context, page, seen } = await open(browser, width, `profile.html?member=${me}#photos`, { posts: [wallPost] });
-        await page.waitForFunction(() => document.querySelectorAll(".profile-photo-grid .profile-video-tile").length > 0, null, { timeout: 12000 }).catch(() => {});
+        const { context, page, seen } = await open(browser, width, `profile.html?member=${me}#photos`, { posts: [wallPost, fillerPost] });
+        await page.waitForFunction(() => document.querySelectorAll(".profile-photo-grid .profile-video-tile").length >= 4, null, { timeout: 12000 }).catch(() => {});
         await page.waitForTimeout(500);
         const tiles = await page.evaluate(() => document.querySelectorAll(".profile-photo-grid .profile-video-tile").length);
-        check(tiles === 3, `${width}px profile Photos: expected 3 tiles, found ${tiles}`);
+        check(tiles === 4, `${width}px profile Photos: expected 4 tiles (3 photos in one post + 1), found ${tiles}`);
         if (width === 390) await page.screenshot({ path: path.join(output, `profile-photos-${width}.png`) });
         check(!seen.errors.length, `${width}px profile Photos: script errors: ${seen.errors.join(" | ")}`);
         await context.close();
