@@ -1062,6 +1062,7 @@ Owner-session only: deploy the Auth API (AI EPK #567, Tribes privacy, albums, tr
 - 2026-11-18 23:55 UTC · Claude (planning chat) · PR #578: ringer + louder rings + Call alerts fixed; owner: "Get SYNC as its own app" doesn't install → spec 34 queued as 5a03 · Next: 5a0
 - 2026-11-18 23:35 UTC · Claude (planning chat) · owner: real-time translation + SYNC auto-translate; spec 33 queued as 5a02, call captions stay task 21 / 9b · Next: 5a0
 - 2026-11-18 23:15 UTC · Claude (planning chat) · 5a00 ringer PR #578; owner: shared/posted photos go into albums ("Uploads", "Phone photos", renameable) + named albums with bulk upload; spec 32 share-to-DanzStak queued as 5a01 · Next: 5a0
+- 2026-11-18 22:49 UTC · Claude Code · 5a2 profile albums · PR #575 (stacked on #552) · left: Auth API deploy (7 album routes + permission), part 2 "choose which uploads also post to Mix" (posts hold one media item today) · Next: 5a00
 - 2026-11-18 22:30 UTC · Claude (planning chat) · owner phone test: video call works (picture-in-picture drag works) but incoming calls don't ring; spec `docs/tasks/31-call-ringer.md`, queued first as 5a00, then 5a0 Text button · Next: 5a00
 - 2026-11-18 22:20 UTC · Claude (planning chat) · owner asked for a Text button in SYNC calls (note over the other person's video until closed); spec `docs/tasks/30-call-text-overlay.md`, queued first as 5a0 · Next: 5a0
 - 2026-11-18 22:05 UTC · Claude (planning chat) · plan written above; queue rows 5a1–5a8 · Next: 5a1
