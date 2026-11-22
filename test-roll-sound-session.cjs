@@ -18,7 +18,8 @@ function media(name, root) {
     set muted(value) { if (value !== muted) { muted = value; queued.push(video); } },
     matches(selector) { return String(selector).split(",").map(s => s.trim()).some(s => ["video", "iframe.reel-player", "video.reel-player"].includes(s)); },
     closest() { return null; }, getAttribute() { return ""; }, addEventListener() {},
-    play() { this.paused = false; return Promise.resolve(); }, pause() { this.paused = true; }, load() {}
+    play() { if (this.failNext) { const name = this.failNext; this.failNext = null; return Promise.reject(Object.assign(new Error(name), { name })); } this.paused = false; return Promise.resolve(); },
+    pause() { this.paused = true; }, load() {}
   };
   return video;
 }
@@ -39,9 +40,11 @@ const document = {
   createElement() { return { setAttribute() {}, addEventListener() {} }; }
 };
 let intersect;
+const timers = [];
+const runTimers = () => { while (timers.length) timers.shift()(); };
 const context = {
   document, localStorage: { getItem: () => null, setItem() { throw new Error("the sound choice must stay in memory"); } },
-  requestAnimationFrame: handler => handler(), cancelAnimationFrame() {}, CustomEvent: class {},
+  requestAnimationFrame: handler => handler(), cancelAnimationFrame() {}, CustomEvent: class {}, setTimeout: handler => timers.push(handler),
   IntersectionObserver: class { constructor(handler) { intersect = handler; } observe() {} unobserve() {} },
   MutationObserver: class { constructor(handler) { mutate = handler; } observe() {} }, addEventListener() {}, dispatchEvent() {}
 };
@@ -99,4 +102,27 @@ const c = media("c");
 mutate([{ removedNodes: [], addedNodes: [c] }]);
 assert.equal(c.muted, true, "new videos start muted");
 
-console.log("Roll sound session checks passed: one shared choice carries into and out of full screen, a move never re-mutes, fresh visits and silent sessions stay muted.");
+// Owner 2026-11-20 (phone): "sound still goes off on the Roll videos after a couple of videos". A quick swipe cuts the next
+// video's play() short (AbortError); that must not turn the member's sound off. Only the browser refusing sound without
+// a tap (NotAllowedError) does.
+(async () => {
+  const settle = async () => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); flush(); };
+  assert.equal(coordinator.startSession(roll, a, { sound: true }), true); flush();
+  view(1, 0); await settle();
+  assert.equal(sound.choice(), true);
+  assert.equal(a.muted, false, "the full-screen video has the member's sound");
+  b.paused = true; b.failNext = "AbortError";
+  intersect([{ target: a, isIntersecting: true, intersectionRatio: 0.2 }, { target: b, isIntersecting: true, intersectionRatio: 1 }]); flush();
+  await settle(); runTimers(); await settle();
+  assert.equal(sound.choice(), true, "an interrupted play() keeps the member's sound on");
+  assert.equal(b.paused, false, "the interrupted video plays again");
+  assert.equal(b.muted, false, "and keeps its sound");
+  a.paused = true; a.failNext = "NotAllowedError";
+  intersect([{ target: a, isIntersecting: true, intersectionRatio: 1 }, { target: b, isIntersecting: true, intersectionRatio: 0.2 }]); flush();
+  await settle(); runTimers(); await settle();
+  assert.equal(sound.choice(), false, "the browser refusing sound turns it off, so the member is asked to tap");
+  assert.equal(a.muted, true, "and the video plays muted");
+  assert.equal(a.paused, false);
+  coordinator.endSession(roll); flush();
+  console.log("Roll sound session checks passed: one shared choice carries into and out of full screen, a move never re-mutes, fresh visits and silent sessions stay muted, and an interrupted play keeps the sound.");
+})().catch(error => { console.error(error); process.exitCode = 1; });
