@@ -1,5 +1,30 @@
-param([switch]$EnableDeviceSmsOtp)
+param([switch]$EnableDeviceSmsOtp, [switch]$DryRun)
 $ErrorActionPreference = "Stop"
+# Unattended (D0, GitHub deploy.yml) and in CloudShell alike: no pager, no progress bars, no prompts. Any failure throws,
+# so `pwsh -File` exits non-zero. -DryRun reads the live setup and prints what a real run would change ("PLAN ..."),
+# then exits without changing anything; every change below goes through Invoke-Change or sits in an
+# `if (-not $DryRun)` block (test-deploy-workflow.cjs checks this).
+$env:AWS_PAGER = ""
+$ProgressPreference = "SilentlyContinue"
+$script:PlannedChanges = [System.Collections.Generic.List[string]]::new()
+function Invoke-Change {
+  param([Parameter(Mandatory = $true)][string]$Description, [Parameter(Mandatory = $true)][scriptblock]$Action)
+  if ($DryRun) {
+    $script:PlannedChanges.Add($Description)
+    Write-Host "PLAN  $Description"
+    return
+  }
+  & $Action
+}
+function Get-StatementMap($Document) {
+  $map = @{}
+  foreach ($statement in @($Document.Statement)) {
+    $actions = (@($statement.Action) | Sort-Object) -join ","
+    $resources = (@($statement.Resource) | Sort-Object) -join ","
+    $map[[string]$statement.Sid] = "$($statement.Effect)|$actions|$resources"
+  }
+  return $map
+}
 
 $Region = "us-west-1"
 $FunctionName = "DANZSTAK-Auth-API"
@@ -60,38 +85,45 @@ if ($LASTEXITCODE -ne 0) { throw "Phone verification database validation failed.
 
 try {
   aws dynamodb describe-table --region $Region --table-name $ToursTable --output json 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) {
+  if ($LASTEXITCODE -ne 0) { Invoke-Change "Create DynamoDB table $ToursTable" {
     aws dynamodb create-table --region $Region --table-name $ToursTable --billing-mode PAY_PER_REQUEST --attribute-definitions AttributeName=userId,AttributeType=S AttributeName=tourId,AttributeType=S --key-schema AttributeName=userId,KeyType=HASH AttributeName=tourId,KeyType=RANGE --tags Key=Application,Value=DanzStak Key=Purpose,Value=TourPlans --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour plans table creation failed." }
     aws dynamodb wait table-exists --region $Region --table-name $ToursTable
     if ($LASTEXITCODE -ne 0) { throw "Tour plans table did not become ready." }
-  }
+  } }
   $previousErrorPreference = $ErrorActionPreference
   $ErrorActionPreference = "SilentlyContinue"
   aws dynamodb describe-table --region $Region --table-name $VenueDirectoryTable --output json 2>$null | Out-Null
   $venueDirectoryDescribeExit = $LASTEXITCODE
   $ErrorActionPreference = $previousErrorPreference
-  if ($venueDirectoryDescribeExit -ne 0) {
+  if ($venueDirectoryDescribeExit -ne 0) { Invoke-Change "Create DynamoDB table $VenueDirectoryTable (with recovery protection)" {
     aws dynamodb create-table --region $Region --table-name $VenueDirectoryTable --billing-mode PAY_PER_REQUEST --attribute-definitions AttributeName=venueKey,AttributeType=S --key-schema AttributeName=venueKey,KeyType=HASH --tags Key=Application,Value=DanzStak Key=Purpose,Value=ReviewedVenueDirectory --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Venue directory table creation failed." }
     aws dynamodb wait table-exists --region $Region --table-name $VenueDirectoryTable
     if ($LASTEXITCODE -ne 0) { throw "Venue directory table did not become ready." }
     aws dynamodb update-continuous-backups --region $Region --table-name $VenueDirectoryTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Venue directory recovery protection failed." }
-  }
+  } }
   $previousErrorPreference = $ErrorActionPreference
   $ErrorActionPreference = "SilentlyContinue"
   aws dynamodb describe-table --region $Region --table-name $ReviewsTable --output json 2>$null | Out-Null
   $reviewsDescribeExit = $LASTEXITCODE
   $ErrorActionPreference = $previousErrorPreference
-  if ($reviewsDescribeExit -ne 0) {
+  if ($reviewsDescribeExit -ne 0) { Invoke-Change "Create DynamoDB table $ReviewsTable" {
     aws dynamodb create-table --region $Region --table-name $ReviewsTable --billing-mode PAY_PER_REQUEST --attribute-definitions AttributeName=pk,AttributeType=S AttributeName=sk,AttributeType=S --key-schema AttributeName=pk,KeyType=HASH AttributeName=sk,KeyType=RANGE --tags Key=Application,Value=DanzStak Key=Purpose,Value=MemberReviews --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Reviews table creation failed." }
     aws dynamodb wait table-exists --region $Region --table-name $ReviewsTable
     if ($LASTEXITCODE -ne 0) { throw "Reviews table did not become ready." }
+  } }
+  $reviewsRecovery = "DISABLED"
+  if ($DryRun -and $reviewsDescribeExit -eq 0) {
+    $reviewsRecovery = aws dynamodb describe-continuous-backups --region $Region --table-name $ReviewsTable --query 'ContinuousBackupsDescription.PointInTimeRecoveryDescription.PointInTimeRecoveryStatus' --output text
+    if ($LASTEXITCODE -ne 0) { throw "Reviews table recovery protection could not be read." }
   }
-  aws dynamodb update-continuous-backups --region $Region --table-name $ReviewsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "Reviews table recovery protection failed." }
+  if (-not $DryRun -or $reviewsRecovery -ne "ENABLED") { Invoke-Change "Turn on point-in-time recovery for $ReviewsTable" {
+    aws dynamodb update-continuous-backups --region $Region --table-name $ReviewsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Reviews table recovery protection failed." }
+  } }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
   # Every API module ships: a fixed list silently dropped payouts.mjs, ticket-orders.mjs and link-preview.mjs before.
   $ApiModules = Get-ChildItem -LiteralPath (Split-Path -Parent $Source) -Filter "*.mjs" -File | ForEach-Object { $_.FullName }
@@ -260,29 +292,57 @@ try {
   # attached policies.
   $accessPolicyName = "DanzStakAuthApiAccess"
   $accessPolicyArn = "arn:aws:iam::$($identity.Account):policy/$accessPolicyName"
-  aws iam get-policy --policy-arn $accessPolicyArn --output json 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    aws iam create-policy --policy-name $accessPolicyName --policy-document "file://$Policy" --output json | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Auth API access policy could not be created." }
-  } else {
-    # A managed policy keeps at most 5 versions: the oldest non-default one goes before the new default is added.
-    $versions = aws iam list-policy-versions --policy-arn $accessPolicyArn --output json | ConvertFrom-Json
-    if ($LASTEXITCODE -ne 0) { throw "Auth API access policy versions could not be read." }
-    $older = @($versions.Versions | Where-Object { -not $_.IsDefaultVersion } | Sort-Object CreateDate)
-    if (@($versions.Versions).Count -ge 5 -and $older.Count -gt 0) {
-      aws iam delete-policy-version --policy-arn $accessPolicyArn --version-id $older[0].VersionId
-      if ($LASTEXITCODE -ne 0) { throw "An old Auth API access policy version could not be removed." }
-    }
-    aws iam create-policy-version --policy-arn $accessPolicyArn --policy-document "file://$Policy" --set-as-default --output json | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Auth API access policy update failed." }
-  }
-  aws iam attach-role-policy --role-name $RoleName --policy-arn $accessPolicyArn
-  if ($LASTEXITCODE -ne 0) { throw "Auth API access policy could not be attached to the Auth API role." }
-  # Now covered by the managed policy: the old inline copy and the separate Dailies policy come off (a later run finds
-  # them gone, which is fine).
-  aws iam delete-role-policy --role-name $RoleName --policy-name DanzStakPostAuthorization 2>$null
-  aws iam detach-role-policy --role-name $RoleName --policy-arn "arn:aws:iam::$($identity.Account):policy/DanzStakPostDailies" 2>$null
+  $existingPolicyJson = aws iam get-policy --policy-arn $accessPolicyArn --output json 2>$null
+  $policyExists = $LASTEXITCODE -eq 0
   $global:LASTEXITCODE = 0
+  if ($DryRun) {
+    $wanted = Get-StatementMap (Get-Content -LiteralPath $Policy -Raw | ConvertFrom-Json)
+    if (-not $policyExists) {
+      Invoke-Change "Create managed policy $accessPolicyName ($($wanted.Count) statements)" {}
+    } else {
+      $defaultVersion = ($existingPolicyJson | ConvertFrom-Json).Policy.DefaultVersionId
+      $liveDocument = (aws iam get-policy-version --policy-arn $accessPolicyArn --version-id $defaultVersion --output json | ConvertFrom-Json).PolicyVersion.Document
+      if ($LASTEXITCODE -ne 0) { throw "Auth API access policy could not be read." }
+      $live = Get-StatementMap $liveDocument
+      $added = @($wanted.Keys | Where-Object { -not $live.ContainsKey($_) } | Sort-Object)
+      $removed = @($live.Keys | Where-Object { -not $wanted.ContainsKey($_) } | Sort-Object)
+      $changed = @($wanted.Keys | Where-Object { $live.ContainsKey($_) -and $live[$_] -ne $wanted[$_] } | Sort-Object)
+      if ($added.Count + $removed.Count + $changed.Count -gt 0) {
+        Invoke-Change "Update managed policy $accessPolicyName (added: $($added -join ', '); removed: $($removed -join ', '); changed: $($changed -join ', '))" {}
+      }
+    }
+    $attachedArns = @(aws iam list-attached-role-policies --role-name $RoleName --query 'AttachedPolicies[].PolicyArn' --output json | ConvertFrom-Json)
+    if ($LASTEXITCODE -ne 0) { throw "Auth API role policies could not be read." }
+    if ($attachedArns -notcontains $accessPolicyArn) { Invoke-Change "Attach $accessPolicyName to the Auth API role" {} }
+    if ($attachedArns -contains "arn:aws:iam::$($identity.Account):policy/DanzStakPostDailies") { Invoke-Change "Detach DanzStakPostDailies from the Auth API role" {} }
+    $inlineNames = @(aws iam list-role-policies --role-name $RoleName --query 'PolicyNames' --output json | ConvertFrom-Json)
+    if ($LASTEXITCODE -ne 0) { throw "Auth API role inline policies could not be read." }
+    if ($inlineNames -contains "DanzStakPostAuthorization") { Invoke-Change "Delete the old inline policy DanzStakPostAuthorization" {} }
+  }
+  if (-not $DryRun) {
+    if (-not $policyExists) {
+      aws iam create-policy --policy-name $accessPolicyName --policy-document "file://$Policy" --output json | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "Auth API access policy could not be created." }
+    } else {
+      # A managed policy keeps at most 5 versions: the oldest non-default one goes before the new default is added.
+      $versions = aws iam list-policy-versions --policy-arn $accessPolicyArn --output json | ConvertFrom-Json
+      if ($LASTEXITCODE -ne 0) { throw "Auth API access policy versions could not be read." }
+      $older = @($versions.Versions | Where-Object { -not $_.IsDefaultVersion } | Sort-Object CreateDate)
+      if (@($versions.Versions).Count -ge 5 -and $older.Count -gt 0) {
+        aws iam delete-policy-version --policy-arn $accessPolicyArn --version-id $older[0].VersionId
+        if ($LASTEXITCODE -ne 0) { throw "An old Auth API access policy version could not be removed." }
+      }
+      aws iam create-policy-version --policy-arn $accessPolicyArn --policy-document "file://$Policy" --set-as-default --output json | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "Auth API access policy update failed." }
+    }
+    aws iam attach-role-policy --role-name $RoleName --policy-arn $accessPolicyArn
+    if ($LASTEXITCODE -ne 0) { throw "Auth API access policy could not be attached to the Auth API role." }
+    # Now covered by the managed policy: the old inline copy and the separate Dailies policy come off (a later run finds
+    # them gone, which is fine).
+    aws iam delete-role-policy --role-name $RoleName --policy-name DanzStakPostAuthorization 2>$null
+    aws iam detach-role-policy --role-name $RoleName --policy-arn "arn:aws:iam::$($identity.Account):policy/DanzStakPostDailies" 2>$null
+    $global:LASTEXITCODE = 0
+  }
 
   $mediaBucket = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query 'StackResourceDetail.PhysicalResourceId' --output text
   if ($LASTEXITCODE -ne 0 -or -not $mediaBucket) { throw "DanzStak media bucket could not be resolved." }
@@ -315,40 +375,65 @@ try {
   # never whether an unverified device is allowed to register.
   $variables.PHONE_DEVICE_OTP_REQUIRED = if ($EnableDeviceSmsOtp) { 'true' } else { 'false' }
   @{ Variables = $variables } | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $Environment -Encoding ascii
-  aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }
-  aws lambda wait function-updated --region $Region --function-name $FunctionName
-  if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration did not finish updating." }
+  # Names only (values can be private settings): which environment variables a real run adds or changes.
+  $liveVariables = @{}
+  foreach ($property in $current.Environment.Variables.PSObject.Properties) { $liveVariables[$property.Name] = [string]$property.Value }
+  $changedVariables = @($variables.Keys | Where-Object { -not $liveVariables.ContainsKey($_) -or $liveVariables[$_] -ne [string]$variables[$_] } | Sort-Object)
+  if (-not $DryRun -or $changedVariables.Count -gt 0) { Invoke-Change "Set Auth API environment: $($changedVariables -join ', ')" {
+    aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }
+    aws lambda wait function-updated --region $Region --function-name $FunctionName
+    if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration did not finish updating." }
+  } }
 
-  aws lambda update-function-configuration --region $Region --function-name $FunctionName --timeout 30 --memory-size 256 --output json | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "Auth API route-planning runtime configuration failed." }
-  aws lambda wait function-updated --region $Region --function-name $FunctionName
-  if ($LASTEXITCODE -ne 0) { throw "Auth API route-planning runtime configuration did not finish updating." }
+  if (-not $DryRun -or [int]$current.Timeout -ne 30 -or [int]$current.MemorySize -ne 256) { Invoke-Change "Set Auth API timeout 30 s and memory 256 MB (now $($current.Timeout) s, $($current.MemorySize) MB)" {
+    aws lambda update-function-configuration --region $Region --function-name $FunctionName --timeout 30 --memory-size 256 --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Auth API route-planning runtime configuration failed." }
+    aws lambda wait function-updated --region $Region --function-name $FunctionName
+    if ($LASTEXITCODE -ne 0) { throw "Auth API route-planning runtime configuration did not finish updating." }
+  } }
 
-  aws lambda update-function-code `
-    --region $Region `
-    --function-name $FunctionName `
-    --zip-file "fileb://$Bundle" `
-    --output json | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "Auth API code deployment failed." }
+  Invoke-Change "Upload Auth API code ($(@($ApiModules).Count) modules, $([math]::Round((Get-Item -LiteralPath $Bundle).Length / 1MB, 1)) MB bundle)" {
+    aws lambda update-function-code `
+      --region $Region `
+      --function-name $FunctionName `
+      --zip-file "fileb://$Bundle" `
+      --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Auth API code deployment failed." }
 
-  aws lambda wait function-updated --region $Region --function-name $FunctionName
-  if ($LASTEXITCODE -ne 0) { throw "Auth API did not finish updating." }
+    aws lambda wait function-updated --region $Region --function-name $FunctionName
+    if ($LASTEXITCODE -ne 0) { throw "Auth API did not finish updating." }
+  }
 
   $configuration = aws lambda get-function-configuration `
     --region $Region `
     --function-name $FunctionName `
     --output json | ConvertFrom-Json
+  if ($LASTEXITCODE -ne 0) { throw "Auth API configuration could not be read." }
   if ($configuration.LastUpdateStatus -ne "Successful") {
     throw "Auth API deployment status is $($configuration.LastUpdateStatus)."
   }
 
-  $sesTopicArn = aws sns create-topic --region $Region --name DANZSTAK-TourManager-SES-Events --query TopicArn --output text
-  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$sesTopicArn)) { throw "Tour Manager SES event topic could not be created or resolved." }
+  $sesTopicName = "DANZSTAK-TourManager-SES-Events"
+  if (-not $DryRun) {
+    $sesTopicArn = aws sns create-topic --region $Region --name $sesTopicName --query TopicArn --output text
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$sesTopicArn)) { throw "Tour Manager SES event topic could not be created or resolved." }
+  } else {
+    $sesTopicArn = "arn:aws:sns:${Region}:$($identity.Account):$sesTopicName"
+    $previousErrorPreference = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    aws sns get-topic-attributes --region $Region --topic-arn $sesTopicArn --output json 2>$null | Out-Null
+    $topicExit = $LASTEXITCODE
+    $ErrorActionPreference = $previousErrorPreference
+    if ($topicExit -ne 0) { Invoke-Change "Create SNS topic $sesTopicName" {}; $sesTopicArn = "" }
+  }
   $lambdaArn = [string]$configuration.FunctionArn
-  $subscriptionArn = aws sns list-subscriptions-by-topic --region $Region --topic-arn $sesTopicArn --query "Subscriptions[?Protocol=='lambda' && Endpoint=='$lambdaArn'].SubscriptionArn | [0]" --output text
-  if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES event subscription could not be inspected." }
-  if (-not $subscriptionArn -or $subscriptionArn -eq 'None') {
+  $subscriptionArn = ""
+  if ($sesTopicArn) {
+    $subscriptionArn = aws sns list-subscriptions-by-topic --region $Region --topic-arn $sesTopicArn --query "Subscriptions[?Protocol=='lambda' && Endpoint=='$lambdaArn'].SubscriptionArn | [0]" --output text
+    if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES event subscription could not be inspected." }
+  }
+  if (-not $subscriptionArn -or $subscriptionArn -eq 'None') { Invoke-Change "Subscribe the Auth API to $sesTopicName (and allow SNS to invoke it)" {
     $previousErrorPreference = $ErrorActionPreference
     $ErrorActionPreference = "SilentlyContinue"
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourManagerSesEvents --action lambda:InvokeFunction --principal sns.amazonaws.com --source-arn $sesTopicArn --output json 2>$null | Out-Null
@@ -360,16 +445,16 @@ try {
     }
     aws sns subscribe --region $Region --topic-arn $sesTopicArn --protocol lambda --notification-endpoint $lambdaArn --return-subscription-arn --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES event Lambda subscription failed." }
-  }
+  } }
   $previousErrorPreference = $ErrorActionPreference
   $ErrorActionPreference = "SilentlyContinue"
   aws sesv2 get-configuration-set --region $Region --configuration-set-name DanzStakTourManager --output json 2>$null | Out-Null
   $configurationSetExit = $LASTEXITCODE
   $ErrorActionPreference = $previousErrorPreference
-  if ($configurationSetExit -ne 0) {
+  if ($configurationSetExit -ne 0) { Invoke-Change "Create SES configuration set DanzStakTourManager" {
     aws sesv2 create-configuration-set --region $Region --configuration-set-name DanzStakTourManager --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES configuration set creation failed." }
-  }
+  } }
   @{
     Enabled = $true
     MatchingEventTypes = @("DELIVERY", "BOUNCE", "COMPLAINT")
@@ -377,88 +462,105 @@ try {
   } | ConvertTo-Json -Depth 5 -Compress | Set-Content -LiteralPath $SesEventDestination -Encoding ascii
   $previousErrorPreference = $ErrorActionPreference
   $ErrorActionPreference = "SilentlyContinue"
-  aws sesv2 get-configuration-set-event-destinations --region $Region --configuration-set-name DanzStakTourManager --query "EventDestinations[?Name=='BookingDeliveryEvents'] | [0]" --output json 2>$null | Out-Null
-  $eventDestinationExit = $LASTEXITCODE
+  $eventDestinationJson = $null
+  $eventDestinationExit = 0
+  if ($configurationSetExit -eq 0) {
+    $eventDestinationJson = aws sesv2 get-configuration-set-event-destinations --region $Region --configuration-set-name DanzStakTourManager --query "EventDestinations[?Name=='BookingDeliveryEvents'] | [0]" --output json 2>$null
+    $eventDestinationExit = $LASTEXITCODE
+  }
   $ErrorActionPreference = $previousErrorPreference
   if ($eventDestinationExit -ne 0) { throw "Tour Manager SES event destination could not be inspected." }
-  aws sesv2 update-configuration-set-event-destination --region $Region --configuration-set-name DanzStakTourManager --event-destination-name BookingDeliveryEvents --event-destination "file://$SesEventDestination" --output json 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    aws sesv2 create-configuration-set-event-destination --region $Region --configuration-set-name DanzStakTourManager --event-destination-name BookingDeliveryEvents --event-destination "file://$SesEventDestination" --output json | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES event destination configuration failed." }
-  }
+  $liveDestination = if ($eventDestinationJson) { $eventDestinationJson | ConvertFrom-Json } else { $null }
+  $destinationCurrent = $liveDestination -and $liveDestination.Enabled -and [string]$liveDestination.SnsDestination.TopicArn -eq [string]$sesTopicArn -and ((@($liveDestination.MatchingEventTypes) | Sort-Object) -join ",") -eq "BOUNCE,COMPLAINT,DELIVERY"
+  if (-not $DryRun -or -not $destinationCurrent) { Invoke-Change "Send SES delivery, bounce and complaint events to $sesTopicName" {
+    aws sesv2 update-configuration-set-event-destination --region $Region --configuration-set-name DanzStakTourManager --event-destination-name BookingDeliveryEvents --event-destination "file://$SesEventDestination" --output json 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      aws sesv2 create-configuration-set-event-destination --region $Region --configuration-set-name DanzStakTourManager --event-destination-name BookingDeliveryEvents --event-destination "file://$SesEventDestination" --output json | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES event destination configuration failed." }
+    }
+  } }
 
   $routes = aws apigatewayv2 get-routes --region $Region --api-id $ApiId --output json | ConvertFrom-Json
   if ($LASTEXITCODE -ne 0) { throw "Tour route API could not be inspected." }
   $routeId = ($routes.Items | Where-Object { $_.RouteKey -eq "POST /tour/route" } | Select-Object -First 1).RouteId
-  if ([string]::IsNullOrWhiteSpace([string]$routeId)) {
+  if ([string]::IsNullOrWhiteSpace([string]$routeId)) { Invoke-Change "Create API route POST /tour/route" {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
-  }
+  } }
   foreach ($routeKey in @("GET /club-directory/contacts", "POST /club-directory/contacts", "POST /tour-manager/stripe/webhook", "POST /sync-network-number/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/refunds", "POST /tour-manager/refunds/quote", "POST /tour-manager/refunds/accept", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /sync-network-number/checkout", "GET /sync-network-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /review-targets", "GET /reviews", "POST /reviews", "PATCH /reviews/{reviewId}", "DELETE /reviews/{reviewId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /marketplace/store", "GET /marketplace/bazaar", "GET /marketplace/bazaar/{productId}", "PUT /marketplace/store", "GET /marketplace/shop", "PUT /marketplace/shop", "GET /marketplace/shop/{memberId}", "POST /marketplace/products", "POST /marketplace/products/import", "PATCH /marketplace/products/{productId}", "DELETE /marketplace/products/{productId}", "POST /marketplace/store/products", "PATCH /marketplace/store/products/{productId}", "DELETE /marketplace/store/products/{productId}", "GET /marketplace/events", "POST /marketplace/events", "GET /marketplace/events/{eventId}", "PATCH /marketplace/events/{eventId}", "POST /marketplace/events/{eventId}/tiers", "GET /auth/reset-password", "GET /auth/sessions", "DELETE /auth/sessions/{deviceId}", "POST /auth/sessions/revoke-others", "GET /auth/reauth", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
-    if ([string]::IsNullOrWhiteSpace([string]$existing)) {
+    if ([string]::IsNullOrWhiteSpace([string]$existing)) { Invoke-Change "Create API route $routeKey" {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
       if ($LASTEXITCODE -ne 0) { throw "Tour plans API route $routeKey creation failed." }
-    }
+    } }
   }
   foreach ($obsoleteRouteKey in @("GET /auth/mobile-login", "POST /auth/mobile-session")) {
     $obsoleteRouteId = ($routes.Items | Where-Object { $_.RouteKey -eq $obsoleteRouteKey } | Select-Object -First 1).RouteId
-    if (-not [string]::IsNullOrWhiteSpace([string]$obsoleteRouteId)) {
+    if (-not [string]::IsNullOrWhiteSpace([string]$obsoleteRouteId)) { Invoke-Change "Delete obsolete API route $obsoleteRouteKey" {
       aws apigatewayv2 delete-route --region $Region --api-id $ApiId --route-id $obsoleteRouteId
       if ($LASTEXITCODE -ne 0) { throw "Obsolete native authentication route $obsoleteRouteKey could not be removed." }
-    }
+    } }
   }
   $permission = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
   if ($LASTEXITCODE -ne 0) { throw "Auth API invoke permissions could not be inspected." }
-  if ($permission -match "AllowNativeAuthFromApiGateway") {
+  if ($permission -match "AllowNativeAuthFromApiGateway") { Invoke-Change "Remove obsolete invoke permission AllowNativeAuthFromApiGateway" {
     aws lambda remove-permission --region $Region --function-name $FunctionName --statement-id AllowNativeAuthFromApiGateway
     if ($LASTEXITCODE -ne 0) { throw "Obsolete native authentication API permission could not be removed." }
-  }
-  if ($permission -notmatch "AllowTourRouteFromApiGateway") {
+  } }
+  if ($permission -notmatch "AllowTourRouteFromApiGateway") { Invoke-Change "Allow API Gateway to invoke the Auth API (AllowTourRouteFromApiGateway)" {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourRouteFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/tour/route" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API invoke permission failed." }
-  }
-  if ($permission -notmatch "AllowVenueSearchFromApiGateway") {
+  } }
+  if ($permission -notmatch "AllowVenueSearchFromApiGateway") { Invoke-Change "Allow API Gateway to invoke the Auth API (AllowVenueSearchFromApiGateway)" {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowVenueSearchFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/venues/search" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Venue search API invoke permission failed." }
-  }
-  if ($permission -notmatch "AllowManualVenueFromApiGateway") {
+  } }
+  if ($permission -notmatch "AllowManualVenueFromApiGateway") { Invoke-Change "Allow API Gateway to invoke the Auth API (AllowManualVenueFromApiGateway)" {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowManualVenueFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/tour/manual-venue" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Manual venue API invoke permission failed." }
-  }
-  if ($permission -notmatch "api-club-directory-contacts") {
+  } }
+  if ($permission -notmatch "api-club-directory-contacts") { Invoke-Change "Allow API Gateway to invoke the Auth API (api-club-directory-contacts)" {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id api-club-directory-contacts --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/club-directory/contacts" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Trusted contacts API invoke permission failed." }
-  }
-  if ($permission -notmatch "AllowRecordStoresFromApiGateway") {
+  } }
+  if ($permission -notmatch "AllowRecordStoresFromApiGateway") { Invoke-Change "Allow API Gateway to invoke the Auth API (AllowRecordStoresFromApiGateway)" {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowRecordStoresFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/record-stores/search" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Record store API invoke permission failed." }
-  }
-  if ($permission -notmatch "AllowRecordStoreWorkspaceFromApiGateway") {
+  } }
+  if ($permission -notmatch "AllowRecordStoreWorkspaceFromApiGateway") { Invoke-Change "Allow API Gateway to invoke the Auth API (AllowRecordStoreWorkspaceFromApiGateway)" {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowRecordStoreWorkspaceFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/record-store-workspace" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Record-store workspace API invoke permission failed." }
-  }
-  if ($permission -notmatch "AllowEpkFromApiGateway") {
+  } }
+  if ($permission -notmatch "AllowEpkFromApiGateway") { Invoke-Change "Allow API Gateway to invoke the Auth API (AllowEpkFromApiGateway)" {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowEpkFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/epk*" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "EPK API invoke permission failed." }
-  }
-  if ($permission -notmatch "AllowTourPlansFromApiGateway") {
+  } }
+  if ($permission -notmatch "AllowTourPlansFromApiGateway") { Invoke-Change "Allow API Gateway to invoke the Auth API (AllowTourPlansFromApiGateway)" {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourPlansFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/tours*" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour plans API invoke permission failed." }
-  }
-  if ($permission -notmatch "AllowBookingPipelineFromApiGateway") {
+  } }
+  if ($permission -notmatch "AllowBookingPipelineFromApiGateway") { Invoke-Change "Allow API Gateway to invoke the Auth API (AllowBookingPipelineFromApiGateway)" {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowBookingPipelineFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/booking-pipeline" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Booking pipeline API invoke permission failed." }
-  }
-  if ($permission -notmatch "AllowReviewsFromApiGateway") {
+  } }
+  if ($permission -notmatch "AllowReviewsFromApiGateway") { Invoke-Change "Allow API Gateway to invoke the Auth API (AllowReviewsFromApiGateway)" {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowReviewsFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/review*" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Reviews API invoke permission failed." }
-  }
-  if ($permission -notmatch "AllowTourManagerBillingFromApiGateway") {
+  } }
+  if ($permission -notmatch "AllowTourManagerBillingFromApiGateway") { Invoke-Change "Allow API Gateway to invoke the Auth API (AllowTourManagerBillingFromApiGateway)" {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourManagerBillingFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/tour-manager/*" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour Manager billing API invoke permission failed." }
+  } }
+  if ($DryRun) {
+    $summary = "DRY RUN: a real run would make $($script:PlannedChanges.Count) change(s), listed above as PLAN. Nothing was changed."
+    Write-Host $summary
+    if ($env:GITHUB_STEP_SUMMARY) {
+      $lines = @("### Auth API dry run", "", $summary, "") + @($script:PlannedChanges | ForEach-Object { "- $_" }) + @("")
+      Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $lines
+    }
+  } else {
+    Write-Host "DanzStak Auth API authorization safeguards deployed successfully."
   }
-  Write-Host "DanzStak Auth API authorization safeguards deployed successfully."
 } finally {
   Remove-Item -LiteralPath $Bundle -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $Policy -Force -ErrorAction SilentlyContinue
