@@ -762,6 +762,7 @@ function installProfilePostMedia(article, post) {
 function profilePostCard(post) {
   const article = document.createElement("article");
   article.className = "profile-post-card";
+  window.danzstakPostPhotos?.presetShape?.(article, post.mediaRatio); // F22: the frame is right before the media loads
   if (post.postId) {
     article.dataset.postId = post.postId;
     article.dataset.isOwner = String(post.isOwner === true);
@@ -1071,8 +1072,9 @@ function profileWallComposer(profile) {
     submit.disabled = true; status.textContent = "Posting…";
     let uploadedMediaKey = "", uploadedMoreKeys = [];
     try {
-      let mediaKey = "", mediaType = "";
+      let mediaKey = "", mediaType = "", mediaRatio = 0; // the media's own shape, kept with the post (F22: nothing jumps)
       if (selectedMedia) {
+        mediaRatio = await (window.danzstakPostPhotos?.shapeOf?.(selectedMedia.file) || 0);
         const ticketResponse = await profileFetch(profileApi + "/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: selectedMedia.file.type, purpose: "post" }) }, 15000);
         const ticket = await ticketResponse.json().catch(() => ({}));
         if (!ticketResponse.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || "Media upload could not start.");
@@ -1085,7 +1087,7 @@ function profileWallComposer(profile) {
         if (mediaType === "image" && selectedMedia.more?.length && window.danzstakPostPhotos) uploadedMoreKeys = await window.danzstakPostPhotos.upload(selectedMedia.more.map(item => item.file), profileFetch);
       }
       // T0-A1: every posted video goes to The Roll (the server also adds Dailies by itself).
-      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType, reel: mediaType === "video", ...(mediaKey ? { uploadSource: window.danzstakPostPhotos?.uploadSource?.(), ...(selectedMedia?.albumChoice?.value() ? { albumId: selectedMedia.albumChoice.value() } : {}) } : {}) };
+      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType, reel: mediaType === "video", ...(mediaKey ? { uploadSource: window.danzstakPostPhotos?.uploadSource?.(), ...(mediaRatio ? { mediaRatio } : {}), ...(selectedMedia?.albumChoice?.value() ? { albumId: selectedMedia.albumChoice.value() } : {}) } : {}) };
       if (!profile.isOwner) body.profileMemberId = profile.memberId;
       const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(uploadedMoreKeys.length ? { ...body, moreMediaKeys: uploadedMoreKeys } : body) });
       const data = await response.json().catch(() => ({}));

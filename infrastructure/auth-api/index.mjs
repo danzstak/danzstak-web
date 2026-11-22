@@ -1925,6 +1925,7 @@ async function getSecurePosts(event) {
       moreMediaUrls: postMoreMedia(item).map(key => signedMediaUrl(key, 3600)),
       uploadSource: item.uploadSource?.S || "",
       albumId: item.albumId?.S || "",
+      mediaRatio: Number(item.mediaRatio?.N || 0),
       reel: item.reel?.BOOL === true,
       commentPolicy: item.commentPolicy?.S ?? "everyone",
       editHistory: postEditHistory(item),
@@ -2511,6 +2512,9 @@ async function createSecurePost(event) {
       ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {}),
       ...(mediaKey && !facebookImport ? { uploadSource: { S: uploadSource } } : {}),
       ...(albumId ? { albumId: { S: albumId } } : {}),
+      // The media's own shape (width / height) as the phone read it, so its frame is right before it loads (F22). A
+      // value that isn't a sane shape is left out (the frame then takes the shape when the media loads).
+      ...(mediaKey && Number.isFinite(Number(data.mediaRatio)) && Number(data.mediaRatio) >= 0.1 && Number(data.mediaRatio) <= 10 ? { mediaRatio: { N: String(Math.round(Number(data.mediaRatio) * 10000) / 10000) } } : {}),
       ...(moreMediaKeys.length ? { moreMedia: { L: moreMediaKeys.map(key => ({ S: key })) } } : {})
     },
     ConditionExpression: "attribute_not_exists(postId)"

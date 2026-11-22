@@ -204,5 +204,35 @@
     return { element: chip, value: () => chosen.albumId };
   }
 
-  globalThis.danzstakPostPhotos = { mount, pick, tooMany, upload, attach, discard, uploadSource, albumChoice, MAX };
+  // The photo's or video's own shape (width / height), read on the phone before upload and kept with the post, so its frame
+  // has the right size before the media loads and nothing below it jumps (F22: "stored dimensions so nothing jumps").
+  // 0 when it can't be read; the frame then takes its shape when the media loads, as before.
+  async function shapeOf(file) {
+    try {
+      if (/^image\//.test(file?.type || "")) {
+        const bitmap = await createImageBitmap(file), ratio = bitmap.width / bitmap.height;
+        bitmap.close?.();
+        return Number.isFinite(ratio) && ratio > 0 ? Number(ratio.toFixed(4)) : 0;
+      }
+      if (/^video\//.test(file?.type || "")) return await new Promise(resolve => {
+        const video = document.createElement("video"), url = URL.createObjectURL(file);
+        let settled = false;
+        const done = value => { if (settled) return; settled = true; URL.revokeObjectURL(url); video.removeAttribute("src"); resolve(value); };
+        video.preload = "metadata"; video.muted = true;
+        video.onloadedmetadata = () => done(video.videoWidth && video.videoHeight ? Number((video.videoWidth / video.videoHeight).toFixed(4)) : 0);
+        video.onerror = () => done(0);
+        setTimeout(() => done(0), 4000);
+        video.src = url;
+      });
+    } catch { /* unreadable: the frame takes its shape when the media loads */ }
+    return 0;
+  }
+  // Gives a post (or its card) the stored shape, before its media loads. The frame and the media inherit it; media-fit
+  // and the multi-photo frame set their own once the media has loaded.
+  function presetShape(element, ratio) {
+    const value = Number(ratio);
+    if (element && Number.isFinite(value) && value > 0) element.style.setProperty("--fit-ar", clamp(value).toFixed(4));
+  }
+
+  globalThis.danzstakPostPhotos = { mount, pick, tooMany, upload, attach, discard, uploadSource, albumChoice, shapeOf, presetShape, MAX };
 })();

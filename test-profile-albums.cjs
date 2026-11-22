@@ -193,7 +193,7 @@ const commands = { GetItemCommand: command("Get"), PutItemCommand: command("Put"
   assert.match(api, /uploadSource: item\.uploadSource\?\.S \|\| "",/, "posts carry it to the profile");
   assert.match(shared, /function uploadSource\(\)/);
   for (const [file, text] of [["feed.html", fs.readFileSync("feed.html", "utf8")], ["profile-editor.js", fs.readFileSync("assets/profile-editor.js", "utf8")]]) {
-    assert.match(text, /\.\.\.\(mediaKey \? \{ uploadSource: window\.danzstakPostPhotos\?\.uploadSource\?\.\(\), \.\.\.\(selectedMedia\?\.albumChoice\?\.value\(\) \? \{ albumId: selectedMedia\.albumChoice\.value\(\) \} : \{\}\) \} : \{\}\)/, `${file} sends where the post was made and the album chosen`);
+    assert.match(text, /\.\.\.\(mediaKey \? \{ uploadSource: window\.danzstakPostPhotos\?\.uploadSource\?\.\(\), \.\.\.\(mediaRatio \? \{ mediaRatio \} : \{\}\), \.\.\.\(selectedMedia\?\.albumChoice\?\.value\(\) \? \{ albumId: selectedMedia\.albumChoice\.value\(\) \} : \{\}\) \} : \{\}\)/, `${file} sends where the post was made and the album chosen`);
   }
   // The browser decides phone or computer: Android, iPhone, an iPad that reports itself as a Mac are phones.
   const vm = require("node:vm"), source = shared.slice(shared.indexOf("function uploadSource()"), shared.indexOf("globalThis.danzstakPostPhotos ="));

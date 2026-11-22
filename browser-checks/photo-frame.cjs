@@ -43,13 +43,14 @@ function fixture(url) {
   return {};
 }
 
-async function open(browser, width, pathName) {
+async function open(browser, width, pathName, { postsOverride = null, holdPhotos = false } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
   const page = await context.newPage(), errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.route(`${base}/**`, route => {
     const url = new URL(route.request().url());
     const photo = photos.find(item => url.pathname === `/__photo-${item.name}.svg`);
+    if (photo && holdPhotos) return; // never answered: the photo is still on its way
     if (photo) return route.fulfill({ status: 200, contentType: "image/svg+xml", body: svg(photo) });
     const file = path.join(process.cwd(), decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname));
     if (!file.startsWith(process.cwd()) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) return route.fulfill({ status: 404, body: "" });
@@ -59,7 +60,8 @@ async function open(browser, width, pathName) {
   await page.route("https://api.danzstak.com/**", route => {
     const request = route.request(), url = new URL(request.url());
     if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
-    return route.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify(fixture(url)) });
+    const body = url.pathname === "/secure-posts" && postsOverride ? { posts: postsOverride } : fixture(url);
+    return route.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify(body) });
   });
   await page.goto(`${base}/${pathName}`, { waitUntil: "domcontentloaded" });
   return { context, page, errors };
@@ -104,7 +106,24 @@ async function open(browser, width, pathName) {
       if (errors.length) failures.push(`${label}: script errors: ${errors.join(" | ")}`);
       await context.close();
     }
+    // F22 "stored dimensions so nothing jumps": every post the app saves now carries its media's shape (mediaRatio), so
+    // its frame has its final size before the photo arrives. Here the photos never arrive.
+    const shaped = posts.map((post, index) => ({ ...post, mediaRatio: photos[index].width / photos[index].height }));
+    for (const [surface, pathName, selector] of [["Mix", "feed.html?view=feed", "#feed .post > img.post-media"], ["profile", `profile.html?member=${me}`, "img.profile-post-media"]]) for (const width of [360, 390]) {
+      const label = `${surface} ${width}px, photos still loading`;
+      const { context, page } = await open(browser, width, pathName, { postsOverride: shaped, holdPhotos: true });
+      try { await page.waitForFunction(count => document.querySelectorAll(count.selector).length >= count.n, { selector, n: photos.length }, { timeout: 12000 }); }
+      catch { failures.push(`${label}: the posts did not show`); await context.close(); continue; }
+      const frames = await page.evaluate(selector => [...document.querySelectorAll(selector)].map(img => ({ name: new URL(img.src).pathname.replace(/^\/__photo-|\.svg$/g, ""), loaded: img.complete && img.naturalWidth > 0, width: img.getBoundingClientRect().width, height: img.getBoundingClientRect().height })), selector);
+      for (const photo of photos) {
+        const frame = frames.find(item => item.name === photo.name);
+        const want = frame ? frame.width / Math.min(3, Math.max(0.45, photo.width / photo.height)) : 0;
+        if (!frame || frame.loaded) failures.push(`${label}: the ${photo.name} photo should still be loading`);
+        else if (Math.abs(frame.height - want) > 2) failures.push(`${label}: the ${photo.name} frame is ${Math.round(frame.height)}px tall before its photo arrives, expected ${Math.round(want)}px (it would jump when it loads)`);
+      }
+      await context.close();
+    }
   } finally { await browser.close(); }
   if (failures.length) { console.error(failures.join("\n")); process.exit(1); }
-  console.log("Photo frame checks passed: Mix and profile photos keep their own shape (9:20 to 3:1), full width, at 320-430px.");
+  console.log("Photo frame checks passed: Mix and profile photos keep their own shape (9:20 to 3:1), full width, at 320-430px, and a post's stored shape sizes its frame before the photo arrives.");
 })();

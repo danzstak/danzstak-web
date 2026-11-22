@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-eM81Bfqdv0xMiohmVATkwAjmMwMESTrVSKfjz5C3rLU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-/bFJMIYUJxlpqEzUDPBoTp4BaL5+rELQ028cjgvACS8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -1448,6 +1448,8 @@ async function loadPosts() {
         post.moreMediaUrls
       );
       if (post.sharedPostId) article.dataset.sharedPostId = post.sharedPostId;
+      // F22: the stored shape sizes the frame before the media loads, so nothing below it jumps.
+      window.danzstakPostPhotos?.presetShape?.(article, post.mediaRatio);
       // F15b: the DanzStak welcome post is pinned first (the server sends pinnedUntil only while it is in the future and
       // orders it first); it shows a small pin label, and its official text is read in the member's language.
       if (Date.parse(post.pinnedUntil || "") > Date.now()) {
@@ -1624,7 +1626,9 @@ publishBtn.addEventListener("click", async () => {
     let mediaKey = "";
     let mediaType = "";
     let mediaUrl = "";
+    let mediaRatio = 0; // the media's own shape, kept with the post so its frame is right before it loads (F22)
     if (selectedMedia) {
+      mediaRatio = await (window.danzstakPostPhotos?.shapeOf?.(selectedMedia.file) || 0);
       const ticketResponse = await fetchWithDeadline("https://api.danzstak.com/stories", {
         method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
         body: JSON.stringify({ contentType: selectedMedia.file.type, purpose: "post" })
@@ -1648,7 +1652,7 @@ publishBtn.addEventListener("click", async () => {
         "Content-Type": "application/json"
       },
       credentials: "include",
-      body: JSON.stringify({ content: content || "Shared media", location: submittedLocation.trim(), audience, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true, ...(uploadedMoreKeys.length ? { moreMediaKeys: uploadedMoreKeys } : {}), ...(mediaKey ? { uploadSource: window.danzstakPostPhotos?.uploadSource?.(), ...(selectedMedia?.albumChoice?.value() ? { albumId: selectedMedia.albumChoice.value() } : {}) } : {}) })
+      body: JSON.stringify({ content: content || "Shared media", location: submittedLocation.trim(), audience, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true, ...(uploadedMoreKeys.length ? { moreMediaKeys: uploadedMoreKeys } : {}), ...(mediaKey ? { uploadSource: window.danzstakPostPhotos?.uploadSource?.(), ...(mediaRatio ? { mediaRatio } : {}), ...(selectedMedia?.albumChoice?.value() ? { albumId: selectedMedia.albumChoice.value() } : {}) } : {}) })
     });
 
     if (response.status === 401) {
@@ -1721,6 +1725,7 @@ publishBtn.addEventListener("click", async () => {
         morePhotos
       )
     );
+    window.danzstakPostPhotos?.presetShape?.(feed.firstElementChild, mediaRatio);
     separatePosts.forEach((post, index) => feed.prepend(createPostElement(post.content, "You", post.createdAt, post.audience || audience,
       selectedMedia.more?.[index]?.url || "", "image", post.postId, true, String(post.userId || ""))));
     window.dispatchEvent(new CustomEvent("danzstak:post-published", { detail: { postId: savedPost.postId, mediaUrl } }));

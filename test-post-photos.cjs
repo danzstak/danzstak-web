@@ -113,6 +113,19 @@ function sandbox() {
     made = await saved(body);
     assert.equal(made.status, 400, `${label} is refused`); assert.equal(made.error, message); assert.equal(made.item, undefined, `${label}: nothing is saved`);
   }
+  // F22 "stored dimensions so nothing jumps": the post keeps the media's own shape as the phone read it.
+  made = await saved({ mediaKey: key(), mediaType: "image", mediaRatio: 0.45 });
+  assert.equal(made.item.mediaRatio.N, "0.45", "the shape is kept");
+  made = await saved({ mediaKey: key(), mediaType: "image", mediaRatio: 1.777777777 });
+  assert.equal(made.item.mediaRatio.N, "1.7778", "rounded to 4 places");
+  for (const odd of [0, -1, 50, "wide", null, Infinity]) {
+    made = await saved({ mediaKey: key(), mediaType: "image", mediaRatio: odd });
+    assert.equal(made.status, 201, `an odd shape (${odd}) never blocks the post`); assert.equal(made.item.mediaRatio, undefined, `an odd shape (${odd}) is left out`);
+  }
+  made = await saved({ content: "Words only", mediaRatio: 1 });
+  assert.equal(made.item.mediaRatio, undefined, "no shape without media");
+  assert.match(source, /mediaRatio: Number\(item\.mediaRatio\?\.N \|\| 0\),/, "posts carry the shape to Mix and profiles");
+
   // Moving a post later: its owner, to one of their albums or back ("") to the automatic one.
   const update = source.slice(source.indexOf("async function updateSecurePost("), source.indexOf("async function updateSecurePost(") + 9000);
   assert.match(update, /if \(Object\.prototype\.hasOwnProperty\.call\(data, "albumId"\)\) \{/, "a post can move to another album");
