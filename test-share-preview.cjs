@@ -124,6 +124,9 @@ const CRAWLERS = [
   assert.ok(handler.indexOf("startsWith('/share/profile/'))return await shareProfile(event)") > 0);
   assert.match(template, /RouteKey: 'GET \/share\/profile\/\{handle\}'/);
   assert.match(template, /RouteKey: 'GET \/share\/profile\/\{handle\}\/card'/);
+  // The API may only call the function on paths a Lambda permission names (2026-11-22: without this one every share link
+  // answered 500 and the function never ran).
+  assert.match(template, /ShareProfileInvokePermission: \{Type: AWS::Lambda::Permission, Properties: \{Action: 'lambda:InvokeFunction', FunctionName: !Ref SignalingFunction, Principal: apigateway\.amazonaws\.com, SourceArn: !Sub 'arn:\$\{AWS::Partition\}:execute-api:\$\{AWS::Region\}:\$\{AWS::AccountId\}:\$\{ApiId\}\/\*\/GET\/share\/profile\/\*'\}\}/, "the API may call the function for /share/profile/*");
   const rules = JSON.parse(fs.readFileSync("infrastructure/amplify-custom-rules.json", "utf8"));
   const at = source => rules.findIndex(rule => rule.source === source);
   assert.ok(at("/u/<handle>/card.jpg") >= 0 && at("/u/<handle>/card.jpg") < at("/u/<handle>") && at("/u/<handle>") < at("/<*>"), "card rewrite, then page rewrite, then the 404 rule");
