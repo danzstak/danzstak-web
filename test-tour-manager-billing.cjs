@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const { createHmac } = require("node:crypto");
 
 (async () => {
+  const { buyerFees } = await import("./infrastructure/auth-api/fees.mjs");
   const { createTourManagerBilling, verifyStripeSignature, TEST_TOUR_MANAGER_EMAIL_PRICE_ID: TOUR_MANAGER_EMAIL_PRICE_ID, TEST_TOUR_MANAGER_PRODUCT_ID: TOUR_MANAGER_PRODUCT_ID, TOUR_MANAGER_EMAIL_UNIT_CENTS } = await import("./infrastructure/auth-api/tour-manager-billing.mjs");
   class Command { constructor(input) { this.input = input; } }
   class GetItemCommand extends Command {}
@@ -50,9 +51,9 @@ const { createHmac } = require("node:crypto");
   let createdForm, sessionOverrides = {};
   const session = () => ({
     id: "cs_test_credit123", mode: "payment", payment_status: "paid", status: "complete", livemode: false,
-    client_reference_id: "user_12345678", currency: "usd", amount_total: 450,
+    client_reference_id: "user_12345678", currency: "usd", amount_total: 450 + buyerFees(450),
     metadata: { product: "tour_manager_booking_email", userId: "user_12345678", priceId: TOUR_MANAGER_EMAIL_PRICE_ID, quantity: "3" },
-    line_items: { data: [{ quantity: 3, price: { id: TOUR_MANAGER_EMAIL_PRICE_ID, product: TOUR_MANAGER_PRODUCT_ID, currency: "usd", unit_amount: TOUR_MANAGER_EMAIL_UNIT_CENTS } }] },
+    line_items: { data: [{ quantity: 3, price: { id: TOUR_MANAGER_EMAIL_PRICE_ID, product: TOUR_MANAGER_PRODUCT_ID, currency: "usd", unit_amount: TOUR_MANAGER_EMAIL_UNIT_CENTS } }, { description: "DanzStak fee", quantity: 1, amount_total: buyerFees(450), price: { id: "price_inline_fee", currency: "usd", unit_amount: buyerFees(450) } }] },
     ...sessionOverrides
   });
   const fetcher = async (url, options = {}) => {
@@ -71,6 +72,12 @@ const { createHmac } = require("node:crypto");
   assert.equal(checkout.statusCode, 200);
   assert.equal(createdForm.get("line_items[0][price]"), TOUR_MANAGER_EMAIL_PRICE_ID);
   assert.equal(createdForm.get("line_items[0][quantity]"), "3");
+  // Task 12: the buyer fee is its own receipt line: 3 x $1.50 = $4.50 -> 27c + $1 = $1.27.
+  assert.equal(createdForm.get("line_items[1][price_data][product_data][name]"), "DanzStak fee");
+  assert.equal(createdForm.get("line_items[1][price_data][unit_amount]"), "127");
+  assert.equal(createdForm.get("line_items[1][price_data][currency]"), "usd");
+  assert.equal(createdForm.get("line_items[1][quantity]"), "1");
+  assert.deepEqual([JSON.parse(checkout.body).feeCents, JSON.parse(checkout.body).totalCents], [127, 577], "checkout reports the all-in total");
   assert.equal(createdForm.get("metadata[userId]"), "user_12345678");
   assert.equal((await service(event("POST", "/tour-manager/checkout", JSON.stringify({ quantity: 0 })))).statusCode, 400);
   assert.equal((await service(event("POST", "/tour-manager/checkout", JSON.stringify({ quantity: 3 }), { origin: "https://evil.example" }))).statusCode, 403);
@@ -88,6 +95,14 @@ const { createHmac } = require("node:crypto");
   assert.equal(JSON.parse(awaiting.body).awaitingPayment, true);
   assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS"), undefined);
 
+  // Task 12: a session whose amount_total is not price + fee never grants anything.
+  for (const [index, bad] of [{ amount_total: 450 }, { amount_total: 450 + buyerFees(450) + 1 }, { line_items: { data: [{ quantity: 3, price: { id: TOUR_MANAGER_EMAIL_PRICE_ID, product: TOUR_MANAGER_PRODUCT_ID, currency: "usd", unit_amount: TOUR_MANAGER_EMAIL_UNIT_CENTS } }] } }].entries()) {
+    sessionOverrides = bad;
+    const badPayload = JSON.stringify({ ...stripeEvent, id: `evt_badtotal${index}` });
+    const rejected = await service(event("POST", "/tour-manager/stripe/webhook", badPayload, { "stripe-signature": signed(badPayload) }));
+    assert.equal(rejected.statusCode, 409, "wrong amount_total or missing fee line is rejected");
+  }
+  assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS"), undefined);
   sessionOverrides = {};
   const asyncEvent = { ...stripeEvent, id: "evt_credit456", type: "checkout.session.async_payment_succeeded" };
   const asyncPayload = JSON.stringify(asyncEvent);

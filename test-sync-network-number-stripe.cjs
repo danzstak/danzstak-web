@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const { createHmac } = require("node:crypto");
 
 (async () => {
+  const { buyerFees } = await import("./infrastructure/auth-api/fees.mjs");
   const {
     createTourManagerBilling,
     TEST_SYNC_NETWORK_NUMBER_PRICE_ID,
@@ -90,10 +91,10 @@ const { createHmac } = require("node:crypto");
       const id = `cs_test_ds${sessionNumber}`;
       const session = {
         id, mode: "payment", payment_status: "paid", status: "complete", livemode: false,
-        client_reference_id: activeUser, currency: "usd", amount_total: SYNC_NETWORK_NUMBER_UNIT_CENTS,
+        client_reference_id: activeUser, currency: "usd", amount_total: SYNC_NETWORK_NUMBER_UNIT_CENTS + buyerFees(SYNC_NETWORK_NUMBER_UNIT_CENTS),
         payment_intent: `pi_ds${sessionNumber}`,
         metadata: { product: "danzstak_sync_network_alias", userId: activeUser, priceId: TEST_SYNC_NETWORK_NUMBER_PRICE_ID },
-        line_items: { data: [{ quantity: 1, price: { id: TEST_SYNC_NETWORK_NUMBER_PRICE_ID, product: TEST_SYNC_NETWORK_NUMBER_PRODUCT_ID, currency: "usd", unit_amount: SYNC_NETWORK_NUMBER_UNIT_CENTS } }] }
+        line_items: { data: [{ quantity: 1, price: { id: TEST_SYNC_NETWORK_NUMBER_PRICE_ID, product: TEST_SYNC_NETWORK_NUMBER_PRODUCT_ID, currency: "usd", unit_amount: SYNC_NETWORK_NUMBER_UNIT_CENTS } }, { description: "DanzStak fee", quantity: 1, amount_total: buyerFees(SYNC_NETWORK_NUMBER_UNIT_CENTS), price: { id: "price_inline_fee", currency: "usd", unit_amount: buyerFees(SYNC_NETWORK_NUMBER_UNIT_CENTS) } }] }
       };
       sessions.set(id, session);
       return { ok: true, json: async () => ({ id, url: `https://checkout.stripe.com/c/pay/${id}` }) };
@@ -155,7 +156,7 @@ const { createHmac } = require("node:crypto");
   assert.equal(secondResult.alias, "DS-987-6543", "a collision must retry with a different alias");
   assert.notEqual(secondResult.alias, ownerStatus.alias);
 
-  const refund = { id: "ch_dsfirst", payment_intent: firstSession.payment_intent, currency: "usd", amount: 300, amount_refunded: 300 };
+  const refund = { id: "ch_dsfirst", payment_intent: firstSession.payment_intent, currency: "usd", amount: firstSession.amount_total, amount_refunded: firstSession.amount_total };
   const refunded = await signedEvent("evt_dsrefund", "charge.refunded", refund);
   assert.equal(JSON.parse(refunded.body).refunded, true);
   activeUser = users[0];
