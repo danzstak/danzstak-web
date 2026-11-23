@@ -80,7 +80,7 @@ function fakeDb() {
   };
   const fetched = [];
   const fetchPage = async url => { fetched.push(url); const page = pages[url]; return page ? { ok: true, url, ...page } : { ok: false, reason: "unreachable" }; };
-  const search = { name: "fake", async search() { return [{ url: IMPOSTER, title: "Night Shift", snippet: "Other band", site: "other-night-shift.example.com" }, { url: "https://press.example.com/night-shift-review", title: "Review", snippet: "", site: "press.example.com" }]; } };
+  const search = { name: "fake", async search() { return [{ url: IMPOSTER, title: "Night Shift", snippet: "Other band", site: "other-night-shift.example.com" }, { url: "https://press.example.com/night-shift-review", title: "Review", snippet: "Live review of the punk band", site: "press.example.com" }]; } };
   const longQuote = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twentyone twentytwo twentythree twentyfour twentyfive twentysix";
   let llmCalls = [], llmMode = "normal";
   const llm = { name: "fake", async complete(request) {
@@ -354,5 +354,45 @@ function fakeDb() {
   assert.ok(/Invoke-Change "Create managed policy \$bedrockPolicyName/.test(bedrockBlock) && /Invoke-Change "Attach \$bedrockPolicyName/.test(bedrockBlock), "dry run plans the Bedrock policy");
   assert.ok(!/sk-ant-[A-Za-z0-9]{20,}/.test(index + fs.readFileSync("infrastructure/auth-api/ai-epk.mjs", "utf8")), "no key in the code");
 
-  console.log("AI EPK checks passed: fail-closed, $6.30 test checkout, verified idempotent webhook (+1 build, +1 included send), only confirmed pages, sourced facts, quote limits, no web images, injection-safe writing, budget guard, credit restore, review-gated publishing, refunds, adapter shape, SSRF and robots.");
+  // ---- AI-0 (owner 2026-11-23, live): "Eroticon" must find the techno act, never adult pages ----
+  {
+    const queries = [], adult = [
+      { url: "https://eroticon.co.uk/", title: "Eroticon 2026: the erotic writing conference", snippet: "Sex positive writers meet in London", site: "eroticon.co.uk" },
+      { url: "https://www.pornhub.com/view?v=1", title: "Eroticon", snippet: "Watch now", site: "pornhub.com" },
+      { url: "https://sexshop.example.com/eroticon", title: "Eroticon toys", snippet: "Vinyl gloves and more", site: "sexshop.example.com" },
+      { url: "https://tickets.example.org/eroticon", title: "Eroticon", snippet: "Tickets and venue info", site: "tickets.example.org" }
+    ];
+    const music = {
+      "bandcamp.com": { url: "https://eroticon.bandcamp.com/", title: "Eroticon", snippet: "Sleeping Dragon Records", site: "eroticon.bandcamp.com" },
+      "discogs.com": { url: "https://www.discogs.com/artist/123-Eroticon", title: "Eroticon Discography", snippet: "", site: "discogs.com" }
+    };
+    const blog = { url: "https://blog.example.com/eroticon", title: "Eroticon in Berlin", snippet: "A techno set on vinyl", site: "blog.example.com" };
+    const fakeBrave = { name: "fake", async search(query) {
+      queries.push(query);
+      const site = (query.match(/site:(\S+)/) || [])[1];
+      return site ? (music[site] ? [music[site], adult[0]] : []) : [...adult, blog];
+    } };
+    const svc = createAiEpk({ db: fakeDb(), commands, authenticate: async () => userId, corsHeaders, tableName: "Tours", llm, search: fakeBrave, fetchPage, log: () => {} });
+    const res = parse(await svc(event("POST", "/epk/ai/identify", { input: { artistName: "Eroticon", city: "San Francisco", links: [] } })));
+    const found = res.draft.candidates.map(c => c.url);
+    assert.deepEqual(found, ["https://eroticon.bandcamp.com/", "https://www.discogs.com/artist/123-Eroticon", "https://blog.example.com/eroticon"], "music sites first, then music pages; no adult page, no page without music");
+    assert.ok(queries.length >= 1 + ai.MUSIC_SEARCH_SITES.length, "one search per music site");
+    for (const site of ai.MUSIC_SEARCH_SITES) assert.ok(queries.some(q => q.includes(`site:${site}`)), site);
+    for (const query of queries) {
+      assert.ok(/"Eroticon"/.test(query) && /\bmusic\b/.test(query) && /band OR DJ OR artist/.test(query), `music words in "${query}"`);
+    }
+    // A genre the member gave replaces "music"; the build step's searches carry the music words too.
+    assert.ok(ai.musicQueries({ artistName: "Eroticon", genre: "techno" }).every(q => /"Eroticon" techno \(band OR DJ OR artist\)/.test(q)));
+    assert.ok(ai.buildStepQueries({ artistName: "Eroticon", city: "" }, ["review", "live"], 6).every(q => /music \(band OR DJ OR artist\) (review|live)$/.test(q)));
+    // Adult results are dropped whatever the act is called; the act's own name never counts against it.
+    assert.equal(ai.isAdultResult({ url: "https://eroticon.bandcamp.com/", title: "Eroticon", snippet: "" }, "Eroticon"), false);
+    assert.equal(ai.isAdultResult({ url: "https://xvideos.com/x", title: "Night Shift", snippet: "" }, "Night Shift"), true);
+    assert.equal(ai.isAdultResult({ url: "https://example.com/a", title: "Night Shift", snippet: "nsfw clip" }, "Night Shift"), true);
+    // Brave is asked for strict safe search.
+    let braveUrl = "";
+    await ai.braveSearch({ apiKey: "k", fetcher: async url => { braveUrl = url; return { ok: true, json: async () => ({ web: { results: [] } }) }; } }).search('"Eroticon" music');
+    assert.equal(new URL(braveUrl).searchParams.get("safesearch"), "strict");
+  }
+
+  console.log("AI EPK checks passed: music-only search (strict, music sites first, no adult results), fail-closed, $6.30 test checkout, verified idempotent webhook (+1 build, +1 included send), only confirmed pages, sourced facts, quote limits, no web images, injection-safe writing, budget guard, credit restore, review-gated publishing, refunds, adapter shape, SSRF and robots.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

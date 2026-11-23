@@ -167,6 +167,50 @@ export function routedLlm({ extract, write }) {
   return { name: `${extract.name}+${write.name}`, complete: request => (request.purpose === "write" ? write : extract).complete(request) };
 }
 
+// ---------- music-only search (owner 2026-11-23, live: "you must find the music stuff not sex. eroticon techno music") ----------
+// Every query carries music words, safe search is strict, the music sites are searched by name and listed first, any other
+// page stays only if it talks about music, and anything adult is dropped whatever the act is called. Never asks the member.
+export const MUSIC_SEARCH_SITES = Object.freeze(["bandcamp.com", "discogs.com", "soundcloud.com", "mixcloud.com", "youtube.com", "residentadvisor.net", "beatport.com"]);
+const MUSIC_SITE_HOSTS = /(^|\.)(bandcamp\.com|discogs\.com|soundcloud\.com|mixcloud\.com|youtube\.com|youtu\.be|residentadvisor\.net|ra\.co|beatport\.com|open\.spotify\.com|music\.apple\.com|deezer\.com|tidal\.com|audiomack\.com|vimeo\.com)$/;
+const MUSIC_WORDS = /\b(music|musician|musik|musica|techno|house|trance|electro|electronic|industrial|ebm|punk|metal|hardcore|dj|djs|band|bands|track|tracks|album|albums|ep|lp|mix|mixes|mixtape|remix|remixes|label|live|release|releases|vinyl|record|records|single|song|songs|gig|gigs|tour|concert|festival|producer|discography|soundcloud|bandcamp)\b/i;
+const ADULT_WORDS = /\b(porn\w*|xxx|nsfw|sexy|sex[- ](?:positive|toys?|shop|cam|cams|chat|tape|video|videos|dating|work|workers?|education|writers?|writing|blog|party|parties)|sexual\w*|erotic\w*|erotica|escort\w*|nude\w*|naked|fetish\w*|bdsm|kink\w*|hentai|onlyfans|camgirls?|webcams?|lingerie|strip\s?club|adult\s(?:content|video|videos|site|entertainment|industry|toys?|store|shop|film|films|movies?)|18\+)\b/i;
+const ADULT_HOST_LIST = /(^|\.)(pornhub\.com|xvideos\.com|xhamster\.com|xnxx\.com|redtube\.com|youporn\.com|onlyfans\.com|chaturbate\.com|stripchat\.com|fansly\.com|manyvids\.com|literotica\.com|adultfriendfinder\.com)$/;
+const ADULT_HOST_WORDS = /(porn|xxx|sex|escort|erotic|nsfw|fetish|hentai)/;
+const escapeRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const musicContext = input => `${text(input.genre, 80) || "music"} (band OR DJ OR artist)`;
+export function musicQueries(input, { sites = MUSIC_SEARCH_SITES } = {}) {
+  const name = `"${text(input.artistName, 120).replace(/"/g, "")}"`, context = musicContext(input);
+  return [[name, input.city, context].filter(Boolean).join(" "), ...sites.map(site => `${name} ${context} site:${site}`)];
+}
+export function buildStepQueries(input, words, max) {
+  const name = `"${text(input.artistName, 120).replace(/"/g, "")}"`, context = musicContext(input);
+  return words.slice(0, max).map(word => [name, input.city, context, word].filter(Boolean).join(" "));
+}
+export const isMusicSite = url => MUSIC_SITE_HOSTS.test(hostOf(url));
+// The act's own name never counts as an adult or a music word ("Eroticon" is a techno act).
+export function isAdultResult(item, artistName = "") {
+  // An adult word in the host counts only off the music sites, and never inside the act's own name ("eroticon.bandcamp.com").
+  const host = hostOf(item?.url), plainName = String(artistName).toLowerCase().replace(/[^a-z0-9]/g, "");
+  const hostRest = plainName ? host.replace(new RegExp(escapeRegExp(plainName), "g"), " ") : host;
+  if (host && (ADULT_HOST_LIST.test(host) || (!isMusicSite(item.url) && ADULT_HOST_WORDS.test(hostRest)))) return true;
+  let body = `${item?.title || ""} ${item?.snippet || ""} ${item?.url || ""}`;
+  if (artistName) body = body.replace(new RegExp(escapeRegExp(artistName), "gi"), " ");
+  return ADULT_WORDS.test(body);
+}
+export function musicResults(results, artistName = "") {
+  const seen = new Set(), sites = [], others = [];
+  for (const item of results || []) {
+    if (!item?.url || seen.has(item.url)) continue;
+    seen.add(item.url);
+    if (isAdultResult(item, artistName)) continue;
+    if (isMusicSite(item.url)) { sites.push(item); continue; }
+    let body = `${item.title || ""} ${item.snippet || ""}`;
+    if (artistName) body = body.replace(new RegExp(escapeRegExp(artistName), "gi"), " ");
+    if (MUSIC_WORDS.test(body)) others.push(item);
+  }
+  return [...sites, ...others];
+}
+
 // Brave Search (owner decision: independent index). Results only; DanzStak never logs in anywhere.
 export function braveSearch({ apiKey, fetcher = fetch, timeoutMs = 6000 }) {
   if (!apiKey) return null;
@@ -175,7 +219,7 @@ export function braveSearch({ apiKey, fetcher = fetch, timeoutMs = 6000 }) {
     async search(query, count = 8) {
       const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const params = new URLSearchParams({ q: query, count: String(Math.min(count, 20)), safesearch: "moderate", text_decorations: "false" });
+        const params = new URLSearchParams({ q: query, count: String(Math.min(count, 20)), safesearch: "strict", text_decorations: "false" });
         const response = await fetcher(`https://api.search.brave.com/res/v1/web/search?${params}`, { signal: controller.signal, headers: { accept: "application/json", "x-subscription-token": apiKey } });
         if (!response.ok) throw new Error(`Search returned ${response.status}`);
         const data = await response.json();
@@ -392,8 +436,11 @@ export function createAiEpk({ db, commands, authenticate, corsHeaders, tableName
     let searched = false;
     if (search) {
       try {
-        const query = [input.artistName, input.city, input.genre].filter(Boolean).join(" ");
-        for (const result of await search.search(query, budget.maxCandidates)) if (!candidates.some(item => item.url === result.url)) candidates.push({ ...result, own: false });
+        const queries = musicQueries(input), settled = await Promise.allSettled(queries.map((query, index) => search.search(query, index ? 3 : budget.maxCandidates)));
+        if (!settled.some(result => result.status === "fulfilled")) throw settled[0].reason;
+        // Music sites first, music pages next, adult pages never (owner 2026-11-23).
+        const found = musicResults([...settled.slice(1), settled[0]].flatMap(result => result.status === "fulfilled" ? result.value : []), input.artistName);
+        for (const result of found) if (!candidates.some(item => item.url === result.url)) candidates.push({ ...result, own: false });
         searched = true;
       } catch (error) { log("ai-epk identify search failed", { userId, reason: error.message }); }
     }
@@ -470,11 +517,11 @@ export function createAiEpk({ db, commands, authenticate, corsHeaders, tableName
     if (job.status === "searching") {
       // Extra searches scoped to the confirmed identity. New pages are only shown as "Also found — is this you?".
       const base = [job.input.artistName, job.input.city].filter(Boolean).join(" ");
-      const terms = ["review", "interview", "live", "festival", "release", "bandcamp"].slice(0, budget.maxSearches).map(word => `"${job.input.artistName}" ${job.input.city || ""} ${word}`.trim());
+      const terms = buildStepQueries(job.input, ["review", "interview", "live", "festival", "release", "bandcamp"], budget.maxSearches);
       const known = new Set(job.confirmed.map(normalUrl));
       const results = await Promise.allSettled(terms.map(term => search.search(term, 5)));
       job.usage.searches += terms.length; job.usage.costCents += terms.length * BRAVE_COST_CENTS;
-      for (const result of results) for (const item of result.status === "fulfilled" ? result.value : []) {
+      for (const item of musicResults(results.flatMap(result => result.status === "fulfilled" ? result.value : []), job.input.artistName)) {
         if (!known.has(item.url) && !job.alsoFound.some(found => found.url === item.url) && job.alsoFound.length < 10) job.alsoFound.push(item);
       }
       job.progress.push(job.alsoFound.length ? `Also found ${job.alsoFound.length} pages — you can check them later.` : `Searched for ${base}.`);
