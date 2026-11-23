@@ -130,7 +130,7 @@ const startingWorkspace = () => ({
       assert.match(await prompt.textContent(), /Nothing sends automatically/, `${width}px must explain post-payment approval`);
       await page.screenshot({ path:path.join(output, `credit-needed-${width}.png`), fullPage:true, animations:"disabled", caret:"hide" });
 
-      const buyButton = prompt.getByRole("button", { name:"Buy 1 credit · $1.50" });
+      const buyButton = prompt.getByRole("button", { name:"Buy 1 credit · $2.59 incl. fees" });
       const buyHeight = await buyButton.evaluate(node => node.getBoundingClientRect().height);
       assert.ok(buyHeight >= 44, `${width}px credit purchase target is ${buyHeight}px`);
       await buyButton.click();
@@ -138,7 +138,7 @@ const startingWorkspace = () => ({
       // and its total is the price printed on the button.
       const terms = page.locator("dialog.ds-terms-dialog");
       await terms.waitFor({ state:"visible" });
-      assert.ok((await terms.textContent()).includes("Total: $1.50 (USD)"), `${width}px purchase pop-up total must match the button price`);
+      assert.ok((await terms.textContent()).includes("Total $2.59 (USD)"), `${width}px purchase pop-up total must match the button price`);
       const proceed = terms.getByRole("button", { name:"Continue to payment" });
       assert.equal(await proceed.isDisabled(), true, `${width}px Continue must wait for the terms checkbox`);
       assert.equal(checkoutPayload, null, `${width}px credit checkout started before the purchase terms were accepted`);
