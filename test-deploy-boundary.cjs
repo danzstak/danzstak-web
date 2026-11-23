@@ -101,11 +101,17 @@ for (const action of ["iam:DeletePolicy", "iam:CreatePolicyVersion", "iam:SetDef
 }
 
 // Roles: everything on any role except the app roles is denied; the deploy role itself is never an exception.
+// The Auth API role was made by the Lambda console, so it lives under the /service-role/ path: its ARN is
+// role/service-role/DANZSTAK-Auth-API-role-zjknf4ur. Deploy run 6 (2026-11-23) failed on iam:ListAttachedRolePolicies
+// because every ARN here left the path out, so no Allow matched (and the boundary would have denied it too).
 const appRoles = [
-  `arn:aws:iam::${ACCOUNT}:role/DANZSTAK-Auth-API-role-zjknf4ur`,
+  `arn:aws:iam::${ACCOUNT}:role/service-role/DANZSTAK-Auth-API-role-zjknf4ur`,
   `arn:aws:iam::${ACCOUNT}:role/DANZSTAK-Call-Signaling-SignalingRole-*`,
   `arn:aws:iam::${ACCOUNT}:role/DANZSTAK-Call-Signaling-StoryCleanupRole-*`,
 ];
+for (const match of source.matchAll(/:role\/[^'"\s]*DANZSTAK-Auth-API-role[^'"\s]*/g)) {
+  assert.equal(match[0], ":role/service-role/DANZSTAK-Auth-API-role-zjknf4ur", `the Auth API role is named with its /service-role/ path (${match[0]})`);
+}
 const otherRoles = ["DanzStak-GitHub-Deploy", "DANZSTAK-Posts-API-role-x", "DanzStakCognitoAllowlistRole", "OrganizationAccountAccessRole", "Admin", "DANZSTAK-Auth-API-role-other"];
 for (const name of otherRoles) {
   for (const action of ["iam:PassRole", "iam:AttachRolePolicy", "iam:PutRolePolicy", "iam:UpdateAssumeRolePolicy", "iam:CreateRole", "iam:DeleteRole", "iam:CreateServiceLinkedRole"]) {

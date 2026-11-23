@@ -53,7 +53,7 @@ Resources:
             Effect: Deny
             Action: ['iam:*Role*']
             NotResource:
-              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Auth-API-role-zjknf4ur'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/DANZSTAK-Auth-API-role-zjknf4ur'
               - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-SignalingRole-*'
               - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-StoryCleanupRole-*'
           - Sid: DenyStoryCleanupRoleOutsideTheStack
@@ -227,7 +227,7 @@ Resources:
             Effect: Allow
             Action: ['iam:AttachRolePolicy', 'iam:DetachRolePolicy']
             Resource:
-              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Auth-API-role-zjknf4ur'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/DANZSTAK-Auth-API-role-zjknf4ur'
               - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-SignalingRole-*'
             Condition:
               ArnLike:
@@ -236,17 +236,17 @@ Resources:
             Effect: Allow
             Action: ['iam:GetRole', 'iam:ListAttachedRolePolicies', 'iam:ListRolePolicies', 'iam:GetRolePolicy']
             Resource:
-              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Auth-API-role-zjknf4ur'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/DANZSTAK-Auth-API-role-zjknf4ur'
               - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-SignalingRole-*'
           - Sid: AuthRoleRetireOldInlinePolicy
             Effect: Allow
             Action: ['iam:DeleteRolePolicy']
-            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Auth-API-role-zjknf4ur'
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/DANZSTAK-Auth-API-role-zjknf4ur'
           - Sid: PassOnlyTheAppRoles
             Effect: Allow
             Action: ['iam:PassRole']
             Resource:
-              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Auth-API-role-zjknf4ur'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/DANZSTAK-Auth-API-role-zjknf4ur'
               - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-SignalingRole-*'
               - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-StoryCleanupRole-*'
             Condition:
