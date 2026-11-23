@@ -238,6 +238,7 @@ jobs:
             '.\browser-checks\mix-flows.cjs'
             '.\browser-checks\pinned-welcome.cjs'
             '.\browser-checks\media-viewer-all.cjs'
+            '.\browser-checks\photo-viewer-fit.cjs'
             '.\browser-checks\pivot-header.cjs'
             '.\browser-checks\video-rail-comments.cjs'
             '.\browser-checks\profile-pictures.cjs'
