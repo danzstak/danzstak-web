@@ -46,6 +46,7 @@ $Stage = Join-Path $TempRoot ("danzstak-auth-api-" + [guid]::NewGuid().ToString(
 $Policy = Join-Path $TempRoot "danzstak-auth-api-policy.json"
 $Environment = Join-Path $TempRoot "danzstak-auth-api-environment.json"
 $SesEventDestination = Join-Path $TempRoot "danzstak-tour-manager-ses-events.json"
+$AccessLogSettingsFile = Join-Path $TempRoot "danzstak-auth-api-access-log.json"
 $ApiId = "0872gqal4m"
 $AuthIntegrationId = "5pipi5a"
 $ToursTable = "DANZSTAK-Tours"
@@ -511,6 +512,33 @@ try {
       if ($LASTEXITCODE -ne 0) { throw "Obsolete native authentication route $obsoleteRouteKey could not be removed." }
     } }
   }
+
+  # Access logs for the Auth HTTP API (L1, owner 2026-11-19): one line per request with the status, the route TEMPLATE
+  # (`GET /profiles/{id}`, never the real path, which can hold a username or id), the latency and API Gateway's random
+  # request id. No IP address, user agent, query string, cookie, token or email is logged. Kept 30 days.
+  # test-auth-api-access-logs.cjs pins the format. The stage is compared with one read the GitHub deploy role is allowed
+  # (apigateway:GET), so a run where logging is already on never touches CloudWatch Logs; turning it on needs the logs
+  # permissions AWS lists for HTTP API logging, which only CloudShell has (the deploy role's boundary has no logs:*).
+  $accessLogGroup = "/aws/apigateway/DANZSTAK-Auth-HTTP-API"
+  $accessLogDestination = "arn:aws:logs:${Region}:$($identity.Account):log-group:$accessLogGroup"
+  $accessLogFormat = '{"requestId":"$context.requestId","time":"$context.requestTimeEpoch","route":"$context.routeKey","status":"$context.status","latencyMs":"$context.responseLatency","integrationMs":"$context.integrationLatency","integrationStatus":"$context.integrationStatus","bytes":"$context.responseLength","protocol":"$context.protocol","error":"$context.error.message"}'
+  $authStage = aws apigatewayv2 get-stage --region $Region --api-id $ApiId --stage-name '$default' --output json | ConvertFrom-Json
+  if ($LASTEXITCODE -ne 0) { throw "Auth API stage could not be inspected." }
+  if ([string]$authStage.AccessLogSettings.DestinationArn -ne $accessLogDestination -or [string]$authStage.AccessLogSettings.Format -ne $accessLogFormat) {
+    Invoke-Change "Turn on Auth API access logs ($accessLogGroup, 30 days: status, route template, latency, request id; no IP, user agent or path)" {
+      $existingGroup = aws logs describe-log-groups --region $Region --log-group-name-prefix $accessLogGroup --query "logGroups[?logGroupName=='$accessLogGroup'].logGroupName | [0]" --output text
+      if ($LASTEXITCODE -ne 0) { throw "Access log group could not be inspected." }
+      if ($existingGroup -ne $accessLogGroup) {
+        aws logs create-log-group --region $Region --log-group-name $accessLogGroup
+        if ($LASTEXITCODE -ne 0) { throw "Access log group could not be created." }
+      }
+      aws logs put-retention-policy --region $Region --log-group-name $accessLogGroup --retention-in-days 30
+      if ($LASTEXITCODE -ne 0) { throw "Access log retention could not be set." }
+      @{ DestinationArn = $accessLogDestination; Format = $accessLogFormat } | ConvertTo-Json -Compress | Set-Content -LiteralPath $AccessLogSettingsFile -Encoding ascii
+      aws apigatewayv2 update-stage --region $Region --api-id $ApiId --stage-name '$default' --access-log-settings "file://$AccessLogSettingsFile" --output json | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "Auth API access logs could not be turned on." }
+    }
+  }
   $permission = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
   if ($LASTEXITCODE -ne 0) { throw "Auth API invoke permissions could not be inspected." }
   if ($permission -match "AllowNativeAuthFromApiGateway") { Invoke-Change "Remove obsolete invoke permission AllowNativeAuthFromApiGateway" {
@@ -580,6 +608,7 @@ try {
   Remove-Item -LiteralPath $Policy -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $Environment -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $SesEventDestination -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath $AccessLogSettingsFile -Force -ErrorAction SilentlyContinue
   $resolvedStage = [IO.Path]::GetFullPath($Stage)
   $resolvedTemp = [IO.Path]::GetFullPath($TempRoot).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
   if ($resolvedStage.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) {
