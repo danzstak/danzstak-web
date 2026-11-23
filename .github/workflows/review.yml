@@ -258,6 +258,8 @@ jobs:
             '.\browser-checks\profile-bell.cjs'
             '.\browser-checks\profile-save-status.cjs'
             '.\browser-checks\app-update.cjs'
+            '.\browser-checks\call-chrome-hide.cjs'
+            '.\browser-checks\call-ends-text-works.cjs'
             '.\browser-checks\profile-share-card.cjs'
             '.\browser-checks\public-shop.cjs'
             '.\browser-checks\media-scale.cjs'

@@ -401,6 +401,24 @@
   id:["Daftarkan perangkat ini untuk menjawab","{name} sedang menelepon. Daftarkan perangkat ini untuk menjawab."]
  };
  for(const [language,values] of Object.entries(registerToAnswer))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(registerToAnswerKeys.map((key,index)=>[key,values[index]])));
+ const sendWhenBackKeys=["No connection right now. Your message is still here and sends when you're back."];
+ const sendWhenBack={
+  es:["Ahora no hay conexión. Tu mensaje sigue aquí y se enviará cuando vuelvas a tenerla."],
+  fr:["Pas de connexion pour le moment. Votre message reste ici et partira dès que la connexion reviendra."],
+  de:["Gerade keine Verbindung. Deine Nachricht bleibt hier und wird gesendet, sobald du wieder online bist."],
+  pt:["Sem conexão agora. Sua mensagem continua aqui e será enviada quando a conexão voltar."],
+  it:["Nessuna connessione al momento. Il tuo messaggio resta qui e partirà quando torna la connessione."],
+  ko:["지금은 연결이 없습니다. 메시지는 그대로 있고 연결되면 전송됩니다."],
+  ja:["現在接続がありません。メッセージはここに残り、接続が戻ると送信されます。"],
+  "zh-Hans":["现在没有网络连接。你的消息还在这里，恢复连接后会自动发送。"],
+  "zh-Hant":["目前沒有網路連線。你的訊息還在這裡，恢復連線後會自動傳送。"],
+  fil:["Walang koneksyon ngayon. Nandito pa rin ang mensahe mo at maipapadala ito pagbalik ng koneksyon."],
+  hi:["अभी कनेक्शन नहीं है। आपका संदेश यहीं है और कनेक्शन लौटते ही भेज दिया जाएगा।"],
+  vi:["Hiện không có kết nối. Tin nhắn của bạn vẫn ở đây và sẽ được gửi khi có kết nối trở lại."],
+  th:["ตอนนี้ไม่มีการเชื่อมต่อ ข้อความของคุณยังอยู่ที่นี่และจะส่งเมื่อกลับมาเชื่อมต่อได้"],
+  id:["Tidak ada koneksi sekarang. Pesanmu masih di sini dan akan terkirim saat koneksi kembali."]
+ };
+ for(const [language,values] of Object.entries(sendWhenBack))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(sendWhenBackKeys.map((key,index)=>[key,values[index]])));
  const callNetworkKeys=["DanzStak is taking too long to respond. Retrying automatically.","DanzStak cannot connect to calls right now. Check your connection and try again.","Session expired","Request failed"];
  const callNetworkGuidance={
   es:["DanzStak está tardando demasiado en responder. Reintentando automáticamente.","DanzStak no puede conectarse a las llamadas ahora. Comprueba tu conexión y vuelve a intentarlo.","La sesión caducó","La solicitud falló"],

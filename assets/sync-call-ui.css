@@ -92,3 +92,11 @@ body[data-call-minimised] .video-grid,body[data-call-minimised] .media-controls,
 .sync-call-screen #declineCall svg{transform:rotate(135deg)}
 .sync-call-screen #acceptCall{background:var(--ds-btn-go,#15803d)!important}
 @media(prefers-reduced-motion:reduce){body[data-call-mode] .ds-call-key>button{transition:none}}
+
+/* Owner 2026-11-23: on a connected video call the top bar, status line and buttons step aside after 4 s (sync-call-ui.js
+   showChrome/hideChrome); a tap on the video brings them back. Hidden ones can't be pressed by that tap. */
+body[data-call-mode="video"] .ds-call-top,body[data-call-mode="video"] .media-controls.ds-call-panel,body[data-call-mode="video"] .conversation-status{transition:opacity .2s ease,transform .2s ease,visibility 0s}
+body[data-call-mode="video"][data-call-chrome="hidden"] .ds-call-top,body[data-call-mode="video"][data-call-chrome="hidden"] .media-controls.ds-call-panel,body[data-call-mode="video"][data-call-chrome="hidden"] .conversation-status{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,transform .2s ease,visibility 0s .2s}
+body[data-call-mode="video"][data-call-chrome="hidden"] .ds-call-top{transform:translateY(-12px)}
+body[data-call-mode="video"][data-call-chrome="hidden"] .media-controls.ds-call-panel{transform:translateY(16px)}
+@media (prefers-reduced-motion:reduce){body[data-call-mode="video"] .ds-call-top,body[data-call-mode="video"] .media-controls.ds-call-panel,body[data-call-mode="video"] .conversation-status{transition:none!important;transform:none!important}}

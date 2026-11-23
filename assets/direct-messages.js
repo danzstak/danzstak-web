@@ -333,8 +333,8 @@ async function directFetch(path, options = {}, timeoutMs = 10000) {
     return await fetch(String(target), { ...options, headers, signal: controller.signal });
   }
   catch (error) {
-    if (error.name === "AbortError") throw new Error(messageTranslate("DanzStak is taking too long to respond. Try again."));
-    throw new Error(messageTranslate("DanzStak cannot connect right now. Check your connection and try again."));
+    if (error.name === "AbortError") throw Object.assign(new Error(messageTranslate("DanzStak is taking too long to respond. Try again.")), { network: true });
+    throw Object.assign(new Error(messageTranslate("DanzStak cannot connect right now. Check your connection and try again.")), { network: true });
   }
   finally { clearTimeout(timer); }
 }
@@ -1637,17 +1637,10 @@ messageForm?.addEventListener("submit", async event => {
   }
   const clientMessageId = retry?.clientMessageId || `${String(Date.now()).padStart(13, "0")}#${crypto.randomUUID()}`;
   const replyToId = globalThis.danzstakSyncReply?.idFor?.(recipientEmail) || ""; // 16-E
-  if (window.navigator?.onLine === false && window.danzstakQueueOffline) {
-    try {
-      if (selectedMessageMedia) throw new Error(messageTranslate("Attachments need a connection. Your draft is still here."));
-      window.danzstakQueueOffline("/messages", { recipientEmail, content, clientMessageId });
-      retryMessageSend = null;
-      messageInput.value = "";
-      saveChatDraft(recipientEmail, "");
-      callStatus.textContent = messageTranslate("Saved offline — waiting to send when you reconnect.");
-    } catch (error) { callStatus.textContent = error.message; }
-    return;
-  }
+  // Owner 2026-11-23: after a dropped call the phone reported itself offline, so Send didn't even try and said "Turn on
+  // offline access in App and device settings first." until the app was reopened. Phones get navigator.onLine wrong after
+  // a network change, so Send always tries for real; a send that really fails for want of a connection keeps the words
+  // and goes again by itself when the connection is back (sendWhenBack).
   const version = conversationVersion;
   const pendingItem = pendingMessageItem(content, mediaFile);
   let attachment = retry?.attachment || {};
@@ -1682,12 +1675,39 @@ messageForm?.addEventListener("submit", async event => {
     if (version === conversationVersion) {
       retryMessageSend = { recipientEmail, content, mediaFile, clientMessageId, attachment };
       if (content && !messageInput.value.trim()) messageInput.value = content;
-      callStatus.textContent = messageFormat("{error}. Your message is still in the composer.", { error: error.message });
-      messageInput.focus();
+      saveChatDraft(recipientEmail, content);
+      if (error.network) {
+        callStatus.textContent = messageTranslate("No connection right now. Your message is still here and sends when you're back.");
+        sendWhenBack();
+      } else {
+        callStatus.textContent = messageFormat("{error}. Your message is still in the composer.", { error: String(error.message || "").replace(/\.$/, "") });
+        messageInput.focus();
+      }
     }
   }
   finally { pendingMessageSends.delete(version); if (version === conversationVersion) sendButton.disabled = !activeCanContact; }
 }, true);
+
+// A message that couldn't go for want of a connection goes again by itself: when the phone says it's back online, when
+// SYNC comes back to the front, and every 10 s while it's on screen (phones don't always say). Same message id, so it
+// can never arrive twice. Stops when it's sent, the words change, or another chat opens.
+let sendAgainTimer = 0;
+function sendWhenBack() {
+  clearTimeout(sendAgainTimer);
+  const pending = retryMessageSend;
+  const again = () => {
+    clearTimeout(sendAgainTimer);
+    window.removeEventListener("online", again);
+    document.removeEventListener("visibilitychange", onFront);
+    if (!pending || retryMessageSend !== pending || messageInput.value.trim() !== pending.content || contactInput.value.trim().toLowerCase() !== pending.recipientEmail) return;
+    if (document.hidden) { document.addEventListener("visibilitychange", onFront); return; }
+    messageForm.requestSubmit();
+  };
+  const onFront = () => { if (!document.hidden) again(); };
+  window.addEventListener("online", again, { once: true });
+  document.addEventListener("visibilitychange", onFront);
+  sendAgainTimer = setTimeout(again, 10000);
+}
 
 messageMedia?.addEventListener("change", () => previewSelectedMessageMedia(messageMedia.files?.[0]));
 messageCamera?.addEventListener("change", () => previewSelectedMessageMedia(messageCamera.files?.[0]));

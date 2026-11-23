@@ -35,7 +35,7 @@ for (const key of [
   "Earlier messages could not be loaded",
   "Try loading earlier messages again",
   "Contacts are temporarily unavailable",
-  "Attachments need a connection. Your draft is still here.",
+  "No connection right now. Your message is still here and sends when you're back.",
   "Message could not be sent",
   "Chat could not be deleted",
   "Your account could not be loaded",
