@@ -43,7 +43,7 @@ async function run(browser, engine, width, lang) {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   if (italian) await page.addInitScript(() => { try { localStorage.setItem("danzstak_language", "it"); } catch {} });
-  const server = { registered: false, sends: [], failNextSend: true };
+  const server = { registered: false, sends: [], failNextSend: true, failures: ["send_failed", "send_try_again"] };
   await page.route("https://api.danzstak.com/**", async route => {
     const request = route.request(), p = new URL(request.url()).pathname, method = request.method();
     const pending = server.sends.length > 0 && !server.failNextSend;
@@ -52,7 +52,11 @@ async function run(browser, engine, width, lang) {
     if (p === "/phone-verification" && method === "GET") return route.fulfill(json({ configured: true, state: "none", verified: false, maskedNumber: "", providerAvailable: true, deviceOtpRequired: true }));
     if (p === "/phone-verification/send") {
       server.sends.push(request.postDataJSON());
-      if (server.failNextSend) { server.failNextSend = false; return route.fulfill(json({ error: "TwilioVerifyError arn:aws:lambda:us-west-1:123456789012 internal", code: "send_failed" }, 503)); }
+      if (server.failNextSend) {
+        const code = server.failures.shift(); server.failNextSend = server.failures.length > 0;
+        // send_failed: an old raw reply; send_try_again: what the server's error mapper (public-errors.mjs) sends now.
+        return route.fulfill(json(code === "send_failed" ? { error: "TwilioVerifyError arn:aws:lambda:us-west-1:123456789012 internal", code } : { error: "Couldn't send the code right now. Try again in a minute.", code }, 503));
+      }
       return route.fulfill(json({ configured: true, state: "pending", verified: false, maskedNumber: "•••• 4567", providerAvailable: true, deviceOtpRequired: true, resendAfter: new Date(Date.now() + 60000).toISOString() }, 202));
     }
     if (p === "/phone-verification/confirm") return route.fulfill(json({ configured: true, state: "verified", verified: true, maskedNumber: "•••• 4567", providerAvailable: true, deviceOtpRequired: true, deviceGrantId: "55555555-5555-4555-8555-555555555555", deviceGrantToken: "c".repeat(43) }));
@@ -90,12 +94,16 @@ async function run(browser, engine, width, lang) {
 
   // A failure on our side: one translated line, Send works again at once, no raw server text.
   await page.locator("#syncPhoneNumber").fill(italian ? "333 123 4567" : "415 555 4567");
-  await tap(page, "#syncPhoneSend", counter);
-  await page.waitForFunction(() => document.getElementById("syncPhoneStatus").dataset.state === "error");
-  const failure = (await page.locator("#syncPhoneStatus").textContent()).trim();
-  assert.doesNotMatch(failure, /arn:|Twilio|internal|\d{12}/, `${tag}: raw server text on screen: ${failure}`);
-  if (italian) assert.doesNotMatch(failure, /\bThe verification text\b/, `${tag}: untranslated error: ${failure}`);
-  assert.equal(await page.locator("#syncPhoneSend").isDisabled(), false, `${tag}: Send stayed locked after our failure`);
+  for (const expected of [null, italian ? "Non è stato possibile inviare il codice. Riprova tra un minuto." : "Couldn't send the code right now. Try again in a minute."]) {
+    await page.evaluate(() => { document.getElementById("syncPhoneStatus").dataset.state = ""; });
+    await tap(page, "#syncPhoneSend", counter);
+    await page.waitForFunction(() => document.getElementById("syncPhoneStatus").dataset.state === "error");
+    const failure = (await page.locator("#syncPhoneStatus").textContent()).trim();
+    assert.doesNotMatch(failure, /arn:|Twilio|internal|\d{12}/, `${tag}: raw server text on screen: ${failure}`);
+    if (italian) assert.doesNotMatch(failure, /\bThe verification text\b|Couldn't/, `${tag}: untranslated error: ${failure}`);
+    if (expected) assert.equal(failure, expected, `${tag}: the mapped server error shows its translated line`);
+    assert.equal(await page.locator("#syncPhoneSend").isDisabled(), false, `${tag}: Send stayed locked after our failure`);
+  }
 
   // Send again: the code field, the countdown and "Wrong number? Change it".
   await tap(page, "#syncPhoneSend", counter);
