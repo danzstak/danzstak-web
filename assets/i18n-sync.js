@@ -5,6 +5,10 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"No connection. Check your internet, then try again.": "Nessuna connessione. Controlla internet e riprova.",
+"Sign in to register this device.": "Accedi per registrare questo dispositivo.",
+"Phone settings took too long to respond.": "Le impostazioni del telefono non hanno risposto in tempo.",
+"Phone settings could not be updated.": "Non è stato possibile aggiornare le impostazioni del telefono.",
 "Enter the six-digit code sent to {number}.": "Inserisci il codice a sei cifre inviato a {number}.",
 "Calls and voice messages need this phone verified. Texting already works.": "Chiamate e messaggi vocali richiedono questo telefono verificato. I messaggi di testo funzionano già.",
 "Resend in": "Rinvia tra",
@@ -348,6 +352,10 @@
 "You can resend once. Try again in 10 minutes.": "Puoi richiedere un nuovo invio una sola volta. Riprova tra 10 minuti."
 },
 "fr": {
+"No connection. Check your internet, then try again.": "Pas de connexion. Vérifie ta connexion internet, puis réessaie.",
+"Sign in to register this device.": "Connecte-toi pour enregistrer cet appareil.",
+"Phone settings took too long to respond.": "Les réglages du téléphone ont mis trop de temps à répondre.",
+"Phone settings could not be updated.": "Les réglages du téléphone n’ont pas pu être mis à jour.",
 "Enter the six-digit code sent to {number}.": "Saisissez le code à six chiffres envoyé au {number}.",
 "Calls and voice messages need this phone verified. Texting already works.": "Les appels et messages vocaux demandent que ce téléphone soit vérifié. Les messages texte fonctionnent déjà.",
 "Resend in": "Renvoyer dans",
@@ -692,6 +700,10 @@
 "You can resend once. Try again in 10 minutes.": "Tu peux renvoyer une seule fois. Réessaie dans 10 minutes."
 },
 "es": {
+"No connection. Check your internet, then try again.": "Sin conexión. Revisa tu internet y vuelve a intentarlo.",
+"Sign in to register this device.": "Inicia sesión para registrar este dispositivo.",
+"Phone settings took too long to respond.": "La configuración del teléfono tardó demasiado en responder.",
+"Phone settings could not be updated.": "No se pudo actualizar la configuración del teléfono.",
 "Enter the six-digit code sent to {number}.": "Escribe el código de seis dígitos enviado al {number}.",
 "Calls and voice messages need this phone verified. Texting already works.": "Las llamadas y los mensajes de voz necesitan este teléfono verificado. Los mensajes de texto ya funcionan.",
 "Resend in": "Reenviar en",
@@ -1035,6 +1047,10 @@
 "You can resend once. Try again in 10 minutes.": "Solo puedes reenviar una vez. Inténtalo de nuevo en 10 minutos."
 },
 "de": {
+"No connection. Check your internet, then try again.": "Keine Verbindung. Prüfe dein Internet und versuche es erneut.",
+"Sign in to register this device.": "Melde dich an, um dieses Gerät zu registrieren.",
+"Phone settings took too long to respond.": "Die Telefoneinstellungen haben zu lange nicht geantwortet.",
+"Phone settings could not be updated.": "Die Telefoneinstellungen konnten nicht aktualisiert werden.",
 "Enter the six-digit code sent to {number}.": "Gib den sechsstelligen Code ein, der an {number} gesendet wurde.",
 "Calls and voice messages need this phone verified. Texting already works.": "Anrufe und Sprachnachrichten brauchen dieses Telefon bestätigt. Textnachrichten funktionieren schon.",
 "Resend in": "Erneut senden in",
@@ -1198,6 +1214,10 @@
 "You can resend once. Try again in 10 minutes.": "Du kannst nur einmal erneut senden. Versuche es in 10 Minuten erneut."
 },
 "pt": {
+"No connection. Check your internet, then try again.": "Sem conexão. Verifique sua internet e tente de novo.",
+"Sign in to register this device.": "Entre para registrar este dispositivo.",
+"Phone settings took too long to respond.": "As configurações do telefone demoraram demais para responder.",
+"Phone settings could not be updated.": "Não foi possível atualizar as configurações do telefone.",
 "Enter the six-digit code sent to {number}.": "Digite o código de seis dígitos enviado para {number}.",
 "Calls and voice messages need this phone verified. Texting already works.": "Chamadas e mensagens de voz precisam deste telefone verificado. As mensagens de texto já funcionam.",
 "Resend in": "Reenviar em",

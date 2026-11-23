@@ -68,6 +68,10 @@ jobs:
       - name: Install browser test dependency
         shell: pwsh
         run: npm install --no-save --ignore-scripts playwright@1.55.0
+      - name: Keep browser checks off the live API
+        shell: pwsh
+        # Unmocked calls fail on the runner instead of reaching api.danzstak.com (scripts/block-live-api.ps1).
+        run: .\scripts\block-live-api.ps1
       - name: Start local review server
         shell: pwsh
         run: |
@@ -113,6 +117,7 @@ jobs:
             '.\browser-checks\marketplace-ticketing.cjs'
             '.\browser-checks\roll-fullscreen-sound.cjs'
             '.\browser-checks\registration-short-screen.cjs'
+            '.\browser-checks\registration-reasons.cjs'
             '.\browser-checks\media-viewer.cjs'
             '.\browser-checks\dailies-strip-clean.cjs'
             '.\browser-checks\dailies-empty-clapper.cjs'
@@ -164,6 +169,10 @@ jobs:
       - name: Install browser-check dependency
         shell: pwsh
         run: npm install --no-save --ignore-scripts playwright@1.56.1
+      - name: Keep browser checks off the live API
+        shell: pwsh
+        # Unmocked calls fail on the runner instead of reaching api.danzstak.com (scripts/block-live-api.ps1).
+        run: .\scripts\block-live-api.ps1
       - name: Start static review server
         shell: pwsh
         run: |
