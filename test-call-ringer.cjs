@@ -313,7 +313,7 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     const rows = [], requests = [], panel = { before(node) { inserted.push(node); } }, inserted = [];
     let pushState = "prompt", enabled = 0, tests = 0;
     const store = new Map();
-    const makeNode = tag => ({ tag, children: [], attributes: {}, textContent: "", hidden: false, handlers: {}, setAttribute(k, v) { this.attributes[k] = v; }, append(...n) { this.children.push(...n); }, addEventListener(t, f) { this.handlers[t] = f; }, remove() { this.removed = true; inserted.splice(inserted.indexOf(this), 1); } });
+    const makeNode = tag => ({ tag, children: [], attributes: {}, dataset: {}, textContent: "", hidden: false, handlers: {}, setAttribute(k, v) { this.attributes[k] = v; }, append(...n) { this.children.push(...n); }, addEventListener(t, f) { this.handlers[t] = f; }, remove() { this.removed = true; inserted.splice(inserted.indexOf(this), 1); } });
     const sandbox = {
       window: null, localStorage: { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) },
       document: { body: { classList: { contains: c => c === "messages-page" } }, createElement: makeNode, querySelector: s => s === ".chat-sidebar .chat-list-panel" ? panel : s === ".call-alerts-prompt" ? inserted.find(n => n.className === "call-alerts-prompt") || null : s === ".call-alerts-note" ? inserted.find(n => n.className === "call-alerts-note") || null : null },
@@ -342,14 +342,30 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     // Dismissed once: never again.
     pushState = "prompt"; inserted.length = 0; store.set("danzstak_call_alerts_prompt", "x");
     await sandbox.danzstakCallAlerts.prompt(); assert.equal(inserted.length, 0, "a dismissed prompt stays dismissed");
-    // L4 never silent: blocked notifications say how to allow them (no button: the browser won't ask again).
-    pushState = "blocked";
+    // L4 (owner 2026-11-20: "When app is closed it doesn't ring"): notifications blocked → never silent. One line says why
+    // and where to allow them (no button can change a browser block), and allowing them turns call alerts on by itself.
+    store.clear(); pushState = "blocked"; const before = enabled;
+    const permission = { state: "denied", handlers: {}, addEventListener(type, fn) { this.handlers[type] = fn; } };
+    sandbox.navigator = { permissions: { query: async ({ name }) => { assert.equal(name, "notifications"); return permission; } } };
     await sandbox.danzstakCallAlerts.prompt();
     const blocked = inserted.find(n => n.className === "call-alerts-prompt");
-    assert.ok(blocked && blocked.attributes["data-reason"] === "blocked", "a phone with notifications blocked is told, even after dismissing the Turn on line");
-    assert.match(blocked.children[0].textContent, /notifications are blocked for DanzStak/);
-    assert.equal(blocked.children.length, 2, "blocked: the message and ✕ only");
-    blocked.children[1].handlers.click(); assert.ok(store.get("danzstak_call_alerts_prompt:blocked"), "each reason is dismissed on its own");
+    assert.ok(blocked, "a registered phone with notifications blocked is told so");
+    assert.equal(blocked.dataset.state, "blocked");
+    assert.equal(blocked.children[0].textContent, "Calls can't ring when SYNC is closed: notifications are blocked. Allow them for danzstak.com in your browser's site settings.");
+    assert.equal(blocked.children.length, 2, "only the reason and Not now: no button that can't work");
+    assert.ok(!blocked.children.some(node => node.className === "primary"));
+    await new Promise(resolve => setImmediate(resolve));
+    permission.state = "granted"; blocked.isConnected = true; permission.handlers.change();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(enabled, before + 1, "allowing notifications turns call alerts on by itself");
+    assert.ok(!inserted.includes(blocked), "and the line goes away");
+    // L4: each reason is dismissed on its own (closing "Turn on" earlier never hides "blocked"), and closing it says it once.
+    assert.equal(blocked.attributes["data-reason"], "blocked");
+    pushState = "blocked"; inserted.length = 0; store.set("danzstak_call_alerts_prompt", "x");
+    await sandbox.danzstakCallAlerts.prompt();
+    const blockedAgain = inserted.find(n => n.className === "call-alerts-prompt");
+    assert.ok(blockedAgain, "a dismissed Turn on line never hides the blocked line");
+    blockedAgain.children[1].handlers.click(); assert.ok(store.get("danzstak_call_alerts_prompt:blocked"), "blocked is dismissed on its own key");
     await sandbox.danzstakCallAlerts.prompt(); assert.equal(inserted.filter(n => n.className === "call-alerts-prompt").length, 0, "said once");
     // Allowed but saved unlinked on the server → "Fix" saves it again; still unlinked → says so instead of claiming success.
     pushState = "enabled"; let linked = false, fixes = 0;
@@ -383,7 +399,7 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   assert.match(read("messages.html"), /<script src="assets\/call-alerts\.js\?v=\d+" defer><\/script>/);
   for (const lang of ["it", "fr", "es", "de", "pt"]) {
     const start = i18n.indexOf(`"${lang}": {`), block = i18n.slice(start, i18n.indexOf("\n}", start));
-    for (const key of ["Tap to hear the ringer", "Call ended.", "Test ringer", "Turn on call alerts so calls ring when SYNC is closed", "Turn on", "Not now", "Ringing here now, and a test call notification is on its way to this phone.", "Calls can't ring when SYNC is closed: notifications are blocked for DanzStak. Allow them in your browser's site settings.", "This phone won't ring when SYNC is closed yet.", "Fix", "This phone isn't set up to ring with SYNC closed yet. Try again in a minute."]) assert.ok(block.includes(JSON.stringify(key) + ":"), `${lang}: ${key}`);
+    for (const key of ["Tap to hear the ringer", "Call ended.", "Test ringer", "Turn on call alerts so calls ring when SYNC is closed", "Turn on", "Not now", "Ringing here now, and a test call notification is on its way to this phone.", "This phone won't ring when SYNC is closed yet.", "Fix", "This phone isn't set up to ring with SYNC closed yet. Try again in a minute."]) assert.ok(block.includes(JSON.stringify(key) + ":"), `${lang}: ${key}`);
   }
   console.log("Call ringer checks passed: <audio> → Web Audio → tap prompt, touch-safe unlock + visibilitychange, vibration, every stop, quiet hours, SW re-ring (main's 4 s × 6) with every stop, caller-cancel push, test call push, push re-link, Test ringer + prompt, it/fr/es/de/pt.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -2,8 +2,10 @@
 // Queue 5a00, spec docs/tasks/31-call-ringer.md. SYNC only:
 // - SYNC ⋮ → "Test ringer": plays this phone's ringtone for 3 s and sends a test call notification to this phone, so the
 //   member can check both the in-app ring and the ring with SYNC closed.
-// - One line when this registered phone can't ring with SYNC closed (notifications off, blocked, or not linked to this
-//   phone), saying why with a one-tap fix where there is one. Dismissing a reason is remembered on this device; it never nags.
+// - One line when this registered phone has no push subscription yet: "Turn on call alerts so calls ring when SYNC is
+//   closed", with Turn on. Dismissing it is remembered on this device; it never nags.
+// - L4 (owner 2026-11-20: "When app is closed it doesn't ring"): the same line, once per reason, when notifications are
+//   blocked (where to allow them; call alerts turn on by themselves once allowed) or saved unlinked on the server (Fix).
 (() => {
   const API = "https://api.danzstak.com", DISMISSED = "danzstak_call_alerts_prompt";
   const t = value => window.danzstakTranslate?.(value) || value;
@@ -39,13 +41,9 @@
   }
 
   // L4 (owner 2026-11-20: "When app is closed it doesn't ring"): never silent. A registered phone that can't ring with SYNC
-  // closed says why, once per reason, in the member's language: notifications off (Turn on), blocked in the browser (how to
-  // allow them; the browser won't ask again), or allowed but not linked to this registered phone on the server (Fix).
-  const COPY = {
-    off: ["Turn on call alerts so calls ring when SYNC is closed", "Turn on"],
-    blocked: ["Calls can't ring when SYNC is closed: notifications are blocked for DanzStak. Allow them in your browser's site settings.", ""],
-    unlinked: ["This phone won't ring when SYNC is closed yet.", "Fix"]
-  };
+  // closed says why, once per reason (each dismissed on its own, so closing "Turn on" never hides "blocked"):
+  // off → Turn on; blocked → where to allow them (call alerts turn on by themselves once allowed); allowed but the server
+  // saved this phone's subscription unlinked → Fix (saves it again with this device's proof; says so if still unlinked).
   const dismissKey = why => why === "off" ? DISMISSED : `${DISMISSED}:${why}`;
   async function reason() {
     const state = await window.danzstakPushState?.().catch(() => "unsupported");
@@ -62,32 +60,46 @@
     if (!why || document.querySelector(".call-alerts-prompt")) return;
     if (!force) { try { if (localStorage.getItem(dismissKey(why))) return; } catch {} }
     const before = anchor(); if (!before) return;
-    const [message, action] = COPY[why];
     const bar = document.createElement("aside");
-    bar.className = "call-alerts-prompt"; bar.setAttribute("role", "status"); bar.setAttribute("data-reason", why);
-    const text = document.createElement("span"); text.textContent = t(message);
+    bar.className = "call-alerts-prompt"; bar.setAttribute("role", "status");
+    bar.setAttribute("data-reason", why);
+    if (why === "blocked") bar.dataset.state = "blocked";
+    const text = document.createElement("span");
+    text.textContent = t({
+      off: "Turn on call alerts so calls ring when SYNC is closed",
+      blocked: "Calls can't ring when SYNC is closed: notifications are blocked. Allow them for danzstak.com in your browser's site settings.",
+      unlinked: "This phone won't ring when SYNC is closed yet."
+    }[why]);
     const close = document.createElement("button"); close.type = "button"; close.className = "call-alerts-close"; close.textContent = "×";
     close.setAttribute("aria-label", t("Not now")); close.title = t("Not now");
     close.addEventListener("click", () => { try { localStorage.setItem(dismissKey(why), new Date().toISOString()); } catch {} bar.remove(); });
-    bar.append(text);
-    if (action) {
-      const on = document.createElement("button"); on.type = "button"; on.className = "primary"; on.textContent = t(action);
+    // Saves this phone's subscription with its registered device's proof; only a server answer of "linked" ends the line.
+    const turnOn = async () => {
+      await window.danzstakEnablePush();
+      if (await window.danzstakPushLinked?.().catch(() => null) === false) { text.textContent = t("This phone isn't set up to ring with SYNC closed yet. Try again in a minute."); return false; }
+      bar.remove(); say(t("Call alerts are on for this phone.")); return true;
+    };
+    if (why === "blocked") {
+      bar.append(text, close);
+      // Allowed in the browser's settings while SYNC is open (or on the next visit): turn call alerts on straight away.
+      globalThis.navigator?.permissions?.query?.({ name: "notifications" }).then(status => {
+        status.addEventListener("change", () => { if (status.state === "granted" && bar.isConnected) turnOn().catch(error => { text.textContent = error.message; }); });
+      }).catch(() => {});
+    } else {
+      const on = document.createElement("button"); on.type = "button"; on.className = "primary"; on.textContent = t(why === "off" ? "Turn on" : "Fix");
       on.addEventListener("click", async () => {
         on.disabled = true;
-        try {
-          await window.danzstakEnablePush(); // saves this phone's subscription again, with its registered device's headers
-          if (await window.danzstakPushLinked?.().catch(() => null) === false) { text.textContent = t("This phone isn't set up to ring with SYNC closed yet. Try again in a minute."); on.disabled = false; return; }
-          bar.remove(); say(t("Call alerts are on for this phone."));
-        } catch (error) { text.textContent = error.message; on.disabled = false; }
+        try { await turnOn(); }
+        catch (error) { text.textContent = error.message; }
+        on.disabled = false;
       });
-      bar.append(on);
+      bar.append(text, on, close);
     }
-    bar.append(close);
     before.before(bar);
   }
 
   window.danzstakSyncSettings?.add?.({ id: "test-ringer", label: "Test ringer", hint: "Plays your ringtone and sends a test call to this phone", icon: "bell", order: 31, run: testRinger });
-  // Turning notifications on answers "off"; "unlinked" stays until the server says this phone is linked (Fix handles it).
+  // Turning notifications on answers "off"; "unlinked" stays until the server says this phone is linked.
   addEventListener("danzstak:push-enabled", () => document.querySelector('.call-alerts-prompt[data-reason="off"]')?.remove());
   addEventListener("danzstak:call-device-ready", event => { if (event.detail?.registered === true) prompt(); });
   addEventListener("danzstak:call-device-registered", () => prompt());

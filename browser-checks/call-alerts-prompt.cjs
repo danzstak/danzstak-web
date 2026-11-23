@@ -1,7 +1,7 @@
 "use strict";
 // L4 (owner 2026-11-20: "When app is closed it doesn't ring. Only rings when on sync"): a registered phone that can't ring
 // with SYNC closed is never silent about it. SYNC shows one line saying why:
-// - notifications blocked for danzstak.com → how to allow them (no button: the browser won't ask again), ✕ closes it;
+// - notifications blocked → how to allow them (no button), ✕ closes it and it stays closed (call-alerts-blocked.cjs covers the auto turn-on);
 // - notifications allowed but the subscription is saved unlinked on the server → "Fix" (centre tap) saves it again; while
 //   the server still says unlinked the line says so, once linked it goes and "Call alerts are on for this phone." shows.
 // Real SYNC page with a registered device in IndexedDB, the API mocked, Italian and English, 320/360/390/430px.
@@ -75,7 +75,7 @@ async function centreTap(page, locator) {
         await bar.waitFor({ state: "visible", timeout: 15000 });
         const italian = lang.startsWith("it");
         const text = await bar.locator("span").textContent();
-        if (reason === "blocked") assert.match(text, italian ? /notifiche di DanzStak sono bloccate/ : /notifications are blocked for DanzStak/, `${label}: says why`);
+        if (reason === "blocked") assert.match(text, italian ? /le notifiche sono bloccate/ : /notifications are blocked\. Allow them for danzstak\.com/, `${label}: says why`);
         else assert.match(text, italian ? /non squilla ancora con SYNC chiuso/ : /won't ring when SYNC is closed yet/, `${label}: says why`);
         const box = await bar.boundingBox();
         assert.ok(box.x >= 0 && box.x + box.width <= width + 1, `${label}: inside the screen`);
