@@ -1,6 +1,7 @@
 "use strict";
 
 (() => {
+  const unlockLabel = () => `Unlock booking contact · ${window.DanzStakFees ? window.DanzStakFees.allInShort(75) : "$0.75 + fees"}`;
   const cards = document.getElementById("selectedVenueCards");
   const status = document.getElementById("selectionStatus");
   const printButton = document.getElementById("printVenueSheet");
@@ -584,7 +585,7 @@
       const unlock = document.createElement("button");
       unlock.type = "button";
       unlock.className = "unlock-contact";
-      unlock.textContent = "Unlock booking contact · $0.75";
+      unlock.textContent = unlockLabel();
       unlock.addEventListener("click", async () => {
         unlock.disabled = true;
         try {
@@ -594,9 +595,9 @@
           }
           unlock.textContent = "Opening secure checkout…";
           const unlockResult = await window.danzstakUnlockBookingContact(venueKey);
-          if (unlockResult?.cancelled) { unlock.disabled = false; unlock.textContent = "Unlock booking contact · $0.75"; }
+          if (unlockResult?.cancelled) { unlock.disabled = false; unlock.textContent = unlockLabel(); }
         }
-        catch (error) { window.danzstakShowFeedback?.(error.message, { urgent: true }); unlock.disabled = false; unlock.textContent = "Unlock booking contact · $0.75"; }
+        catch (error) { window.danzstakShowFeedback?.(error.message, { urgent: true }); unlock.disabled = false; unlock.textContent = unlockLabel(); }
       });
       links.append(unlock);
     }
@@ -700,7 +701,7 @@
     creditMessage.textContent = "No booking-email credit is ready. You can still preview the exact message before buying.";
     buyCredit.type = "button";
     buyCredit.className = "secondary";
-    buyCredit.textContent = "Buy 1 credit · $1.50";
+    buyCredit.textContent = `Buy 1 credit · ${window.DanzStakFees ? window.DanzStakFees.allInShort(150) : "$1.50 + fees"}`;
     buyCredit.addEventListener("click", async () => {
       buyCredit.disabled = true;
       try {
