@@ -39,6 +39,22 @@
 .epk-player-load:hover,
 .epk-player-load:focus-visible { background: color-mix(in srgb,currentColor 12%,transparent); }
 .epk-embeds iframe { display: block; grid-column: 1 / -1; width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 10px; margin: 2px 0 0; background: #10141b; }
+/* Watch (owner 2026-11-23: "Links from YouTube need the videos"): each video shows its own picture, edge to edge, with
+   the play button over it; the provider mark, title and "Open on …" sit under it like a video list. */
+.epk-media-card.epk-video-card { padding: 0; border: 0; background: none; }
+.epk-preview[data-look] .epk-media-card.epk-video-card { border: 0; background: none; }
+.epk-video-face { position: relative; display: block; grid-column: 1 / -1; width: 100%; aspect-ratio: 16/9; padding: 0; border: 0; border-radius: 10px; overflow: hidden; background: #10141b; color: #fff; cursor: pointer; }
+.epk-video-face[hidden] { display: none; }
+.epk-video-face img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.epk-video-face img[hidden] { display: none; }
+.epk-video-play { position: absolute; top: 50%; left: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; background: rgba(11,11,12,.74); box-shadow: 0 2px 14px rgba(0,0,0,.45); transition: background-color .15s ease, transform .15s ease; }
+.epk-video-play::after { content: ""; position: absolute; top: 20px; left: 25px; border-style: solid; border-width: 12px 0 12px 20px; border-color: transparent transparent transparent #fff; }
+.epk-video-face[href] .epk-video-play::after { top: 18px; left: 18px; width: 22px; height: 22px; border: 0; background: #fff; clip-path: polygon(40% 0, 100% 0, 100% 60%, 82% 42%, 26% 98%, 2% 74%, 58% 18%); }
+.epk-video-face:hover .epk-video-play,
+.epk-video-face:focus-visible .epk-video-play { background: var(--epk-accent,#ff5a1f); }
+.epk-video-face:active .epk-video-play { transform: scale(.94); }
+.epk-video-face:focus-visible { outline: 3px solid var(--epk-accent,#ff5a1f); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .epk-video-play { transition: none; } .epk-video-face:active .epk-video-play { transform: none; } }
 .epk-provider { margin: 0; color: #596579; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
 .epk-contact { display: grid; gap: 8px; }
 .epk-contact p { margin: 0; font-weight: 800; }

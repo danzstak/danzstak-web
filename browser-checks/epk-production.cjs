@@ -49,6 +49,8 @@ const kit = actType => ({
 });
 const pressPhoto = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#111827"/><stop offset="1" stop-color="#ff5a1f"/></linearGradient></defs><rect width="1200" height="800" fill="url(#g)"/><circle cx="600" cy="320" r="150" fill="#edecea" opacity=".9"/><path d="M260 800c30-240 180-360 340-360s310 120 340 360" fill="#09090b"/><g fill="#ffcc33"><rect x="90" y="100" width="18" height="400"/><rect x="1090" y="190" width="18" height="310"/></g></svg>`;
 
+// A plain 480x360 picture standing in for YouTube's video pictures (i.ytimg.com), so the check never depends on YouTube.
+const videoPicture = (() => { const zlib = require("node:zlib"), w = 480, h = 360, chunk = (type, data) => { const length = Buffer.alloc(4); length.writeUInt32BE(data.length); const body = Buffer.concat([Buffer.from(type), data]), crc = Buffer.alloc(4); crc.writeUInt32BE(zlib.crc32(body)); return Buffer.concat([length, body, crc]); }, header = Buffer.alloc(13); header.writeUInt32BE(w, 0); header.writeUInt32BE(h, 4); header[8] = 8; header[9] = 2; return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header), chunk("IDAT", zlib.deflateSync(Buffer.alloc((w * 3 + 1) * h, 40))), chunk("IEND", Buffer.alloc(0))]); })();
 (async () => {
   fs.mkdirSync(captureDir,{recursive:true});
   const browser = await chromium.launch({channel:"msedge",headless:true});
@@ -58,6 +60,7 @@ const pressPhoto = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height=
       page.on("pageerror",error=>errors.push(error.message));
       await page.route("https://media.example/press-photo.svg",route=>route.fulfill({status:200,contentType:"image/svg+xml",body:pressPhoto}));
       await page.route("https://www.youtube-nocookie.com/**",route=>route.fulfill({status:200,contentType:"text/html",body:"<!doctype html><title>Controlled external player</title>"}));
+      await page.route("https://i.ytimg.com/vi/**",route=>route.fulfill({status:200,contentType:"image/png",body:videoPicture}));
       await page.route("https://api.danzstak.com/epk/public/**",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({kit:kit(actType)})}));
       await page.goto(`${baseUrl}/epk.html?id=production-${actType}`,{waitUntil:"networkidle"});
       const title=actType === "dj" ? "Booth plot and input list" : "Stage plot and input list";
@@ -71,7 +74,7 @@ const pressPhoto = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height=
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= document.documentElement.clientWidth),true,`${actType} public EPK overflowed at ${width}px`);
       assert.deepEqual(errors,[]);
       await page.screenshot({path:path.join(captureDir,`public-${actType}-${width}.png`),fullPage:true});
-      await page.getByRole("button",{name:"Load Live room session from YouTube"}).click();
+      await page.getByRole("button",{name:"Play video: Live room session"}).click();
       const frame=page.locator(".epk-media-card iframe"); await frame.waitFor({state:"attached"});
       const frameLayout=await frame.evaluate(node=>{const frameRect=node.getBoundingClientRect(),cardRect=node.closest(".epk-media-card").getBoundingClientRect();return {inside:frameRect.left>=cardRect.left&&frameRect.right<=cardRect.right+0.5,width:frameRect.width,cardWidth:cardRect.width};});
       assert.equal(frameLayout.inside,true,"the explicit player must stay inside its media card");
