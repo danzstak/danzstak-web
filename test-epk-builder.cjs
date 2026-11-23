@@ -50,7 +50,12 @@ assert.match(client, /providerMark\(provider\)[\s\S]*epk-provider-mark/, "extern
 assert.match(client, /card\.append\(frame\)/, "an explicitly loaded provider player must span the card instead of entering the action row");
 assert.doesNotMatch(client, /button\.after\(frame\)/, "provider players must not be inserted between action controls");
 assert.match(client, /visibilitychange[\s\S]*document\.hidden[\s\S]*stopProviderEmbeds\(\)[\s\S]*pagehide/, "EPK players must stop when the page becomes hidden or exits");
-assert.doesNotMatch(client, /allow = "autoplay/, "EPK provider frames must not receive autoplay permission");
+// Owner 2026-11-23 ("Links from YouTube need the videos"): a video shows its own picture and plays when tapped. Autoplay
+// is granted only to the player made by that tap, never to anything on the page before it.
+assert.doesNotMatch(client, /allow = "autoplay/, "EPK provider frames must not always receive autoplay permission");
+assert.match(client, /function activateProvider[\s\S]*video = button\.classList\.contains\("epk-video-face"\)[\s\S]*play:video[\s\S]*frame\.allow = `\$\{video \? "autoplay; " : ""\}/, "autoplay only for the player a tap on the video's picture starts");
+assert.doesNotMatch(client.slice(client.indexOf("function videoFace"), client.indexOf("document.addEventListener(\"visibilitychange\"")), /createElement\("iframe"\)/, "no player is made before the visitor taps");
+assert.match(client, /if \(video\) button\.before\(frame\); else card\.append\(frame\)/, "a video's player takes its picture's place; other players span the card");
 for (const provider of ["SoundCloud","Bandcamp","TikTok","Instagram","Facebook"]) assert.match(client, new RegExp(`return "${provider}"`), `${provider} links should receive a recognizable safe preview`);
 assert.match(client, /section\("Follow", links\(kit\.socialLinks\)\)/, "social links should render on the public EPK");
 assert.match(client, /mailto:\$\{publicEmail\}/, "the artist-approved public booking email should be actionable");
