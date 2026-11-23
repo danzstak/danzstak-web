@@ -39,7 +39,7 @@ async function run(browser, width, fail) {
   await centreTap(page, edit, `${tag} Edit`);
   const form = page.locator("form.edit-profile-panel");
   await form.waitFor({ state: "visible", timeout: 5000 });
-  await centreTap(page, form.locator("button[type=submit]"), `${tag} Save`);
+  await centreTap(page, form.locator(".edit-screen-save"), `${tag} Save (top bar)`);
   const toast = page.locator(".danzstak-app-feedback").filter({ hasText: fail ? "Couldn't save your profile" : "Profile saved to your DanzStak account." }).first();
   await toast.waitFor({ state: "visible", timeout: 5000 });
   const line = () => page.evaluate(() => { const status = document.getElementById("profileStatus"); return { hidden: status.hidden, shown: status.getClientRects().length > 0 }; });

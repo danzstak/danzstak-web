@@ -263,6 +263,7 @@ jobs:
             '.\browser-checks\profile-facepile.cjs'
             '.\browser-checks\profile-bell.cjs'
             '.\browser-checks\profile-save-status.cjs'
+            '.\browser-checks\profile-edit-screen.cjs'
             '.\browser-checks\app-update.cjs'
             '.\browser-checks\call-chrome-hide.cjs'
             '.\browser-checks\call-ends-text-works.cjs'
