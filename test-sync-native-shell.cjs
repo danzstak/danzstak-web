@@ -16,7 +16,7 @@ assert.match(js, /visualViewport\?\.addEventListener\("resize", fit\)/);
 assert.match(js, /visualViewport\?\.addEventListener\("scroll", fit\)/);
 assert.match(js, /if \(phone\.matches && inThread\(\) && scrollY\) scrollTo\(0, 0\)/, "a page scroll inside a thread is undone");
 assert.match(css, /body\.messages-page\.is-conversation-open:not\(\[data-call-mode\]\)\{position:fixed;inset:0;height:var\(--sync-view-height,100dvh\);overflow:hidden\}/);
-assert.match(css, /\.conversation-header\{position:relative;z-index:3;[^}]*background:#fff\}/, "the header paints above the list");
+assert.match(css, /\.conversation-header\{position:relative;z-index:4;[^}]*background:#fff\}/, "the header (and its ⋮ menu) paints above the list and the status line");
 assert.match(css, /\.message-form\{position:relative;z-index:3;[^}]*background:#fff\}/, "the composer paints above the list");
 assert.match(css, /\.message-list\{position:relative;z-index:1;[^}]*overflow-y:auto;overscroll-behavior:contain;[^}]*contain:paint/, "only the list scrolls, clipped to itself");
 assert.match(css, /\.ds-mobile-nav\{display:none!important\}/, "no global bottom nav inside a thread");

@@ -60,7 +60,7 @@ async function openRow(page) {
 
 (async () => {
   fs.mkdirSync(output, { recursive: true });
-  const browser = await chromium.launch({ channel: "msedge", headless: true }); // CI installs no bundled browser
+  const browser = await chromium.launch({ channel: process.env.DANZSTAK_BROWSER_CHANNEL ?? "msedge", headless: true }); // CI installs no bundled browser
   try {
     for (const width of [320, 360, 390, 414, 430]) {
       const label = `${width}px`, shots = width === 360 || width === 390;
@@ -168,6 +168,20 @@ async function openRow(page) {
       await page.goto(`${baseUrl}/sync/?app=sync`, { waitUntil: "domcontentloaded" });
       await page.waitForFunction(() => window.danzstakSyncApp?.offerApp);
       assert.equal(await page.evaluate(() => window.danzstakSyncApp.offerApp()), false, `${label}: the SYNC shortcut opens SYNC as its own app`);
+      assert.equal(await page.evaluate(() => localStorage.getItem("danzstak_sync_app_installed")), null, `${label}: opening DanzStak's shortcut doesn't mark SYNC installed`);
+      await context.close();
+      // Owner 2026-11-23 ("Sync is not on home screen"): an old mark said "SYNC is already on this phone" with no SYNC
+      // icon anywhere. When the phone says SYNC isn't installed, the mark goes and the real way to save it shows.
+      ({ context, page } = await open(browser, width, { standalone: true }));
+      await context.addInitScript(() => { try { localStorage.setItem("danzstak_sync_app_installed", "1"); } catch { /* */ } navigator.getInstalledRelatedApps = async () => []; });
+      await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
+      await openRow(page);
+      await page.waitForURL(/\/sync\/$/, { timeout: 8000 });
+      await page.waitForFunction(() => document.getElementById("syncInstallDialog")?.dataset.state === "other-app", null, { timeout: 5000 });
+      state = await sheet(page);
+      assert.equal(state.title, "Save SYNC to your home screen", `${label}: a stale mark never claims SYNC is installed`);
+      assert.equal(await page.evaluate(() => localStorage.getItem("danzstak_sync_app_installed")), null, `${label}: the stale mark is cleared`);
+      if (shots) await page.screenshot({ path: path.join(output, `8b-stale-mark-${width}.png`) });
       await context.close();
 
       // 10. Sign-up in the browser: one SYNC step names both parts; Set up SYNC saves the app, then verifies the number.

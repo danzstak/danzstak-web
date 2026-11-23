@@ -25,8 +25,12 @@
     if (standalone() && (fromSyncIcon || !launchApp)) { launchApp = inSyncApp ? "sync" : "danzstak"; sessionStorage.setItem(LAUNCH_KEY, launchApp); }
   } catch { if (standalone()) launchApp = inSyncApp ? "sync" : "danzstak"; }
   const inInstalledSync = () => standalone() && launchApp === "sync";
-  let knownInstalled = inInstalledSync();
-  try { if (knownInstalled) localStorage.setItem(INSTALLED_KEY, "1"); else knownInstalled = localStorage.getItem(INSTALLED_KEY) === "1"; } catch { /* optional */ }
+  // "SYNC is already on this phone" only when the phone says so. A window that opened /sync/?app=sync isn't proof: DanzStak's
+  // own SYNC shortcut opens the same page inside the DanzStak app, so that used to save "installed" for good and the sheet
+  // sent the owner to a SYNC icon that didn't exist (owner 2026-11-23: "Sync is not on home screen"). The saved mark comes
+  // only from the browser's appinstalled event, and Chrome's getInstalledRelatedApps clears it when SYNC isn't there.
+  let knownInstalled = false;
+  try { knownInstalled = localStorage.getItem(INSTALLED_KEY) === "1"; } catch { /* optional */ }
 
   // ---- Stay inside /sync/ ----
   const toSync = link => {
@@ -51,11 +55,21 @@
       placeVerifiedInstall();
     });
   }
-  async function installedRelatedApp() {
-    if (typeof navigator.getInstalledRelatedApps !== "function") return false;
+  // true / false when the browser can tell, null when it can't (Safari, Firefox).
+  async function relatedAppAnswer() {
+    if (typeof navigator.getInstalledRelatedApps !== "function") return null;
     try { return (await navigator.getInstalledRelatedApps()).some(app => app?.platform === "webapp" && /\/sync\.webmanifest$/.test(String(app.url || ""))); }
-    catch { return false; }
+    catch { return null; }
   }
+  async function installedRelatedApp() { return (await relatedAppAnswer()) === true; }
+  // A saved mark the phone contradicts (SYNC removed, or saved by an older version from DanzStak's shortcut) goes.
+  if (inSyncApp && knownInstalled) relatedAppAnswer().then(answer => {
+    if (answer !== false || added) return;
+    knownInstalled = false;
+    try { localStorage.removeItem(INSTALLED_KEY); } catch { /* optional */ }
+    if (dialog?.open) render();
+    placeVerifiedInstall();
+  });
   // Sign-up's "Set up SYNC" (owner 2026-11-19: "it needs to be easy to verify the device and save the app"): SYNC's page
   // with ?install=1&device=register saves the app first, then goes straight into verifying the number (call-devices.js
   // waits for afterInstall()). An iPhone keeps a home-screen app's storage apart from Safari's, so there the number is
@@ -79,7 +93,7 @@
     prompt: ["Get SYNC as its own app", "Its own icon on your home screen, straight to your chats. Same account, no second login."],
     "known-installed": ["SYNC is already on this phone", "Open it from the SYNC icon on your home screen."],
     // Inside the DanzStak app, Android saves SYNC from DanzStak's own icon: its SYNC shortcut opens SYNC inside DanzStak.
-    "other-app": isAndroid ? ["Save SYNC to your home screen", "SYNC opens inside DanzStak, straight to your chats."]
+    "other-app": isAndroid ? ["Save SYNC to your home screen", "SYNC opens inside DanzStak, straight to your chats. Its icon goes on your home screen, not in the app list."]
       : ["Install SYNC from your browser", "Apps can't install other apps, so this step happens in your browser."],
     waiting: ["Get SYNC as its own app", "Getting SYNC ready…"],
     steps: ["Get SYNC as its own app", "Its own icon on your home screen, straight to your chats. Same account, no second login."]

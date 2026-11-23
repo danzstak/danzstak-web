@@ -16,13 +16,13 @@ const { chromium } = require("playwright");
 const base = String(process.env.DANZSTAK_BASE_URL || process.env.DANZSTAK_LOCAL_URL || "http://127.0.0.1:8017").replace(/\/$/, "");
 const output = path.resolve("docs/screenshots/sync-call-screen");
 const json = (route, body) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
-async function setup(browser, width) {
+async function setup(browser, width, picture = "") {
   const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block", permissions: ["camera", "microphone"] });
   const page = await context.newPage(); page.errors = [];
   page.on("pageerror", e => page.errors.push(e.message));
   await page.route("https://api.danzstak.com/**", route => { const p = new URL(route.request().url()).pathname;
     if (p === "/auth/session") return json(route, { authenticated: true, user: { sub: "00000000-0000-4000-8000-000000000001", email: "me@x.test" } });
-    if (p === "/conversations") return json(route, { conversations: [{ contactEmail: "dee@x.test", memberId: "00000000-0000-4000-8000-000000000002", name: "Dee", preview: "Ready", updatedAt: "2026-11-19T12:00:00.000Z", canContact: true }] });
+    if (p === "/conversations") return json(route, { conversations: [{ contactEmail: "dee@x.test", memberId: "00000000-0000-4000-8000-000000000002", name: "Dee", preview: "Ready", updatedAt: "2026-11-19T12:00:00.000Z", canContact: true, ...(picture ? { picture } : {}) }] });
     if (p === "/calls/ice") return json(route, { iceServers: [], expiresAt: Date.now() + 300000 });
     return json(route, { events: [] }); });
   await page.goto(`${base}/messages.html`, { waitUntil: "domcontentloaded" });
@@ -57,7 +57,7 @@ const overlap = (a, b) => a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 
 
 (async () => {
   fs.mkdirSync(output, { recursive: true });
-  const browser = await chromium.launch({ channel: "msedge", headless: true, args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", "--autoplay-policy=no-user-gesture-required"] });
+  const browser = await chromium.launch({ channel: process.env.DANZSTAK_BROWSER_CHANNEL ?? "msedge", headless: true, args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", "--autoplay-policy=no-user-gesture-required"] });
   const failures = [];
   try {
     for (const width of [320, 360, 390, 430]) {
@@ -105,6 +105,37 @@ const overlap = (a, b) => a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 
           await page.locator("#callBubble").click(); await page.waitForTimeout(200);
           if (await page.evaluate(() => document.body.dataset.callMode) !== "phone") failures.push(`${label}: the bubble did not bring the call back`);
         }
+        if (page.errors.length) failures.push(`${label}: page errors ${page.errors.join(" | ")}`);
+        await context.close();
+      }
+      // Calling, before the other person answers (owner 2026-11-23, "Images are funky": the letter instead of their photo,
+      // "Calling Adam3…" twice, your camera window over their photo, an orange ring around End after a tap).
+      for (const kind of ["phone", "video"]) {
+        const label = `calling ${kind} ${width}px`;
+        const { context, page } = await setup(browser, width, "/assets/danzstak-share-card.jpg");
+        await page.waitForFunction(() => /url\(/.test(document.getElementById("conversationAvatar").style.backgroundImage), null, { timeout: 10000 });
+        await page.evaluate(async kind => { contactName = "Dee"; await makePeer(kind); setStatus(tf("Calling {name}…", { name: "Dee" })); }, kind); // eslint-disable-line no-undef
+        await page.waitForTimeout(600);
+        const end = await page.evaluate(() => { const b = document.getElementById("hangUp").getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
+        await page.touchscreen.tap(width / 2, 420); // a tap on the photo first (no action there), then focus lands on End the way chat.js does it
+        await page.evaluate(() => document.getElementById("hangUp").focus());
+        const seen = await page.evaluate(() => {
+          const r = el => { const b = el.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom, w: b.width, h: b.height }; };
+          const photo = document.querySelector("#callStage .ds-call-photo"), pip = document.querySelector(".video-grid .local-video");
+          const status = document.getElementById("callStatus"), end = document.getElementById("hangUp"), es = getComputedStyle(end);
+          const words = [...document.querySelectorAll(".conversation *")].filter(n => n.childElementCount === 0 && n.offsetParent !== null && getComputedStyle(n).visibility !== "hidden" && /Calling/.test(n.textContent)).map(n => n.textContent.trim());
+          return { img: Boolean(photo?.querySelector("img")?.src), photo: r(photo), pip: pip && getComputedStyle(pip).display !== "none" && !pip.closest("[hidden]") ? { ...r(pip), full: Math.round(pip.getBoundingClientRect().width) === innerWidth } : null,
+            words, statusShown: getComputedStyle(status).visibility !== "hidden", ring: es.outlineStyle !== "none" && parseFloat(es.outlineWidth) > 0 };
+        });
+        if (!seen.img) failures.push(`${label}: the photo shows the letter, not the contact's picture`);
+        if (seen.words.length !== 1) failures.push(`${label}: "Calling" shows ${seen.words.length} times (${seen.words.join(" | ")})`);
+        if (seen.ring) failures.push(`${label}: a ring shows around End after a tap`);
+        if (kind === "video" && seen.pip && !seen.pip.full && overlap(seen.pip, seen.photo)) failures.push(`${label}: your camera window covers their photo`);
+        // An error still shows on the status line.
+        await page.evaluate(() => setStatus("Call connection interrupted. Reconnecting…")); // eslint-disable-line no-undef
+        await page.waitForTimeout(100);
+        if (await page.evaluate(() => getComputedStyle(document.getElementById("callStatus")).visibility === "hidden")) failures.push(`${label}: an error on the status line was hidden`);
+        if (width === 360 || width === 390) await page.screenshot({ path: path.join(output, `calling-${kind}-${width}.png`) });
         if (page.errors.length) failures.push(`${label}: page errors ${page.errors.join(" | ")}`);
         await context.close();
       }
