@@ -163,6 +163,9 @@ function fakeDb() {
   assert.equal(createdForm.get("line_items[0][price_data][product_data][name]"), "AI EPK");
   assert.equal(createdForm.get("line_items[1][price_data][unit_amount]"), "130");
   assert.equal(createdForm.get("line_items[1][price_data][product_data][name]"), "DanzStak fee");
+  // AI-1: Managed Payments refuses any product without a tax code ("Authentication service error" on Pay $6.30).
+  assert.equal(createdForm.get("line_items[0][price_data][product_data][tax_code]"), "txcd_10000000");
+  assert.equal(createdForm.get("line_items[1][price_data][product_data][tax_code]"), "txcd_10000000");
   assert.equal(createdForm.get("metadata[product]"), "danzstak_ai_epk");
   assert.match(createdForm.get("success_url"), /epk\.html\?ai-epk=paid$/);
   // Live keys never sell the AI EPK until the owner approves.
@@ -171,6 +174,20 @@ function fakeDb() {
   // Nothing is charged when the AI isn't configured.
   const closedBilling = billingModule.createTourManagerBilling({ db, commands, authenticate: async () => userId, corsHeaders, tableName: "Tours", env, fetcher: stripeFetch, clock: () => now });
   assert.equal((await closedBilling(event("POST", "/tour-manager/ai-epk/checkout", {}))).statusCode, 503);
+  // AI-1: when Stripe refuses the session, the member gets one translated line (503), never the generic 500.
+  const refusingFetch = async (url, options = {}) => {
+    if (url.endsWith("/checkout/sessions") && options.method === "POST") return { ok: false, status: 400, json: async () => ({ error: { type: "invalid_request_error", code: "parameter_missing", param: "line_items[0][price_data][product_data][tax_code]", message: "the product tax code is missing" } }) };
+    return stripeFetch(url, options);
+  };
+  const quiet = console.error; const logged = []; console.error = (...args) => logged.push(JSON.stringify(args));
+  let refused;
+  try { refused = await billingModule.createTourManagerBilling({ db, commands, authenticate: async () => userId, corsHeaders, tableName: "Tours", env, fetcher: refusingFetch, clock: () => now, aiEpkReady: service.checkoutReady })(event("POST", "/tour-manager/ai-epk/checkout", {})); }
+  finally { console.error = quiet; }
+  assert.equal(refused.statusCode, 503, refused.body);
+  assert.equal(parse(refused).error, "Payments aren't working right now. Nothing was charged. Try again later.");
+  assert.equal(parse(refused).code, "payments_unavailable");
+  assert.ok(logged.some(line => line.includes("parameter_missing") && line.includes("tax_code")), "Stripe's reason is logged");
+  assert.ok(!logged.some(line => line.includes("sk_test_example") || line.includes("tax code is missing")), "no key or Stripe message text in the logs");
 
   const signed = (payload) => { const t = Math.floor(now / 1000); return `t=${t},v1=${createHmac("sha256", secret).update(`${t}.${payload}`).digest("hex")}`; };
   const webhook = (id, type = "checkout.session.completed", object = { id: "cs_test_aiepk1" }) => { const body = JSON.stringify({ id, type, livemode: false, data: { object } }); return billing({ requestContext: { http: { method: "POST" } }, rawPath: "/tour-manager/stripe/webhook", headers: { "stripe-signature": signed(body) }, body }); };
