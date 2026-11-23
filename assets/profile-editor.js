@@ -158,6 +158,12 @@ bioElement.className = "profile-bio";
 bioElement.hidden = true;
 handleElement.insertAdjacentElement("afterend", bioElement);
 
+// Same words, ignoring case, spacing and punctuation.
+function sameWords(a, b) {
+  const plain = value => String(value || "").normalize("NFKC").toLocaleLowerCase().replace(/[\s\p{P}]+/gu, "");
+  return Boolean(plain(a)) && plain(a) === plain(b);
+}
+
 function detail(label, id, parent = details) {
   const box = document.createElement("div");
   box.className = "detail";
@@ -1708,7 +1714,8 @@ function applyProfile(profile) {
   handleElement.hidden = true;
   loadFacepile();
   bioElement.textContent = profile.bio || "";
-  bioElement.hidden = !profile.bio;
+  // F14 (owner 2026-11-19): a bio that only repeats the name ("Dachshund Records" twice) is not shown.
+  bioElement.hidden = !profile.bio || sameWords(profile.bio, profile.name || document.getElementById("profileName").textContent);
   // Owner 2026-11-19: no "+ bio" button in the profile header — it duplicated Edit profile ("4 of those 5 buttons do
   // the same thing") and once leaked to visitors. The long-form bio is added from the About tab (#556).
   window.danzstakLinkifyUserText?.(bioElement);
