@@ -43,6 +43,7 @@ import {
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
+import { anthropicLlm, braveSearch, createAiEpk, safeFetchPage } from "./ai-epk.mjs";
 import { EPK_WORKSPACE_KEY, canMove, epkGate, pitchStats, stageOf, venueEvents, withPipeline } from "./booking-pipeline.mjs";
 import { MAX_ROUTE_STOPS, cleanDateOptions, planRouteDates, withRoadLegs } from "./booking-route-dates.mjs";
 import { VENUE_REPORT_OWNER, cleanReport, freshness, signalFromItem, signalUpdate, sortByFreshness, validSignalVenueKey, venueSignalKey } from "./booking-venue-signals.mjs";
@@ -272,6 +273,39 @@ async function personalPhoneService() {
   });
 }
 
+// AI EPK builder (task 08): Claude through the Anthropic API, key in Secrets Manager danzstak/ai/anthropic-key
+// (JSON {"apiKey": ...}, read through the managed policy DanzStakAnthropicKeyRead). Brave Search from the existing
+// BRAVE_SEARCH_API_KEY setting, or the optional secret danzstak/ai/brave-search-key. Fail-closed: without the
+// Anthropic key the builder says "AI builder coming soon" and nothing can be charged.
+const anthropicSecretName = process.env.ANTHROPIC_SECRET_NAME || "danzstak/ai/anthropic-key";
+const braveSecretName = process.env.BRAVE_SEARCH_SECRET_NAME || "danzstak/ai/brave-search-key";
+let aiEpkPromise = null, aiEpkLoadedAt = 0;
+async function optionalAiSecret(name, fields) {
+  try { return secretText(await secretsManager.send(new GetSecretValueCommand({ SecretId: name })), fields); }
+  catch (error) { console.warn("AI secret unavailable", { name, reason: error.name || "error" }); return ""; }
+}
+function aiEpkHandler() {
+  if (aiEpkPromise && Date.now() - aiEpkLoadedAt < 10 * 60 * 1000) return aiEpkPromise;
+  aiEpkLoadedAt = Date.now();
+  aiEpkPromise = (async () => {
+    const [anthropicKey, braveKey] = await Promise.all([
+      optionalAiSecret(anthropicSecretName, ["apiKey", "ANTHROPIC_API_KEY", "key", "value"]),
+      String(process.env.BRAVE_SEARCH_API_KEY || "").trim() || optionalAiSecret(braveSecretName, ["apiKey", "BRAVE_SEARCH_API_KEY", "key", "value"])
+    ]);
+    return createAiEpk({
+      db,
+      commands: { GetItemCommand, PutItemCommand, UpdateItemCommand, TransactWriteItemsCommand },
+      authenticate: getAuthenticatedUser,
+      corsHeaders,
+      tableName: toursTable,
+      llm: anthropicLlm({ apiKey: anthropicKey, extractModel: process.env.AI_EPK_EXTRACT_MODEL || "claude-haiku-4-5", writeModel: process.env.AI_EPK_WRITE_MODEL || "claude-sonnet-5-5" }),
+      search: braveSearch({ apiKey: braveKey }),
+      fetchPage: safeFetchPage()
+    });
+  })();
+  return aiEpkPromise;
+}
+
 const tourManagerBilling = createTourManagerBilling({
   db,
   commands: { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand },
@@ -281,6 +315,7 @@ const tourManagerBilling = createTourManagerBilling({
   env: stripeEnvironment,
   validateOutreachEpkLink: validateBookingOutreachEpkLink,
   accountEmail: userId => accountForSub(userId),
+  aiEpkReady: async (userId, kind) => (await aiEpkHandler()).checkoutReady(userId, kind),
   // Bell notification when a venue answers through the reply page (owner 2026-11-16).
   notifyBookingReply: async ({ artistId, outreachId, dedupe, action, preview, proposedDate, at }) => {
     const send = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${outreachId}` } }, ConsistentRead: true }))).Item;
@@ -4768,6 +4803,11 @@ async function epkWorkspace(event, method) {
   }
   const data = parseJsonBody(event), kit = cleanEpk(data?.kit, ownerPrefix), publish = data?.publish === true;
   if (!kit) return reply(400, { error: "Add an artist name and valid EPK details." });
+  if (publish) {
+    // Nothing AI-written is published unseen (task 08): every AI draft section must be reviewed first.
+    const aiBlock = await (await aiEpkHandler()).publishBlock(userId);
+    if (aiBlock) return reply(409, aiBlock);
+  }
   const existing = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
   try { await validatedEpkMedia(kit.media); } catch (error) { return reply(error.statusCode || 422, { error: error.message }); }
   let publicId = /^[a-z0-9-]{3,64}$/.test(existing.Item?.publicId?.S || "") ? existing.Item.publicId.S : kit.artistName.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
@@ -5714,9 +5754,13 @@ async function routeRequest(event) {
       return await tourManagerBilling(event);
     }
     if (path?.startsWith("/tour-manager/") || path?.startsWith("/phone-number/") || path?.startsWith("/sync-network-number/")) {
-      if (method === "POST" && ["/tour-manager/stripe/webhook", "/sync-network-number/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout", "/sync-network-number/checkout", "/tour-manager/refunds/quote", "/tour-manager/refunds/accept"].includes(path)) await ensureStripeSecrets();
+      if (method === "POST" && ["/tour-manager/stripe/webhook", "/sync-network-number/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout", "/sync-network-number/checkout", "/tour-manager/ai-epk/checkout", "/tour-manager/refunds/quote", "/tour-manager/refunds/accept"].includes(path)) await ensureStripeSecrets();
       const billingResponse = await tourManagerBilling(event);
       if (billingResponse) return billingResponse;
+    }
+    if (path === "/epk/ai" || path?.startsWith("/epk/ai/")) {
+      const aiEpkResponse = await (await aiEpkHandler())(event);
+      if (aiEpkResponse) return aiEpkResponse;
     }
     if (path?.startsWith("/marketplace/")) {
       const ticketOrderResponse = await ticketOrders(event);
