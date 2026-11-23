@@ -3,7 +3,8 @@ import { challengeRecord, deviceChallengeDigest, normalizeE164, phoneDigest, pub
 
 const RESEND_WINDOW_SECONDS = 600, SENDS_PER_WINDOW = 2; // a text and one resend, then wait 10 minutes (rule 11)
 
-function serviceError(message, statusCode, code) { const error = new Error(message); error.statusCode = statusCode; error.code = code; return error; }
+// Written for members (and translated in the app by `code`), so the error mapper may show it as it is.
+function serviceError(message, statusCode, code) { const error = new Error(message); error.statusCode = statusCode; error.code = code; error.expose = true; return error; }
 
 // Two delivery modes:
 // - sender (AWS Notify): DanzStak generates the code, stores only its keyed hash and asks the sender to text it.
