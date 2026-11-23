@@ -104,7 +104,7 @@ function sandbox({ storiesFail = false } = {}) {
   assert.match(feed, /reel: mediaType === "video", originalContentCertified: true/);
   assert.match(feed, /if \(selectedMedia\?\.file && savedPost\?\.dailyCreated !== true\) \{/, "Mix only uploads a Daily itself when the server did not add one");
   assert.match(enhancements, /groupId: group\.id, mediaKey, mediaType, reel: mediaType === "video"/, "Tribe composer");
-  assert.match(enhancements, /reel: mediaFields\.mediaType === "video"/, "event composer");
+  assert.match(read("assets/events-page.js"), /reel: media\.mediaType === "video", originalContentCertified: true/, "event composer (its own screen since #486)");
   assert.match(profileEditor, /mediaKey, mediaType, reel: mediaType === "video", \.\.\.\(mediaKey \? \{ uploadSource:/, "profile composer (also says phone or computer for the automatic albums)");
   assert.doesNotMatch(enhancements, /toggle = document\.getElementById\("shareToReels"\)/, "linked videos go to The Roll without a checkbox");
 
