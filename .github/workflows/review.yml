@@ -194,6 +194,7 @@ jobs:
             '.\browser-checks\pwa-install-entry.cjs'
             '.\browser-checks\profile-onboarding-identity.cjs'
             '.\browser-checks\push-alert-prompt.cjs'
+            '.\browser-checks\call-alerts-blocked.cjs'
             '.\browser-checks\epk-booking-connected-handoff.cjs'
             '.\browser-checks\booking-save-preview.cjs'
             '.\browser-checks\booking-contact-unlock-return.cjs'
