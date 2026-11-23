@@ -61,6 +61,8 @@ It's a variable, not a secret, on purpose: the account number on its own grants 
 
 A change that would replace or remove a table, the media bucket, the push key or the CDN distribution stops the run on purpose. That kind of change still goes through CloudShell, after a review.
 
+**The Auth API's settings (its environment variables) never change from GitHub.** Lambda keeps them encrypted, and the deploy role is not allowed to decrypt them, because it must never see a secret value. So a GitHub run prints `SKIP  Auth API environment` and leaves every setting exactly as it is. Policies, routes and code still deploy. To change a setting, run `pwsh ./aws-deploy-auth-api.ps1` in CloudShell.
+
 ## Approving a run on your phone
 
 1. Install the **GitHub** app (App Store or Google Play) and sign in.
