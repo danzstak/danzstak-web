@@ -2,7 +2,8 @@
 // D0 (owner 2026-11-22): the GitHub deploy role (infrastructure/github-deploy/bootstrap.yaml) must stay narrow. Data
 // breaches are the main risk, so this reads the CloudFormation template (short tags included, scripts/cfn-yaml.cjs) and
 // fails when:
-//   - the trust policy accepts anything but repo:danzstak/danzstak-web:environment:production with audience sts.amazonaws.com;
+//   - the trust policy accepts anything but this repository's production environment, by GitHub's permanent ids
+//     (repo:danzstak@346346934/danzstak-web@1429660534:environment:production), with audience sts.amazonaws.com;
 //   - the permission boundary lacks an unconditional Deny for: creating users or access keys, login profiles, any role
 //     other than the app roles, reading secret values, Route 53 (the Zoho MX), Organizations, account and billing, or
 //     loosening/deleting the boundary itself;
@@ -60,7 +61,9 @@ assert.deepEqual(statement.Principal, {
 assert.deepEqual(Object.keys(statement.Condition), ["StringEquals"], "exact matching only (no StringLike wildcards)");
 assert.deepEqual(statement.Condition.StringEquals, {
   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-  "token.actions.githubusercontent.com:sub": "repo:danzstak/danzstak-web:environment:production",
+  // GitHub sends the owner's and repository's permanent ids in the subject (CloudTrail, deploy run 5, 2026-11-23):
+  // the name-only form never matches, and a renamed or re-created repository can't take the role.
+  "token.actions.githubusercontent.com:sub": "repo:danzstak@346346934/danzstak-web@1429660534:environment:production",
 }, "only this repository's production environment (owner-approved runs) can assume the role");
 
 // --- Policies: the boundary and the access policies -------------------------------------------------------------------
@@ -164,4 +167,4 @@ for (const item of allows.filter(entry => list(entry.Action).some(action => /^cl
   for (const resource of list(item.Resource)) assert.match(resource, /:stack\/DANZSTAK-Call-Signaling\/\*$|:changeSet\/github-\*\/\*$/, `change sets only on the call-signaling stack (${resource})`);
 }
 
-console.log(`Deploy boundary checks passed: trust = repo:danzstak/danzstak-web:environment:production only; ${denies.length} boundary Denies cover users/keys, other roles, secret values, DNS, Organizations, account, billing, member data and the boundary itself; ${allows.length} Allow statements name no wildcard role and no secrets; PassRole only to Lambda for the app roles.`);
+console.log(`Deploy boundary checks passed: trust = this repository's production environment only (by GitHub's permanent ids); ${denies.length} boundary Denies cover users/keys, other roles, secret values, DNS, Organizations, account, billing, member data and the boundary itself; ${allows.length} Allow statements name no wildcard role and no secrets; PassRole only to Lambda for the app roles.`);

@@ -288,7 +288,10 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: repo:danzstak/danzstak-web:environment:production
+                # GitHub sends the subject with the owner's and the repository's permanent ids (seen 2026-11-23 in
+                # CloudTrail for deploy run 5): a renamed or re-created repository called danzstak/danzstak-web can never
+                # match. Owner danzstak = 346346934, repository danzstak-web = 1429660534.
+                token.actions.githubusercontent.com:sub: repo:danzstak@346346934/danzstak-web@1429660534:environment:production
 Outputs:
   DeployRoleArn:
     Description: 'GitHub deploy.yml assumes this role (the account id comes from the repository variable AWS_ACCOUNT_ID).'
