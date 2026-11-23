@@ -1,4 +1,5 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+import { AI_EPK_FEE_CENTS, AI_EPK_PRICE_CENTS, AI_EPK_TOTAL_CENTS } from "./ai-epk.mjs";
 import { EPK_WORKSPACE_KEY, epkGate, epkGateMessage, followUpDate, followUpEligible } from "./booking-pipeline.mjs";
 import { signalUpdate } from "./booking-venue-signals.mjs";
 import { SUPPRESSION_CLEAR_CONDITION, checkBookingContact, createMailDomainCheck, suppressionBlock, suppressionClearValues } from "./booking-contact-check.mjs";
@@ -49,6 +50,9 @@ const PRODUCT = "tour_manager_booking_email";
 const CONTACT_PRODUCT = "booking_contact_unlock";
 const PHONE_PRODUCT = "danzstak_phone_activation";
 const SYNC_NETWORK_PRODUCT = "danzstak_sync_network_alias";
+// AI EPK builder (task 08): $5 + the buyer-paid fee line, Stripe Test Mode only until the owner approves live.
+const AI_EPK_PRODUCT = "danzstak_ai_epk";
+const AI_EPK_CREDITS_KEY = "AI_EPK#CREDITS";
 const CREDIT_KEY = "TOUR_MANAGER#BOOKING_EMAIL_CREDITS";
 const PROFESSIONAL_KEY = "TOUR_MANAGER#PROFESSIONAL_ENTITLEMENT";
 const PHONE_ENTITLEMENT_KEY = "PHONE#ACTIVATION_ENTITLEMENT";
@@ -72,6 +76,8 @@ function response(statusCode, data, headers = {}) { return { statusCode, headers
 function rawBody(event) { if (typeof event?.body !== "string") return ""; return event.isBase64Encoded ? Buffer.from(event.body, "base64").toString("utf8") : event.body; }
 function parseBody(event) { try { return JSON.parse(rawBody(event) || "{}"); } catch { return null; } }
 function validUserId(value) { return typeof value === "string" && /^[a-zA-Z0-9_-]{8,128}$/.test(value); }
+function aiProfileCreditsKey(userId) { return { userId: { S: userId }, tourId: { S: "AI_PROFILE#CREDITS" } }; }
+function aiEpkCreditsKey(userId) { return { userId: { S: userId }, tourId: { S: AI_EPK_CREDITS_KEY } }; }
 function checkoutKey(userId, sessionId) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#CHECKOUT#${sessionId}` } }; }
 function creditKey(userId) { return { userId: { S: userId }, tourId: { S: CREDIT_KEY } }; }
 function professionalKey(userId) { return { userId: { S: userId }, tourId: { S: PROFESSIONAL_KEY } }; }
@@ -121,7 +127,7 @@ export function verifyStripeSignature(payload, header, secret, currentTime = Dat
   return signatures.some(signature => { if (!/^[a-f0-9]{64}$/i.test(signature)) return false; const candidate = Buffer.from(signature, "hex"); return candidate.length === expected.length && timingSafeEqual(candidate, expected); });
 }
 
-export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, accountEmail = async () => "", notifyBookingReply = async () => {}, env = process.env, fetcher = fetch, clock = Date.now, aliasGenerator = generateSyncNetworkAlias, mailDomainProblem = createMailDomainCheck({ clock }) }) {
+export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, accountEmail = async () => "", notifyBookingReply = async () => {}, env = process.env, fetcher = fetch, clock = Date.now, aliasGenerator = generateSyncNetworkAlias, mailDomainProblem = createMailDomainCheck({ clock }), aiEpkReady = async () => ({ ok: false, error: "AI builder coming soon" }) }) {
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
   const testMode = () => /^(?:sk|rk)_test_/.test(env.STRIPE_SECRET_KEY || "");
   const liveKey = () => /^(?:sk|rk)_live_/.test(env.STRIPE_SECRET_KEY || "");
@@ -338,6 +344,44 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       throw new Error("Stored Checkout binding does not match the DanzStak Network number product");
     }
     return response(200, { checkoutUrl: session.url, unitAmountCents: SYNC_NETWORK_NUMBER_UNIT_CENTS, currency: "usd", testMode: true }, headers);
+  }
+
+  // AI EPK ($5 + fees = $6.30). The price is sent inline (no live Stripe product is used) and checked again in the webhook.
+  async function aiEpkCheckout(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const kind = ["redesign", "profile"].includes(parseBody(event)?.kind) ? parseBody(event).kind : "build";
+    const ready = await aiEpkReady(userId, kind);
+    if (!ready?.ok) return response(503, { error: ready?.error || "AI builder coming soon", comingSoon: true }, headers);
+    if (!paymentsAllowed() || !testMode()) return response(503, { error: "AI EPK checkout runs in Stripe Test Mode until the owner approves live payments." }, headers);
+    if (!await stripeAccountMatches()) return response(503, { error: "DanzStak payments are not connected to the approved Stripe account." }, headers);
+    const returnBaseUrl = /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(String(env.AI_EPK_RETURN_BASE_URL || "")) ? String(env.AI_EPK_RETURN_BASE_URL).replace(/\/$/, "") : "https://danzstak.com";
+    const requestId = randomUUID();
+    const form = new URLSearchParams({
+      mode: "payment",
+      ...REFUND_NOTICE,
+      "line_items[0][price_data][currency]": "usd",
+      "line_items[0][price_data][unit_amount]": String(AI_EPK_PRICE_CENTS),
+      "line_items[0][price_data][product_data][name]": kind === "redesign" ? "AI EPK redesign" : kind === "profile" ? "AI profile" : "AI EPK",
+      "line_items[0][quantity]": "1",
+      "line_items[1][price_data][currency]": "usd",
+      "line_items[1][price_data][unit_amount]": String(AI_EPK_FEE_CENTS),
+      "line_items[1][price_data][product_data][name]": "DanzStak fee",
+      "line_items[1][quantity]": "1",
+      client_reference_id: userId,
+      "metadata[product]": AI_EPK_PRODUCT,
+      "metadata[userId]": userId,
+      "metadata[kind]": kind,
+      // Write it with AI comes back to Edit profile; the AI EPK and redesign come back to the EPK builder.
+      success_url: kind === "profile" ? `${returnBaseUrl}/profile.html?ai-profile=paid` : `${returnBaseUrl}/epk.html?ai-epk=paid${kind === "redesign" ? "&kind=redesign" : ""}`,
+      cancel_url: kind === "profile" ? `${returnBaseUrl}/profile.html?ai-profile=cancelled` : `${returnBaseUrl}/epk.html?ai-epk=cancelled`
+    });
+    const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `ai-epk-${userId}-${requestId}` }, body: form.toString() });
+    if (!/^cs_test_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
+    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, product: { S: AI_EPK_PRODUCT }, kind: { S: kind }, amountCents: { N: String(AI_EPK_TOTAL_CENTS) }, environment: { S: "test" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
+    return response(200, { checkoutUrl: session.url, priceCents: AI_EPK_PRICE_CENTS, feeCents: AI_EPK_FEE_CENTS, totalCents: AI_EPK_TOTAL_CENTS, currency: "usd", testMode: true }, headers);
   }
 
   async function syncNetworkEntitlement(event) {
@@ -646,7 +690,44 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return item?.sessionId?.S === session.id && item.product?.S === SYNC_NETWORK_PRODUCT && item.priceId?.S === TEST_SYNC_NETWORK_CATALOG.priceId && item.environment?.S === "test" ? { session, userId, product: SYNC_NETWORK_PRODUCT } : null;
   }
 
+  async function loadVerifiedAiEpkSession(session, expectedLive) {
+    if (expectedLive) return null;
+    const userId = session.client_reference_id, metadata = session.metadata || {}, lines = Array.isArray(session.line_items?.data) ? session.line_items.data : [];
+    const amounts = lines.map(line => Number(line?.amount_total)).sort((a, b) => a - b);
+    const valid = session.mode === "payment" && session.livemode === false && validUserId(userId) && metadata.product === AI_EPK_PRODUCT && metadata.userId === userId && ["build", "redesign", "profile"].includes(metadata.kind)
+      && session.currency === "usd" && Number(session.amount_total) === AI_EPK_TOTAL_CENTS && lines.length === 2 && lines.every(line => Number(line?.quantity) === 1)
+      && amounts[0] === AI_EPK_FEE_CENTS && amounts[1] === AI_EPK_PRICE_CENTS;
+    if (!valid) return null;
+    const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
+    return item?.sessionId?.S === session.id && item.product?.S === AI_EPK_PRODUCT && Number(item.amountCents?.N) === AI_EPK_TOTAL_CENTS && item.environment?.S === "test" && (item.kind?.S || "build") === metadata.kind ? { session, userId, product: AI_EPK_PRODUCT, kind: metadata.kind } : null;
+  }
+
+  // One build credit, plus the one free booking pitch send that comes with every paid AI EPK (owner 2026-11-16).
+  async function grantAiEpk(notification, verified) {
+    const processedAt = nowIso();
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...eventKey(notification.id), sessionId: { S: verified.session.id }, eventType: { S: notification.type }, processedAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Update: { TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), UpdateExpression: "SET #status = :paid, paidAt = :paidAt, amountPaidCents = :amount", ConditionExpression: "#status <> :paid AND sessionId = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":paidAt": { S: processedAt }, ":amount": { N: String(verified.session.amount_total) }, ":sessionId": { S: verified.session.id } } } },
+        verified.kind === "profile"
+          ? { Update: { TableName: tableName, Key: aiProfileCreditsKey(verified.userId), UpdateExpression: "ADD purchased :one SET updatedAt = :at, lastSessionId = :sessionId", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt }, ":sessionId": { S: verified.session.id } } } }
+          : { Update: { TableName: tableName, Key: aiEpkCreditsKey(verified.userId), UpdateExpression: verified.kind === "redesign" ? "ADD redesigns :one, purchasedRedesigns :one SET updatedAt = :at, lastSessionId = :sessionId" : "ADD builds :one, purchasedBuilds :one SET updatedAt = :at, lastSessionId = :sessionId", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
+        ...(verified.kind !== "build" ? [] : [{ Update: { TableName: tableName, Key: creditKey(verified.userId), UpdateExpression: "ADD credits :one, includedCredits :one SET updatedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt } } } }]),
+        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: verified.kind === "profile" ? "ai_profile_purchase" : verified.kind === "redesign" ? "ai_epk_redesign_purchase" : "ai_epk_purchase" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "1" }, status: { S: "settled" }, description: { S: verified.kind === "profile" ? "AI profile (Write it with AI)" : verified.kind === "redesign" ? "AI EPK redesign" : "AI EPK build, with 1 included booking pitch send (no cash value, not refundable on its own)" }, createdAt: { S: processedAt } } } }
+      ] }));
+    } catch (error) {
+      const [duplicate, checkout] = await Promise.all([
+        db.send(new GetItemCommand({ TableName: tableName, Key: eventKey(notification.id), ConsistentRead: true })),
+        db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), ConsistentRead: true }))
+      ]);
+      if (duplicate.Item || checkout.Item?.status?.S === "paid") return false; // a second Stripe event for a session already granted
+      throw error;
+    }
+    return true;
+  }
+
   async function loadVerifiedKnownSession(session, expectedLive) {
+    if (session?.metadata?.product === AI_EPK_PRODUCT) return loadVerifiedAiEpkSession(session, expectedLive);
     if (session?.metadata?.product === CONTACT_PRODUCT) return loadVerifiedContactSession(session, expectedLive);
     if (session?.metadata?.product === PHONE_PRODUCT) return loadVerifiedPhoneSession(session, expectedLive);
     if (session?.metadata?.product === SYNC_NETWORK_PRODUCT) return loadVerifiedSyncNetworkSession(session, expectedLive);
@@ -775,6 +856,23 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
         { Update: { TableName: tableName, Key: phoneEntitlementKey(verified.userId), UpdateExpression: "SET #status = :refunded, refundedAt = :refundedAt, provisioningActionRequired = :required", ConditionExpression: "paymentReference = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":refunded": { S: "refunded" }, ":refundedAt": { S: processedAt }, ":required": { BOOL: true }, ":sessionId": { S: verified.session.id } } } },
         { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "phone_activation_refund" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "refunded" }, description: { S: "Phone activation payment refunded; provider follow-up required" }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
       );
+    } else if (verified.product === AI_EPK_PRODUCT && verified.kind === "profile") {
+      // Write it with AI counts as used once a draft was generated (Terms 8A); before that a refund takes it back.
+      const profile = await db.send(new GetItemCommand({ TableName: tableName, Key: aiProfileCreditsKey(verified.userId), ConsistentRead: true }));
+      const unused = !(Number(profile.Item?.drafts?.N || 0) > 0);
+      if (unused) items.push({ Update: { TableName: tableName, Key: aiProfileCreditsKey(verified.userId), UpdateExpression: "ADD refunded :one SET updatedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: processedAt } } } });
+      items.push({ Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: unused ? "ai_profile_refund" : "ai_profile_refund_after_draft" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: unused ? "-1" : "0" }, status: { S: "settled" }, createdAt: { S: processedAt } } } });
+    } else if (verified.product === AI_EPK_PRODUCT) {
+      // No refund once a draft is produced (spec); a refund of an unused build takes the build and the included send back.
+      const [buildsItem, sendsItem] = await Promise.all([
+        db.send(new GetItemCommand({ TableName: tableName, Key: aiEpkCreditsKey(verified.userId), ConsistentRead: true })),
+        db.send(new GetItemCommand({ TableName: tableName, Key: creditKey(verified.userId), ConsistentRead: true }))
+      ]);
+      const redesign = verified.kind === "redesign", counter = redesign ? "redesigns" : "builds";
+      const unusedBuild = Number(buildsItem.Item?.[counter]?.N || 0) >= 1, unusedSend = !redesign && Number(sendsItem.Item?.credits?.N || 0) >= 1;
+      if (unusedBuild) items.push({ Update: { TableName: tableName, Key: aiEpkCreditsKey(verified.userId), UpdateExpression: `ADD ${counter} :minus, refunded${redesign ? "Redesigns" : "Builds"} :one SET updatedAt = :at`, ConditionExpression: `${counter} >= :one`, ExpressionAttributeValues: { ":minus": { N: "-1" }, ":one": { N: "1" }, ":at": { S: processedAt } } } });
+      if (unusedBuild && unusedSend) items.push({ Update: { TableName: tableName, Key: creditKey(verified.userId), UpdateExpression: "ADD credits :minus, includedCredits :minus SET updatedAt = :at", ConditionExpression: "credits >= :one", ExpressionAttributeValues: { ":minus": { N: "-1" }, ":one": { N: "1" }, ":at": { S: processedAt } } } });
+      items.push({ Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: unusedBuild ? "ai_epk_refund" : "ai_epk_refund_after_draft" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: unusedBuild ? "-1" : "0" }, status: { S: "settled" }, createdAt: { S: processedAt } } } });
     } else if (verified.product === SYNC_NETWORK_PRODUCT) {
       const entitlement = await db.send(new GetItemCommand({ TableName: tableName, Key: syncNetworkEntitlementKey(verified.userId), ConsistentRead: true }));
       const ownsEntitlement = entitlement.Item?.paymentReference?.S === verified.session.id && validSyncNetworkAlias(entitlement.Item?.alias?.S);
@@ -862,6 +960,10 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (verified.product === CONTACT_PRODUCT) {
       const granted = await grantContactUnlock(notification, verified);
       return response(200, { received: true, contactUnlocked: granted, venueKey: verified.venueKey, duplicate: !granted });
+    }
+    if (verified.product === AI_EPK_PRODUCT) {
+      const granted = await grantAiEpk(notification, verified);
+      return response(200, { received: true, aiEpkBuildGranted: granted, kind: verified.kind, duplicate: !granted });
     }
     if (verified.product === PHONE_PRODUCT) {
       const granted = await grantPhoneEntitlement(notification, verified);
@@ -1082,6 +1184,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (method === "POST" && path === "/phone-number/checkout") return phoneCheckout(event);
     if (method === "GET" && path === "/phone-number/entitlement") return phoneEntitlement(event);
     if (method === "POST" && path === "/sync-network-number/checkout") return syncNetworkCheckout(event);
+    if (method === "POST" && path === "/tour-manager/ai-epk/checkout") return aiEpkCheckout(event);
     if (method === "GET" && path === "/sync-network-number/entitlement") return syncNetworkEntitlement(event);
     if (method === "GET" && path === "/tour-manager/credits") return credits(event);
     if (method === "GET" && path === "/tour-manager/refunds") return refundPurchases(event);
