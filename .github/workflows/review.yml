@@ -209,6 +209,7 @@ jobs:
             '.\browser-checks\dailies-tile-no-picker.cjs'
             '.\browser-checks\load-crashes.cjs'
             '.\browser-checks\friendly-errors.cjs'
+            '.\browser-checks\session-guard.cjs'
             '.\browser-checks\menu-own-media.cjs'
             '.\browser-checks\profile-tab-panels.cjs'
             '.\browser-checks\dailies-set-call-fit.cjs'
