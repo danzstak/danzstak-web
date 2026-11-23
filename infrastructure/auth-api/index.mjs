@@ -5434,7 +5434,7 @@ async function bookingWorkspace(event, method) {
   const https = value => /^https:\/\//i.test(text(value, 600)) ? text(value, 600) : "";
   const list = (value, clean) => Array.isArray(value) ? value.slice(0, 8).map(clean).filter(Boolean) : [];
   const date = value => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value ? value : "";
-  const timestamp = value => typeof value === "string" && /^\d{4}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value) && !Number.isNaN(Date.parse(value)) ? new Date(value).toISOString() : "";
+  const timestamp = value => typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value) && !Number.isNaN(Date.parse(value)) ? new Date(value).toISOString() : "";
   let invalidConfirmation = false;
   const venues = data.venues.map(v => {
     if (!v || typeof v !== "object" || !text(v.name)) return null;
