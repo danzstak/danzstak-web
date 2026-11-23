@@ -1,6 +1,7 @@
 "use strict";
 // Fix-it 18, Profile page items 4 and 5 (owner 2026-11-17): profile navigation members already know.
-// Phone top bar: back arrow, the member's name, search. Visitor actions in one compact row: Add friend / Message / more (⋯).
+// Phone top bar: back arrow, the member's name, search, Pivot, and the bell (owner 2026-11-23: "There should be a
+// notification icon on this page as well"). Visitor actions in one compact row: Add friend / Message / more (⋯).
 (() => {
   const t = value => window.danzstakTranslate?.(value) || value;
   const fmt = (value, values) => t(value).replace(/\{(\w+)\}/g, (_, key) => values[key] ?? "");
@@ -34,13 +35,50 @@
     });
     input?.addEventListener("keydown", event => { if (event.key === "Escape") { close(); search.focus(); } });
     input?.addEventListener("blur", () => { if (!input.value.trim()) setTimeout(close, 120); });
+    // The bell opens Notifications in Mix, like the bell on every other page, with the same count of what's new.
+    const bell = document.createElement("a");
+    bell.className = "profile-bell"; bell.href = "feed.html#notifications";
+    bell.setAttribute("aria-label", t("Notifications")); bell.title = t("Notifications");
+    const bellIcon = window.danzstakIcons?.create?.("bell");
+    if (bellIcon) bell.append(bellIcon);
+    const count = document.createElement("span");
+    count.className = "nav-count"; count.hidden = true; count.setAttribute("aria-hidden", "true");
     header.prepend(back);
     back.after(name);
     (form || name).after(search);
+    (header.querySelector(".ds-app-bar-pivot") || search).after(bell);
+    watchBell(bell, count);
     const paint = () => { name.textContent = window.danzstakCurrentProfile?.name || document.getElementById("profileName")?.textContent?.trim() || ""; };
     paint();
     window.addEventListener("danzstak:profile-loaded", paint);
     window.danzstakIcons?.enhance?.(header);
+  }
+
+  // What's new: friend requests and the like (/notifications) plus unread reactions and comments
+  // (/engagement-notifications), the same two lists Mix counts. Refreshed when the page comes back to the front.
+  function watchBell(bell, count) {
+    let loading = false;
+    const paint = total => {
+      count.hidden = total === 0; count.textContent = total > 99 ? "99+" : String(total);
+      bell.append(count);
+      const label = t("Notifications");
+      const text = total ? fmt(total === 1 ? "{label}, {count} new notification" : "{label}, {count} new notifications", { label, count: total }) : label;
+      bell.setAttribute("aria-label", text); bell.title = text;
+    };
+    const refresh = async () => {
+      if (loading || document.hidden) return;
+      loading = true;
+      const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 10000);
+      try {
+        const [social, engagement] = await Promise.all(["notifications", "engagement-notifications"].map(path =>
+          fetch(`https://api.danzstak.com/${path}`, { credentials: "include", cache: "no-store", signal: controller.signal })
+            .then(response => response.ok ? response.json() : null).catch(() => null)));
+        if (!social && !engagement) return;
+        paint((social?.notifications || []).length + (engagement?.notifications || []).filter(notice => notice.unread !== false).length);
+      } finally { clearTimeout(timer); loading = false; }
+    };
+    void refresh();
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) void refresh(); });
   }
 
   // ---- visitor action row: Add friend / Message / ⋯ ----

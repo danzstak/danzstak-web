@@ -10,7 +10,8 @@ const deploy = fs.readFileSync("aws-deploy-production.ps1", "utf8");
 
 assert.doesNotMatch(chat, /stun\.l\.google\.com|stun[0-9]*\.l\.google\.com/, "SYNC calls must not depend on Google STUN");
 assert.match(chat, /request\("\/calls\/ice"\)/, "the browser must request short-lived relay credentials from DanzStak");
-assert.match(chat, /new RTCPeerConnection\(\{iceServers,iceCandidatePoolSize:4\}\)/, "calls must use the returned ICE server set");
+assert.match(chat, /new RTCPeerConnection\(\{iceServers\}/, "calls must use the returned ICE server set");
+assert.doesNotMatch(chat, /iceCandidatePoolSize:\s*[1-9]/, "no candidate pool: Chromium keeps the old ICE credentials on a restart with one, so a dropped call can't reconnect");
 assert.doesNotMatch(chat, /accessKeyId|secretAccessKey|sessionToken/, "the browser must never contain AWS credentials");
 
 assert.match(signaling, /async function getCallIceServers\(event,user\)\{if\(!\(await authenticatedCallingDevice\(event,user\)\)\)/, "TURN credentials must require an OTP-verified calling device");

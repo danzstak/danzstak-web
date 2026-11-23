@@ -77,6 +77,7 @@ placeAppPrompts();
 headerPromptQuery.addEventListener?.("change", placeAppPrompts);
 let waitingWorker = null;
 let safeUpdateTimer = null;
+let memberAskedUpdate = false;
 
 function hasPendingUserWork() {
   const draft = document.querySelector("#postText, #messageInput");
@@ -89,12 +90,22 @@ function hasPendingUserWork() {
   );
 }
 
+// Owner 2026-11-23 ("Update is hanging"): the old worker was busy re-downloading the whole app (7 MB, no-store) every
+// time the app came back to the front, and the browser waits for the old worker to finish before the new one takes over.
+// So: the old worker is told to stop that refresh, a refresh never starts while an update is pending (refreshOfflineShell),
+// and the button never stays on "Updating…": a worker that's replaced while waiting hands over to its replacement.
 function activateWaitingWorker(worker) {
   if (!worker) return;
   clearTimeout(safeUpdateTimer);
   updateButton.disabled = true;
   updateButton.textContent = "Updating…";
+  navigator.serviceWorker.controller?.postMessage({ type: "STOP_SHELL_REFRESH" });
   worker.postMessage({ type: "SKIP_WAITING" });
+}
+
+function resetUpdateButton() {
+  updateButton.disabled = false;
+  updateButton.textContent = "Update DanzStak";
 }
 
 function scheduleSafeUpdate(worker) {
@@ -108,7 +119,21 @@ function scheduleSafeUpdate(worker) {
 
 function offerUpdate(worker) {
   if (!worker) return;
+  if (worker === waitingWorker && !updateButton.hidden) return;
   waitingWorker = worker;
+  resetUpdateButton();
+  worker.addEventListener("statechange", () => {
+    if (worker.state !== "redundant" || waitingWorker !== worker) return;
+    // A newer version replaced this one while it waited: offer that one, or stand down.
+    waitingWorker = null;
+    resetUpdateButton();
+    clearTimeout(safeUpdateTimer);
+    navigator.serviceWorker.getRegistration().then(registration => {
+      if (!registration?.waiting) { updateButton.hidden = true; return; }
+      offerUpdate(registration.waiting);
+      if (memberAskedUpdate) activateWaitingWorker(registration.waiting); // they already tapped Update
+    }).catch(() => { updateButton.hidden = true; });
+  });
   clearTimeout(installDismissTimer);
   clearTimeout(updateDismissTimer);
   installButton.hidden = true;
@@ -126,6 +151,7 @@ function offerUpdate(worker) {
 
 updateButton.addEventListener("click", () => {
   clearTimeout(updateDismissTimer);
+  memberAskedUpdate = true;
   activateWaitingWorker(waitingWorker);
 });
 
@@ -159,17 +185,18 @@ if ("serviceWorker" in navigator) {
         });
       });
       const checkForUpdate = () => registration.update().catch(() => {});
-      const refreshOfflineShell = () => navigator.serviceWorker.controller?.postMessage({
-        type: "REFRESH_SHELL",
-        allow: navigator.connection?.saveData !== true
-      });
-      checkForUpdate();
-      refreshOfflineShell();
+      // Keep the offline copy fresh only when no update is on its way: the update brings the new files itself, and a
+      // refresh by the old worker makes the update wait for it.
+      const refreshOfflineShell = () => {
+        if (registration.installing || registration.waiting || waitingWorker) return;
+        navigator.serviceWorker.controller?.postMessage({ type: "REFRESH_SHELL", allow: navigator.connection?.saveData !== true });
+      };
+      const checkThenRefresh = () => checkForUpdate().then(refreshOfflineShell);
+      checkThenRefresh();
       setInterval(checkForUpdate, 60 * 60 * 1000);
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
-          checkForUpdate();
-          refreshOfflineShell();
+          checkThenRefresh();
           if (waitingWorker) scheduleSafeUpdate(waitingWorker);
         }
       });
@@ -178,10 +205,21 @@ if ("serviceWorker" in navigator) {
     }
   });
   let refreshingForUpdate = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (refreshingForUpdate) return;
+  // A first visit has no worker yet; when the first one takes over the page is already current, so it doesn't reload
+  // (it used to, seconds after landing, over whatever a new visitor was typing into sign-up).
+  const updatingFromOlderVersion = Boolean(navigator.serviceWorker.controller);
+  // The new version took over: reload into it. An update the member didn't tap never reloads over a draft, a picked photo
+  // or a call: it reloads once the member is done (checked every few seconds).
+  const reloadIntoUpdate = () => {
+    if (refreshingForUpdate || (!memberAskedUpdate && hasPendingUserWork())) return false;
     refreshingForUpdate = true;
     location.reload();
+    return true;
+  };
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!updatingFromOlderVersion) return;
+    if (reloadIntoUpdate()) return;
+    const retry = setInterval(() => { if (reloadIntoUpdate()) clearInterval(retry); }, 5000);
   });
 }
 
