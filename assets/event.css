@@ -57,3 +57,6 @@
 .event-lineup li{padding:10px 0;border-bottom:1px solid #e4e4e0;font-size:1.05rem;font-weight:800}
 .event-lineup li:first-child{font-size:1.3rem}
 @media (min-width:768px){.event-poster{grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:0 28px;align-items:start}.event-poster .event-media{grid-row:1/4;margin:0}.event-poster-copy,.event-tickets,.event-lineup{grid-column:2}}
+
+/* Task 12: one-time fee-change banner for sellers and promoters. */
+.fee-change-banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 16px;padding:10px 12px;border-left:3px solid #ff5a1f;background:#fff7f2;color:#172033}.fee-change-banner p{margin:0;flex:1 1 220px;font-size:.92rem;line-height:1.4}.fee-change-close{min-height:44px;padding:0 14px}

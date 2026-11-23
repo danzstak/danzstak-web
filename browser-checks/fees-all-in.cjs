@@ -1,5 +1,6 @@
 "use strict";
 // Task 12 PR 3: every first price a buyer sees is the all-in total (price + 6% fee + $1 under $30).
+// The Bazaar order is scrambled per visit (F15f), so card prices are compared as a set.
 // Run with a local server: DANZSTAK_BASE_URL=http://127.0.0.1:8132 node browser-checks/fees-all-in.cjs
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -25,6 +26,7 @@ function payload(pathname) {
   if (pathname === "/marketplace/bazaar") return { products };
   if (pathname === `/marketplace/bazaar/${productId}`) return { product: products[0] };
   if (pathname === `/marketplace/events/${eventId}`) return { event };
+  if (pathname === "/marketplace/shop") return { shop: { id: "member-shop", name: "Night Circuit Shop", description: "Records and shirts.", official: false, status: "published", revision: 2, products: [] } };
   return {};
 }
 
@@ -43,9 +45,9 @@ function payload(pathname) {
 
       await page.goto(`${baseUrl}/bazaar.html`, { waitUntil: "domcontentloaded" });
       await page.getByText("Signal tour shirt", { exact: true }).waitFor();
-      const prices = await page.locator(".bazaar-price").allInnerTexts();
-      assert.deepEqual(prices, ["$31.80", "$6.30"], `${width}px Bazaar cards lead with the all-in total`);
-      assert.deepEqual(await page.locator(".bazaar-fee").allInnerTexts(), ["incl. $1.80 fees", "incl. $1.30 fees"], `${width}px Bazaar cards say the total includes fees`);
+      const prices = await page.locator(".bazaar-card:not(.bazaar-example) .bazaar-price").allInnerTexts();
+      assert.deepEqual([...prices].sort(), ["$31.80", "$6.30"], `${width}px Bazaar cards lead with the all-in total`);
+      assert.deepEqual((await page.locator(".bazaar-card:not(.bazaar-example) .bazaar-fee").allInnerTexts()).sort(), ["incl. $1.30 fees", "incl. $1.80 fees"], `${width}px Bazaar cards say the total includes fees`);
       await noOverflow("bazaar"); await shot("bazaar");
 
       await page.goto(`${baseUrl}/product.html?id=${productId}`, { waitUntil: "domcontentloaded" });
@@ -63,22 +65,33 @@ function payload(pathname) {
       assert.equal(await page.locator(".ticket-total").innerText(), "Total $31.80 (incl. $1.80 fees)", `${width}px two tickets reach $30 and drop the $1`);
       await noOverflow("event"); await shot("event-tickets");
 
+      // PR 6: the seller sees the notice, a live "Buyer pays · You get" preview and a one-time banner.
+      await page.goto(`${baseUrl}/store.html?manage=1`, { waitUntil: "domcontentloaded" });
+      const banner = page.locator(".fee-change-banner");
+      await banner.waitFor();
+      assert.match(await banner.innerText(), /Fee change: Buyers pay your price plus DanzStak's 6% fee/);
+      await page.locator("#productPrice").fill("25.00");
+      await page.locator("#productShipping").fill("6.00");
+      assert.equal(await page.locator("#feePreview").innerText(), "Buyer pays $33.50 · You get $31.00", `${width}px shop listing preview`);
+      await noOverflow("shop manager"); await shot("shop-manager");
+      await banner.getByRole("button", { name: "Got it" }).click();
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await page.locator("#feePreview").waitFor();
+      assert.equal(await page.locator(".fee-change-banner").count(), 0, `${width}px the banner shows once`);
+
+      // The purchase dialog shown before every DanzStak purchase breaks the fee out (Tour Manager's Buy form is gone, T0-C1).
       await page.goto(`${baseUrl}/booking-selections.html`, { waitUntil: "domcontentloaded" });
-      await page.locator("#bookingCreditTotal").filter({ hasText: "emails" }).waitFor();
-      assert.equal(await page.locator("#bookingCreditTotal").innerText(), "10 emails: $16.90 (incl. $1.90 fees)");
-      await page.locator("#bookingCreditQuantity").fill("20");
-      assert.equal(await page.locator("#bookingCreditTotal").innerText(), "20 emails: $31.80 (incl. $1.80 fees)");
-      await page.locator("#bookingCreditQuantity").fill("10");
-      await noOverflow("booking credits");
-      await page.locator("#buyBookingCredits button[type=submit]").click();
+      await page.waitForFunction(() => typeof window.danzstakConfirmPurchase === "function" && window.DanzStakFees);
+      await page.evaluate(() => { window.__purchase = window.danzstakConfirmPurchase({ kind: "credits", priceCents: 1500 }); });
       const total = page.locator("dialog .purchase-total");
       await total.waitFor();
       assert.equal(await total.innerText(), "Price $15.00 · DanzStak fee $1.90 (6% + $1 processing fee under $30) · Total $16.90 (USD)", `${width}px purchase dialog breaks out the fee`);
+      await noOverflow("purchase dialog");
       await shot("purchase-dialog");
       assert.equal(errors.length, 0, `${width}px page errors: ${errors.join(" | ")}`);
       await context.close();
     }
-    console.log(`All-in price browser checks passed at ${widths.join(", ")}px: Bazaar cards, product page, event tiers and ticket total, booking-email picker and purchase dialog.`);
+    console.log(`All-in price browser checks passed at ${widths.join(", ")}px: Bazaar cards, product page, event tiers and ticket total, purchase dialog and the seller notice.`);
   } finally {
     await browser.close();
   }

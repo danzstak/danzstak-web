@@ -32,7 +32,8 @@
   }
   function updateFeePreview() {
     const price = cents(byId("productPrice").value);
-    byId("feePreview").textContent = price === null ? "Enter an item price" : `${money(price >= 3000 ? Math.round(price * 0.06) : Math.min(price, Math.max(100, Math.round(price * 0.06))))} on this item (6%, Stripe fees included; $1 minimum under $30)`;
+    const shipping = cents(byId("productShipping").value) ?? 0, fees = window.DanzStakFees;
+    byId("feePreview").textContent = price === null ? "Enter an item price" : fees ? fees.payoutPreview(price, shipping) : `You get ${money(price + shipping)}`;
   }
   // Owner 2026-11-19: shop photos come from the phone (cover, album, product photos), not only https links.
   const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -151,6 +152,7 @@
   });
   byId("cancelProductEdit").addEventListener("click",resetProductForm);
   if (managing) {
+    window.DanzStakFees?.feeChangeBanner(byId("shopManager"));
     paintShopPhotos(null);
     byId("chooseShopCover").addEventListener("click", () => byId("shopCoverInput").click());
     byId("shopCoverInput").addEventListener("change", async event => {
@@ -187,7 +189,7 @@
       finally { button.disabled = false; }
     });
   }
-  byId("productPrice").addEventListener("input",updateFeePreview);
+  byId("productPrice").addEventListener("input",updateFeePreview); byId("productShipping").addEventListener("input",updateFeePreview);
   updateFeePreview();
   load();
 })();

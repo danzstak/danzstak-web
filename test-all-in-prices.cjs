@@ -43,7 +43,7 @@ const vm = require("node:vm");
   // Every page that prices something loads fees.js before the script that uses it.
   const pages = { "bazaar.html": "assets/bazaar.js", "product.html": "assets/product.js", "event.html": "assets/event-tickets.js", "booking-selections.html": "assets/purchase-terms.js", "messages.html": "assets/purchase-terms.js", "feed.html": "assets/events-page.js", "event.html": "assets/events-page.js", "sync/index.html": "assets/purchase-terms.js" };
   for (const [page, script] of Object.entries(pages)) {
-    const html = read(page), at = html.indexOf('src="assets/fees.js?v=1"'), user = html.indexOf(`src="${script}?v=`);
+    const html = read(page), at = html.indexOf('src="assets/fees.js?v=2"'), user = html.indexOf(`src="${script}?v=`);
     assert.ok(at > 0 && user > at, `${page} loads assets/fees.js before ${script}`);
   }
   assert.match(read("service-worker.js"), /"\/assets\/fees\.js"/, "the offline shell caches fees.js");
