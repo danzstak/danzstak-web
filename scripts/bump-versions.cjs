@@ -32,7 +32,8 @@ function plan(root, { shell, assets }) {
   const read = file => changes.get(file) ?? fs.readFileSync(path.join(root, file), "utf8");
   const write = (file, text) => { if (text !== read(file)) changes.set(file, text); };
   const html = listFiles(root, ".", n => n.endsWith(".html"));
-  const pins = [...listFiles(root, ".", n => /^test-.*\.cjs$/.test(n)), ...listFiles(root, "browser-checks", n => n.endsWith(".cjs"))];
+  // test-dev-scripts.cjs holds sample pages for this script (its own fixtures), not pins: bumping event.js once rewrote them.
+  const pins = [...listFiles(root, ".", n => /^test-.*\.cjs$/.test(n) && n !== "test-dev-scripts.cjs"), ...listFiles(root, "browser-checks", n => n.endsWith(".cjs"))];
 
   if (shell !== null) {
     const worker = read("service-worker.js"), old = worker.match(/danzstak-shell-v(\d+)/)?.[1];
@@ -58,6 +59,10 @@ if (require.main === module) {
   const options = parse(process.argv.slice(2)), root = path.resolve(__dirname, "..");
   const changes = plan(root, options);
   for (const [file, text] of changes) { if (!options.dryRun) fs.writeFileSync(path.join(root, file), text); console.log(`${options.dryRun ? "would update" : "updated"} ${file}`); }
-  console.log(`${changes.size} file${changes.size === 1 ? "" : "s"} ${options.dryRun ? "would change" : "changed"}.`);
+  // Task 34: /sync/ (SYNC as its own app) is generated from messages.html; keep it in step with every bump.
+  const syncChanged = require("./build-sync-app.cjs").write({ dryRun: options.dryRun });
+  if (syncChanged) console.log(`${options.dryRun ? "would update" : "updated"} sync/index.html`);
+  const total = changes.size + (syncChanged && !changes.has("sync/index.html") ? 1 : 0);
+  console.log(`${total} file${total === 1 ? "" : "s"} ${options.dryRun ? "would change" : "changed"}.`);
 }
 module.exports = { parse, plan };

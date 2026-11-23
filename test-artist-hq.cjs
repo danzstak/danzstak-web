@@ -14,7 +14,7 @@ const worker = read("service-worker.js");
 assert.match(feed, /href="#hq" data-feature="HQ"/);
 assert.match(feed, /Music HQ/);
 assert.match(feed, /booking-selections\.html#tourManagerTitle/);
-assert.match(feed, /assets\/artist-hq\.css\?v=5/);
+assert.match(feed, /assets\/artist-hq\.css\?v=6/);
 assert.match(feed, /assets\/artist-hq\.js\?v=6/);
 assert.match(enhancements, /\["HQ", "Friends"/);
 assert.match(enhancements, /danzstakArtistHq\?\.render/);
@@ -41,7 +41,7 @@ assert.match(css, /@media\(max-width:760px\)/);
 assert.match(booking, /assets\/booking-selections\.js\?v=38/);
 assert.match(bookingJs, /searchParams\.get\("focusVenue"\)/);
 assert.match(bookingJs, /focusFollowUpVenue\(followUpFocusVenue\)/);
-assert.match(worker, /danzstak-shell-v978/);
+assert.match(worker, /danzstak-shell-v1025/);
 assert.match(worker, /\/assets\/artist-hq\.js/);
 assert.match(worker, /\/assets\/artist-hq\.css/);
 

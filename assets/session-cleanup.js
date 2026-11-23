@@ -9,7 +9,8 @@
     "danzstak_chat_read",
     "danzstak_profile_draft",
     "danzstak_profile_media",
-    "danzstak_last_activity"
+    "danzstak_last_activity",
+    "danzstak_dailies_visit" // F15: Dailies order per visit (holds a friend's id); the next sign-in is a new visit
   ];
 
   window.danzstakClearAccountData = () => {
@@ -24,6 +25,10 @@
       sessionStorage.removeItem("danzstakBookingMapAdditions");
       sessionStorage.removeItem("danzstak_push_synced");
       sessionStorage.removeItem("danzstak_push_prompt_dismissed");
+      sessionStorage.removeItem("danzstak_dailies_visit");
+      sessionStorage.removeItem("danzstak_session_seen"); // L1 session-guard.js: a signed-out tab never gets the sign-in-again sheet
+      sessionStorage.removeItem("danzstak_session_drafts");
+      sessionStorage.removeItem("danzstak_return_to");
     }
     catch { /* Session storage is optional. */ }
   };

@@ -22,7 +22,7 @@
   popup.setAttribute("role", "dialog");
   popup.setAttribute("aria-modal", "true");
   popup.setAttribute("aria-labelledby", "globalIncomingTitle");
-  popup.innerHTML = '<span class="global-call-icon" aria-hidden="true">📞</span><div><strong id="globalIncomingTitle">Incoming call</strong><p id="globalIncomingLabel"></p></div><div class="global-call-actions"><button type="button" data-answer>Answer</button><button type="button" class="global-call-decline" data-decline>Decline</button></div>';
+  popup.innerHTML = '<span class="global-call-icon" aria-hidden="true">📞</span><div data-ringer-slot><strong id="globalIncomingTitle">Incoming call</strong><p id="globalIncomingLabel"></p></div><div class="global-call-actions"><button type="button" data-answer>Answer</button><button type="button" class="global-call-decline" data-decline>Decline</button></div>';
   document.body.appendChild(popup);
 
   const label = popup.querySelector("#globalIncomingLabel");
@@ -69,6 +69,8 @@
     stopRingtone();
     const remaining = ringtoneDeadline - Date.now();
     if (!current || document.hidden || remaining <= 0) return;
+    // 5a00: the shared ringer tries an <audio> ringtone, then Web Audio, then shows "Tap to hear the ringer" (call-ringer.js).
+    if (window.danzstakCallRinger?.start) { ringtoneTimer = window.danzstakCallRinger.start({ contact: current.senderEmail || "", durationMs: remaining, surface: popup, audioContext: ringtoneContext }); return; }
     // Task 31 (owner 2026-11-18: "the ringer does not work"): ring without a prior tap where the browser allows it
     // (installed app); otherwise vibrate and ask for one tap on the call card.
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -142,7 +144,7 @@
     popup.hidden = false;
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     answer.focus();
-    if (!window.danzstakSyncTones) navigator.vibrate?.([400, 180, 400, 180, 400]); // 16-B2: the tone module vibrates per the member's Vibrate setting
+    if (!window.danzstakSyncTones && !window.danzstakCallRinger) navigator.vibrate?.([400, 180, 400, 180, 400]); // 16-B2: the tone module vibrates per the member's Vibrate setting
     startRingtone();
     // The service worker owns background notifications; polling only updates this page.
   }
@@ -180,6 +182,7 @@
     }
     const event = current;
     handledCalls.set(event.callId, Date.now() + 120000);
+    window.danzstakCallRinger?.handled(event.callId);
     if (typeof window.openMessageDrawer === "function") {
       stopRingtone();
       ringtoneDeadline = 0;
@@ -203,6 +206,7 @@
     if (!current) return;
     const event = current;
     decline.disabled = true;
+    window.danzstakCallRinger?.handled(event.callId);
     try {
       await api("/calls/signal", { method: "POST", body: JSON.stringify({ recipientEmail: event.senderEmail, callId: event.callId, mode: event.mode, signalType: "hangup", payload: null }) });
       await acknowledge(event.eventId).catch(() => {});
@@ -259,6 +263,8 @@
   }
 
   document.addEventListener("pointerdown", unlockRingtone, { capture: true, passive: true });
+  // Touch screens grant sound on pointerup/touchend/click, not pointerdown (5a00).
+  for (const type of ["pointerup", "touchend", "click"]) document.addEventListener(type, unlockRingtone, { capture: true, passive: true });
   document.addEventListener("keydown", unlockRingtone, { capture: true });
   window.addEventListener?.("danzstak:call-device-registered", () => {
     callDeviceRegistrationRequired = false;

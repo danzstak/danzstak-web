@@ -1,0 +1,113 @@
+name: Deploy
+
+# D0 (owner 2026-11-22): deploy the backend without the owner's CloudShell. Started by hand only (Actions -> Deploy ->
+# Run workflow, or the API), only from main, and only inside the GitHub environment "production", whose required
+# reviewer is the owner: every run waits for his Approve tap before it can touch AWS. AWS access comes from GitHub's
+# OIDC token and the role DanzStak-GitHub-Deploy (infrastructure/github-deploy/bootstrap.yaml): no AWS keys exist.
+# dry_run defaults to true: it prints the CloudFormation change set and the Auth API plan and changes nothing.
+# test-deploy-workflow.cjs keeps these rules.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to deploy
+        required: true
+        default: auth-api
+        type: choice
+        options:
+          - auth-api
+          - call-signaling
+          - both
+      dry_run:
+        description: Dry run (print the plan, change nothing)
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 60
+    env:
+      AWS_REGION: us-west-1
+      AWS_PAGER: ""
+      TARGET: ${{ inputs.target }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Install API dependencies
+        working-directory: infrastructure/auth-api
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run the regression suite
+        run: node scripts/run-all-tests.cjs
+
+      - name: Check the deploy settings
+        env:
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+        run: |
+          if ! [[ "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]; then
+            echo "::error::Set the repository variable AWS_ACCOUNT_ID (Settings -> Secrets and variables -> Actions -> Variables). See docs/DEPLOY.md."
+            exit 1
+          fi
+
+      - name: Sign in to AWS (OIDC, no keys)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/DanzStak-GitHub-Deploy
+          role-session-name: danzstak-deploy-${{ github.run_id }}
+          role-duration-seconds: 3600
+          aws-region: us-west-1
+          mask-aws-account-id: true
+
+      - name: Call-signaling change set
+        if: inputs.target == 'call-signaling' || inputs.target == 'both'
+        run: bash scripts/deploy-call-signaling.sh
+
+      - name: Auth API
+        if: inputs.target == 'auth-api' || inputs.target == 'both'
+        shell: pwsh
+        run: |
+          if ($env:DRY_RUN -eq 'true') {
+            pwsh -NoProfile -NonInteractive -File ./aws-deploy-auth-api.ps1 -DryRun
+          } else {
+            pwsh -NoProfile -NonInteractive -File ./aws-deploy-auth-api.ps1
+          }
+          if ($LASTEXITCODE -ne 0) { throw "aws-deploy-auth-api.ps1 failed (exit $LASTEXITCODE)." }
+
+      - name: Smoke checks (signed out, counts only)
+        run: |
+          node scripts/deploy-smoke.cjs
+          node scripts/production-health-check.cjs
+
+      - name: Run summary
+        if: always()
+        run: |
+          {
+            echo "### Deploy run"
+            echo ""
+            echo "- Target: \`${TARGET}\`"
+            echo "- Dry run: \`${DRY_RUN}\` $([ "$DRY_RUN" = "true" ] && echo '(nothing was changed)')"
+            echo "- Commit: \`${GITHUB_SHA::7}\`"
+            echo "- Result: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"

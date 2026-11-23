@@ -217,6 +217,9 @@ const engagement = {
         assert.equal(postWrites.at(-1).originalContentCertified, true);
         assert.equal(postWrites.at(-1).audience, "public");
         await page.locator('[data-profile-tab="Photos"]').click();
+        // Owner 2026-11-22 ("not a lot of loose images… a few albums"): the tab opens on album covers; "All photos" holds
+        // every photo.
+        await page.locator(".profile-albums .profile-album-tile", { hasText: "All photos" }).click();
         // Photos is a media-only 3-column grid of square tiles (plan 5a2, owner 2026-11-18), not post cards.
         const photoTile = page.locator(".profile-photo-grid .profile-photo-tile").first();
         await photoTile.locator("img").waitFor();

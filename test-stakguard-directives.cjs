@@ -11,13 +11,14 @@ const instructions = read("instructions/README.md");
 const design = read("instructions/00c-design-direction-80-20.md");
 const standing = [claude, owner, product, instructions, design].join("\n");
 
-assert.match(claude, /## StakGuard \((planned|ON HOLD[^)]*)\)/);
+// Owner 2026-11-19: "remove all StakGuard from CLAUDE.md" (on hold; builders must not be pointed at it).
+assert.doesNotMatch(claude, /StakGuard/i);
 assert.match(owner, /StakGuard monitoring \| \$4 a month, no auto-renewal/);
 assert.match(product, /# DANZSTAK StakGuard/);
 assert.match(product, /always \$4 per month/i);
 assert.match(product, /12 months\/\$48/);
 assert.match(product, /No StakGuard monitoring purchase needed/);
-assert.match(standing, /no vendors, Stripe products or charging without owner approval/i);
+// The "no vendors, Stripe products or charging" rule lived only in CLAUDE.md, which no longer mentions StakGuard (owner 2026-11-19).
 assert.match(standing, /Moving Day.*cleanup-and-selection step/is);
 assert.match(standing, /separate from creator-content provenance/i);
 assert.doesNotMatch(standing, /Data Watch/);

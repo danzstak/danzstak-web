@@ -73,6 +73,8 @@
       },
       tours: sources.tours?.tours || [],
       bookingWorkspace: sources.bookingWorkspace || { venues: [], artist: {} },
+      // Queue 5a2: your albums, with which of your uploads are in each (the files themselves are listed, not included).
+      albums: Array.isArray(sources.albums?.albums) ? sources.albums.albums : [],
       incompleteSources: Array.isArray(sources.incompleteSources) ? sources.incompleteSources : []
     };
   }

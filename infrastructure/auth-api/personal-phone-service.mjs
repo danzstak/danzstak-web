@@ -3,7 +3,8 @@ import { challengeRecord, deviceChallengeDigest, normalizeE164, phoneDigest, pub
 
 const RESEND_WINDOW_SECONDS = 600, SENDS_PER_WINDOW = 2; // a text and one resend, then wait 10 minutes (rule 11)
 
-function serviceError(message, statusCode, code) { const error = new Error(message); error.statusCode = statusCode; error.code = code; return error; }
+// Written for members (and translated in the app by `code`), so the error mapper may show it as it is.
+function serviceError(message, statusCode, code) { const error = new Error(message); error.statusCode = statusCode; error.code = code; error.expose = true; return error; }
 
 // Two delivery modes:
 // - sender (AWS Notify): DanzStak generates the code, stores only its keyed hash and asks the sender to text it.
@@ -39,7 +40,13 @@ export function createPersonalPhoneService({ adapter, sender = null, verifier = 
       else { await sender.send({ number, code, challengeId: challenge.challengeId }); await adapter.markSent(challenge); }
     } catch (error) {
       await adapter.cancelChallenge(challenge).catch(() => null);
-      throw providerError(error) || serviceError("The verification text could not be sent. No number was verified.", 503, "send_failed");
+      const mapped = providerError(error) || serviceError("The verification text could not be sent. No number was verified.", 503, "send_failed");
+      // Our side failed (provider down, timeout, 5xx): the member keeps every send they had (directive L2).
+      // A refusal about the number itself (invalid, blocked, too many codes) still counts, so the anti-abuse limits hold.
+      if (mapped.statusCode >= 500 && typeof adapter.releaseRateCounters === "function") {
+        await adapter.releaseRateCounters(reserved.rateKeys || []).catch(releaseError => log("phone send counters not released", { error: releaseError?.name || "Error" }));
+      }
+      throw mapped;
     }
     return publicPhoneStatus(challenge, currentTime);
   }

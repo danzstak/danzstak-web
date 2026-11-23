@@ -7,12 +7,13 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-Vx3A0mspieTAZaQmE2yKW5OaRXubDoa116hGjJ02+90='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-/bFJMIYUJxlpqEzUDPBoTp4BaL5+rELQ028cjgvACS8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
 <link rel="shortcut icon" href="assets/favicon-32.png?v=3" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=3" sizes="180x180">
+<script src="assets/session-guard.js?v=1"></script>
 <script src="assets/offline.js?v=4"></script>
 <script src="assets/display-preferences.js?v=343"></script>
 <title>DanzStak | Your Mix</title>
@@ -276,24 +277,6 @@ textarea {
   padding: 7px 14px;
 }
 
-.load-more-posts {
-  display: block;
-  width: min(100%, 260px);
-  min-height: 42px;
-  margin: 14px auto 4px;
-  border: 1px solid #ccd5e2;
-  border-radius: 999px;
-  background: #fff;
-  color: #121418;
-  font-weight: 800;
-}
-
-.load-more-posts:hover,
-.load-more-posts:focus-visible {
-  background: #eef5ff;
-  border-color: #121418;
-}
-
 .stories { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-bottom: 18px; }
 .story { position: relative; min-height: 170px; overflow: hidden; border-radius: 12px; background: linear-gradient(160deg,#121418,#8c52e5); box-shadow: 0 1px 2px #0003; color: white; padding: 16px; display: flex; align-items: flex-end; font-weight: 800; }
 .story:nth-child(2) { background: linear-gradient(160deg,#ff7a00,#ef3054); }
@@ -349,7 +332,8 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 }
 </style>
 <link rel="stylesheet" href="assets/soft-ui.css?v=428">
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=521">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=533">
+<link rel="stylesheet" href="assets/image-position.css?v=1">
 <link rel="stylesheet" href="assets/facebook-import.css?v=342">
 <link rel="stylesheet" href="assets/pivot.css?v=3">
 <link rel="stylesheet" href="assets/invite-sharing.css?v=2">
@@ -357,34 +341,41 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <link rel="stylesheet" href="assets/user-content-links.css?v=2">
 <link rel="stylesheet" href="assets/app-feedback.css?v=3">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=237">
-<link rel="stylesheet" href="assets/call-ringer.css?v=1">
+<link rel="stylesheet" href="assets/call-ringer.css?v=4">
 <link rel="stylesheet" href="assets/call-setup.css?v=2">
 <link rel="stylesheet" href="assets/responsive-media.css?v=9">
-<link rel="stylesheet" href="assets/mobile-design-system.css?v=21">
-<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=32">
-<link rel="stylesheet" href="assets/artist-hq.css?v=5">
+<link rel="stylesheet" href="assets/mobile-design-system.css?v=22">
+<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=35">
+<link rel="stylesheet" href="assets/artist-hq.css?v=6">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=8" defer></script>
-<script src="assets/i18n-people.js?v=8" defer></script>
-<script src="assets/i18n-music.js?v=16" defer></script>
-<script src="assets/i18n.js?v=409" defer></script>
+<script src="assets/i18n-people.js?v=27" defer></script>
+<script src="assets/time-label.js?v=1"></script>
+<script src="assets/i18n-music.js?v=17" defer></script>
+<script src="assets/i18n.js?v=417" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/identity-media.js?v=2"></script>
 <script src="assets/user-content-links.js?v=1" defer></script>
 <script src="assets/post-sharing.js?v=422" defer></script>
 <script src="assets/media-tags.js?v=359" defer></script>
 <link rel="stylesheet" href="assets/media-fit.css?v=2">
+<link rel="stylesheet" href="assets/media-viewer.css?v=3">
+<link rel="stylesheet" href="assets/media-actions.css?v=1">
+<link rel="stylesheet" href="assets/post-photos.css?v=3">
+<script src="assets/post-photos.js?v=3"></script>
 <link rel="stylesheet" href="assets/link-preview-cards.css?v=5">
-<link rel="stylesheet" href="assets/mix-polish.css?v=19">
-<link rel="stylesheet" href="assets/tribes-polish.css?v=2">
-<link rel="stylesheet" href="assets/tribes-home.css?v=1">
-<link rel="stylesheet" href="assets/tribe-create.css?v=1">
-<link rel="stylesheet" href="assets/roll-reels.css?v=2">
-<link rel="stylesheet" href="assets/signup-onboarding.css?v=1">
-<link rel="stylesheet" href="assets/top-search.css?v=1">
-<link rel="stylesheet" href="assets/buttons.css?v=6">
-<link rel="stylesheet" href="assets/app-bar.css?v=2">
+<link rel="stylesheet" href="assets/mix-polish.css?v=26">
+<link rel="stylesheet" href="assets/tribes-polish.css?v=4">
+<link rel="stylesheet" href="assets/tribes-home.css?v=2">
+<link rel="stylesheet" href="assets/tribe-create.css?v=2">
+<link rel="stylesheet" href="assets/roll-reels.css?v=4">
+<link rel="stylesheet" href="assets/signup-onboarding.css?v=3">
+<link rel="stylesheet" href="assets/top-search.css?v=2">
+<link rel="stylesheet" href="assets/buttons.css?v=9">
+<link rel="stylesheet" href="assets/app-bar.css?v=10">
 <link rel="stylesheet" href="assets/site-chrome.css?v=1">
+<link rel="stylesheet" href="assets/app-tabs.css?v=1">
+<script src="assets/app-tabs.js?v=1" defer></script>
 </head>
 
 <body class="danzstak-original">
@@ -402,7 +393,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
     aria-label="Search DanzStak"
   >
 
-  <button id="pivotButton" class="pivot-header-button" type="button" data-pivot-trigger data-icon-layout="label" aria-label="Pivot your data to DanzStak" title="Pivot your data to DanzStak"><span data-menu-icon="refresh" aria-hidden="true"></span><span>Pivot</span></button>
+  <button id="pivotButton" class="ds-app-bar-icon ds-app-bar-pivot" type="button" data-pivot-trigger data-icon="refresh" aria-label="Pivot your data" title="Pivot your data"></button>
 
     <button type="button" class="header-notifications" data-feature="Notifications" aria-controls="notificationDrawer" aria-expanded="false" aria-label="Notifications" title="Notifications"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="nav-count" aria-hidden="true" hidden></span></button>
   <nav class="topnav">
@@ -465,7 +456,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 
     <div id="newsFeedView">
     <section id="storiesRail" class="stories" aria-label="Dailies">
-      <button type="button" class="story story-create" aria-label="Add a photo or video to Dailies"><span class="story-create-art" aria-hidden="true"><span class="daily-clapper"><strong>SCENE 1</strong><small hidden></small><time></time></span><span class="story-create-identity"><span class="story-create-avatar">D</span></span></span><span class="story-create-caption"><span><span class="story-create-label">Dailies</span><small class="story-create-detail">Add today's photo or video</small></span></span></button>
+      <button type="button" class="story story-create" aria-label="Post a photo or video to your Dailies"><span class="story-create-art" aria-hidden="true"><span class="daily-clapper"><strong>SCENE 1</strong><small hidden></small><time></time></span><span class="story-create-identity"><span class="story-create-avatar">D</span></span></span><span class="story-create-caption"><span><span class="story-create-label">Dailies</span><small class="story-create-detail">Add today's photo or video</small></span></span></button>
       <div id="storiesLoading" class="story"><span>Loading Dailies</span></div>
     </section>
 
@@ -726,7 +717,8 @@ async function loadOnlineUsers() {
       const row = document.createElement("div"); row.className = "feed-online-row";
       const memberId = String(user.memberId || "");
       const displayName = user.name || "DanzStak member";
-      const avatarWrap = document.createElement("span"); avatarWrap.className = "feed-online-avatar-wrap";
+      const avatarWrap = document.createElement(/^[a-f0-9-]{36}$/.test(memberId) ? "a" : "span"); avatarWrap.className = "feed-online-avatar-wrap";
+      if (avatarWrap.tagName === "A") { avatarWrap.href = "profile.html?member=" + encodeURIComponent(memberId); avatarWrap.tabIndex = -1; avatarWrap.setAttribute("aria-hidden", "true"); } // T2a: the photo opens the profile
       const avatar = user.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "feed-online-avatar";
       if (user.picture) { avatar.src = user.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
       else { avatar.textContent = displayName.charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
@@ -804,17 +796,7 @@ async function loadFriends() {
 
 // CREATE THE VISUAL DISPLAY OF A POST
 // Familiar feed timestamps: "now", "5m", "3h", "2d", then "Oct 25" (year only when different).
-function shortPostTime(date) {
-  const seconds = Math.max(0, (Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return "now";
-  if (seconds < 3600) return Math.floor(seconds / 60) + "m";
-  if (seconds < 86400) return Math.floor(seconds / 3600) + "h";
-  if (seconds < 604800) return Math.floor(seconds / 86400) + "d";
-  const sameYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString(undefined, sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" });
-}
-
-function createPostElement(content, author = "DanzStak member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorMemberId = "", commentPolicy = "everyone", editHistory = [], locationLabel = "", authorPicture = "", groupId = "", groupName = "") {
+function createPostElement(content, author = "DanzStak member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorMemberId = "", commentPolicy = "everyone", editHistory = [], locationLabel = "", authorPicture = "", groupId = "", groupName = "", moreMediaUrls = []) {
 
   const article = document.createElement("article");
   article.className = "post";
@@ -826,6 +808,7 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
     article.id = "post-" + postId;
   }
   if (typeof isOwner === "boolean") article.dataset.isOwner = String(isOwner);
+  if (/^[a-f0-9-]{36}$/.test(String(authorMemberId || ""))) article.dataset.authorMemberId = String(authorMemberId); // 5a1: the media viewer swipes through this member's media
   article.dataset.commentSetting = String(commentPolicy === "friends" ? 1 : commentPolicy === "off" ? 2 : 0);
   if (groupId) { article.dataset.groupId = groupId; article.dataset.groupName = groupName || "Tribe"; }
   article.dataset.editHistory = JSON.stringify(Array.isArray(editHistory) ? editHistory : []);
@@ -847,18 +830,10 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   authorLabel.textContent = author;
   if (authorLabel.tagName === "A") authorLabel.href = authorProfileUrl;
 
+  const translateInterface = value => window.danzstakTranslate?.(value) || value;
   const time = document.createElement("div");
   time.className = "post-time";
-
-  const parsedDate = createdAt ? new Date(createdAt) : null;
-
-  time.textContent =
-    parsedDate && !Number.isNaN(parsedDate.getTime())
-      ? shortPostTime(parsedDate)
-      : "Just now";
-  if (parsedDate && !Number.isNaN(parsedDate.getTime())) time.title = parsedDate.toLocaleString();
-
-  const translateInterface = value => window.danzstakTranslate?.(value) || value;
+  if (!createdAt || !window.danzstakTimeLabel.paint(time, createdAt)) time.textContent = translateInterface("now"); // B4: one time label everywhere
   const audienceLabels = {
     public: "🌎 " + translateInterface("Public"),
     friends: "👥 " + translateInterface("Friends"),
@@ -885,6 +860,8 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   const body = document.createElement("p");
   body.className = "post-content";
   body.textContent = content;
+  // A photo or video posted without words carries the filler "Shared media": show the media alone (owner 2026-11-22).
+  if (mediaUrl && normalizedPostContent === "Shared media") body.hidden = true;
   let textToggle = null;
   if (normalizedPostContent.length > 280) {
     body.classList.add("is-collapsed");
@@ -923,9 +900,11 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
     media.src = mediaUrl;
     media.className = "post-media";
     media.loading = "lazy";
-    if (mediaType === "image") media.alt = translateInterface("Photo shared by " + author);
-    if (mediaType === "video") { media.controls = true; media.playsInline = true; media.setAttribute("aria-label", translateInterface("Video shared by " + author)); }
+    if (mediaType === "image") media.alt = translateInterface("Photo shared by {name}").replace("{name}", author);
+    if (mediaType === "video") { media.controls = true; media.playsInline = true; media.setAttribute("aria-label", translateInterface("Video shared by {name}").replace("{name}", author)); }
     article.appendChild(media);
+    // Owner 2026-11-22: a post can hold up to 20 photos, swiped sideways in one frame (post-photos.js).
+    if (mediaType === "image" && Array.isArray(moreMediaUrls) && moreMediaUrls.length) window.danzstakPostPhotos?.mount(media, moreMediaUrls);
   }
   article.append(actions, comments);
 
@@ -933,6 +912,39 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
 }
 
 let lastStoriesLoad = 0;
+// Directive F15 (owner 2026-11-19): "Dailies should rotate each time the user comes back to the site." Each new visit
+// (opening the app, signing in again after log out, or coming back after more than 30 minutes) shows friends' Dailies in a new fair order
+// (a shuffle, so every friend is equally likely to come first), and never the same friend first twice in a row. A visit
+// keeps its order, so a reload or the 45-minute refresh does not reshuffle. Only the shuffle seed, the last-seen time and
+// the last first friend's id are kept, in this browser; log out clears them (session-cleanup.js).
+const dailiesVisitKey = "danzstak_dailies_visit";
+function dailiesVisit() {
+  let visit = null;
+  try { visit = JSON.parse(readFeedPreference(dailiesVisitKey) || "null"); } catch { visit = null; }
+  let sameSession = false;
+  try { sameSession = sessionStorage.getItem(dailiesVisitKey) === String(visit?.seed); } catch { sameSession = false; }
+  const now = Date.now();
+  if (!visit || !sameSession || now - Number(visit.seen || 0) > 30 * 60 * 1000) {
+    visit = { seed: Math.floor(Math.random() * 2 ** 31), seen: now, lastFirst: visit?.first || "", first: "" };
+    try { sessionStorage.setItem(dailiesVisitKey, String(visit.seed)); } catch { /* private mode: every load is a visit */ }
+  }
+  visit.seen = now;
+  return visit;
+}
+function rotateDailiesForVisit(stories) {
+  const list = stories.slice(), visit = dailiesVisit();
+  let state = visit.seed >>> 0;
+  const random = () => { state = (state * 1664525 + 1013904223) >>> 0; return state / 2 ** 32; };
+  for (let index = list.length - 1; index > 0; index -= 1) { const pick = Math.floor(random() * (index + 1)); [list[index], list[pick]] = [list[pick], list[index]]; }
+  const memberOf = story => String(story.memberId || story.storyId || "");
+  if (list.length > 1 && memberOf(list[0]) === visit.lastFirst) {
+    const swap = list.findIndex(story => memberOf(story) !== visit.lastFirst);
+    if (swap > 0) [list[0], list[swap]] = [list[swap], list[0]];
+  }
+  visit.first = list.length ? memberOf(list[0]) : visit.first;
+  writeFeedPreference(dailiesVisitKey, JSON.stringify(visit)); // guarded: kept in memory when storage is blocked
+  return list;
+}
 let storyViewerPreviousFocus = null;
 let storyViewerActiveStory = null;
 const usesMobileStoryHistory = () => matchMedia("(max-width: 700px)").matches;
@@ -958,10 +970,6 @@ function storyDisplayCaption(story) {
   const uploadedFileName = /^[^/\\]{1,180}\.(?:avif|gif|heic|jpe?g|png|webp|m4v|mov|mp4|webm)$/i.test(content);
   if (content && !uploadedFileName) return content;
   return story?.mediaType === "video" ? "Video Daily" : "Photo Daily";
-}
-
-function formatDailyClock(date = new Date()) {
-  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
 function formatDailyDate(date = new Date()) {
@@ -1001,20 +1009,117 @@ async function refreshStoryMedia(story) {
   return story.mediaUrl;
 }
 
-async function openStoryViewer(story, { updateHistory = true } = {}) {
+// T0-A2 (owner 2026-11-19): your own Dailies open from your tile as one run you swipe through left/right (Dailies are a
+// horizontal swipe); a friend's tile opens friends' Dailies at that friend (directive F3). Only your own can be deleted.
+let storyViewerSequence = [];
+let ownDailies = []; // the signed-in member's own Dailies, newest first (set by loadStories)
+
+function storyViewerStep(delta) {
+  const next = storyViewerSequence[storyViewerSequence.indexOf(storyViewerActiveStory) + delta];
+  if (!next) return false;
+  void showStoryInViewer(next);
+  return true;
+}
+
+async function deleteActiveOwnDaily(button) {
+  const story = storyViewerActiveStory;
+  if (!story?.isOwner || !story.storyId) return;
+  if (!(await window.danzstakConfirm("This Daily will be permanently removed.", { title: "Delete this Daily?", confirmLabel: "Delete Daily", danger: true }))) return;
+  button.disabled = true;
+  try {
+    const deleted = await fetchWithDeadline("https://api.danzstak.com/stories/" + encodeURIComponent(story.storyId), { method: "DELETE", credentials: "include" });
+    if (!deleted.ok) throw new Error("Daily could not be deleted.");
+    const index = storyViewerSequence.indexOf(story);
+    storyViewerSequence = storyViewerSequence.filter(candidate => candidate !== story);
+    ownDailies = ownDailies.filter(candidate => candidate.storyId !== story.storyId);
+    paintOwnDailiesTile();
+    const next = storyViewerSequence[Math.min(index, storyViewerSequence.length - 1)];
+    if (next) await showStoryInViewer(next);
+    else closeStoryViewer();
+  } catch (error) {
+    window.danzstakShowFeedback?.(error.message || "Daily could not be deleted.", { urgent: true });
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function openStoryViewer(story, { updateHistory = true, sequence = null } = {}) {
   let viewer = document.getElementById("storyViewer");
   if (!viewer) {
     viewer = document.createElement("dialog");
     viewer.id = "storyViewer";
     viewer.className = "story-viewer";
     viewer.setAttribute("aria-labelledby", "storyViewerCaption");
-    viewer.innerHTML = '<button type="button" class="story-viewer-close" aria-label="Close Daily">×</button><div class="story-viewer-media"></div><p class="story-viewer-caption" id="storyViewerCaption"></p>';
+    viewer.innerHTML = '<button type="button" class="story-viewer-close" aria-label="Close Daily">×</button>'
+      + '<button type="button" class="story-viewer-delete" aria-label="Delete Daily" hidden>🗑️</button>'
+      + '<span class="story-viewer-count" aria-live="polite" hidden></span>'
+      + '<button type="button" class="story-viewer-step story-viewer-prev" aria-label="Previous Daily" hidden>‹</button>'
+      + '<button type="button" class="story-viewer-step story-viewer-next" aria-label="Next Daily" hidden>›</button>'
+      + '<div class="story-viewer-media"></div><p class="story-viewer-caption" id="storyViewerCaption"></p>';
     viewer.querySelector(".story-viewer-close").addEventListener("click", () => closeStoryViewer());
-    viewer.addEventListener("click", event => { if (event.target === viewer) closeStoryViewer(); });
+    // ‹ › act when the finger lifts: after a swipe the browser sometimes sends a tap's pointer and touch events but no
+    // click (seen on CI as a lost tap on ›). A click soon after that release is the same tap and is ignored; keyboard
+    // and mouse clicks still step once.
+    for (const [selector, delta] of [[".story-viewer-prev", -1], [".story-viewer-next", 1]]) {
+      const button = viewer.querySelector(selector);
+      let pressed = null, steppedAt = 0;
+      button.addEventListener("pointerdown", event => { pressed = event.pointerId; });
+      button.addEventListener("pointerup", event => { if (pressed !== event.pointerId) return; pressed = null; steppedAt = performance.now(); storyViewerStep(delta); });
+      button.addEventListener("pointercancel", () => { pressed = null; });
+      button.addEventListener("click", () => { if (performance.now() - steppedAt < 600) return; storyViewerStep(delta); });
+    }
+    viewer.querySelector(".story-viewer-delete").addEventListener("click", event => deleteActiveOwnDaily(event.currentTarget));
+    document.addEventListener("keydown", event => {
+      if (!viewer.open || event.defaultPrevented || document.querySelector(".danzstak-confirm-dialog[open]")) return;
+      if (event.key === "ArrowRight" && storyViewerStep(1)) event.preventDefault();
+      if (event.key === "ArrowLeft" && storyViewerStep(-1)) event.preventDefault();
+    });
+    // Owner 2026-11-19: "lost the horizontal swipe in dailies". On a phone the browser can claim part of a swipe (a slightly
+    // diagonal one, or pull-to-refresh) and send pointercancel, which dropped the swipe; touchend still arrives, so the swipe
+    // is read from whichever ends it, once.
+    let swipeStart = null, touchStart = null, lastSwipeAt = 0;
+    const swiped = (dx, dy) => {
+      if (Math.abs(dx) < 48 || Math.abs(dx) <= Math.abs(dy) * 1.5 || Date.now() - lastSwipeAt < 350) return;
+      lastSwipeAt = Date.now(); storyViewerStep(dx < 0 ? 1 : -1);
+    };
+    viewer.addEventListener("pointerdown", event => { swipeStart = { x: event.clientX, y: event.clientY }; });
+    viewer.addEventListener("pointerup", event => {
+      if (!swipeStart) return;
+      const dx = event.clientX - swipeStart.x, dy = event.clientY - swipeStart.y;
+      swipeStart = null;
+      swiped(dx, dy);
+    });
+    viewer.addEventListener("pointercancel", () => { swipeStart = null; });
+    viewer.addEventListener("touchstart", event => { const touch = event.touches[0]; touchStart = touch ? { x: touch.clientX, y: touch.clientY } : null; }, { passive: true });
+    viewer.addEventListener("touchend", event => {
+      const touch = event.changedTouches[0];
+      if (!touchStart || !touch) return;
+      const dx = touch.clientX - touchStart.x, dy = touch.clientY - touchStart.y;
+      touchStart = null;
+      swiped(dx, dy);
+    }, { passive: true });
+    // A swipe that ends on the dark backdrop is not a tap to close.
+    viewer.addEventListener("click", event => { if (event.target === viewer && Date.now() - lastSwipeAt > 400) closeStoryViewer(); });
     viewer.addEventListener("cancel", event => { event.preventDefault(); closeStoryViewer(); });
     viewer.addEventListener("close", () => { const video = viewer.querySelector("video"); if (video) video.pause(); storyViewerPreviousFocus?.focus({ preventScroll: true }); storyViewerPreviousFocus = null; });
     document.body.appendChild(viewer);
   }
+  storyViewerSequence = Array.isArray(sequence) && sequence.includes(story) ? sequence.slice() : [story];
+  storyViewerPreviousFocus = document.activeElement;
+  const shown = showStoryInViewer(story);
+  viewer.showModal();
+  if (updateHistory && usesMobileStoryHistory() && history.state?.danzstakStoryOpen !== true) {
+    const currentState = history.state && typeof history.state === "object" ? history.state : {};
+    history.pushState({ ...currentState, danzstakStoryOpen: true }, "");
+  }
+  viewer.querySelector(".story-viewer-close").focus();
+  await shown;
+}
+
+async function showStoryInViewer(story) {
+  const viewer = document.getElementById("storyViewer");
+  if (!viewer) return;
+  viewer.querySelector(".story-viewer-media video")?.pause();
   const mediaBox = viewer.querySelector(".story-viewer-media");
   mediaBox.replaceChildren();
   const status = document.createElement("p");
@@ -1023,13 +1128,15 @@ async function openStoryViewer(story, { updateHistory = true } = {}) {
   mediaBox.appendChild(status);
   viewer.querySelector(".story-viewer-caption").textContent = storyDisplayCaption(story);
   storyViewerActiveStory = story;
-  storyViewerPreviousFocus = document.activeElement;
-  viewer.showModal();
-  if (updateHistory && usesMobileStoryHistory() && history.state?.danzstakStoryOpen !== true) {
-    const currentState = history.state && typeof history.state === "object" ? history.state : {};
-    history.pushState({ ...currentState, danzstakStoryOpen: true }, "");
-  }
-  viewer.querySelector(".story-viewer-close").focus();
+  const index = storyViewerSequence.indexOf(story), several = storyViewerSequence.length > 1;
+  const count = viewer.querySelector(".story-viewer-count");
+  count.hidden = !several;
+  count.textContent = several ? `${index + 1} / ${storyViewerSequence.length}` : "";
+  viewer.querySelector(".story-viewer-prev").hidden = !several || index <= 0;
+  viewer.querySelector(".story-viewer-next").hidden = !several || index >= storyViewerSequence.length - 1;
+  viewer.querySelector(".story-viewer-delete").hidden = story.isOwner !== true;
+  // A button that just hid (› on the last Daily) must not drop keyboard focus out of the viewer.
+  if (viewer.open && viewer.contains(document.activeElement) && document.activeElement.hidden) viewer.querySelector(".story-viewer-close").focus();
   const showRecovery = () => {
     mediaBox.replaceChildren();
     const copy = document.createElement("p");
@@ -1045,11 +1152,12 @@ async function openStoryViewer(story, { updateHistory = true } = {}) {
   const installMedia = async () => {
     mediaBox.replaceChildren(status);
     const mediaUrl = story.mediaUrl || await refreshStoryMedia(story);
+    if (storyViewerActiveStory !== story) return; // the member already swiped on to another Daily
     if (!mediaUrl) { showRecovery(); return; }
     const media = document.createElement(story.mediaType === "video" ? "video" : "img");
-    media.addEventListener("error", () => { story.mediaUrl = ""; showRecovery(); }, { once: true });
+    media.addEventListener("error", () => { story.mediaUrl = ""; if (storyViewerActiveStory === story) showRecovery(); }, { once: true });
     if (story.mediaType === "video") { media.controls = true; media.autoplay = false; media.muted = true; media.playsInline = true; media.setAttribute("aria-label", storyDisplayCaption(story)); }
-    else media.alt = storyDisplayCaption(story);
+    else { media.alt = storyDisplayCaption(story); media.draggable = false; }
     media.src = mediaUrl;
     mediaBox.replaceChildren(media);
   };
@@ -1060,7 +1168,7 @@ function restoreStoryViewerFromHistory(event) {
   const viewer = document.getElementById("storyViewer");
   if (!usesMobileStoryHistory()) return;
   if (event.state?.danzstakStoryOpen === true) {
-    if (!viewer?.open && storyViewerActiveStory) void openStoryViewer(storyViewerActiveStory, { updateHistory: false });
+    if (!viewer?.open && storyViewerActiveStory) void openStoryViewer(storyViewerActiveStory, { updateHistory: false, sequence: storyViewerSequence });
   } else if (viewer?.open) closeStoryViewer({ fromHistory: true });
 }
 addEventListener("popstate", restoreStoryViewerFromHistory);
@@ -1074,9 +1182,16 @@ async function loadStories() {
     document.getElementById("storiesLoading")?.remove();
     storiesRail.querySelector(".story-empty")?.remove();
     storiesRail.querySelectorAll(".story[data-story-id]").forEach(item => item.remove());
-    const visibleStories = (data.stories || []).slice(0, 12);
-    ownDailies = (data.stories || []).filter(story => story.isOwner);
+    // The strip is your own tile, then your live Dailies (owner 2026-11-22: "it's not populating dailies" when they hid
+    // behind the tile), newest post first and a post's photos in their order, then friends' Dailies in a fresh order.
+    const allStories = Array.isArray(data.stories) ? data.stories : [];
+    ownDailies = allStories.filter(story => story.isOwner === true);
     paintOwnDailiesTile();
+    const postSecond = story => Math.floor((Date.parse(story.createdAt) || 0) / 1000);
+    const ownInStrip = [...ownDailies].sort((a, b) => postSecond(b) - postSecond(a) || String(a.createdAt).localeCompare(String(b.createdAt)));
+    const visibleStories = [...ownInStrip, ...rotateDailiesForVisit(allStories.filter(story => story.isOwner !== true)).slice(0, 12)];
+    const entering = !storiesRail.dataset.settled; // directive F15: the tiles bounce in once per page load
+    storiesRail.dataset.settled = "true";
     const dailyTakeCount = Math.max(0, Number(data.dailyTakeCount) || 0);
     const creatorSlate = document.querySelector(".daily-clapper");
     if (creatorSlate) creatorSlate.dataset.takeCount = String(dailyTakeCount);
@@ -1085,7 +1200,6 @@ async function loadStories() {
       const item = document.createElement("article");
       item.className = "story";
       item.dataset.storyId = story.storyId;
-      item.dataset.storyOwner = story.isOwner ? "true" : "false";
       item.dataset.mediaType = story.mediaType || "";
       item.title = storyDisplayCaption(story);
       const open = document.createElement("button");
@@ -1102,7 +1216,7 @@ async function loadStories() {
       storyCopy.append(author, caption);
       open.appendChild(storyCopy);
       const storyMemberId = String(story.memberId || "");
-      if (!story.isOwner && /^[a-f0-9-]{36}$/.test(storyMemberId)) {
+      if (/^[a-f0-9-]{36}$/.test(storyMemberId)) {
         item.classList.add("story-has-profile-link");
         const profile = document.createElement("a");
         profile.className = "story-author-link";
@@ -1110,16 +1224,6 @@ async function loadStories() {
         profile.textContent = storyAuthor;
         profile.title = storyAuthor;
         profile.setAttribute("aria-label", "Open " + storyAuthor + " profile");
-        item.appendChild(profile);
-        author.hidden = true;
-      } else if (story.isOwner) {
-        item.classList.add("story-has-profile-link");
-        const profile = document.createElement("a");
-        profile.className = "story-author-link";
-        profile.href = "profile.html";
-        profile.textContent = storyAuthor;
-        profile.title = storyAuthor;
-        profile.setAttribute("aria-label", "Open your profile");
         item.appendChild(profile);
         author.hidden = true;
       }
@@ -1169,17 +1273,6 @@ async function loadStories() {
         video.playsInline = true;
         video.preload = readFeedPreference("danzstak_data_saver") === "1" ? "none" : "metadata";
         video.setAttribute("aria-label", "Video Daily from " + storyAuthor + ": " + storyDisplayCaption(story));
-        const slate = document.createElement("span");
-        slate.className = "story-video-slate";
-        slate.innerHTML = `<strong>SCENE ${storyIndex + 1}</strong><small>TAKE 1</small><time>${formatDailyClock(new Date(story.createdAt || Date.now()))}</time>`;
-        item.appendChild(slate);
-        video.addEventListener("loadedmetadata", () => {
-          if (!Number.isFinite(video.duration)) return;
-          const minutes = Math.floor(video.duration / 60);
-          const seconds = Math.floor(video.duration % 60).toString().padStart(2, "0");
-          slate.querySelector("time").textContent = `${minutes}:${seconds}`;
-          slate.querySelector("time").setAttribute("aria-label", `Duration ${minutes} minutes ${Number(seconds)} seconds`);
-        });
         item.appendChild(video);
         const installStoryVideo = async (allowRefresh = true) => {
           const mediaUrl = story.mediaUrl || (allowRefresh ? await refreshStoryMedia(story) : "");
@@ -1193,30 +1286,15 @@ async function loadStories() {
         };
         void installStoryVideo();
       }
-      open.addEventListener("click", () => openStoryViewer(story));
+      // F15a: every friend tile looks the same: the picture or poster, a small time label and the name; tap it and it plays.
+      const when = document.createElement("time");
+      when.className = "story-time";
+      window.danzstakTimeLabel?.paint(when, story.createdAt);
+      item.appendChild(when);
+      // Directive F3: friends' Dailies open full screen as one run, starting at this friend, swiped left/right card to card.
+      open.addEventListener("click", () => openStoryViewer(story, { sequence: visibleStories }));
       item.appendChild(open);
-      if (story.isOwner) {
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.className = "story-delete";
-        remove.setAttribute("aria-label", "Delete Daily");
-        remove.textContent = "🗑️";
-        remove.addEventListener("keydown", event => event.stopPropagation());
-        remove.addEventListener("click", async event => {
-          event.stopPropagation();
-          if (!(await window.danzstakConfirm("This Daily will be permanently removed.", { title: "Delete this Daily?", confirmLabel: "Delete Daily", danger: true }))) return;
-          remove.disabled = true;
-          try {
-            const deleted = await fetchWithDeadline("https://api.danzstak.com/stories/" + encodeURIComponent(story.storyId), { method: "DELETE", credentials: "include" });
-            if (!deleted.ok) throw new Error("Daily could not be deleted.");
-            item.remove();
-          } catch (error) {
-            remove.disabled = false;
-            window.danzstakShowFeedback?.(error.message || "Daily could not be deleted.", { urgent: true });
-          }
-        });
-        item.appendChild(remove);
-      }
+      if (entering) { item.classList.add("story-enter"); item.style.setProperty("--enter-index", String(storyIndex)); }
       storiesRail.appendChild(item);
     }
     if (!visibleStories.length) {
@@ -1262,20 +1340,24 @@ async function loadStories() {
   finally { document.getElementById("storiesLoading")?.remove(); }
 }
 
+// T0-A2 (owner 2026-11-19): there is no separate Dailies upload, so the own tile never opens a file picker. Every photo
+// or video a member posts goes into their Dailies for 24 hours; the tile opens those Dailies full screen, or the Mix
+// post box when there are none today.
 const createStoryButton = document.querySelector(".story-create");
 // Owner 2026-11-18/19 (audit A2): Dailies come from posts. There is no separate Dailies upload, so this tile never
-// opens the phone's photo picker: with Dailies of your own it opens them in the viewer; without, it opens the Mix
-// composer, where every photo or video you post goes into your Dailies for 24 hours (and videos into The Roll).
-let ownDailies = [];
+// opens the phone's photo picker: with Dailies of your own it opens them in the viewer, where you swipe left/right through
+// all of them (#605); without, it opens the Mix composer, where every photo or video you post goes into your Dailies for
+// 24 hours (and videos into The Roll). ownDailies is declared with the Dailies viewer above.
 function paintOwnDailiesTile() {
   if (!createStoryButton) return;
   createStoryButton.dataset.hasDailies = ownDailies.length ? "true" : "false";
-  createStoryButton.setAttribute("aria-label", ownDailies.length ? "Open your Dailies" : "Add a photo or video to Dailies");
+  createStoryButton.dataset.ownDailies = String(ownDailies.length);
+  createStoryButton.setAttribute("aria-label", ownDailies.length ? `Open your Dailies (${ownDailies.length})` : "Post a photo or video to your Dailies");
   const detail = createStoryButton.querySelector(".story-create-detail");
   if (detail) detail.textContent = ownDailies.length ? (ownDailies.length === 1 ? "1 today" : ownDailies.length + " today") : "Add today's photo or video";
 }
 createStoryButton?.addEventListener("click", () => {
-  if (ownDailies.length) { void openStoryViewer(ownDailies[0]); return; }
+  if (ownDailies.length) { void openStoryViewer(ownDailies[0], { sequence: ownDailies }); return; }
   const text = document.getElementById("postText");
   if (!text) return;
   text.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -1329,13 +1411,21 @@ async function loadPosts() {
       typeof post.content === "string" &&
       !(post.postId && hiddenPostIds.has(String(post.postId)))
     );
+    window.danzstakMixPosts = visiblePosts; // F1: the media viewer swipes through all of a member's media, drawn or not
     const feedBatchSize = 12;
     let renderedPostCount = 0;
-    const loadMorePosts = document.createElement("button");
-    loadMorePosts.type = "button";
-    loadMorePosts.className = "load-more-posts";
-    loadMorePosts.dataset.icon = "chevron-down"; // owner 2026-11-16: icons, not words
-    loadMorePosts.setAttribute("aria-label", "Show more posts");
+    // F15c (owner 2026-11-19: "take away that downward arrow… just make the Mix flow"): about one screen before the end of
+    // what's shown, the next chronological posts appear by themselves; at the true end one quiet line says so. Finite:
+    // nothing recycled or suggested, no ranking, no further requests.
+    const moreMarker = document.createElement("div");
+    moreMarker.className = "feed-more-marker";
+    moreMarker.setAttribute("aria-hidden", "true");
+    const caughtUp = document.createElement("p");
+    caughtUp.className = "feed-caught-up";
+    caughtUp.textContent = feedTranslate("You're caught up");
+    const moreObserver = "IntersectionObserver" in window
+      ? new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) renderNextPostBatch(); }, { rootMargin: "0px 0px 100% 0px" })
+      : null;
 
     function appendPost(post, target) {
 
@@ -1355,9 +1445,23 @@ async function loadPosts() {
         post.location,
         post.authorPicture,
         post.groupId,
-        post.groupName
+        post.groupName,
+        post.moreMediaUrls
       );
       if (post.sharedPostId) article.dataset.sharedPostId = post.sharedPostId;
+      // F22: the stored shape sizes the frame before the media loads, so nothing below it jumps.
+      window.danzstakPostPhotos?.presetShape?.(article, post.mediaRatio);
+      // F15b: the DanzStak welcome post is pinned first (the server sends pinnedUntil only while it is in the future and
+      // orders it first); it shows a small pin label, and its official text is read in the member's language.
+      if (Date.parse(post.pinnedUntil || "") > Date.now()) {
+        article.classList.add("is-pinned");
+        const pin = document.createElement("span");
+        pin.className = "post-pinned";
+        pin.textContent = feedTranslate("Pinned");
+        article.querySelector(".post-author-details")?.appendChild(pin);
+        const body = article.querySelector(".post-content");
+        if (body) body.textContent = feedTranslate(post.content);
+      }
 
       if (post.mediaKey && ["image", "video"].includes(post.mediaType)) {
         let recovery = null;
@@ -1416,8 +1520,9 @@ async function loadPosts() {
       return article;
     }
 
-    function renderNextPostBatch(count = feedBatchSize) {
-      loadMorePosts.remove();
+    function renderNextPostBatch(count = moreObserver ? feedBatchSize : visiblePosts.length) {
+      moreObserver?.unobserve(moreMarker);
+      moreMarker.remove();
       const end = Math.min(visiblePosts.length, renderedPostCount + count);
       const fragment = document.createDocumentFragment();
       let firstAddedPost = null;
@@ -1427,17 +1532,11 @@ async function loadPosts() {
       }
       feed.appendChild(fragment);
       if (renderedPostCount < visiblePosts.length) {
-        loadMorePosts.setAttribute("aria-label", `Show more posts. ${visiblePosts.length - renderedPostCount} remaining.`);
-        feed.appendChild(loadMorePosts);
-      }
+        feed.appendChild(moreMarker);
+        moreObserver.observe(moreMarker); // observing anew reports at once if the marker is already within a screen
+      } else feed.appendChild(caughtUp);
       return firstAddedPost;
     }
-
-    loadMorePosts.addEventListener("click", () => {
-      const firstAddedPost = renderNextPostBatch();
-      firstAddedPost?.focus({ preventScroll: true });
-      firstAddedPost?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
 
     const linkedPostId = location.hash.startsWith("#post-")
       ? decodeURIComponent(location.hash.slice(6))
@@ -1521,13 +1620,16 @@ publishBtn.addEventListener("click", async () => {
 
   let savedPost;
   let uploadedPostKey = "";
+  let uploadedMoreKeys = [];
 
   try {
 
     let mediaKey = "";
     let mediaType = "";
     let mediaUrl = "";
+    let mediaRatio = 0; // the media's own shape, kept with the post so its frame is right before it loads (F22)
     if (selectedMedia) {
+      mediaRatio = await (window.danzstakPostPhotos?.shapeOf?.(selectedMedia.file) || 0);
       const ticketResponse = await fetchWithDeadline("https://api.danzstak.com/stories", {
         method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
         body: JSON.stringify({ contentType: selectedMedia.file.type, purpose: "post" })
@@ -1539,6 +1641,10 @@ publishBtn.addEventListener("click", async () => {
       ({ mediaKey, mediaType } = ticket);
       uploadedPostKey = mediaKey;
       mediaUrl = selectedMedia.url;
+      // Owner 2026-11-22: up to 19 more photos in the same post (each also becomes a Daily on the server).
+      if (mediaType === "image" && selectedMedia.more?.length && window.danzstakPostPhotos) {
+        uploadedMoreKeys = await window.danzstakPostPhotos.upload(selectedMedia.more.map(item => item.file), fetchWithDeadline, mediaUploadDeadline);
+      }
     }
 
     const response = await fetchWithDeadline(API_URL, {
@@ -1547,7 +1653,7 @@ publishBtn.addEventListener("click", async () => {
         "Content-Type": "application/json"
       },
       credentials: "include",
-      body: JSON.stringify({ content: content || "Shared media", location: submittedLocation.trim(), audience, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true })
+      body: JSON.stringify({ content: content || "Shared media", location: submittedLocation.trim(), audience, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true, ...(uploadedMoreKeys.length ? { moreMediaKeys: uploadedMoreKeys } : {}), ...(mediaKey ? { uploadSource: window.danzstakPostPhotos?.uploadSource?.(), ...(mediaRatio ? { mediaRatio } : {}), ...(selectedMedia?.albumChoice?.value() ? { albumId: selectedMedia.albumChoice.value() } : {}) } : {}) })
     });
 
     if (response.status === 401) {
@@ -1559,6 +1665,13 @@ publishBtn.addEventListener("click", async () => {
 
     savedPost = await response.json();
     uploadedPostKey = "";
+    const moreKeys = uploadedMoreKeys;
+    uploadedMoreKeys = [];
+    const morePhotos = Array.isArray(savedPost.moreMediaKeys) && savedPost.moreMediaKeys.length ? (selectedMedia.more || []).map(item => item.url) : [];
+    // An Auth API from before multi-photo posts keeps only the first photo: the others become their own posts.
+    const separatePosts = moreKeys.length && !morePhotos.length
+      ? await window.danzstakPostPhotos.attach(savedPost, moreKeys, { content: content || "Shared media", location: submittedLocation.trim(), audience, originalContentCertified: true }, fetchWithDeadline)
+      : [];
 
     // T0-A1 (owner 2026-11-18): every photo/video post goes into Dailies (24 h) and every video into The Roll, automatically —
     // no checkboxes. The server adds the Daily itself (dailyCreated); an older server that does not, gets the old upload.
@@ -1607,11 +1720,18 @@ publishBtn.addEventListener("click", async () => {
         mediaUrl,
         mediaType,
         savedPost.postId,
-        true
+        true,
+        String(savedPost.userId || ""), // B5: your member id (photo and name are filled in from your profile)
+        "everyone", [], "", "", "", "",
+        morePhotos
       )
     );
+    window.danzstakPostPhotos?.presetShape?.(feed.firstElementChild, mediaRatio);
+    separatePosts.forEach((post, index) => feed.prepend(createPostElement(post.content, "You", post.createdAt, post.audience || audience,
+      selectedMedia.more?.[index]?.url || "", "image", post.postId, true, String(post.userId || ""))));
     window.dispatchEvent(new CustomEvent("danzstak:post-published", { detail: { postId: savedPost.postId, mediaUrl } }));
     savedPost.mediaUrl = mediaUrl;
+    if (morePhotos.length) savedPost.moreMediaUrls = morePhotos;
     window.danzstakLoadedPosts = [savedPost, ...(window.danzstakLoadedPosts || [])];
     window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts } }));
 
@@ -1625,6 +1745,7 @@ publishBtn.addEventListener("click", async () => {
   } catch (error) {
 
     await discardUploadedMedia(uploadedPostKey);
+    if (uploadedMoreKeys.length) window.danzstakPostPhotos?.discard(uploadedMoreKeys, fetchWithDeadline);
 
     console.error(
       "DanzStak posting error:",
@@ -1833,31 +1954,33 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 </script>
 
-<script src="assets/call-devices.js?v=15" defer></script>
-<script src="assets/push-notifications.js?v=309" defer></script>
-<script src="assets/media-scale.js?v=1" defer></script>
-<script src="assets/icon-buttons.js?v=14" defer></script>
+<script src="assets/call-devices.js?v=18" defer></script>
+<script src="assets/push-notifications.js?v=312" defer></script>
+<script src="assets/media-scale.js?v=2" defer></script>
+<script src="assets/icon-buttons.js?v=18" defer></script>
 <script src="assets/facebook-import.js?v=343" defer></script>
-<script src="assets/pivot.js?v=4" defer></script>
+<script src="assets/pivot.js?v=6" defer></script>
 <script src="assets/device-settings.js?v=233" defer></script>
 <script src="assets/activity-history-core.js?v=287" defer></script>
-<script src="assets/account-export-core.js?v=288" defer></script>
-<script src="assets/account-export.js?v=288" defer></script>
+<script src="assets/account-export-core.js?v=289" defer></script>
+<script src="assets/account-export.js?v=289" defer></script>
 <script src="assets/artist-hq.js?v=6" defer></script>
 <script src="assets/invite-sharing.js?v=1" defer></script>
 <script src="assets/tribes-art.js?v=1" defer></script>
 <script src="assets/tribe-create.js?v=1" defer></script>
-<script src="assets/feed-enhancements.js?v=582" defer></script>
+<script src="assets/device-reminder.js?v=3" defer></script>
+<script src="assets/image-position.js?v=1" defer></script>
+<script src="assets/feed-enhancements.js?v=598" defer></script>
 <script src="assets/profile-onboarding.js?v=12" defer></script>
-<script src="assets/session-activity.js?v=296" defer></script>
-<script src="assets/call-setup.js?v=2" defer></script>
-<script src="assets/sync-tones.js?v=3" defer></script>
-<script src="assets/call-ringer.js?v=1" defer></script>
-<script src="assets/incoming-calls.js?v=311" defer></script>
-<script src="assets/session-cleanup.js?v=294" defer></script>
+<script src="assets/session-activity.js?v=298" defer></script>
+<script src="assets/call-setup.js?v=3" defer></script>
+<script src="assets/sync-tones.js?v=7" defer></script>
+<script src="assets/call-ringer.js?v=4" defer></script>
+<script src="assets/incoming-calls.js?v=313" defer></script>
+<script src="assets/session-cleanup.js?v=296" defer></script>
 <script src="assets/app-feedback.js?v=4" defer></script>
 <script src="assets/logout.js?v=313" defer></script>
-<script src="assets/pwa.js?v=432" defer></script>
+<script src="assets/pwa.js?v=435" defer></script>
 <script src="assets/app-downloads.js?v=297" defer></script>
 <dialog class="install-help" id="installHelp" aria-labelledby="installHelpTitle">
   <header><h2 id="installHelpTitle">Install DanzStak</h2></header>
@@ -1865,15 +1988,17 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
   <menu><button type="button" id="installHelpAction" hidden>Install now</button><button type="button" id="installHelpClose">Close</button></menu>
 </dialog>
 <footer class="site-ownership">&copy; 2026 DanzStak LLC. All rights reserved.<br>User content belongs to its creators.</footer>
-<script src="assets/media-visibility.js?v=401" defer></script>
+<script src="assets/media-visibility.js?v=404" defer></script>
+<script src="assets/media-actions.js?v=1" defer></script>
+<script src="assets/media-viewer.js?v=7" defer></script>
 <script src="assets/responsive-media.js?v=3" defer></script>
-<script src="assets/media-fit.js?v=3" defer></script>
+<script src="assets/media-fit.js?v=4" defer></script>
 <script src="assets/link-preview-cards.js?v=4" defer></script>
 <script src="assets/text-emojis.js?v=231" defer></script>
 <script src="assets/people-search.js?v=424" defer></script>
 <script src="assets/post-views.js?v=308" defer></script>
-<script src="assets/signup-onboarding.js?v=3" defer></script>
-<script src="assets/app-bar.js?v=5" defer></script>
+<script src="assets/signup-onboarding.js?v=7" defer></script>
+<script src="assets/app-bar.js?v=8" defer></script>
 <script src="assets/site-chrome.js?v=1" defer></script>
 </body>
 </html>

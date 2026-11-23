@@ -107,6 +107,7 @@ async function refreshNotificationCount() {
   if (readSections().Settings?.notifications === false) {
     notificationSourceCounts.social = 0;
     notificationSourceCounts.engagement = 0;
+    notificationSourceCounts.device = 0;
     updateNotificationCount(0);
     return;
   }
@@ -126,6 +127,9 @@ async function refreshNotificationCount() {
       notificationSourceCounts[key] = key === "engagement" ? notices.filter(notice => notice.unread !== false).length : notices.length;
       succeeded = true;
     }
+    const reminder = window.danzstakDeviceReminder;
+    notificationSourceCounts.device = reminder && await reminder.needed().catch(() => false) && reminder.unread() ? 1 : 0;
+    succeeded ||= notificationSourceCounts.device > 0;
     if (succeeded) updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
   } catch { /* The next scheduled refresh will retry. */ }
   finally { clearTimeout(timeout); notificationCountLoading = false; }
@@ -287,7 +291,7 @@ function applyDataSaver(enabled) {
     video.autoplay = false;
     if (enabled) video.pause();
   });
-  if (typeof renderPlayableReels === "function" && typeof reelsList !== "undefined") renderPlayableReels();
+  if (typeof renderPlayableReels === "function" && typeof reelsList !== "undefined") renderPlayableReels({ force: true });
 }
 
 function field(label, type, placeholder) {
@@ -548,8 +552,11 @@ function renderOnlineFriendList(list, users, presenceAvailable = true) {
     const row = document.createElement("div");
     row.className = "feed-online-row friend-discovery-row";
     const displayName = person.name || feedTranslate("DanzStak member");
-    const avatarWrap = document.createElement("span");
+    // T2a (owner 2026-11-18): the photo opens their profile too (the name link stays the keyboard stop).
+    const personId = String(person.memberId || ""), personHref = /^[a-f0-9-]{36}$/.test(personId) ? "profile.html?member=" + encodeURIComponent(personId) : "";
+    const avatarWrap = document.createElement(personHref ? "a" : "span");
     avatarWrap.className = "feed-online-avatar-wrap";
+    if (personHref) { avatarWrap.href = personHref; avatarWrap.tabIndex = -1; avatarWrap.setAttribute("aria-hidden", "true"); }
     const avatar = person.picture ? document.createElement("img") : document.createElement("span");
     avatar.className = "feed-online-avatar";
     if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, person); }
@@ -960,8 +967,12 @@ function renderWorkspace(name) {
       writeSections(saved);
     }
 
+    // System Back from an open Tribe (its ?tribe= step) shows the Tribes list again.
+    let tribePushedFor = "", openGroup = null;
+    addEventListener("popstate", () => { if (!detail.hidden && !new URLSearchParams(location.search).get("tribe")) showTribeDirectory(); });
     function showTribeDirectory() {
       detail.hidden = true;
+      tribePushedFor = ""; openGroup = null;
       toolbar.hidden = false;
       grid.hidden = false;
       featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
@@ -1034,6 +1045,9 @@ function renderWorkspace(name) {
       } catch (error) { loading.textContent = error.message; }
     }
 
+    // Where the Tribe cover sits (F12): the server's position, else one kept on this phone until the Auth API deploy.
+    function tribeCoverPosition(group) { return group.coverPosition || window.danzstakImagePosition?.recall(group.coverUrl) || null; }
+
     function openTribe(group, { updateHistory = true } = {}) {
       if (updateHistory && /^[a-f0-9-]{36}$/i.test(String(group.id || ""))) {
         const tribeUrl = new URL(location.href);
@@ -1042,22 +1056,50 @@ function renderWorkspace(name) {
           tribeUrl.searchParams.set("tribe", group.id);
           tribeUrl.hash = "groups";
           history.pushState({ workspace: "Groups", tribe: group.id }, "", tribeUrl.pathname + tribeUrl.search + tribeUrl.hash);
+          tribePushedFor = group.id;
         }
       }
-      toolbar.hidden = true; createBox.hidden = true; grid.hidden = true; detail.hidden = false; detail.replaceChildren();
-      featureText.textContent = group.name;
-      const back = document.createElement("button"); back.type = "button"; back.className = "tribe-back"; back.textContent = "← Back to Tribes"; back.addEventListener("click", showTribeDirectory);
+      toolbar.hidden = true; createBox.hidden = true; grid.hidden = true; detail.hidden = false; detail.replaceChildren(); openGroup = group;
+      featureText.textContent = ""; // the name shows once, in the Tribe's own header (F13/F14)
       const hero = document.createElement("header"); hero.className = "tribe-hero";
       const cover = document.createElement("div"); cover.className = "tribe-hero-cover";
-      if (group.coverUrl) { cover.style.backgroundImage = `linear-gradient(180deg,transparent 45%,rgba(8,12,20,.72)),url("${String(group.coverUrl).replace(/["\\]/g, "")}")`; cover.classList.add("has-photo"); }
+      // Directive F12: the Tribe cover sits where its Elders placed it; the same point fills the square Tribe picture.
+      const fit = window.danzstakImagePosition;
+      if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); fit?.apply(cover, tribeCoverPosition(group), group.coverUrl); }
       else if (window.danzstakTribeArt) { cover.classList.add("has-art"); cover.setAttribute("aria-hidden", "true"); cover.append(window.danzstakTribeArt.art(group.name, group.category)); }
       else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); cover.setAttribute("aria-hidden", "true"); }
       if ((group.isElder || group.isOwner) && group.custom) {
+        // Elders only (F13): change the cover, and move it to fit its box (F12).
+        const tools = document.createElement("div"); tools.className = "tribe-cover-tools";
         const editCover = document.createElement("button"); editCover.type = "button"; editCover.className = "tribe-cover-edit"; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
+        const moveCover = document.createElement("button"); moveCover.type = "button"; moveCover.className = "tribe-cover-move"; moveCover.textContent = "Move to fit"; moveCover.hidden = !group.coverUrl || !fit;
         const coverInput = document.createElement("input"); coverInput.type = "file"; coverInput.accept = "image/jpeg,image/png,image/webp,image/gif"; coverInput.hidden = true;
+        const coverBox = () => { const box = cover.getBoundingClientRect(); return box.width && box.height ? box.width / box.height : 2.4; };
+        const placeCover = (src, position) => fit ? fit.open({ src, aspect: coverBox(), position, title: "Move your cover", extras: [{ aspect: 1, label: "Tribe picture" }] }) : Promise.resolve(position || { x: 50, y: 50, zoom: 1 });
+        // Until the Auth API stores positions (owner deploy), a position is kept on this phone and the Elder is told so.
+        const keepHere = (url, position) => {
+          fit?.remember(url, position);
+          const p = fit?.normalize(position);
+          if (p && (p.x !== 50 || p.y !== 50 || p.zoom !== 1)) showAppFeedback(window.danzstakTranslate?.("Saved on this phone. Everyone else sees it after DanzStak's next update.") || "Saved on this phone. Everyone else sees it after DanzStak's next update.");
+        };
         editCover.addEventListener("click", () => coverInput.click());
+        moveCover.addEventListener("click", async () => {
+          const position = await placeCover(group.coverUrl, tribeCoverPosition(group));
+          if (!position) return;
+          moveCover.disabled = true;
+          try {
+            const response = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/cover", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ position }) });
+            const saved = await response.json().catch(() => ({}));
+            if (response.ok && saved.coverPosition) group.coverPosition = saved.coverPosition;
+            else if ((response.status === 400 || response.status === 403) && !/Elder/i.test(String(saved.error || ""))) keepHere(group.coverUrl, position);
+            else throw new Error(saved.error || "That position couldn't be saved. Try again.");
+            openTribe(group);
+          } catch (error) { showAppFeedback(error.message, { urgent: true }); moveCover.disabled = false; }
+        });
         coverInput.addEventListener("change", async () => {
-          const file = coverInput.files?.[0]; if (!file || !file.type.startsWith("image/")) return;
+          const file = coverInput.files?.[0]; coverInput.value = ""; if (!file || !file.type.startsWith("image/")) return;
+          const position = await placeCover(file, null);
+          if (!position) return;
           editCover.disabled = true; editCover.textContent = "Uploading…"; let uploadedMediaKey = "";
           try {
             const ticketResponse = await postActionFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: file.type, purpose: "post" }) }, 15000);
@@ -1066,25 +1108,50 @@ function renderWorkspace(name) {
             const uploadResponse = typeof window.fetchWithDeadline === "function" ? await window.fetchWithDeadline(ticket.uploadUrl, uploadOptions, typeof window.mediaUploadDeadline === "function" ? window.mediaUploadDeadline(file) : 120000) : await fetch(ticket.uploadUrl, uploadOptions);
             if (!uploadResponse.ok) throw new Error("Cover upload failed");
             uploadedMediaKey = ticket.mediaKey;
-            const saveResponse = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/cover", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey: ticket.mediaKey }) });
+            const saveResponse = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/cover", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey: ticket.mediaKey, position }) });
             const savedCover = await saveResponse.json().catch(() => ({})); if (!saveResponse.ok || !savedCover.coverUrl) throw new Error(savedCover.error || "Cover could not be saved");
-            uploadedMediaKey = ""; group.coverUrl = savedCover.coverUrl; openTribe(group);
+            uploadedMediaKey = ""; group.coverUrl = savedCover.coverUrl; group.coverPosition = savedCover.coverPosition || null;
+            if (!savedCover.coverPosition) keepHere(savedCover.coverUrl, position);
+            openTribe(group);
           } catch (error) {
             if (uploadedMediaKey && typeof window.discardUploadedMedia === "function") await window.discardUploadedMedia(uploadedMediaKey).catch(() => {});
             showAppFeedback(error.message, { urgent: true }); editCover.disabled = false; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
           }
         });
-        cover.append(editCover, coverInput);
+        tools.append(moveCover, editCover);
+        cover.append(tools, coverInput);
       }
       const identity = document.createElement("div"); identity.className = "tribe-hero-identity";
       const title = document.createElement("h4"); title.textContent = group.name;
       const meta = document.createElement("p"); const count = Number(group.memberCount || 0); meta.textContent = `🔒 Tribe · ${count ? count + " in The Crew" : "The Crew"}`;
       const elder = document.createElement("span"); elder.className = "tribe-elder-badge"; elder.textContent = group.isElder || group.isOwner ? "Elder" : groupCategoryName(group.category);
       identity.append(title, meta, elder);
-      const membership = document.createElement("button"); membership.type = "button"; membership.className = "primary tribe-membership";
-      const paintMembership = () => { const joined = Boolean(saved.GroupsJoined?.[group.id]); membership.textContent = joined ? "✓ Joined" : "+ Join Tribe"; membership.classList.toggle("is-selected", joined); };
-      paintMembership();
-      membership.addEventListener("click", async () => { membership.disabled = true; try { await saveGroupMembership(group, !saved.GroupsJoined?.[group.id]); paintMembership(); openTribe(group); } catch (error) { showAppFeedback(error.message, { urgent: true }); } finally { membership.disabled = false; } });
+      // Directive F13: a small "Joined ▾" chip (Leave Tribe inside) instead of a full-width "✓ Joined" bar; "Join" is one
+      // green pill. The Tribe's founder can't leave, so their chip is a plain label.
+      const membership = document.createElement("div"); membership.className = "tribe-actions";
+      const setMembership = async (joined, control) => {
+        control.disabled = true;
+        try { await saveGroupMembership(group, joined); openTribe(group, { updateHistory: false }); }
+        catch (error) { showAppFeedback(error.message, { urgent: true }); control.disabled = false; }
+      };
+      if (saved.GroupsJoined?.[group.id] && group.isOwner) {
+        const chip = document.createElement("span"); chip.className = "tribe-joined-chip"; chip.textContent = "Joined"; membership.append(chip);
+      } else if (saved.GroupsJoined?.[group.id]) {
+        const menu = document.createElement("details"); menu.className = "tribe-joined";
+        const chip = document.createElement("summary"); chip.className = "tribe-joined-chip"; chip.textContent = "Joined"; chip.setAttribute("aria-label", "Membership options");
+        const options = document.createElement("div"); options.className = "tribe-joined-menu";
+        const leave = document.createElement("button"); leave.type = "button"; leave.className = "tribe-leave"; leave.textContent = "Leave Tribe";
+        leave.addEventListener("click", async () => {
+          menu.open = false;
+          const sure = typeof window.danzstakConfirm === "function" ? await window.danzstakConfirm("You can join again any time.", { title: "Leave this Tribe?", confirmLabel: "Leave Tribe", danger: true }) : true;
+          if (sure) await setMembership(false, leave);
+        });
+        options.append(leave); menu.append(chip, options); membership.append(menu);
+      } else {
+        const join = document.createElement("button"); join.type = "button"; join.className = "tribe-join"; join.textContent = "Join";
+        join.addEventListener("click", () => void setMembership(true, join));
+        membership.append(join);
+      }
       hero.append(cover, identity, membership);
       const nav = document.createElement("div"); nav.className = "tribe-nav"; nav.setAttribute("role", "tablist"); nav.setAttribute("aria-label", group.name + " sections");
       const panels = document.createElement("div"); panels.className = "tribe-panels";
@@ -1163,7 +1230,9 @@ function renderWorkspace(name) {
       }
       const feed = document.createElement("div"); feed.className = "tribe-feed"; discussion.appendChild(feed); renderTribePosts(group, feed);
       const aboutCard = document.createElement("div"); aboutCard.className = "tribe-about-card"; const aboutTitle = document.createElement("h5"); aboutTitle.textContent = "About this Tribe"; const description = document.createElement("p"); description.textContent = group.description; const standard = document.createElement("p"); standard.textContent = "Community standards: no hate speech, harassment, threats, or targeted abuse."; aboutCard.append(aboutTitle, description, standard); about.appendChild(aboutCard);
-      panels.append(discussion, crew, about); detail.append(back, hero, nav, panels); detail.scrollIntoView({ block: "start" });
+      panels.append(discussion, crew, about); detail.append(hero, nav, panels); detail.scrollIntoView({ block: "start" });
+      // The bar's ← goes back to the Tribes list: the same step as system Back when opening the Tribe added one.
+      window.danzstakAppBar?.setBack("Back to Tribes", () => { if (tribePushedFor === group.id && history.state?.tribe === group.id) history.back(); else showTribeDirectory(); }, detail);
     }
 
     if (window.danzstakOpenTribeHandler) window.removeEventListener("danzstak:open-tribe", window.danzstakOpenTribeHandler);
@@ -1212,7 +1281,7 @@ function renderWorkspace(name) {
         cover.setAttribute("aria-hidden", "true");
         // Owner 2026-11-18: the Tribe's own picture fills the box when its Elders set one (Add cover inside the Tribe);
         // otherwise the initial sits dead centre.
-        if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); }
+        if (group.coverUrl) { cover.style.backgroundImage = `url("${String(group.coverUrl).replace(/["\\\n\r]/g, "")}")`; cover.classList.add("has-photo"); window.danzstakImagePosition?.apply(cover, tribeCoverPosition(group), group.coverUrl); }
         else if (window.danzstakTribeArt) { cover.classList.add("has-art"); cover.append(window.danzstakTribeArt.art(group.name, group.category)); }
         else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); }
         const title = document.createElement("h4");
@@ -1407,10 +1476,13 @@ function renderWorkspace(name) {
       .then(response => response.ok ? response.json() : null)
       .then(data => {
         if (!Array.isArray(data?.groupIds)) return;
+        const wasJoined = openGroup ? Boolean(saved.GroupsJoined?.[openGroup.id]) : false;
         saved.GroupsJoined = Object.fromEntries([...data.groupIds.map(groupId => [groupId, true]), ...membershipChanges]);
         markRunTribesJoined();
         writeSections(saved);
         renderGroups();
+        // A Tribe opened from a link before the list arrived drew "Join" for a member: draw it again when that changed.
+        if (openGroup && !detail.hidden && Boolean(saved.GroupsJoined?.[openGroup.id]) !== wasJoined) openTribe(openGroup, { updateHistory: false });
       })
       .catch(() => {});
     return;
@@ -1469,6 +1541,9 @@ function renderWorkspace(name) {
         const directory = directorySource.items;
         const friends = friendsSource.items;
         const notificationSourcesComplete = socialSource.available && engagementSource.available;
+        // Owner 2026-11-19: a member who skipped SYNC verification is reminded here until this device is verified.
+        const reminder = window.danzstakDeviceReminder, reminderNeeded = Boolean(await reminder?.needed().catch(() => false));
+        notificationSourceCounts.device = reminderNeeded && reminder.unread() ? 1 : 0;
         const people = new Map();
         for (const friend of friends) {
           const email = String(friend.email || "").toLowerCase();
@@ -1483,6 +1558,7 @@ function renderWorkspace(name) {
         updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
         list.replaceChildren();
         list.setAttribute("aria-busy", "false");
+        if (reminderNeeded) { list.append(reminder.row()); reminder.markSeen(); }
         const appendAvailabilityWarning = () => {
           const warning = document.createElement("p");
           warning.className = "muted notification-source-warning";
@@ -1500,6 +1576,7 @@ function renderWorkspace(name) {
             appendAvailabilityWarning();
             return;
           }
+          if (reminderNeeded) return;
           const empty = document.createElement("p");
           empty.className = "muted";
           empty.textContent = feedTranslate("No new notifications.");
@@ -1915,30 +1992,10 @@ function renderWorkspace(name) {
   }
 
   if (["Photos", "Videos"].includes(name)) {
-    featureText.textContent = "" /* fix-it 18: no explanatory sub-line under the title */;
-    const wantedTag = name === "Photos" ? "IMG" : "VIDEO";
-    const media = [...document.querySelectorAll("#feed .post .post-media")].filter(item => item.tagName === wantedTag);
-    if (!media.length) {
-      const message = document.createElement("p");
-      message.className = "muted";
-      message.textContent = `No ${name.toLowerCase()} are available in Your Mix yet.`;
-      workspace.appendChild(message);
-      return;
-    }
-    const gallery = document.createElement("div");
-    gallery.className = "feed-media-gallery";
-    for (const source of media) {
-      const card = document.createElement("article");
-      card.className = "feed-media-card";
-      const copy = source.cloneNode();
-      copy.removeAttribute("loading");
-      if (copy.tagName === "VIDEO") { copy.controls = true; copy.autoplay = false; copy.muted = true; }
-      const caption = document.createElement("p");
-      caption.textContent = source.closest(".post")?.querySelector(".post-content")?.textContent || "Shared on DanzStak";
-      card.append(copy, caption);
-      gallery.appendChild(card);
-    }
-    workspace.appendChild(gallery);
+    // Audit A10 (2026-11-19): Photos and Videos are YOUR media, never other members' posts copied out of Mix. They live
+    // on your profile as the 3-column grids with the full-screen viewer (and albums, 5a2). Replace this history entry so
+    // Back returns to where the member came from, not to an empty workspace.
+    location.replace(`profile.html#${name.toLowerCase()}`);
     return;
   }
 
@@ -2496,6 +2553,11 @@ globalThis.danzstakSyncMobileMenuCurrent = syncMobileMenuCurrent;
 const screenTitles = { HQ: "Music HQ", Groups: "Tribes" };
 let titleBeforeMenu = "";
 function setScreenTitle(name) { const label = screenTitles[name] || name || "Your Mix"; document.title = "DanzStak | " + (window.danzstakTranslate?.(label) || label); }
+// Focus goes back to the Menu control the member can see: on phones the tab bar's Menu tab (app-tabs.js), elsewhere the
+// header button.
+function visibleMenuControl() {
+  return [...document.querySelectorAll('[aria-controls="mobileNavMenu"]')].find(control => control.getClientRects().length) || mobileMenuControl;
+}
 function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {}) {
   const shouldOpen = Boolean(open && matchMedia("(max-width: 700px)").matches);
   if (shouldOpen) globalThis.danzstakActivateMobileScreen?.("menu", { preserveMenu: true });
@@ -2523,7 +2585,7 @@ function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {})
     // on the page underneath the modal mobile menu.
     requestAnimationFrame(focusMenu);
   }
-  else if (wasOpen) mobileMenuControl?.focus({ preventScroll: true });
+  else if (wasOpen) visibleMenuControl()?.focus({ preventScroll: true });
 }
 function closeMobileMenuFromControl() {
   if (history.state?.danzstakMenuOpen === true) history.back();
@@ -2537,8 +2599,11 @@ mobileNavMenu?.querySelector("[data-menu-close]")?.addEventListener("click", clo
 mobileNavMenu?.addEventListener("click", event => {
   if (document.body.classList.contains("mobile-menu-open") && event.target.closest("a")) setMobileMenu(false);
 });
+// Any Menu control toggles the menu instead of counting as a tap outside it: the header button and, on phones, the
+// shared tab bar's Menu tab (app-tabs.js), which carries aria-controls="mobileNavMenu".
+const isMenuControl = target => Boolean(mobileMenuControl?.contains(target) || target?.closest?.('[aria-controls="mobileNavMenu"]'));
 document.addEventListener("click", event => {
-  if (document.body.classList.contains("mobile-menu-open") && !mobileNavMenu?.contains(event.target) && !mobileMenuControl?.contains(event.target)) closeMobileMenuFromControl();
+  if (document.body.classList.contains("mobile-menu-open") && !mobileNavMenu?.contains(event.target) && !isMenuControl(event.target)) closeMobileMenuFromControl();
 });
 document.addEventListener("keydown", event => {
   if (event.key === "Escape" && document.body.classList.contains("mobile-menu-open")) closeMobileMenuFromControl();
@@ -2703,7 +2768,7 @@ function openWorkspaceRoute(name, pushHistory = true) {
   homeControl?.setAttribute("aria-pressed", "false");
   document.getElementById("newsFeedView").hidden = true;
   featurePanel.hidden = false;
-  const visibleName = canonicalName === "Groups" ? "Tribes" : canonicalName;
+  const visibleName = screenTitles[canonicalName] || canonicalName; // audit 36 C5: "Music HQ", not "HQ"; Groups → Tribes
   setScreenTitle(canonicalName);
   featureHeading.textContent = visibleName;
   const pageHeading = document.getElementById("pageHeading");
@@ -2931,10 +2996,17 @@ if (composerActions && publishButton) {
     input.type = "file";
     input.accept = accept;
     input.hidden = true;
+    // Owner 2026-11-22: several photos at once, up to 20 in one post (post-photos.js).
+    if (kind === "image") input.multiple = true;
     button.addEventListener("click", () => { expandComposer(); input.click(); });
     input.addEventListener("change", () => {
-      const file = input.files[0];
+      let file = input.files[0], more = [];
       if (!file) return;
+      if (kind === "image" && input.files.length > 1 && window.danzstakPostPhotos) {
+        const { photos, dropped } = window.danzstakPostPhotos.pick(input.files);
+        if (dropped) showAppFeedback(window.danzstakPostPhotos.tooMany());
+        if (photos.length) [file, ...more] = photos;
+      }
       if (!file.type.startsWith(kind + "/") || (maxBytes && file.size > maxBytes)) {
         input.value = "";
         showAppFeedback(maxBytes
@@ -2943,7 +3015,8 @@ if (composerActions && publishButton) {
         return;
       }
       if (selectedMedia?.url) URL.revokeObjectURL(selectedMedia.url);
-      selectedMedia = { file, kind, url: URL.createObjectURL(file) };
+      selectedMedia?.more?.forEach(item => URL.revokeObjectURL(item.url));
+      selectedMedia = { file, kind, url: URL.createObjectURL(file), more: more.map(photo => ({ file: photo, url: URL.createObjectURL(photo) })) };
       window.danzstakSelectedMedia = selectedMedia;
       const storyToggle = document.getElementById("shareToStory");
       if (storyToggle) {
@@ -2965,12 +3038,29 @@ if (composerActions && publishButton) {
       media.style.borderRadius = "10px";
       if (kind === "video") media.controls = true;
       preview.replaceChildren(media);
+      if (selectedMedia.more.length) {
+        // Several photos: one row of squares with the count (they post as one swipeable photo post).
+        const strip = document.createElement("div");
+        strip.className = "post-photos-picked";
+        for (const url of [selectedMedia.url, ...selectedMedia.more.map(item => item.url)]) {
+          const thumb = document.createElement("img");
+          thumb.src = url; thumb.alt = "";
+          strip.append(thumb);
+        }
+        const count = document.createElement("p");
+        count.className = "post-photos-picked-count";
+        count.textContent = (window.danzstakTranslate?.("{count} photos") || "{count} photos").replace("{count}", String(selectedMedia.more.length + 1));
+        preview.replaceChildren(strip, count);
+      }
       if (kind === "video") {
         const scanStatus = document.createElement("p");
         scanStatus.className = "copyright-scan-status";
         scanStatus.textContent = isLocalHost() ? "Rights certification: local preview only" : "Rights certification required; automated content matching is not currently available.";
         preview.appendChild(scanStatus);
       }
+      // Owner 2026-11-22: the member chooses the album the photos or video go into (default: Mobile/Computer uploads).
+      const albumChoice = window.danzstakPostPhotos?.albumChoice?.();
+      if (albumChoice) { selectedMedia.albumChoice = albumChoice; preview.appendChild(albumChoice.element); }
     });
     mediaTools.append(button, input);
   }
@@ -3089,6 +3179,14 @@ if (composerActions && publishButton) {
     }, true);
   }
 }
+
+// A Save from the full-screen rail (media-actions.js, directive F1a) shows on the post's own Save in Mix too.
+addEventListener("danzstak:post-saved", event => {
+  const post = document.querySelector(`.post[data-post-id="${CSS.escape(String(event.detail?.postId || ""))}"]`);
+  if (!post) return;
+  post.dataset.saved = String(event.detail.saved === true);
+  paintPostSaveButton(post);
+});
 
 function addShareButton(post) {
   const actions = post.querySelector(".post-actions");
@@ -3431,9 +3529,7 @@ function addPostDeleteButton(post) {
       button.disabled = true;
       try {
         await handler(button);
-        menu.hidden = true;
-        toggle.setAttribute("aria-expanded", "false");
-        if (menu.contains(document.activeElement)) toggle.focus({ preventScroll: true });
+        if (openPostMenu?.menu === menu) closePostMenu({ focus: menu.contains(document.activeElement) });
       } catch (error) { showAppFeedback(error.message || "This action could not be saved. Please try again.", { urgent: true }); }
       finally { button.disabled = false; }
     });
@@ -3593,7 +3689,7 @@ function addPostDeleteButton(post) {
     });
     option("Move to archive", "Hide this post from your account.", () => hidePostForAccount(post));
   const deleteTitle = owner ? "Delete post" : "Remove from My Mix";
-  option(deleteTitle, owner ? "Choose whether to remove this placement or delete your post everywhere." : "Hide this member's post from Your Mix.", async () => {
+  const deleteOption = option(deleteTitle, owner ? "Choose whether to remove this placement or delete your post everywhere." : "Hide this member's post from Your Mix.", async () => {
     const postId = post.dataset.postId;
     if (post.dataset.isOwner !== "true") {
       if (await window.danzstakConfirm("You did not create this post. It will only be removed from Your Mix.", { title: "Remove this post from Your Mix?", confirmLabel: "Remove from My Mix", danger: true })) await removePostFromThisFeed();
@@ -3654,25 +3750,19 @@ function addPostDeleteButton(post) {
     }
     option("Report post", "Tell DanzStak about copyright or safety concerns.", () => openPostReportDialog(post, toggle));
   }
+  // Owner 2026-11-22: "put delete post under edit post".
+  const editRow = [...menu.querySelectorAll(".post-option-row")].find(row => row.querySelector("strong")?.textContent === "Edit post");
+  if (editRow) editRow.after(deleteOption);
 
   toggle.addEventListener("click", () => {
-    document.querySelectorAll(".post-options-menu").forEach(other => {
-      if (other !== menu) {
-        other.hidden = true;
-        other.closest(".post")?.querySelector(".post-menu-toggle")?.setAttribute("aria-expanded", "false");
-      }
-    });
-    menu.hidden = !menu.hidden;
-    toggle.setAttribute("aria-expanded", String(!menu.hidden));
-    if (!menu.hidden) menu.querySelector('[role="menuitem"]')?.focus();
+    if (openPostMenu?.menu === menu) closePostMenu();
+    else showPostMenu(menu, toggle);
   });
   menu.addEventListener("keydown", event => {
     const items = [...menu.querySelectorAll('[role="menuitem"]:not(:disabled)')];
     if (event.key === "Escape") {
       event.preventDefault();
-      menu.hidden = true;
-      toggle.setAttribute("aria-expanded", "false");
-      toggle.focus();
+      closePostMenu({ focus: true });
       return;
     }
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key) || !items.length) return;
@@ -3684,12 +3774,34 @@ function addPostDeleteButton(post) {
   post.append(toggle, menu);
 }
 
+// One post ⋯ menu open at a time. Owner 2026-11-22: "when users hit back on their device it goes back to the mix"
+// (before, Back left the app): opening the menu adds a history step, so the phone's Back closes the menu and stays on
+// the Mix; closing it any other way takes that step back off.
+let openPostMenu = null;
+function showPostMenu(menu, toggle) {
+  const previous = openPostMenu;
+  if (previous) { previous.menu.hidden = true; previous.toggle.setAttribute("aria-expanded", "false"); }
+  let pushed = previous?.history === true && history.state?.danzstakPostMenu === true;
+  if (!pushed) { try { history.pushState({ ...(history.state || {}), danzstakPostMenu: true }, ""); pushed = true; } catch {} }
+  openPostMenu = { menu, toggle, history: pushed, focus: false };
+  menu.hidden = false;
+  toggle.setAttribute("aria-expanded", "true");
+  menu.querySelector('[role="menuitem"]')?.focus({ preventScroll: true });
+}
+function closePostMenu({ fromHistory = false, focus = false } = {}) {
+  const open = openPostMenu;
+  if (!open) return;
+  open.focus = open.focus || focus;
+  if (!fromHistory && open.history && history.state?.danzstakPostMenu === true) { history.back(); return; } // popstate closes it
+  openPostMenu = null;
+  open.menu.hidden = true;
+  open.toggle.setAttribute("aria-expanded", "false");
+  if (open.focus && open.toggle.isConnected) open.toggle.focus({ preventScroll: true });
+}
+addEventListener("popstate", () => { if (openPostMenu && history.state?.danzstakPostMenu !== true) closePostMenu({ fromHistory: true }); });
 document.addEventListener("click", event => {
   if (event.target.closest(".post-menu-toggle, .post-options-menu")) return;
-  document.querySelectorAll(".post-options-menu:not([hidden])").forEach(menu => {
-    menu.hidden = true;
-    menu.closest(".post")?.querySelector(".post-menu-toggle")?.setAttribute("aria-expanded", "false");
-  });
+  closePostMenu();
 });
 
 const engagementApi = "https://api.danzstak.com";
@@ -3763,10 +3875,9 @@ function updateCommentPreview(post) {
     const group = children.get(item.dataset.parentCommentId) || []; group.push(item); children.set(item.dataset.parentCommentId,group);
   }
   const roots = items.filter(item => !item.dataset.parentCommentId || !byId.has(item.dataset.parentCommentId));
-  const sortMode = post.dataset.commentSort || "relevant";
-  roots.sort(sortMode === "newest"
-    ? (a,b) => String(b.dataset.createdAt || "").localeCompare(String(a.dataset.createdAt || ""))
-    : (a,b) => Number(b.dataset.reactionTotal || 0) - Number(a.dataset.reactionTotal || 0) || String(b.dataset.createdAt || "").localeCompare(String(a.dataset.createdAt || "")));
+  // Directive F1a: comments by time only, Newest (default) or Oldest, as in the comments sheet; never ranked by reactions.
+  const oldest = post.dataset.commentSort === "oldest";
+  roots.sort((a,b) => (oldest ? 1 : -1) * String(a.dataset.createdAt || "").localeCompare(String(b.dataset.createdAt || "")));
   const ordered = [], rootIndex = new Map(), appendThread = (item,index) => { ordered.push(item); rootIndex.set(item,index); for (const reply of (children.get(item.dataset.commentId || "") || []).sort((a,b) => String(a.dataset.createdAt || "").localeCompare(String(b.dataset.createdAt || "")))) appendThread(reply,index); };
   roots.forEach((item,index) => appendThread(item,index));
   const expanded = post.dataset.commentsExpanded === "true";
@@ -3812,15 +3923,7 @@ function createCommentReactions(post, item, comment) {
 }
 
 function formatCommentTimestamp(time) {
-  const parsed = new Date(time?.dateTime || "");
-  if (Number.isNaN(parsed.getTime())) { time.textContent = feedTranslate("now"); return; }
-  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 60000));
-  const locale = document.documentElement.lang || undefined;
-  try {
-    const relative = new Intl.RelativeTimeFormat(locale, { numeric: "auto", style: "narrow" });
-    time.textContent = elapsedMinutes < 1 ? relative.format(0, "minute") : elapsedMinutes < 60 ? relative.format(-elapsedMinutes, "minute") : elapsedMinutes < 1440 ? relative.format(-Math.floor(elapsedMinutes / 60), "hour") : elapsedMinutes < 10080 ? relative.format(-Math.floor(elapsedMinutes / 1440), "day") : parsed.toLocaleDateString(locale, { month: "short", day: "numeric" });
-  } catch { time.textContent = elapsedMinutes < 1 ? feedTranslate("now") : parsed.toLocaleDateString([], { month: "short", day: "numeric" }); }
-  time.title = parsed.toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
+  if (!window.danzstakTimeLabel?.paint(time, time?.dateTime)) time.textContent = feedTranslate("now"); // B4: one time label everywhere
 }
 
 function refreshCommentInterfaceLanguage(root = document) {
@@ -3828,9 +3931,7 @@ function refreshCommentInterfaceLanguage(root = document) {
   for (const button of root.querySelectorAll?.(".comment-emoji-toggle") || []) button.setAttribute("aria-label", feedTranslate("Add emoji to comment"));
   for (const button of root.querySelectorAll?.(".comment-send") || []) button.setAttribute("aria-label", feedTranslate("Post comment"));
   for (const sort of root.querySelectorAll?.(".comment-sort") || []) {
-    const newest = sort.closest("article")?.dataset.commentSort === "newest";
-    sort.textContent = feedTranslate(newest ? "Newest ▾" : "Most relevant ▾");
-    sort.setAttribute("aria-label", feedTranslate(newest ? "Comment order: newest first. Activate for most relevant." : "Comment order: most relevant. Activate for newest first."));
+    paintCommentSort(sort, sort.closest("article")?.dataset.commentSort === "oldest");
   }
   for (const button of root.querySelectorAll?.(".comment-reply-button") || []) {
     const name = button.dataset.replyName || "this comment";
@@ -4043,6 +4144,30 @@ if (typeof window !== "undefined" && typeof window.addEventListener === "functio
   }
 }
 
+// Audit 36 B5: your own posts show your photo and your name, also when the post arrived without them: a post you have
+// just published (the server's reply carries neither), or one whose author lookup found no picture. Your initial only
+// when you have no photo.
+function fillOwnAuthor(post) {
+  if (post.dataset.isOwner !== "true" || post.dataset.ownAuthorFilled === "true") return;
+  post.dataset.ownAuthorFilled = "true";
+  loadCommentViewerProfile().then(profile => {
+    if (!post.isConnected) return;
+    const avatar = post.querySelector(".post-header .post-avatar"), author = post.querySelector(".post-header .post-author");
+    const name = String(profile.name || "").trim(), picture = String(profile.picture || "").trim();
+    if (name && author?.textContent.trim() === "You") {
+      author.textContent = name;
+      avatar?.setAttribute("aria-label", feedTranslate("Open {name} profile").replace("{name}", name));
+      const media = post.querySelector("img.post-media");
+      if (media) media.alt = feedTranslate("Photo shared by {name}").replace("{name}", name);
+    }
+    if (!avatar || avatar.querySelector("img")) return;
+    if (!picture) { if (name) avatar.textContent = name.charAt(0).toUpperCase(); return; }
+    const image = document.createElement("img"); image.src = picture; image.alt = ""; image.referrerPolicy = "no-referrer";
+    window.danzstakIdentityMedia?.install(image, { memberId: post.dataset.authorMemberId || "", name, picture });
+    avatar.replaceChildren(image);
+  });
+}
+
 function ensureCommentComposer(post) {
   const comments = post.querySelector(".comments"), input = comments?.querySelector(":scope > input, .comment-composer input");
   if (!comments || !input || input.closest(".comment-composer")) return;
@@ -4051,13 +4176,12 @@ function ensureCommentComposer(post) {
   composer.className = "comment-composer";
   const avatar = document.createElement("span");
   avatar.className = "comment-composer-avatar";
-  avatar.textContent = "D";
-  avatar.setAttribute("aria-hidden", "true");
+  avatar.setAttribute("aria-hidden", "true"); // B5: no DanzStak "D" while your profile loads; your photo or initial below
   loadCommentViewerProfile().then(profile => {
     if (!avatar.isConnected) return;
     if (profile.picture) {
       const image = document.createElement("img"); image.className = "comment-composer-avatar"; image.src = profile.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(image, profile); avatar.replaceWith(image);
-    } else avatar.textContent = String(profile.name || "D").charAt(0).toUpperCase();
+    } else avatar.textContent = String(profile.name || "").trim().charAt(0).toUpperCase();
   });
   const field = document.createElement("div");
   field.className = "comment-composer-field";
@@ -4107,17 +4231,20 @@ function ensureCommentComposer(post) {
     const sort = document.createElement("button");
     sort.type = "button";
     sort.className = "comment-sort";
-    sort.textContent = feedTranslate("Most relevant ▾");
-    sort.setAttribute("aria-label", feedTranslate("Comment order: most relevant. Activate for newest first."));
+    paintCommentSort(sort, false);
     sort.addEventListener("click", () => {
-      const newest = post.dataset.commentSort !== "newest";
-      post.dataset.commentSort = newest ? "newest" : "relevant";
-      sort.textContent = feedTranslate(newest ? "Newest ▾" : "Most relevant ▾");
-      sort.setAttribute("aria-label", feedTranslate(newest ? "Comment order: newest first. Activate for most relevant." : "Comment order: most relevant. Activate for newest first."));
+      const oldest = post.dataset.commentSort !== "oldest";
+      post.dataset.commentSort = oldest ? "oldest" : "newest";
+      paintCommentSort(sort, oldest);
       updateCommentPreview(post);
     });
     post.querySelector(".commentList")?.before(sort);
   }
+}
+
+function paintCommentSort(sort, oldest) {
+  sort.textContent = feedTranslate(oldest ? "Oldest ▾" : "Newest ▾");
+  sort.setAttribute("aria-label", feedTranslate(oldest ? "Comment order: oldest first. Activate for newest first." : "Comment order: newest first. Activate for oldest first."));
 }
 
 function renderPersistentComment(post, comment) {
@@ -4362,15 +4489,18 @@ function setRollFullscreen(open, { updateHistory = true, fromHistory = false, st
       ? startCard
       : reelsList.querySelector(".reel-card");
     reelsList.scrollTop = targetCard?.offsetTop || 0;
+    if (targetCard) mountRollActions(targetCard);
     const first = targetCard?.querySelector("video.reel-player,iframe.reel-player")
       || reelsList.querySelector("video.reel-player,iframe.reel-player");
     const started = window.danzstakMediaCoordinator?.startSession?.(reelsList, first, { sound: !dataSaverEnabled() });
     if (!started && first?.tagName === "VIDEO" && !dataSaverEnabled()) { first.muted = true; first.play().catch(() => {}); }
     rollClose.focus({ preventScroll: true });
   } else {
+    window.danzstakMediaActions?.closeComments?.({ fromHistory: true });
     window.danzstakMediaCoordinator?.endSession?.(reelsList);
     rollSessionStatus.hidden = true;
     restoreRollBackground();
+    if (reelsRenderPending) renderPlayableReels();
     rollOpen.focus({ preventScroll: true });
   }
 }
@@ -4390,6 +4520,31 @@ reelsHeading.append(reelsTitle, rollSessionStatus, rollClose);
 // Owner 2026-11-16: no + or fullscreen icon on The Roll — tap a tile to open it; videos join The Roll from the post composer.
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
+// Directive F1a: in full screen each DanzStak video gets the shared rail (like, comment, save, share) and caption once it
+// is on screen (media-actions.js); the comments sheet keeps the video in the top 40%, so the card re-snaps when it opens
+// and closes, and the video loops instead of moving on while comments are open.
+const rollCardPosts = new WeakMap();
+const mountRollActions = card => {
+  const post = rollCardPosts.get(card);
+  if (!post || !reelsRail.classList.contains("roll-fullscreen") || card.classList.contains("ds-ma-host") || !window.danzstakMediaActions?.mount?.(card, post, { layer: reelsRail })) return;
+  // Like the viewer: no native control bar under the caption; a tap on the video plays or pauses it.
+  const video = card.querySelector("video.reel-player");
+  if (video) video.controls = false;
+};
+reelsList.addEventListener("click", event => {
+  if (!reelsRail.classList.contains("roll-fullscreen") || event.target.closest(".ds-ma,button,a")) return;
+  const video = event.target.closest(".ds-ma-host")?.querySelector("video.reel-player");
+  if (!video || video.controls) return;
+  if (video.paused) video.play().catch(() => {}); else video.pause();
+});
+const rollActionsObserver = "IntersectionObserver" in window
+  ? new IntersectionObserver(entries => entries.forEach(entry => { if (entry.intersectionRatio >= .6) mountRollActions(entry.target); }), { threshold: [.6] })
+  : null;
+addEventListener("danzstak:comments", event => {
+  if (event.detail?.layer !== reelsRail) return;
+  const card = event.detail.host?.closest?.(".reel-card");
+  if (card) reelsList.scrollTop = card.offsetTop;
+});
 function restoreRollFullscreenFromHistory(event) {
   if (event.state?.danzstakRollOpen === true) {
     if (!reelsRail.classList.contains("roll-fullscreen")) setRollFullscreen(true, { updateHistory: false, fromHistory: true });
@@ -4399,6 +4554,7 @@ addEventListener("popstate", restoreRollFullscreenFromHistory);
 restoreRollFullscreenFromHistory({ state: history.state });
 function advanceRollCard(media) {
   if (!reelsRail.classList.contains("roll-fullscreen")) return;
+  if (reelsRail.classList.contains("ds-commenting")) { media.currentTime = 0; media.play?.().catch(() => {}); return; }
   const card = media?.closest?.(".reel-card"), next = card?.nextElementSibling;
   if (!next?.classList.contains("reel-card")) {
     rollSessionStatus.textContent = feedTranslate("End of The Roll");
@@ -4560,10 +4716,18 @@ function reelPlayer(url) {
   return null;
 }
 
-function renderPlayableReels() {
+// Owner 2026-11-19: "every 3rd video the sound goes off in the roll". Rebuilding The Roll replaced every video, the one
+// playing too: it stopped and nothing played (reproduced by Mix reloading its posts during full-screen playback, which a
+// phone does after its connection drops and comes back). The Roll now keeps its cards when its list of videos hasn't
+// changed, and while it is full screen a real change waits until it closes. Adding, removing and data saver still rebuild.
+var renderedReelIds = null, reelsRenderPending = false; // var: the data-saver switch can call the Roll before this line runs
+function renderPlayableReels({ force = false } = {}) {
+  const reels = getReels(), ids = reels.map(reel => String(reel.id || reel.url || "")).join("|"), shown = Boolean(reelsList.querySelector(".reel-card"));
+  if (!force && shown && ids === renderedReelIds) return;
+  if (!force && shown && reelsRail.classList.contains("roll-fullscreen")) { reelsRenderPending = true; return; }
+  renderedReelIds = ids; reelsRenderPending = false;
   window.danzstakMediaCoordinator?.endSession?.(reelsList);
   reelsList.replaceChildren();
-  const reels = getReels();
   reelsRail.classList.toggle("has-reels", reels.length > 0);
   rollOpen.disabled = reels.length === 0;
   rollOpen.hidden = reels.length === 0;
@@ -4579,6 +4743,7 @@ function renderPlayableReels() {
     if (!reel.internal && !reelUrlValue) continue;
     const card = document.createElement("article");
     card.className = "reel-card";
+    if (reel.internal && reel.postId) { rollCardPosts.set(card, { postId: String(reel.postId), authorMemberId: reel.memberId, authorName: reel.authorName, isOwner: reel.isOwner === true, content: reel.content }); rollActionsObserver?.observe(card); }
     const fullscreenTrigger = document.createElement("button");
     fullscreenTrigger.type = "button";
     fullscreenTrigger.className = "reel-fullscreen-trigger";
@@ -4745,7 +4910,7 @@ function placeReelsRail() {
   const feedElement = document.getElementById("feed");
   const posts = [...feedElement.children].filter(child => child.classList.contains("post") && child !== reelsRail);
   if (posts.length >= 4) posts[3].insertAdjacentElement("afterend", reelsRail);
-  else feedElement.appendChild(reelsRail);
+  else feedElement.insertBefore(reelsRail, feedElement.querySelector(":scope > .feed-caught-up, :scope > .feed-more-marker")); // F15c: the end line stays last
 }
 
 // Composer offers The Roll for a pasted video link too (owner 2026-11-16), not only uploaded videos.
@@ -4855,7 +5020,7 @@ document.getElementById("feed").addEventListener("keydown", event => {
   event.stopImmediatePropagation();
   saveComment(post, event.target);
 }, true);
-document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addSaveButton(post); addPostDeleteButton(post); describePostControls(post); } else if (post !== reelsRail) post.remove(); });
+document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addSaveButton(post); addPostDeleteButton(post); describePostControls(post); fillOwnAuthor(post); } else if (post !== reelsRail) post.remove(); });
 
 function applyFriendWorkspacePresence(users) {
   if (!Array.isArray(users)) return;
@@ -4918,7 +5083,7 @@ new MutationObserver(records => {
 
 function refreshFeedMediaWorkspace(records) {
   const workspaceName = featurePanel.dataset?.workspaceName || featureHeading.textContent;
-  if (featurePanel.hidden || !["Photos", "Videos", "Events", "Saved"].includes(workspaceName)) return;
+  if (featurePanel.hidden || !["Events", "Saved"].includes(workspaceName)) return;
   const feed = document.getElementById("feed");
   if (records.some(record => record.target === feed && (record.addedNodes.length || record.removedNodes.length))) {
     if (workspaceName === "Saved") {
@@ -4933,7 +5098,7 @@ function refreshFeedMediaWorkspace(records) {
 new MutationObserver(records => {
   for (const record of records) {
     record.addedNodes.forEach(node => {
-      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post") && node !== reelsRail) { if (hiddenPostIds.has(String(node.dataset.postId || ""))) { node.remove(); return; } addReactionButton(node); addShareButton(node); addSaveButton(node); addPostDeleteButton(node); describePostControls(node); placeReelsRail(); }
+      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post") && node !== reelsRail) { if (hiddenPostIds.has(String(node.dataset.postId || ""))) { node.remove(); return; } addReactionButton(node); addShareButton(node); addSaveButton(node); addPostDeleteButton(node); describePostControls(node); fillOwnAuthor(node); placeReelsRail(); }
       if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".comment")) addCommentDelete(node);
       if (node.nodeType === Node.ELEMENT_NODE) node.querySelectorAll?.(".comment").forEach(addCommentDelete);
     });

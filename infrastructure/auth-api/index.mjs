@@ -60,6 +60,8 @@ import { enrichPromoter } from "./promoter-contact.mjs";
 import { bookingReplyNotice, bookingNoticeWrites } from "./booking-reply-notice.mjs";
 import { unopenedRefunds, unopenedRefundTransaction } from "./unopened-credit.mjs";
 import { isDirectoryEditor, parseTrustedContact, trustedContactItems, trustedContactUpdate, trustedPromotersNear, contactId as trustedContactId } from "./trusted-contacts.mjs";
+import { publicError, sanitizeErrorResponse } from "./public-errors.mjs";
+import { createAlbums } from "./albums.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -92,6 +94,8 @@ const sms = new PinpointSMSVoiceV2Client({ region: "us-west-1", maxAttempts: 2 }
 const tableName = process.env.SESSIONS_TABLE;
 const sessionDevicesTable = process.env.SESSION_DEVICES_TABLE || "DANZSTAK-SessionDevices";
 const postsTable = "DANZSTAK-Posts";
+// A photo post holds up to 20 photos: its first (mediaKey) and up to 19 more, moreMedia (owner 2026-11-22).
+const postMoreMedia = item => (item?.moreMedia?.L || []).map(entry => entry?.S).filter(key => typeof key === "string" && key);
 const friendsTable = "DANZSTAK-Friends";
 const reactionsTable = "DANZSTAK-Reactions";
 const commentsTable = "DANZSTAK-Comments";
@@ -1282,7 +1286,7 @@ async function listGroups(event) {
     const id = item.userEmail.S.slice(6), isOwner = item.ownerId?.S === userId, membership = viewerMemberships.get(id);
     const storedDescription = item.description?.S || "";
     const description = storedDescription === "A new DanzStak community group." ? "A new DanzStak Tribe." : storedDescription || "A DanzStak Tribe.";
-    return { id, name: item.name?.S || "Tribe", category: item.category?.S || "Creators", description, coverUrl: item.coverKey?.S ? signedMediaUrl(item.coverKey.S, 3600) : "", createdAt: item.createdAt?.S || "", memberCount: counts.get(id) || 0, joined: Boolean(membership), isOwner, isElder: isOwner || membership?.role?.S === "elder" };
+    return { id, name: item.name?.S || "Tribe", category: item.category?.S || "Creators", description, coverUrl: item.coverKey?.S ? signedMediaUrl(item.coverKey.S, 3600) : "", coverPosition: groupCoverPosition(item), createdAt: item.createdAt?.S || "", memberCount: counts.get(id) || 0, joined: Boolean(membership), isOwner, isElder: isOwner || membership?.role?.S === "elder" };
   }).sort((a, b) => a.name.localeCompare(b.name));
   return { statusCode: 200, headers, body: JSON.stringify({ groups }) };
 }
@@ -1438,6 +1442,18 @@ async function cleanupGroupCoverObjects(id, keys, { allowActive = false } = {}) 
   return { cleaned: candidates.length - pending.length, pending: pending.length };
 }
 
+// Directive F12: where the Tribe cover sits in its box (the wide cover and the square Tribe picture use the same point).
+function groupCoverPosition(item) {
+  const read = (field, low, high, start) => { const value = Number(item?.[field]?.N); return Number.isFinite(value) ? Math.max(low, Math.min(high, value)) : start; };
+  return { x: read("coverX", 0, 100, 50), y: read("coverY", 0, 100, 50), zoom: read("coverZoom", 1, 3, 1) };
+}
+function requestedCoverPosition(data) {
+  const position = data?.position;
+  if (!position || typeof position !== "object") return null;
+  const read = (value, low, high, start) => { const number = Number(value); return Math.round(Math.max(low, Math.min(high, Number.isFinite(number) ? number : start)) * 100) / 100; };
+  return { x: read(position.x, 0, 100, 50), y: read(position.y, 0, 100, 50), zoom: read(position.zoom, 1, 3, 1) };
+}
+
 async function updateGroupCover(event) {
   const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -1446,21 +1462,38 @@ async function updateGroupCover(event) {
   if (!meta) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
   const callerEmail = await accountForSub(userId), membership = await groupMembership(id, callerEmail);
   if (meta.ownerId?.S !== userId && membership?.role?.S !== "elder") return { statusCode: 403, headers, body: JSON.stringify({ error: "Only an Elder can change the Tribe cover." }) };
-  const data = parseJsonBody(event), mediaKey = String(data?.mediaKey || ""), ownerPrefix = sha256(callerEmail).slice(0, 24);
+  const data = parseJsonBody(event), mediaKey = String(data?.mediaKey || ""), ownerPrefix = sha256(callerEmail).slice(0, 24), position = requestedCoverPosition(data);
+  if (!mediaKey && position) {
+    if (!meta.coverKey?.S) return { statusCode: 400, headers, body: JSON.stringify({ error: "Add a cover photo first." }) };
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: groupsTable,
+        Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+        UpdateExpression: "SET coverX = :x, coverY = :y, coverZoom = :zoom, updatedAt = :updated",
+        ConditionExpression: "attribute_exists(userEmail) AND attribute_not_exists(deletionState) AND coverKey = :cover",
+        ExpressionAttributeValues: { ":x": { N: String(position.x) }, ":y": { N: String(position.y) }, ":zoom": { N: String(position.zoom) }, ":updated": { S: new Date().toISOString() }, ":cover": { S: meta.coverKey.S } }
+      }));
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "The Tribe cover changed on another device. Try again." }) };
+      throw error;
+    }
+    return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(meta.coverKey.S, 3600), coverPosition: position }) };
+  }
   if (!new RegExp(`^users/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|gif)$`).test(mediaKey)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Choose a photo you uploaded." }) };
   try { await s3.send(new HeadObjectCommand({ Bucket: mediaBucket, Key: mediaKey })); }
   catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded cover photo was not found." }) }; }
   const oldKey = meta.coverKey?.S || "";
   const replacedKey = oldKey && oldKey !== mediaKey && groupCoverKeyPattern.test(oldKey) ? oldKey : "";
   const pendingCoverCleanup = [...new Set([...(meta.coverCleanup?.SS || []), replacedKey].filter(key => key && key !== mediaKey))];
-  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
+  const placed = position || { x: 50, y: 50, zoom: 1 };
+  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) }, ":x": { N: String(placed.x) }, ":y": { N: String(placed.y) }, ":zoom": { N: String(placed.zoom) } };
   if (pendingCoverCleanup.length) expressionValues[":coverCleanup"] = { SS: pendingCoverCleanup };
   if (oldKey) expressionValues[":oldCover"] = { S: oldKey };
   try {
     await db.send(new UpdateItemCommand({
       TableName: groupsTable,
       Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
-      UpdateExpression: "SET coverKey = :cover, updatedAt = :updated" + (pendingCoverCleanup.length ? ", coverCleanup = :coverCleanup REMOVE " : " REMOVE coverCleanup, ") + "coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
+      UpdateExpression: "SET coverKey = :cover, coverX = :x, coverY = :y, coverZoom = :zoom, updatedAt = :updated" + (pendingCoverCleanup.length ? ", coverCleanup = :coverCleanup REMOVE " : " REMOVE coverCleanup, ") + "coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
       ExpressionAttributeValues: expressionValues,
       ConditionExpression: "attribute_exists(userEmail) AND attribute_not_exists(deletionState) AND (attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now) AND " + (oldKey ? "coverKey = :oldCover" : "attribute_not_exists(coverKey)")
     }));
@@ -1469,7 +1502,7 @@ async function updateGroupCover(event) {
     throw error;
   }
   const cleanup = await cleanupGroupCoverObjects(id, pendingCoverCleanup);
-  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600), cleanupPending: cleanup.pending }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600), coverPosition: placed, cleanupPending: cleanup.pending }) };
 }
 
 async function deleteGroup(event) {
@@ -1867,7 +1900,7 @@ async function getSecurePosts(event) {
   const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames], authorProfiles);
   const authorName = email => authorNames.get(String(email || "").trim().toLowerCase()) || "DanzStak member";
   const authorPicture = email => authorProfiles.get(String(email || "").trim().toLowerCase())?.picture || "";
-  const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
+  const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : "",moreMediaUrls:postMoreMedia(item).map(key => signedMediaUrl(key,3600))}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
@@ -1890,15 +1923,30 @@ async function getSecurePosts(event) {
       mediaKey: item.mediaKey?.S ?? "",
       mediaUrl: item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S, 3600) : "",
       mediaType: item.mediaType?.S ?? "",
+      moreMediaUrls: postMoreMedia(item).map(key => signedMediaUrl(key, 3600)),
+      uploadSource: item.uploadSource?.S || "",
+      albumId: item.albumId?.S || "",
+      mediaRatio: Number(item.mediaRatio?.N || 0),
       reel: item.reel?.BOOL === true,
       commentPolicy: item.commentPolicy?.S ?? "everyone",
       editHistory: postEditHistory(item),
       updatedAt: item.updatedAt?.S ?? "",
+      pinnedUntil: activePinUntil(item),
       createdAt: item.createdAt.S
-    }))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }));
 
-  return { statusCode: 200, headers, body: JSON.stringify({ posts }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ posts: orderMixPosts(posts) }) };
+}
+
+// F15b (owner 2026-11-19): the DanzStak welcome post stays first in Mix until its pinnedUntil date, then falls back into
+// its chronological place. Only the owner's CloudShell script (set-welcome-post.mjs) writes pinnedUntil; no API route
+// accepts it (updateSecurePost takes content, audience and comment policy only), so members can't pin.
+function activePinUntil(item, now = Date.now()) {
+  const until = Date.parse(item?.pinnedUntil?.S || "");
+  return Number.isFinite(until) && until > now ? new Date(until).toISOString() : "";
+}
+function orderMixPosts(posts) {
+  return [...posts].sort((a, b) => Number(Boolean(b.pinnedUntil)) - Number(Boolean(a.pinnedUntil)) || b.createdAt.localeCompare(a.createdAt));
 }
 
 async function postForEngagement(postId, userId) {
@@ -2039,8 +2087,9 @@ async function getEngagement(event) {
     const list = children.get(comment.parentCommentId) || []; list.push(comment); children.set(comment.parentCommentId, list);
   }
   const comments = [], appendThread = comment => { comments.push(comment); for (const reply of (children.get(comment.commentId) || []).sort((a,b) => a.createdAt.localeCompare(b.createdAt))) appendThread(reply); };
+  // Directive F1a (owner 2026-11-19): comments by time only (the app shows Newest or Oldest), never ranked by reactions.
   commentRecords.filter(comment => !comment.parentCommentId || !commentById.has(comment.parentCommentId))
-    .sort((a,b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
+    .sort((a,b) => a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
   return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments }) };
 }
 
@@ -2420,6 +2469,29 @@ async function createSecurePost(event) {
   if ((mediaKey && (!/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/.test(mediaKey) || !mediaKey.startsWith(`users/${ownerPrefix}/`))) || Boolean(mediaKey) !== Boolean(mediaType)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid media reference." }) };
   }
+  // Owner 2026-11-22: "should be able to upload multiple photos at once", "set a limit of 20 photos". A photo post carries
+  // up to 19 more photos after its first (mediaKey), each the member's own upload; members swipe through them on the post.
+  const morePhotosAllowed = 19, moreMediaKeys = data.moreMediaKeys === undefined ? [] : data.moreMediaKeys;
+  if (!Array.isArray(moreMediaKeys) || moreMediaKeys.length > morePhotosAllowed || (moreMediaKeys.length && (mediaType !== "image" || sharedSource || facebookImport))
+    || new Set([mediaKey, ...moreMediaKeys]).size !== moreMediaKeys.length + 1
+    || moreMediaKeys.some(key => typeof key !== "string" || !/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif)$/.test(key) || !key.startsWith(`users/${ownerPrefix}/`))) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: `A post can hold up to ${morePhotosAllowed + 1} photos.` }) };
+  }
+  // Owner 2026-11-22: "User should get to choose what album that the images go into or what album the videos go into".
+  // A photo or video post may name one of the poster's own albums; its photos then show in that album instead of
+  // "Mobile uploads" / "Computer uploads". Albums live in the tours table under ALBUMS#<member> (albums.mjs).
+  const albumId = data.albumId === undefined || data.albumId === "" ? "" : data.albumId;
+  if (albumId && (typeof albumId !== "string" || !/^[a-f0-9]{32}$/.test(albumId) || !mediaKey || facebookImport || sharedSource)) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose one of your albums." }) };
+  }
+  if (albumId && !(await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: `ALBUMS#${userId}` }, tourId: { S: `ALBUM#${albumId}` } }, ProjectionExpression: "albumId", ConsistentRead: true }))).Item) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "That album is gone. Choose another one." }) };
+  }
+  // Owner 2026-11-22: "photo should automatically go to mobile uploads", "If they're uploaded from a computer should be a
+  // computer uploads". Which automatic album a post's photos and videos belong to: the browser says ("mobile" or
+  // "computer"; it can tell an iPad that reports itself as a Mac); an older app that doesn't is judged by its browser name.
+  const agent = String(event.headers?.["user-agent"] || event.headers?.["User-Agent"] || "");
+  const uploadSource = data.uploadSource === "mobile" || data.uploadSource === "computer" ? data.uploadSource : /Android|iPhone|iPad|iPod|Mobile/i.test(agent) ? "mobile" : "computer";
   const postId = facebookImport ? importPostId : randomUUID();
   const importedAt = new Date().toISOString();
   const createdAt = facebookImport ? importedDate.toISOString() : importedAt;
@@ -2438,7 +2510,13 @@ async function createSecurePost(event) {
       createdAt: { S: createdAt },
       audience: { S: audience },
       ...(facebookImport ? { importSource: { S: "facebook" }, importKey: { S: data.importKey }, importedAt: { S: importedAt } } : {}),
-      ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {})
+      ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {}),
+      ...(mediaKey && !facebookImport ? { uploadSource: { S: uploadSource } } : {}),
+      ...(albumId ? { albumId: { S: albumId } } : {}),
+      // The media's own shape (width / height) as the phone read it, so its frame is right before it loads (F22). A
+      // value that isn't a sane shape is left out (the frame then takes the shape when the media loads).
+      ...(mediaKey && Number.isFinite(Number(data.mediaRatio)) && Number(data.mediaRatio) >= 0.1 && Number(data.mediaRatio) <= 10 ? { mediaRatio: { N: String(Math.round(Number(data.mediaRatio) * 10000) / 10000) } } : {}),
+      ...(moreMediaKeys.length ? { moreMedia: { L: moreMediaKeys.map(key => ({ S: key })) } } : {})
     },
     ConditionExpression: "attribute_not_exists(postId)"
   };
@@ -2459,19 +2537,26 @@ async function createSecurePost(event) {
   // privacy: their Daily is visible only to the poster. A Daily that cannot be written never fails the post itself.
   let daily = null;
   if (mediaKey && !facebookImport && !sharedSource) {
-    const storyId = randomUUID(), expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
-    try {
-      await db.send(new PutItemCommand({
-        TableName: storiesTable,
-        Item: { storyId: { S: storyId }, userEmail: { S: userEmail }, content: { S: content.slice(0, 5000) || "Story" }, audience: { S: audience === "group" ? "private" : audience }, mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, postId: { S: postId }, fromPost: { BOOL: true }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } },
-        ConditionExpression: "attribute_not_exists(storyId)"
-      }));
-      daily = { storyId, expiresAt };
-      // The clapper's TAKE N counts the member's lifetime Dailies videos (same rule as a Daily added directly).
-      if (mediaType === "video") await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :one", ExpressionAttributeValues: { ":one": { N: "1" }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count not updated", { postId, error: error.name }));
-    } catch (error) {
-      console.error("Post Daily could not be created", { postId, error: error.name });
+    const expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
+    // Every photo of a multi-photo post is its own Daily (owner 2026-11-22), in the post's order.
+    let dailies = 0;
+    for (const [index, key] of [mediaKey, ...moreMediaKeys].entries()) {
+      const storyId = randomUUID(), at = new Date(Date.parse(createdAt) + index).toISOString();
+      try {
+        await db.send(new PutItemCommand({
+          TableName: storiesTable,
+          Item: { storyId: { S: storyId }, userEmail: { S: userEmail }, content: { S: content.slice(0, 5000) || "Story" }, audience: { S: audience === "group" ? "private" : audience }, mediaKey: { S: key }, mediaType: { S: mediaType }, postId: { S: postId }, fromPost: { BOOL: true }, createdAt: { S: at }, expiresAt: { N: String(expiresAt) } },
+          ConditionExpression: "attribute_not_exists(storyId)"
+        }));
+        if (!daily) daily = { storyId, expiresAt };
+        dailies += 1;
+      } catch (error) {
+        console.error("Post Daily could not be created", { postId, error: error.name });
+      }
     }
+    // The clapper's TAKE N counts every Daily the member has ever posted, photos and videos (owner 2026-11-22: "I had 15
+    // before and now I just uploaded four more so it should be … take 19"). It never goes down.
+    if (dailies) await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :count", ExpressionAttributeValues: { ":count": { N: String(dailies) }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count could not be updated", { postId, error: error.name }));
   }
 
   return {
@@ -2490,6 +2575,7 @@ async function createSecurePost(event) {
       location,
       mediaKey,
       mediaType,
+      moreMediaKeys,
       reel,
       createdAt
     })
@@ -2540,23 +2626,24 @@ async function deleteSecurePost(event) {
   const deletionRecords = mode === "delete_everywhere" && !isShare ? [...shares, found.Item] : [found.Item];
   let linkedStories = [];
   let mediaKey = "";
-  if (found.Item.mediaKey?.S) {
+  // Every photo of the post (its first and up to 19 more), the files and their Dailies.
+  const postMedia = found.Item.mediaKey?.S ? [found.Item.mediaKey.S, ...postMoreMedia(found.Item)] : [];
+  if (postMedia.length) {
     const ownerPrefix = sha256(found.Item.userEmail?.S || "").slice(0, 24);
-    if (!found.Item.mediaKey.S.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
+    if (postMedia.some(key => !key.startsWith(`users/${ownerPrefix}/`))) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
     mediaKey = found.Item.mediaKey.S;
+    const mediaValues = Object.fromEntries(postMedia.map((key, index) => [`:media${index}`, { S: key }]));
     linkedStories = await scanAll({
       TableName: storiesTable,
-      FilterExpression: "mediaKey = :media AND userEmail = :owner",
-      ExpressionAttributeValues: { ":media": { S: found.Item.mediaKey.S }, ":owner": { S: found.Item.userEmail?.S || "" } },
+      FilterExpression: `mediaKey IN (${Object.keys(mediaValues).join(", ")}) AND userEmail = :owner`,
+      ExpressionAttributeValues: { ...mediaValues, ":owner": { S: found.Item.userEmail?.S || "" } },
       ProjectionExpression: "storyId"
     }, Number.MAX_SAFE_INTEGER);
   }
-  if (mediaKey) {
-    const mediaCleanupPending = await runCleanup([
-      () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey }))
-    ]);
+  if (postMedia.length) {
+    const mediaCleanupPending = await runCleanup(postMedia.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: key }))));
     if (mediaCleanupPending) {
-      console.error("Post media deletion remains pending", { postId, mediaKey });
+      console.error("Post media deletion remains pending", { postId, mediaKey, photos: postMedia.length });
       return { statusCode: 503, headers, body: JSON.stringify({ error: "Post media could not be removed yet. Try again.", deleted: false }) };
     }
   }
@@ -2706,6 +2793,14 @@ async function updateSecurePost(event) {
     const audience = String(data.audience || "");
     if (!["public", "friends", "private"].includes(audience)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid audience." }) };
     updates.push("audience = :audience"); values[":audience"] = { S: audience };
+  }
+  // Owner 2026-11-22: "they could go back through it and move those images to the specific album that they should be in".
+  // A photo or video post moves to one of its owner's albums, or back ("") to Mobile uploads / Computer uploads.
+  if (Object.prototype.hasOwnProperty.call(data, "albumId")) {
+    const albumId = data.albumId;
+    if (typeof albumId !== "string" || (albumId && !/^[a-f0-9]{32}$/.test(albumId)) || !["image", "video"].includes(found.Item.mediaType?.S) || found.Item.importSource?.S) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose one of your albums." }) };
+    if (albumId && !(await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: `ALBUMS#${userId}` }, tourId: { S: `ALBUM#${albumId}` } }, ProjectionExpression: "albumId", ConsistentRead: true }))).Item) return { statusCode: 400, headers, body: JSON.stringify({ error: "That album is gone. Choose another one." }) };
+    updates.push("albumId = :albumId"); values[":albumId"] = { S: albumId };
   }
   if (Object.prototype.hasOwnProperty.call(data, "commentPolicy")) {
     const commentPolicy = String(data.commentPolicy || "");
@@ -4391,6 +4486,21 @@ const epkPublicPartition = "epk-public";
 const epkSharePartition = "epk-private-share";
 const epkOutreachPartition = "epk-outreach-share";
 const epkOutreachPrefix = "EPK#OUTREACH#";
+// Queue 5a2: photo and video albums on the profile (own partition in the tours table). Built on first use.
+let albumsInstance = null;
+const albumsService = () => albumsInstance ||= createAlbums({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, UpdateItemCommand, DeleteItemCommand, TransactWriteItemsCommand },
+  tableName: toursTable,
+  authenticate: getAuthenticatedUser,
+  accountEmail: userId => accountForSub(userId),
+  mediaPrefix: userId => mediaOwnerPrefixForUser(userId),
+  signedUrl: (key, expires) => signedMediaUrl(key, expires),
+  deleteMedia: async keys => (await runCleanup(keys.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }))))) === 0,
+  relationship: async (viewerEmail, ownerEmail) => (await db.send(new GetItemCommand({ TableName: friendsTable, Key: { userEmail: { S: viewerEmail }, friendEmail: { S: ownerEmail } }, ConsistentRead: true, ProjectionExpression: "#status", ExpressionAttributeNames: { "#status": "status" } }))).Item?.status?.S || "",
+  corsHeaders,
+  originAllowed: origin => allowedOrigins.has(origin)
+});
 
 const epkMediaRoles = new Set(["press-photo", "logo", "artwork", "press-clipping", "biography", "technical-rider", "hospitality-rider", "stage-plot", "other"]);
 const epkMediaPattern = ownerPrefix => new RegExp(`^epk/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`);
@@ -5553,7 +5663,9 @@ async function sendPersonalPhoneCode(event) {
     const result = await service.send({ userId, countryCode: String(body.countryCode || "").slice(0, 8), localNumber: String(body.localNumber || "").slice(0, 40), requestKey, purpose, locale, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 202, headers, body: JSON.stringify(result) };
   } catch (error) {
-    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
+    if (Number(error?.statusCode || 0) >= 500 || !error?.statusCode) console.error("Phone send failed", { errorName: error?.name || "Error", errorMessage: error?.message || "" });
+    const mapped = publicError(error, { fallback: "Couldn't send the code right now. Try again in a minute.", code: "send_try_again" });
+    return { statusCode: mapped.statusCode, headers, body: JSON.stringify({ error: mapped.error, code: mapped.code }) };
   }
 }
 
@@ -5570,7 +5682,9 @@ async function confirmPersonalPhoneCode(event) {
     const result = await service.confirm({ userId, code: String(body.code || "").slice(0, 12), purpose, requestKey, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (error) {
-    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
+    if (Number(error?.statusCode || 0) >= 500 || !error?.statusCode) console.error("Phone confirm failed", { errorName: error?.name || "Error", errorMessage: error?.message || "" });
+    const mapped = publicError(error, { fallback: "Couldn't check the code right now. Try again in a minute.", code: "confirm_try_again" });
+    return { statusCode: mapped.statusCode, headers, body: JSON.stringify({ error: mapped.error, code: mapped.code }) };
   }
 }
 
@@ -5587,7 +5701,10 @@ async function removePersonalPhone(event) {
 }
 
 // API GATEWAY ROUTES
-export const handler = async event => {
+// Every reply passes the error mapper: no AWS, Stripe or stack details ever reach a member (directive L1).
+export const handler = async event => sanitizeErrorResponse(await routeRequest(event), { route: `${event?.requestContext?.http?.method || ""} ${event?.requestContext?.routeKey || event?.rawPath || ""}`.trim() });
+
+async function routeRequest(event) {
   const method = event?.requestContext?.http?.method;
   const path = event?.rawPath;
   await mediaCdn.ready().catch(() => false);
@@ -5782,6 +5899,7 @@ export const handler = async event => {
     const reviewMatch = path.match(/^\/reviews\/([a-f0-9]{32})$/i);
     if (method === "PATCH" && reviewMatch) return await updateReview(event, reviewMatch[1].toLowerCase());
     if (method === "DELETE" && reviewMatch) return await deleteReview(event, reviewMatch[1].toLowerCase());
+    if (path === "/albums" || path.startsWith("/albums/")) { const albums = await albumsService().handle(event, method, path); if (albums) return albums; }
     if (method === "GET" && path === "/tours") return await listTourPlans(event);
     if (method === "POST" && path === "/tours") return await saveTourPlan(event);
     if (method === "DELETE" && path.startsWith("/tours/")) return await deleteTourPlan(event, decodeURIComponent(path.slice(7)));
@@ -5810,8 +5928,8 @@ export const handler = async event => {
 
     return errorResponse(500, "Authentication service error");
   }
-};
+}
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };
+export { activePinUntil, orderMixPosts, geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };

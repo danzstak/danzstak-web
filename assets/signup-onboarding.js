@@ -1,7 +1,7 @@
 "use strict";
 // Owner directive 2026-11-16: no "DanzStak member" placeholder names. New members choose their name and
-// username before using DanzStak, then are offered SYNC device registration. Without registering, SYNC
-// works for text only (calls, video and voice messages need a registered device).
+// username before using DanzStak, then are offered SYNC: save the app and verify the number. Without registering,
+// SYNC works for text only (calls, video and voice messages need a registered device).
 (() => {
   const API = "https://api.danzstak.com";
   const PLACEHOLDER_NAMES = new Set(["danzstak member", ""]);
@@ -24,10 +24,14 @@
 .ds-onboard .ds-at{display:flex;align-items:center;gap:0}.ds-onboard .ds-at span{padding:0 10px;color:#8b8f99}
 .ds-onboard .ds-row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
 .ds-onboard button{min-height:46px;padding:0 18px;border-radius:10px;border:1px solid #2e2f34;background:transparent;color:#ededea;font:inherit;font-weight:800;cursor:pointer}
-.ds-onboard button.ds-go{background:#ff5a1f;border-color:#ff5a1f;color:#0b0b0c}
+.ds-onboard button.ds-go{background:var(--ds-btn-go,#15803d);border-color:var(--ds-btn-go,#15803d);color:#fff}
 .ds-onboard button:disabled{opacity:.5;cursor:wait}
 .ds-onboard .ds-err{min-height:1.2em;margin:0 0 6px;color:#ff8a6b;font-size:.88rem}
-.ds-onboard .ds-kicker{font:700 .72rem/1 ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:#ff5a1f;margin:0 0 10px}`;
+.ds-onboard .ds-kicker{font:700 .72rem/1 ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:#ff5a1f;margin:0 0 10px}
+.ds-onboard .ds-steps{display:grid;gap:10px;margin:0 0 16px;padding:0;list-style:none;counter-reset:ds-step}
+.ds-onboard .ds-row--stack{flex-direction:column-reverse;align-items:stretch}
+.ds-onboard .ds-steps li{display:flex;align-items:center;gap:12px;color:#ededea;font-weight:700;line-height:1.3;counter-increment:ds-step}
+.ds-onboard .ds-steps li::before{content:counter(ds-step);display:grid;place-items:center;flex:0 0 28px;height:28px;border-radius:50%;background:#ff5a1f;color:#0b0b0c;font-weight:900}`;
     document.head.append(s);
   }
 
@@ -65,16 +69,27 @@
     });
   }
 
+  // Owner 2026-11-19: "when users sign up they will be in their browsers the app should tell users to save sync to their
+  // device and verify the number … it needs to be easy". One SYNC step with both parts and one button: SYNC's own page
+  // offers the app first (where SYNC's manifest applies), then goes straight into "Text me a code". Inside the installed
+  // SYNC app only the number is left to verify. Without it SYNC works for text only.
   function deviceStep() {
     try { if (localStorage.getItem(DEVICE_PROMPT_KEY) === "1") return; localStorage.setItem(DEVICE_PROMPT_KEY, "1"); } catch {}
     style();
+    const inSyncIcon = location.pathname.startsWith("/sync/") && (window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true);
+    const phone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "") || navigator.maxTouchPoints > 1;
+    const steps = [...(inSyncIcon ? [] : [phone ? "Save the SYNC app to your home screen" : "Save the SYNC app to this computer"]), "Verify your number with a text code"];
     const d = document.createElement("dialog"); d.className = "ds-onboard"; d.setAttribute("aria-labelledby", "dsDeviceTitle");
-    d.innerHTML = `<p class="ds-kicker">SYNC</p><h2 id="dsDeviceTitle">Register this device?</h2>
-<p>Texting works right away. To make or answer calls, video calls and voice messages, verify this device with a code sent to your phone. You can do it any time in SYNC.</p>
-<div class="ds-row"><button type="button" data-later>Later — text only</button><button type="button" class="ds-go" data-now>Register now</button></div>`;
+    d.innerHTML = `<p class="ds-kicker">SYNC</p><h2 id="dsDeviceTitle"></h2><p></p><ol class="ds-steps"></ol>
+<div class="ds-row ds-row--stack"><button type="button" data-later></button><button type="button" class="ds-go" data-now></button></div>`;
+    d.querySelector("h2").textContent = t("Set up SYNC on this device");
+    d.querySelector("h2 + p").textContent = t("Texting works right away. For calls, video calls and voice messages:");
+    d.querySelector(".ds-steps").replaceChildren(...steps.map(step => { const item = document.createElement("li"); item.textContent = t(step); return item; }));
+    d.querySelector("[data-later]").textContent = t("Later — text only");
+    d.querySelector("[data-now]").textContent = t("Set up SYNC");
     document.body.append(d);
     d.querySelector("[data-later]").addEventListener("click", () => { d.close(); d.remove(); });
-    d.querySelector("[data-now]").addEventListener("click", () => { d.close(); d.remove(); location.href = "messages.html?device=register"; });
+    d.querySelector("[data-now]").addEventListener("click", () => { d.close(); d.remove(); location.href = `/sync/?${inSyncIcon ? "" : "install=1&"}device=register`; });
     d.showModal();
   }
 

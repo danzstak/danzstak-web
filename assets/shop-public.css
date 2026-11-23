@@ -1,0 +1,42 @@
+/* Owner 2026-11-22: a shared profile link, opened signed out, shows only that member's shop (shop.html). */
+.shop-public{margin:0;min-height:100dvh;background:#fff;color:#0b0b0c;font-family:var(--ds-font)}
+.shop-public-bar{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;min-height:56px;padding:calc(6px + env(safe-area-inset-top)) 8px 6px 16px;background:rgba(255,255,255,.9);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid #e6e7ea}
+.shop-public-mark{display:inline-flex;align-items:center;gap:8px;font:800 13px/1 "JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em}
+.shop-public-mark img{display:block;width:28px;height:28px;border-radius:6px}
+.shop-public-exit{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:50%;color:#0b0b0c;-webkit-tap-highlight-color:transparent}
+.shop-public-exit:active{background:#f1f1ef}
+.shop-public-exit:focus-visible,.shop-public-item-close:focus-visible,.shop-public-retry:focus-visible{outline:3px solid #ff5a1f;outline-offset:2px}
+.shop-public-exit svg,.shop-public-item-close svg{display:block;width:24px;height:24px}
+.shop-public main{max-width:960px;margin:0 auto;padding:0 0 calc(24px + env(safe-area-inset-bottom))}
+.shop-public-status{margin:0;padding:24px 16px 0;color:#5b6472;text-align:center}
+.shop-public-status:empty{display:none}
+.shop-public-retry{min-height:44px;padding:0 22px;border:0;border-radius:999px;background:#15803d;color:#fff;font:700 15px/1 var(--ds-font)}
+.shop-public-retry[hidden]{display:none}
+.shop-public-cover{aspect-ratio:16/7;overflow:hidden;background:#121418}
+.shop-public-cover img{display:block;width:100%;height:100%;object-fit:cover}
+.shop-public-head{padding:16px 16px 0}
+.shop-public-kicker{margin:0;font:700 12px/1.3 "JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#c2410c}
+.shop-public h1{margin:4px 0 0;font-size:26px;line-height:1.15;font-weight:900;overflow-wrap:anywhere}
+.shop-public-about{margin:8px 0 0;color:#3d4450;font-size:15px;line-height:1.45;white-space:pre-line;overflow-wrap:anywhere}
+.shop-public-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 10px;padding:16px}
+.shop-public-card{display:flex;flex-direction:column;gap:3px;min-width:0;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.shop-public-card:focus-visible{outline:3px solid #ff5a1f;outline-offset:3px;border-radius:8px}
+.shop-public-image{display:block;aspect-ratio:1;overflow:hidden;border-radius:8px;background:#121418}
+.shop-public-image img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .15s}
+.shop-public-card:active .shop-public-image img{transform:scale(.97)}
+.shop-public-title{margin-top:6px;font-size:14px;line-height:1.3;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.shop-public-detail{margin:0;color:#5b6472;font:500 11.5px/1.3 "JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+.shop-public-price{font-size:16px;font-weight:900;letter-spacing:-.01em}
+.shop-public-item{box-sizing:border-box;width:100%;max-width:100%;max-height:92dvh;margin:auto 0 0;padding:0;border:0;border-radius:16px 16px 0 0;overflow:auto;background:#fff;color:#0b0b0c;overscroll-behavior:contain}
+.shop-public-item::backdrop{background:rgba(11,11,12,.6)}
+.shop-public-item-close{position:absolute;top:8px;right:8px;z-index:1;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:rgba(11,11,12,.62);color:#fff;cursor:pointer}
+.shop-public-item-image{background:#121418}
+.shop-public-item-image[hidden]{display:none}
+.shop-public-item-image img{display:block;width:100%;height:auto;max-height:62dvh;object-fit:contain}
+.shop-public-item-copy{padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+.shop-public-item-copy h2{margin:0;padding-right:44px;font-size:20px;line-height:1.25;font-weight:800;overflow-wrap:anywhere}
+.shop-public-item-image:not([hidden]) + .shop-public-item-copy h2{padding-right:0}
+.shop-public-item-price{margin:8px 0 2px;font-size:22px;font-weight:900;letter-spacing:-.01em}
+.shop-public-checkout{display:block;width:100%;min-height:48px;margin:16px 0 4px;border:0;border-radius:999px;background:#e6e7ea;color:#5b6472;font:700 15px/1 var(--ds-font)}
+@media(min-width:700px){.shop-public-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.shop-public-item{max-width:520px;margin:auto;border-radius:16px}}
+@media(prefers-reduced-motion:reduce){.shop-public-image img{transition:none}}

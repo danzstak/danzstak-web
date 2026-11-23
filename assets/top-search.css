@@ -21,7 +21,7 @@
 .person-row .user-search-identity a,.person-row .user-search-identity strong{overflow:hidden;color:#121418;font-weight:800;text-decoration:none;text-overflow:ellipsis;white-space:nowrap}
 .person-row .user-search-identity small{overflow:hidden;color:#4b5565;font-size:.86rem;text-overflow:ellipsis;white-space:nowrap}
 .person-row-actions{display:flex;align-items:center;gap:6px}
-.person-row .user-search-action{min-height:44px;padding:0 14px;border:0;border-radius:8px;background:#ff5a1f;color:#121418;font:inherit;font-size:.9rem;font-weight:800;white-space:nowrap;cursor:pointer}
+.person-row .user-search-action{min-height:44px;padding:0 14px;border:0;border-radius:8px;background:var(--ds-btn-go,#15803d);color:#fff;font:inherit;font-size:.9rem;font-weight:800;white-space:nowrap;cursor:pointer}
 .person-row .user-search-action[data-state="friends"],.person-row .user-search-action[data-state="outgoing"],.person-row .user-search-action[data-state="visible-author"]{background:#eef1f5;color:#121418}
 .person-row .user-search-action:disabled{cursor:default;opacity:1}
 .person-row-message{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:999px;background:#eef1f5;color:#121418}

@@ -10,6 +10,6 @@
 .ds-terms-dialog input[type=checkbox]{width:22px;height:22px;flex:none;accent-color:#ff5a1f}
 .ds-terms-dialog .ds-terms-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .ds-terms-dialog button{min-height:44px;padding:0 16px;border-radius:8px;border:1px solid #3a3a3e;background:transparent;color:inherit;font:inherit;cursor:pointer}
-.ds-terms-dialog button.ds-terms-ok{background:#ff5a1f;border-color:#ff5a1f;color:#0b0b0c;font-weight:700}
+.ds-terms-dialog button.ds-terms-ok{background:var(--ds-btn-go,#15803d);border-color:var(--ds-btn-go,#15803d);color:#fff;font-weight:700}
 .ds-terms-dialog button:disabled{opacity:.45;cursor:not-allowed}
 .ds-terms-dialog a{color:#ff8a5c}

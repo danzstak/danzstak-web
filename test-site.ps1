@@ -64,7 +64,7 @@ $bookingClientCompact = $bookingClient -replace '\s+', ''
 foreach ($bookingControl in @('DanzStak Booking Agent', 'Where do you want to play?', 'id="venueSearchMap"', 'Search where you want to play', 'id="searchVisibleVenueArea"', 'Search this area', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public contacts for clubs', 'Find a show near home', 'id="performerType"', '<option value="dj">DJ</option>', 'id="musicGenre"', '<option>DJ / Electronic</option>')) {
   if (-not $bookingMarkup.Contains($bookingControl)) { Add-Failure "Booking Agent: required planning control is missing: $bookingControl" }
 }
-if (-not $bookingMarkup.Contains('assets/session-activity.js?v=270')) {
+if ($bookingMarkup -notmatch 'assets/session-activity\.js\?v=\d+') {
   Add-Failure 'Booking Agent: signed-in users do not publish site-wide online presence'
 }
 foreach ($bookingClientControl in @('Send me out and bring me home', 'First show / leave home', 'Back home', 'route-map', 'My upcoming and past gigs', 'Upcoming gigs', 'Past gigs')) {
@@ -114,15 +114,17 @@ if (-not $feed.Contains("frame-src 'self' https://www.youtube-nocookie.com")) {
 foreach ($uploadCleanupControl in @('async function discardUploadedMedia(mediaKey)', 'await discardUploadedMedia(uploadedStoryKey)', 'await discardUploadedMedia(uploadedPostKey)')) {
   if (-not $feed.Contains($uploadCleanupControl)) { Add-Failure "Media: failed publication leaves an orphaned upload: $uploadCleanupControl" }
 }
-foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Daily from "', 'open.addEventListener("click", () => openStoryViewer(story))')) {
+foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Daily from "', 'open.addEventListener("click", () => openStoryViewer(story, { sequence: visibleStories }))')) {
   if (-not $feed.Contains($storyAccessibilityControl)) { Add-Failure "Stories: open and delete controls are not separately accessible: $storyAccessibilityControl" }
 }
 $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
 foreach ($storyPreviewControl in @('storyCopy.className = "story-card-copy"', 'item.classList.add("story-video")', 'caption.textContent = storyDisplayCaption(story)')) {
   if (-not $feed.Contains($storyPreviewControl)) { Add-Failure "Stories: photo and video cards lack an identifiable preview: $storyPreviewControl" }
 }
-if (-not $feedEnhancementCss.Contains('.story.story-video::after{content:')) {
-  Add-Failure 'Stories: video cards lack a branded play fallback when no poster frame is available'
+# Directive F15a (owner 2026-11-19): no play icon on Dailies tiles ("just click on the video and it plays"); a video with no
+# poster frame shows the DanzStak gradient instead of a black box.
+if ($feedEnhancementCss.Contains('.story.story-video::after{content:') -or -not $feedEnhancementCss.Contains('.story.story-video video{background:linear-gradient(')) {
+  Add-Failure 'Stories: video tiles must show no play icon and keep the branded gradient when no poster frame is available'
 }
 if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
@@ -140,8 +142,9 @@ foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
   if (-not $markup.Contains($mediaOrigin)) { Add-Failure "${page}: signed AWS media origin is blocked by CSP" }
 }
 if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
-# Audit A2 (owner 2026-11-19): Dailies come from posts; the Dailies tile never opens the photo picker.
-foreach ($dailiesTileControl in @('aria-label="Add a photo or video to Dailies"', 'if (ownDailies.length) { void openStoryViewer(ownDailies[0]); return; }', 'ownDailies = (data.stories || []).filter(story => story.isOwner);')) {
+# Audit A2 (owner 2026-11-19): Dailies come from posts. The own tile opens your Dailies (swipe through them, #605) or
+# the post box, never a file picker.
+foreach ($dailiesTileControl in @('aria-label="Post a photo or video to your Dailies"', 'if (ownDailies.length) { void openStoryViewer(ownDailies[0], { sequence: ownDailies }); return; }', 'ownDailies = allStories.filter(story => story.isOwner === true);')) {
   if (-not $feed.Contains($dailiesTileControl)) { Add-Failure "Dailies tile: viewer/composer behaviour is incomplete: $dailiesTileControl" }
 }
 if ($feed.Contains('createStoryInput')) { Add-Failure 'Dailies tile: still opens a separate photo picker' }
@@ -153,7 +156,7 @@ if ($feedEnhancements.Contains('Reel saved on this device until cloud sync is av
 }
 if (-not $feedEnhancements.Contains('rightsCertified: true')) { Add-Failure 'External Reel submissions omit rights attestation' }
 $pushClient = Get-Content -LiteralPath (Join-Path $root 'assets\push-notifications.js') -Raw -Encoding utf8
-foreach ($pushRenewalBehavior in @('async function renewExistingSubscription()', 'Notification.permission !== "granted"', 'registration.pushManager.getSubscription()', 'sessionStorage.getItem("danzstak_push_synced")', 'await api("/push/subscribe"', 'setTimeout(renewExistingSubscription, 2000)')) {
+foreach ($pushRenewalBehavior in @('async function renewExistingSubscription(', 'Notification.permission !== "granted"', 'registration.pushManager.getSubscription()', 'const SYNC_KEY = "danzstak_push_synced"', 'sessionStorage.getItem(SYNC_KEY)', 'await api("/push/subscribe"', 'setTimeout(renewExistingSubscription, 2000)', 'addEventListener("danzstak:call-device-ready"')) {
   if (-not $pushClient.Contains($pushRenewalBehavior)) { Add-Failure "Push alerts: an approved browser subscription can expire server-side without renewal: $pushRenewalBehavior" }
 }
 foreach ($notificationRecoveryBehavior in @('const notificationController = new AbortController()', 'setTimeout(() => notificationController.abort(), 10000)', 'signal: notificationController.signal', 'error.textContent = feedTranslate("Notifications could not be loaded.")', 'retry.addEventListener("click", () => renderWorkspace("Notifications"))', 'clearTimeout(notificationTimeout)')) {
@@ -238,7 +241,9 @@ foreach ($backgroundCallControl in @('window.openMessageDrawer(event.senderEmail
 foreach ($callBehavior in @('setCallMode(kind)', 'showCallConversation()', 'setCallMode("")')) {
   if (-not $chatScript.Contains($callBehavior)) { Add-Failure "Calls: missing call layout state behavior: $callBehavior" }
 }
-foreach ($callLayout in @('body[data-call-mode="phone"] .video-grid', 'body[data-call-mode="phone"] #toggleCamera', 'body[data-call-mode="video"] .video-grid', '.receiver-hangup[hidden]')) {
+# F15k: the camera button stays in the call panel (disabled on voice calls), so the panel keeps its 2x3 grid; checked by
+# browser-checks/sync-call-screen-ui.cjs.
+foreach ($callLayout in @('body[data-call-mode="phone"] .video-grid', 'body[data-call-mode="video"] .video-grid', '.receiver-hangup[hidden]')) {
   if (-not $chatStyles.Contains($callLayout)) { Add-Failure "Calls: missing phone/video layout rule: $callLayout" }
 }
 foreach ($relationshipStatus in @('relationship=document.createElement("span")', 'relationship.className="connection-status"', 'relationship.setAttribute("role","status")')) {
@@ -589,7 +594,7 @@ if (-not $feedEnhancementsJs.Contains('postActionFetch("/settings/posts"') -or
     -not $feedEnhancementsJs.Contains('option("Move to archive", "Hide this post from your account."')) {
   Add-Failure 'Post menu: archived and hidden posts are not persisted to the account'
 }
-foreach ($postMenuAccessibility in @('menu.setAttribute("role", "menu")', 'button.setAttribute("role", "menuitem")', 'toggle.setAttribute("aria-controls", menu.id)', 'toggle.setAttribute("aria-haspopup", "menu")', 'event.key === "Escape"', '"ArrowDown", "ArrowUp", "Home", "End"', '.post-options-menu:not([hidden])')) {
+foreach ($postMenuAccessibility in @('menu.setAttribute("role", "menu")', 'button.setAttribute("role", "menuitem")', 'toggle.setAttribute("aria-controls", menu.id)', 'toggle.setAttribute("aria-haspopup", "menu")', 'event.key === "Escape"', '"ArrowDown", "ArrowUp", "Home", "End"', 'if (event.target.closest(".post-menu-toggle, .post-options-menu")) return;', 'history.state?.danzstakPostMenu !== true')) {
   if (-not $feedEnhancementsJs.Contains($postMenuAccessibility)) { Add-Failure "Post menu: keyboard or assistive-technology behavior is missing: $postMenuAccessibility" }
 }
 if (-not $feedEnhancementsJs.Contains('const remoteNames = { pinned: "pinned", saved: "saved", notificationsOff: "muted" }') -or

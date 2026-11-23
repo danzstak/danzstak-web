@@ -16,7 +16,7 @@
 .reels-rail:not(.roll-fullscreen) .reel-details>*{display:none!important}
 .reels-rail:not(.roll-fullscreen) .reel-details>strong,.reels-rail:not(.roll-fullscreen) .reel-details>.reel-author-link{display:block!important;color:#fff!important;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}
 .reels-rail:not(.roll-fullscreen) .reel-details>strong{display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal}
-.reels-rail:not(.roll-fullscreen) .reels-empty{flex:1 0 100%;aspect-ratio:auto;padding:16px 0;margin:0}
+.reels-rail:not(.roll-fullscreen) .reels-empty{flex:1 0 100%;aspect-ratio:auto;padding:16px calc(var(--mix-pad,12px) * 2);margin:0} /* audit 36 D5: the list bleeds out by the rail's padding and the heading is inset by --mix-pad inside the rail, so this lines the text up with "The Roll" (roll-empty.cjs measures it) */
 .reels-heading>span:not([class]){display:none!important}
 /* Full screen: one video per screen, vertical snap, media centered and never stretched. */
 .reels-rail.roll-fullscreen .reel-card{display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;background:#000!important}
@@ -32,3 +32,10 @@
 .reels-rail:not(.roll-fullscreen) .reels-heading h3{font-size:15px!important;line-height:1.2!important}
 .reels-rail:not(.roll-fullscreen) .reels-list{padding:0 var(--mix-pad,12px) 2px!important;scroll-padding-inline:var(--mix-pad,12px)}
 .reels-rail .roll-open,.reels-rail .roll-add-toggle{display:none!important}
+/* T0-A3 (owner 2026-11-19): the full-screen Roll fills the screen edge to edge. The Roll is also a Mix ".post", and the
+   strip's own rules (mix-polish .reels-rail.post padding + negative list margins, the white .post card) still applied in
+   full screen: the video sat 10px low with its bottom cut off, and a grey bar showed above the header. The caption's
+   gradient now runs the full width; only its text keeps clear of the sound button. */
+.reels-rail.post.roll-fullscreen,.reels-rail.roll-fullscreen{padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#050508!important}
+.reels-rail.post.roll-fullscreen .reels-list,.reels-rail.roll-fullscreen .reels-list{margin:0!important;width:100%!important;max-width:none!important;padding:0!important}
+.reels-rail.roll-fullscreen .reel-details{right:0!important;padding-right:max(16px,var(--roll-safe-right,0px))!important}

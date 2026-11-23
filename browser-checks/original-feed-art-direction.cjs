@@ -187,6 +187,7 @@ async function createPortraitVideo(browser) {
             media: [m.left, m.right],
             aligned: Math.abs(p.left - m.left) <= 1 && Math.abs(p.right - m.right) <= 1,
             ratio: m.width / m.height,
+            natural: media.matches("img") && media.naturalHeight ? media.naturalWidth / media.naturalHeight : player?.videoHeight ? player.videoWidth / player.videoHeight : 0,
             fit: player ? getComputedStyle(player).objectFit : getComputedStyle(media).objectFit,
             type: {
               author: [authorStyle.fontSize, authorStyle.fontWeight, authorStyle.lineHeight],
@@ -283,10 +284,15 @@ async function createPortraitVideo(browser) {
         assert.ok(Math.abs(geometry.image.media[0]) <= 1 && Math.abs(geometry.image.media[1] - width) <= 1, `${width}px image media is not exactly 100vw: ${JSON.stringify(geometry.image)}`);
         assert.ok(Math.abs(geometry.video.post[0]) <= 1 && Math.abs(geometry.video.post[1] - width) <= 1, `${width}px video post is not viewport-wide: ${JSON.stringify(geometry.video)}`);
         assert.ok(Math.abs(geometry.video.media[0]) <= 1 && Math.abs(geometry.video.media[1] - width) <= 1, `${width}px video media is not exactly 100vw: ${JSON.stringify(geometry.video)}`);
-        assert.ok(Math.abs(geometry.image.ratio - .8) <= .02, `${width}px image preview is not 4:5: ${JSON.stringify(geometry.image)}`);
-        assert.equal(geometry.image.fit, "cover", `${width}px image preview does not fill its 4:5 frame`);
+        // Owner 2026-11-22 ("Make the container the size of the image or the video"): the photo keeps its own shape,
+        // limited only to 9:20..3:1 (browser-checks/photo-frame.cjs).
+        const photoRatio = Math.min(3, Math.max(.45, geometry.image.natural));
+        assert.ok(geometry.image.natural > 0 && Math.abs(geometry.image.ratio - photoRatio) <= .02, `${width}px image preview is not the photo's own shape: ${JSON.stringify(geometry.image)}`);
+        assert.equal(geometry.image.fit, "cover", `${width}px image preview does not fill its frame`);
       }
-      assert.ok(Math.abs(geometry.video.ratio - .8) <= .02, `${width}px portrait Mix preview is not 4:5: ${JSON.stringify(geometry.video)}`);
+      // The same for a video: the 9:16 test video gets a 9:16 frame (it was cut to 4:5 before).
+      const videoRatio = Math.min(3, Math.max(.45, geometry.video.natural));
+      assert.ok(geometry.video.natural > 0 && Math.abs(geometry.video.ratio - videoRatio) <= .02, `${width}px portrait Mix video is not its own shape: ${JSON.stringify(geometry.video)}`);
       assert.equal(geometry.video.fit, "cover", `${width}px portrait Mix preview does not fill its frame`);
       assert.ok(geometry.menuTargets.every(row => row.height >= 44), `${width}px menu row below 44px: ${JSON.stringify(geometry.menuTargets.filter(row => row.height < 44))}`);
       if (width < 700) {
@@ -308,9 +314,15 @@ async function createPortraitVideo(browser) {
           scrollTo(0, Math.max(0, post.offsetTop - headerHeight));
         }, videoPostId);
         await page.waitForTimeout(80);
+        // Owner 2026-11-22 ("Make the container the size of the image or the video"): a 9:16 video keeps its whole shape,
+        // so on most phones the author line, the video and the buttons no longer fit on one screen together. Scrolled to
+        // the post, its author sits below the app bar; scrolled to its buttons, they sit above the tab bar.
+        const authorVisible = await page.evaluate(videoPostId => document.querySelector(`.post[data-post-id="${videoPostId}"] .post-header`).getBoundingClientRect().top >= document.querySelector(".topbar").getBoundingClientRect().bottom - 1, videoPostId);
+        assert.equal(authorVisible, true, `${width}px video author is hidden behind the app header`);
         await page.evaluate(videoPostId => {
           const actions = document.querySelector(`.post[data-post-id="${videoPostId}"] .post-actions`)?.getBoundingClientRect();
-          const navigation = document.querySelector(".topnav")?.getBoundingClientRect();
+          // The phone bottom bar is the shared tab bar (app-tabs.js, audit 36 B2); on desktop Mix's .topnav sits in the header.
+          const navigation = [...document.querySelectorAll("nav.ds-mobile-nav, .topnav")].find(element => element.getClientRects().length && getComputedStyle(element).display !== "none")?.getBoundingClientRect();
           if (actions && navigation && actions.bottom > navigation.top) scrollBy(0, actions.bottom - navigation.top + 1);
         }, videoPostId);
         await page.waitForTimeout(40);
@@ -320,7 +332,7 @@ async function createPortraitVideo(browser) {
           const media = post.querySelector(":scope > .danzstak-media-shell").getBoundingClientRect();
           const actions = post.querySelector(".post-actions").getBoundingClientRect();
           const appHeader = document.querySelector(".topbar").getBoundingClientRect();
-          const navigation = document.querySelector(".topnav").getBoundingClientRect();
+          const navigation = [...document.querySelectorAll("nav.ds-mobile-nav, .topnav")].find(element => element.getClientRects().length && getComputedStyle(element).display !== "none").getBoundingClientRect();
           return {
             headerBelowApp: header.top >= appHeader.bottom - 1,
             actionsAboveNavigation: actions.bottom <= navigation.top + 1,
@@ -332,9 +344,8 @@ async function createPortraitVideo(browser) {
             navigationTop: navigation.top
           };
         }, videoPostId);
-        assert.equal(composition.headerBelowApp, true, `${width}px video author is hidden behind the app header`);
         assert.equal(composition.actionsAboveNavigation, true, `${width}px video reactions are hidden by the bottom navigation: ${JSON.stringify(composition)}`);
-        assert.ok(Math.abs(composition.mediaRatio - .8) <= .02, `${width}px real Mix post lost its 4:5 preview`);
+        assert.ok(Math.abs(composition.mediaRatio - videoRatio) <= .02, `${width}px real Mix video is not its own shape (${composition.mediaRatio} vs ${videoRatio})`);
         assert.ok(composition.postVisibleHeight > 0, `${width}px video post is outside the usable viewport`);
         await page.screenshot({ path: path.join(output, `video-post-${width}.png`) });
       }

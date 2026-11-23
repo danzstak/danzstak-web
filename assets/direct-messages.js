@@ -20,6 +20,9 @@ const messageForm = document.getElementById("messageForm");
 const messageInput = document.getElementById("messageInput");
 const messageMedia = document.getElementById("messageMedia");
 const messageCamera = document.getElementById("messageCamera");
+const messageCameraVideo = document.getElementById("messageCameraVideo");
+const messageCameraButton = document.getElementById("messageCameraButton");
+const messageCaptureMenu = document.getElementById("messageCaptureMenu");
 const messageMediaPreview = document.getElementById("messageMediaPreview");
 const messageList = document.getElementById("messageList");
 const messageSelectionToolbar = document.getElementById("messageSelectionToolbar");
@@ -250,13 +253,15 @@ function setConversationActionsEnabled(enabled) {
     button.setAttribute("aria-disabled", String(!enabled));
   }
   if (messageMedia) messageMedia.disabled = !enabled;
-  if (messageCamera) messageCamera.disabled = !enabled;
+  for (const control of [messageCamera, messageCameraVideo, messageCameraButton]) if (control) control.disabled = !enabled;
+  if (!enabled) closeCaptureMenu();
 }
 
 function clearSelectedMessageMedia() {
   selectedMessageMedia = null;
   if (messageMedia) messageMedia.value = "";
   if (messageCamera) messageCamera.value = "";
+  if (messageCameraVideo) messageCameraVideo.value = "";
   if (selectedMessageMediaUrl) URL.revokeObjectURL(selectedMessageMediaUrl);
   selectedMessageMediaUrl = "";
   if (messageMediaPreview) { messageMediaPreview.replaceChildren(); messageMediaPreview.hidden = true; }
@@ -1442,7 +1447,11 @@ async function loadConversations() {
         meta.appendChild(badge);
       }
       copy.append(name, preview); button.append(avatarWrap, copy, meta);
-      button.addEventListener("click", () => { if (row.dataset.swiped === "true") { closeChatRowActions(row); return; } openConversationFromInbox(
+      // T2a (owner 2026-11-18): tapping the photo opens that member's profile; the rest of the row opens the chat.
+      // (The row is a button, so the photo cannot be its own link; the thread header's photo is a real link.)
+      const rowProfileHref = /^[a-f0-9-]{36}$/i.test(String(conversation.memberId || "")) ? "profile.html?member=" + encodeURIComponent(conversation.memberId) : "";
+      if (rowProfileHref) { avatarWrap.dataset.profileHref = rowProfileHref; avatarWrap.title = messageFormat("Open {name} profile", { name: conversation.name || "DanzStak member" }); }
+      button.addEventListener("click", event => { if (row.dataset.swiped === "true") { closeChatRowActions(row); return; } if (rowProfileHref && event.target?.closest?.(".conversation-avatar-wrap")) { location.href = rowProfileHref; return; } openConversationFromInbox(
         cachedConversations.find(item => item.contactEmail === conversation.contactEmail) || conversation
       ); });
       if (activeFilter === "chats" && conversation.hasConversation === true) attachChatRowActions(row, button, conversation);
@@ -1682,6 +1691,64 @@ messageForm?.addEventListener("submit", async event => {
 
 messageMedia?.addEventListener("change", () => previewSelectedMessageMedia(messageMedia.files?.[0]));
 messageCamera?.addEventListener("change", () => previewSelectedMessageMedia(messageCamera.files?.[0]));
+messageCameraVideo?.addEventListener("change", () => previewSelectedMessageMedia(messageCameraVideo.files?.[0]));
+
+// The camera button offers a choice (owner 2026-11-23: "with the camera i should be able to choose a video or the
+// camera"): a photo or a video straight from the camera, or a photo or video already on the phone. One camera input
+// holding both kinds opens the camera in photo mode on most phones, so each choice has its own input.
+// browser-checks/sync-attach.cjs taps each choice.
+const captureChoices = [
+  ["photo", "Take a photo", "camera", () => messageCamera],
+  ["video", "Record a video", "video", () => messageCameraVideo],
+  ["library", "Choose from your phone", "image", () => messageMedia]
+];
+// While the menu is open, an invisible layer covers the rest of the screen: a tap outside closes the menu and never
+// reaches what's underneath (a video's own controls would keep that tap to themselves, and a chat row would open).
+const captureBackdrop = messageCaptureMenu ? Object.assign(document.createElement("div"), { className: "message-capture-backdrop", hidden: true }) : null;
+// Both live at page level: inside the message form (its own stacking layer) the menu would sit under the layer.
+if (captureBackdrop) { document.body.append(captureBackdrop, messageCaptureMenu); captureBackdrop.addEventListener("click", () => closeCaptureMenu()); }
+function closeCaptureMenu() {
+  if (!messageCaptureMenu || messageCaptureMenu.hidden) return;
+  messageCaptureMenu.hidden = true;
+  if (captureBackdrop) captureBackdrop.hidden = true;
+  messageCameraButton?.setAttribute("aria-expanded", "false");
+}
+function openCaptureMenu() {
+  if (!messageCaptureMenu || !messageCameraButton || messageCameraButton.disabled) return;
+  messageCaptureMenu.setAttribute("aria-label", messageTranslate("Take a photo or video"));
+  for (const [kind, label, icon] of captureChoices) {
+    const item = messageCaptureMenu.querySelector(`[data-capture="${kind}"]`);
+    if (!item) continue;
+    const text = document.createElement("span");
+    text.textContent = messageTranslate(label);
+    item.replaceChildren(...[window.danzstakIcons?.create?.(icon)].filter(Boolean), text);
+  }
+  if (captureBackdrop) captureBackdrop.hidden = false;
+  messageCaptureMenu.hidden = false;
+  messageCameraButton.setAttribute("aria-expanded", "true");
+  // Just above the camera button, inside the screen (the composer's own box clips anything drawn inside it).
+  const button = messageCameraButton.getBoundingClientRect(), menu = messageCaptureMenu.getBoundingClientRect();
+  messageCaptureMenu.style.left = `${Math.round(Math.max(8, Math.min(button.left, window.innerWidth - menu.width - 8)))}px`;
+  messageCaptureMenu.style.bottom = `${Math.round(window.innerHeight - button.top + 8)}px`;
+  messageCaptureMenu.querySelector("[data-capture]")?.focus({ preventScroll: true });
+}
+messageCameraButton?.addEventListener("click", event => {
+  event.preventDefault();
+  if (messageCaptureMenu?.hidden) openCaptureMenu(); else closeCaptureMenu();
+});
+messageCaptureMenu?.addEventListener("click", event => {
+  const item = event.target.closest?.("[data-capture]");
+  if (!item) return;
+  const input = captureChoices.find(([kind]) => kind === item.dataset.capture)?.[3]();
+  closeCaptureMenu();
+  if (input && !input.disabled) input.click(); // still inside the tap, so the phone opens its camera or gallery
+});
+// Focus moves into the menu when it opens, so Escape is heard there.
+messageCaptureMenu?.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
+  closeCaptureMenu();
+  messageCameraButton?.focus();
+});
 
 deleteChat?.addEventListener("click", async () => {
   const contact = contactInput.value.trim().toLowerCase();

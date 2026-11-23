@@ -55,7 +55,7 @@ function loadProfileImage(target, url, onReady, onError) {
 
 async function fetchProfileRecord() {
   const response = await profileFetch(profilePath, { credentials: "include", cache: "no-store" });
-  if (response.status === 401) { window.location.replace("./"); return null; }
+  if (response.status === 401) { window.location.replace(window.danzstakSignedOutPage?.() || "./"); return null; }
   if (response.status === 403) throw Object.assign(new Error("This profile is available to accepted friends and members who share a Tribe."), { expected: true });
   if (response.status === 404) throw Object.assign(new Error("This profile is no longer available."), { expected: true });
   if (!response.ok) throw new Error("Session unavailable");
@@ -96,9 +96,14 @@ async function loadProfile() {
     const cover = document.querySelector(".cover");
     cover.classList.remove("has-photo");
     if (profile.cover) {
-      cover.style.backgroundPosition = `${profile.coverX ?? 50}% ${profile.coverY ?? 50}%`;
-      cover.style.backgroundSize = profile.coverFit ? "contain" : "cover";
-      cover.style.backgroundRepeat = "no-repeat";
+      // Directive F12: the cover sits where its owner placed it (x/y/zoom); "Fit Entire Cover" shows it whole.
+      const fit = window.danzstakImagePosition;
+      if (fit && !profile.coverFit) fit.apply(cover, profile.coverZoom !== undefined ? { x: profile.coverX, y: profile.coverY, zoom: profile.coverZoom } : (fit.recall(profile.cover) || { x: profile.coverX, y: profile.coverY, zoom: 1 }), profile.cover);
+      else {
+        cover.style.backgroundPosition = `${profile.coverX ?? 50}% ${profile.coverY ?? 50}%`;
+        cover.style.backgroundSize = profile.coverFit ? "contain" : "cover";
+        cover.style.backgroundRepeat = "no-repeat";
+      }
     }
     loadRecoverableProfileImage(cover, profile.cover, "cover");
     const message = document.getElementById("profileMessage");

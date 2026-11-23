@@ -1,12 +1,12 @@
 /* Profile polish (owner directive 2026-11-16): familiar Facebook-style profile, icons instead of words,
    mobile first and tight. Loaded last on profile.html. */
-.profile-actions{display:flex!important;flex-wrap:nowrap!important;gap:8px!important;justify-content:flex-start;margin:10px 0 4px!important}
+.profile-actions{display:flex!important;flex-wrap:nowrap!important;gap:8px!important;justify-content:flex-start;margin:0!important} /* F4: the header sets every gap once (profile-shop.css) */
 .profile-actions > :is(button,a).ds-icon-button:not([hidden]){
   display:grid!important;place-items:center;flex:0 0 auto;
   width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;
   border:1px solid #e7e9ee!important;border-radius:12px!important;background:#fff!important;color:#121418!important;
 }
-.profile-actions > :is(button,a).ds-icon-button:first-child{background:#ff5a1f!important;border-color:#ff5a1f!important;color:#0b0b0c!important}
+.profile-actions > :is(button,a).ds-icon-button:first-child{background:var(--ds-btn-go,#15803d)!important;border-color:var(--ds-btn-go,#15803d)!important;color:#fff!important}
 .profile-actions > :is(button,a).ds-icon-button:focus-visible{outline:2px solid #ff5a1f;outline-offset:2px}
 .profile-actions .ds-action-icon{width:20px;height:20px}
 .profile-name-edit-hint{display:none!important}
@@ -55,14 +55,9 @@ body.profile-page{background:#fff!important}
   .profile-page .profile-post-card{margin-left:-16px!important;margin-right:-16px!important}
   .profile-page .profile-wall-composer{margin:0 -16px!important;border-bottom:1px solid #e7e9ee}
   .profile-page .profile-more-navigation,.profile-page .profile-more-note{margin-left:-16px!important;margin-right:-16px!important}
-  .profile-page .profile-dailies{margin:0 -16px!important}
 }
 
 /* Dailies strip: edge to edge, directly above the posts. Tall 9:16 tiles, 2px seams, swipe sideways. */
-.profile-dailies{margin:0;padding:0;border:0;border-bottom:1px solid #e7e9ee;background:#0b0b0c}
-.profile-dailies-row{display:flex;gap:2px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.profile-dailies-row::-webkit-scrollbar{display:none}
-.profile-daily{position:relative;flex:0 0 calc((100% - 4px) / 3.25);max-width:180px;aspect-ratio:9/16;margin:0;padding:0;border:0;border-radius:0;background:#1a1d23;overflow:hidden;scroll-snap-align:start;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .profile-daily-media{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .profile-daily-play{position:absolute;right:8px;bottom:8px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.55)}
 .profile-daily-play::after{content:"";position:absolute;left:9px;top:7px;border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent #fff}
@@ -96,11 +91,14 @@ body.profile-page{background:#fff!important}
 .profile-more-menu button{display:flex;align-items:center;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#121418;font:inherit;font-weight:600;text-align:left;white-space:nowrap;cursor:pointer}
 .profile-more-menu button:hover,.profile-more-menu button:focus-visible{background:#f2f3f5;outline:none}
 
-/* Phone top bar like the profile screen members know: back, the member's name, search. */
-.profile-app-header .profile-back,.profile-app-header .profile-header-name,.profile-app-header .profile-search-toggle{display:none}
+/* Phone top bar like the profile screen members know: back, the member's name, search, Pivot (directive F15j). */
+.profile-app-header .profile-header-name{display:none}
+/* The phone-only back and search buttons stay off the desktop bar (icon-buttons.css forces display on every .ds-icon-button,
+   which put them in the grid and wrapped the bar onto two rows). */
+@media(min-width:701px){.profile-app-header .profile-back,.profile-app-header .profile-search-toggle{display:none!important}}
 @media(max-width:700px){
-  body.profile-page>header.profile-app-header{grid-template-columns:44px minmax(0,1fr) 44px!important;gap:4px!important;padding-left:4px!important}
-  body.profile-page>header.profile-app-header>.brand,body.profile-page>header.profile-app-header>.pivot-header-button,body.profile-page>header.profile-app-header>.header-actions{display:none!important}
+  body.profile-page>header.profile-app-header{grid-template-columns:44px minmax(0,1fr) 44px 44px!important;gap:4px!important;padding-left:4px!important}
+  body.profile-page>header.profile-app-header>.brand,body.profile-page>header.profile-app-header>.header-actions{display:none!important}
   .profile-app-header .profile-back,.profile-app-header .profile-search-toggle{display:grid!important;place-items:center;width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;color:#f5f5f2!important;-webkit-tap-highlight-color:transparent}
   .profile-app-header .profile-back:active,.profile-app-header .profile-search-toggle:active{background:rgba(255,255,255,.14)!important}
   .profile-app-header .profile-back .ds-action-icon,.profile-app-header .profile-search-toggle .ds-action-icon{width:24px;height:24px}
@@ -124,7 +122,8 @@ body.profile-page{background:#fff!important}
 .profile-add-bio:active{background:rgba(239,108,32,.22)}
 .profile-empty-wall{margin:0;padding:24px 16px;color:#5b6472;text-align:center;font-size:15px}
 /* About = vanity wall (owner 2026-11-18): the long-form story first, big; details as plain lines, no grey boxes. */
-.details{display:block!important;gap:0!important}
+.details:not([hidden]){display:block!important;gap:0!important}
+.details[hidden]{display:none!important} /* T0-A10b: the About details show on the About tab only */
 .profile-story{position:relative;margin:0 0 8px;padding:8px 0 20px;border-bottom:1px solid #e5e7eb}
 .profile-story-text{margin:0;padding:0 44px 0 0;color:#121418;font-size:clamp(20px,5.4vw,26px);font-weight:700;line-height:1.38;letter-spacing:-.01em;white-space:pre-line;overflow-wrap:anywhere}
 .profile-story-text::before{content:"\201C";display:block;height:.55em;color:#ff5a1f;font-size:2.4em;line-height:1}
@@ -147,3 +146,42 @@ body.profile-page{background:#fff!important}
 .details .detail-pair>.detail[hidden]{display:none!important}
 .details .detail-pair:has(>.detail[hidden]){grid-template-columns:minmax(0,1fr)}
 .details .detail-pair:not(:has(>.detail:not([hidden]))){display:none}
+
+/* T2a (owner 2026-11-18): a post author's photo and name open their profile. 36px look, 44px tap target. */
+.profile-page .profile-post-avatar-link,.profile-post-avatar-link{position:relative;display:block;flex:0 0 36px;width:36px;height:36px;border-radius:50%;-webkit-tap-highlight-color:transparent}
+.profile-post-avatar-link::after{content:"";position:absolute;inset:-4px;border-radius:50%}
+.profile-post-avatar-link>.profile-post-avatar{display:grid;place-items:center}
+.profile-post-author-link{color:inherit;text-decoration:none}
+.profile-post-author-link:hover .profile-post-author,.profile-post-author-link:focus-visible .profile-post-author{text-decoration:underline}
+.profile-post-author-link:focus-visible{outline:2px solid #ff5a1f;outline-offset:2px;border-radius:4px}
+.profile-page a.profile-comment-avatar{position:relative;overflow:visible!important}
+.profile-page a.profile-comment-avatar>img{border-radius:50%}
+.profile-page a.profile-comment-avatar::after{content:"";position:absolute;inset:-6px;border-radius:50%}
+
+/* Owner 2026-11-19: your own profile picture is tappable to change it (camera badge, like familiar social apps). */
+.avatar.profile-avatar-editable{cursor:pointer}
+.avatar.profile-avatar-editable::after{content:"";position:absolute;right:2%;bottom:2%;width:34px;height:34px;border:2px solid #fff;border-radius:50%;background:#e9ebee url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316191f' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M14.5 4 16 7h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h4l1.5-3Z'/%3E%3Ccircle cx='12' cy='13' r='4'/%3E%3C/svg%3E") center/18px no-repeat;box-shadow:0 1px 3px #0003;pointer-events:none}
+.avatar.profile-avatar-editable:focus-visible{outline:3px solid #ff5a1f;outline-offset:3px}
+.profile-photo-sheet{position:fixed;inset:auto 0 0 0;width:100%;max-width:520px;max-height:85dvh;margin:0 auto;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));overflow:auto;border:0;border-radius:18px 18px 0 0;background:#fff;color:#16191f;box-shadow:0 -12px 40px #0004}
+.profile-photo-sheet::backdrop{background:rgba(11,11,12,.5)}
+.profile-photo-sheet h2{margin:0 0 10px;font-size:1.05rem;text-align:center}
+.profile-photo-choices{display:grid;gap:6px}
+.profile-photo-choices[hidden],.profile-photo-grid[hidden],.profile-photo-choices button[hidden]{display:none!important}
+.profile-photo-sheet button{min-height:48px;width:100%;margin:0;padding:0 16px;border:0;border-radius:12px;background:#f2f3f5;color:#16191f;font:inherit;font-weight:700;text-align:left;cursor:pointer;box-shadow:none}
+.profile-photo-sheet button.is-danger{color:#b42318}
+.profile-photo-sheet .profile-photo-cancel{margin-top:10px;background:transparent;text-align:center}
+.profile-photo-status{margin:8px 2px;color:#4b5563;font-size:.92rem}
+.profile-photo-status:empty{display:none}
+.profile-photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.profile-photo-sheet .profile-photo-tile{position:relative;min-height:0;aspect-ratio:1;padding:0;overflow:hidden;border-radius:4px;background:#e9ebee}
+.profile-photo-tile img{width:100%;height:100%;object-fit:cover;display:block}
+/* Past profile pictures (F4c): Delete sits in the tile's corner, a 44px target. */
+.profile-past-delete{position:absolute;top:2px;right:2px;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:rgb(11 11 12/.72);color:#fff;cursor:pointer}
+.profile-past-delete:focus-visible{outline:2px solid #ff5a1f;outline-offset:1px}
+.profile-past-delete .ds-action-icon{width:20px;height:20px}
+.profile-photo-sheet button:focus-visible{outline:3px solid #ff5a1f;outline-offset:2px}
+/* Owner 2026-11-19: friends' photos stacked by half at the right end of the action row (like Facebook's). */
+.profile-actions .profile-facepile{order:9;display:flex;align-items:center;margin-left:auto;min-width:44px;min-height:44px;padding:0 0 0 18px;border:0;background:none;cursor:pointer}
+.profile-actions .profile-facepile[hidden]{display:none}
+.profile-facepile-face{display:grid;place-items:center;width:36px;height:36px;margin-left:-18px;overflow:hidden;border:2px solid #fff;border-radius:50%;background:#2c3036;color:#fff;font-weight:800;font-size:.9rem}
+.profile-facepile-face img{display:block;width:100%;height:100%;object-fit:cover}

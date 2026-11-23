@@ -16,7 +16,8 @@ assert.match(js, /photo\.className = "pvv-photo"/);
 assert.match(js, /"Photo \{n\} of \{total\}"/);
 assert.match(css, /\.profile-photo-tile\{aspect-ratio:1\/1\}/);
 assert.match(css, /img\.pvv-photo\{[^}]*object-fit:contain/);
-assert.match(editor, /if \(!addVideo\(\{ mediaUrl: post\.mediaUrl, content: post\.content \|\| "", refresh: \(\) => refreshProfilePostMedia\(post\) \}\)\) tabMessage\.appendChild\(profilePostCard\(post\)\)/);
+assert.match(editor, /if \(!addVideo\(\{ mediaUrl: post\.mediaUrl, content: post\.content \|\| "", refresh: \(\) => refreshProfilePostMedia\(post\) \}\)\) \{ tabMessage\.appendChild\(profilePostCard\(post\)\); continue; \}/);
+assert.match(editor, /if \(mediaType === "image"\) \(post\.moreMediaUrls \|\| \[\]\)\.forEach\(\(mediaUrl, index\) => addVideo\(/, "every photo of a multi-photo post is its own Photos tile");
 assert.match(editor, /addVideo\(\{ mediaUrl, content: "Profile video", refresh: refreshProfileVideo \}\)/, "the profile video joins the grid too");
 // Grid tiles: no caption text, no reactions, never autoplay or grab sound.
 assert.doesNotMatch(js.slice(js.indexOf("function createGrid"), js.indexOf("window.danzstakProfileVideos")), /textContent|reaction|comment/i);

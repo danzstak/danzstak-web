@@ -7,7 +7,7 @@ const vm = require("node:vm");
 const read = file => fs.readFileSync(file, "utf8");
 const html = read("messages.html"), js = read("assets/sync-list-polish.js"), css = read("assets/sync-list-polish.css"), worker = read("service-worker.js"), i18n = read("assets/i18n-sync.js");
 
-assert.match(html, /assets\/sync-list-polish\.css\?v=2/);
+assert.match(html, /assets\/sync-list-polish\.css\?v=3/);
 assert.ok(html.indexOf("assets/sync-settings.js") < html.indexOf("assets/sync-list-polish.js"), "loads after the settings sheet it adds rows to");
 assert.match(worker, /"\/assets\/sync-list-polish\.js", "\/assets\/sync-list-polish\.css"/, "cached for offline use");
 assert.match(css, /:is\(#inviteFriend,#newVideoCall,#callingDevices,#enableRinging\)\{display:none!important\}/, "the four header buttons leave the header");
@@ -28,7 +28,7 @@ assert.equal(sandbox.window.danzstakSyncListPolish.initial("  the pit"), "T");
 assert.equal(sandbox.window.danzstakSyncListPolish.initial(""), "·", "no empty circle even without a name");
 
 for (const word of ["More options", "New video call", "Call alerts", "Invite a friend", "Share your DanzStak link", "Pick someone from your chats", "Ring this device when someone calls"]) {
-  assert.equal((i18n.match(new RegExp(`"${word}":`, "g")) || []).length, 3, `it/fr/es for "${word}"`);
+  assert.ok((i18n.match(new RegExp(`"${word}":`, "g")) || []).length >= 3, `it/fr/es for "${word}" (more languages are welcome)`);
 }
 // Fix-it 18 (SYNC list canvas): no music-staff box on the list (wallpaper belongs in threads), and an empty list is
 // one centred line + a "Start a chat" action that opens the same new-chat picker as the floating button.
