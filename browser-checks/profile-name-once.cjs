@@ -12,7 +12,7 @@ const cases = [
   { label: "real bio", bio: "Dachshund Records presses punk 7-inches in Oakland.", shows: true }
 ];
 (async () => {
-  const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || undefined, headless: true });
+  const browser = await chromium.launch(process.env.DANZSTAK_BROWSER_CHANNEL === "bundled" ? { headless: true } : { channel: process.env.DANZSTAK_BROWSER_CHANNEL || "msedge", headless: true });
   const failures = [];
   try {
     for (const item of cases) for (const owner of [true, false]) for (const width of [320, 360, 390, 430]) {
