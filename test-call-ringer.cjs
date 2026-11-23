@@ -342,6 +342,31 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     // Dismissed once: never again.
     pushState = "prompt"; inserted.length = 0; store.set("danzstak_call_alerts_prompt", "x");
     await sandbox.danzstakCallAlerts.prompt(); assert.equal(inserted.length, 0, "a dismissed prompt stays dismissed");
+    // L4 never silent: blocked notifications say how to allow them (no button: the browser won't ask again).
+    pushState = "blocked";
+    await sandbox.danzstakCallAlerts.prompt();
+    const blocked = inserted.find(n => n.className === "call-alerts-prompt");
+    assert.ok(blocked && blocked.attributes["data-reason"] === "blocked", "a phone with notifications blocked is told, even after dismissing the Turn on line");
+    assert.match(blocked.children[0].textContent, /notifications are blocked for DanzStak/);
+    assert.equal(blocked.children.length, 2, "blocked: the message and ✕ only");
+    blocked.children[1].handlers.click(); assert.ok(store.get("danzstak_call_alerts_prompt:blocked"), "each reason is dismissed on its own");
+    await sandbox.danzstakCallAlerts.prompt(); assert.equal(inserted.filter(n => n.className === "call-alerts-prompt").length, 0, "said once");
+    // Allowed but saved unlinked on the server → "Fix" saves it again; still unlinked → says so instead of claiming success.
+    pushState = "enabled"; let linked = false, fixes = 0;
+    sandbox.danzstakPushLinked = async () => linked;
+    sandbox.danzstakEnablePush = async () => { fixes++; };
+    await sandbox.danzstakCallAlerts.prompt();
+    const unlinked = inserted.find(n => n.className === "call-alerts-prompt");
+    assert.ok(unlinked && unlinked.attributes["data-reason"] === "unlinked", "an unlinked phone is told it won't ring with SYNC closed");
+    assert.equal(unlinked.children[1].textContent, "Fix");
+    await unlinked.children[1].handlers.click();
+    assert.equal(fixes, 1); assert.ok(inserted.includes(unlinked), "still unlinked: the line stays");
+    assert.match(unlinked.children[0].textContent, /isn't set up to ring with SYNC closed yet/);
+    linked = true; await unlinked.children[1].handlers.click();
+    assert.ok(!inserted.includes(unlinked), "linked: the line goes");
+    assert.match(inserted.find(n => n.className === "call-alerts-note").textContent, /Call alerts are on for this phone/);
+    inserted.length = 0; await sandbox.danzstakCallAlerts.prompt(); assert.equal(inserted.length, 0, "a linked phone sees nothing");
+    assert.match(push, /window\.danzstakPushLinked = async \(\) => \{\r?\n    await renewExistingSubscription\(\{ force: true \}\);/);
   }
 
   // ---------- 11. Wiring and translations ----------
@@ -358,7 +383,7 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
   assert.match(read("messages.html"), /<script src="assets\/call-alerts\.js\?v=\d+" defer><\/script>/);
   for (const lang of ["it", "fr", "es", "de", "pt"]) {
     const start = i18n.indexOf(`"${lang}": {`), block = i18n.slice(start, i18n.indexOf("\n}", start));
-    for (const key of ["Tap to hear the ringer", "Call ended.", "Test ringer", "Turn on call alerts so calls ring when SYNC is closed", "Turn on", "Not now", "Ringing here now, and a test call notification is on its way to this phone."]) assert.ok(block.includes(JSON.stringify(key) + ":"), `${lang}: ${key}`);
+    for (const key of ["Tap to hear the ringer", "Call ended.", "Test ringer", "Turn on call alerts so calls ring when SYNC is closed", "Turn on", "Not now", "Ringing here now, and a test call notification is on its way to this phone.", "Calls can't ring when SYNC is closed: notifications are blocked for DanzStak. Allow them in your browser's site settings.", "This phone won't ring when SYNC is closed yet.", "Fix", "This phone isn't set up to ring with SYNC closed yet. Try again in a minute."]) assert.ok(block.includes(JSON.stringify(key) + ":"), `${lang}: ${key}`);
   }
   console.log("Call ringer checks passed: <audio> → Web Audio → tap prompt, touch-safe unlock + visibilitychange, vibration, every stop, quiet hours, SW re-ring (main's 4 s × 6) with every stop, caller-cancel push, test call push, push re-link, Test ringer + prompt, it/fr/es/de/pt.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

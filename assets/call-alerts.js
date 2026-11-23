@@ -2,8 +2,8 @@
 // Queue 5a00, spec docs/tasks/31-call-ringer.md. SYNC only:
 // - SYNC ⋮ → "Test ringer": plays this phone's ringtone for 3 s and sends a test call notification to this phone, so the
 //   member can check both the in-app ring and the ring with SYNC closed.
-// - One line when this registered phone has no push subscription yet: "Turn on call alerts so calls ring when SYNC is
-//   closed", with Turn on. Dismissing it is remembered on this device; it never nags.
+// - One line when this registered phone can't ring with SYNC closed (notifications off, blocked, or not linked to this
+//   phone), saying why with a one-tap fix where there is one. Dismissing a reason is remembered on this device; it never nags.
 (() => {
   const API = "https://api.danzstak.com", DISMISSED = "danzstak_call_alerts_prompt";
   const t = value => window.danzstakTranslate?.(value) || value;
@@ -38,31 +38,57 @@
     } catch (error) { say(error.message); }
   }
 
+  // L4 (owner 2026-11-20: "When app is closed it doesn't ring"): never silent. A registered phone that can't ring with SYNC
+  // closed says why, once per reason, in the member's language: notifications off (Turn on), blocked in the browser (how to
+  // allow them; the browser won't ask again), or allowed but not linked to this registered phone on the server (Fix).
+  const COPY = {
+    off: ["Turn on call alerts so calls ring when SYNC is closed", "Turn on"],
+    blocked: ["Calls can't ring when SYNC is closed: notifications are blocked for DanzStak. Allow them in your browser's site settings.", ""],
+    unlinked: ["This phone won't ring when SYNC is closed yet.", "Fix"]
+  };
+  const dismissKey = why => why === "off" ? DISMISSED : `${DISMISSED}:${why}`;
+  async function reason() {
+    const state = await window.danzstakPushState?.().catch(() => "unsupported");
+    if (state === "prompt" || state === "incomplete") return "off";
+    if (state === "blocked") return "blocked";
+    if (state === "enabled" && typeof window.danzstakPushLinked === "function" && await window.danzstakPushLinked().catch(() => null) === false) return "unlinked";
+    return "";
+  }
+
   async function prompt(force = false) {
     if (!document.body.classList.contains("messages-page") || document.querySelector(".call-alerts-prompt")) return;
-    if (!force) { try { if (localStorage.getItem(DISMISSED)) return; } catch {} }
     if (window.danzstakSyncDeviceRegistered?.() !== true || typeof window.danzstakEnablePush !== "function") return;
-    const state = await window.danzstakPushState?.().catch(() => "unsupported");
-    if (!["prompt", "incomplete"].includes(state) || document.querySelector(".call-alerts-prompt")) return;
+    const why = await reason();
+    if (!why || document.querySelector(".call-alerts-prompt")) return;
+    if (!force) { try { if (localStorage.getItem(dismissKey(why))) return; } catch {} }
     const before = anchor(); if (!before) return;
+    const [message, action] = COPY[why];
     const bar = document.createElement("aside");
-    bar.className = "call-alerts-prompt"; bar.setAttribute("role", "status");
-    const text = document.createElement("span"); text.textContent = t("Turn on call alerts so calls ring when SYNC is closed");
-    const on = document.createElement("button"); on.type = "button"; on.className = "primary"; on.textContent = t("Turn on");
+    bar.className = "call-alerts-prompt"; bar.setAttribute("role", "status"); bar.setAttribute("data-reason", why);
+    const text = document.createElement("span"); text.textContent = t(message);
     const close = document.createElement("button"); close.type = "button"; close.className = "call-alerts-close"; close.textContent = "×";
     close.setAttribute("aria-label", t("Not now")); close.title = t("Not now");
-    on.addEventListener("click", async () => {
-      on.disabled = true;
-      try { await window.danzstakEnablePush(); bar.remove(); say(t("Call alerts are on for this phone.")); }
-      catch (error) { text.textContent = error.message; on.disabled = false; }
-    });
-    close.addEventListener("click", () => { try { localStorage.setItem(DISMISSED, new Date().toISOString()); } catch {} bar.remove(); });
-    bar.append(text, on, close);
+    close.addEventListener("click", () => { try { localStorage.setItem(dismissKey(why), new Date().toISOString()); } catch {} bar.remove(); });
+    bar.append(text);
+    if (action) {
+      const on = document.createElement("button"); on.type = "button"; on.className = "primary"; on.textContent = t(action);
+      on.addEventListener("click", async () => {
+        on.disabled = true;
+        try {
+          await window.danzstakEnablePush(); // saves this phone's subscription again, with its registered device's headers
+          if (await window.danzstakPushLinked?.().catch(() => null) === false) { text.textContent = t("This phone isn't set up to ring with SYNC closed yet. Try again in a minute."); on.disabled = false; return; }
+          bar.remove(); say(t("Call alerts are on for this phone."));
+        } catch (error) { text.textContent = error.message; on.disabled = false; }
+      });
+      bar.append(on);
+    }
+    bar.append(close);
     before.before(bar);
   }
 
   window.danzstakSyncSettings?.add?.({ id: "test-ringer", label: "Test ringer", hint: "Plays your ringtone and sends a test call to this phone", icon: "bell", order: 31, run: testRinger });
-  addEventListener("danzstak:push-enabled", () => document.querySelector(".call-alerts-prompt")?.remove());
+  // Turning notifications on answers "off"; "unlinked" stays until the server says this phone is linked (Fix handles it).
+  addEventListener("danzstak:push-enabled", () => document.querySelector('.call-alerts-prompt[data-reason="off"]')?.remove());
   addEventListener("danzstak:call-device-ready", event => { if (event.detail?.registered === true) prompt(); });
   addEventListener("danzstak:call-device-registered", () => prompt());
   setTimeout(() => prompt(), 2500);
