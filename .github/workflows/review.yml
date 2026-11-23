@@ -243,6 +243,7 @@ jobs:
             '.\browser-checks\tour-manager-no-paywall.cjs'
             '.\browser-checks\not-found-pages.cjs'
             '.\browser-checks\epk-actions.cjs'
+            '.\browser-checks\epk-video-check.cjs'
             '.\browser-checks\roll-empty.cjs'
             '.\browser-checks\profile-picture-links.cjs'
             '.\browser-checks\profile-showcase-fit.cjs'

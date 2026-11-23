@@ -4,6 +4,12 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Checking it plays…": "Controllo che si riproduca…",
+"Plays in your EPK": "Si riproduce nel tuo EPK",
+"Won't play inside other sites, so your EPK shows it as a link to the video.": "Non si riproduce dentro altri siti, quindi il tuo EPK lo mostra come link al video.",
+"Not added: this video is removed or private. Check the link.": "Non aggiunto: questo video è stato rimosso o è privato. Controlla il link.",
+"Couldn't check it right now. It shows as a player; if it won't play, venues get the link.": "Non è stato possibile controllarlo ora. Appare come player; se non parte, i locali ricevono il link.",
+"This video only plays on its own site.": "Questo video si riproduce solo sul suo sito.",
 "Music HQ tools": "Strumenti Music HQ",
 "Record shops": "Negozi di dischi",
 "Booking Agent": "Booking Agent",
@@ -967,6 +973,12 @@
 "Next leg": "Prossima tappa"
 },
 "fr": {
+"Checking it plays…": "On vérifie qu'elle se lit…",
+"Plays in your EPK": "Se lit dans ton EPK",
+"Won't play inside other sites, so your EPK shows it as a link to the video.": "Ne se lit pas dans d'autres sites, donc ton EPK l'affiche comme un lien vers la vidéo.",
+"Not added: this video is removed or private. Check the link.": "Pas ajoutée : cette vidéo est supprimée ou privée. Vérifie le lien.",
+"Couldn't check it right now. It shows as a player; if it won't play, venues get the link.": "Impossible de vérifier pour l'instant. Elle s'affiche comme lecteur ; si elle ne se lit pas, les salles reçoivent le lien.",
+"This video only plays on its own site.": "Cette vidéo ne se lit que sur son propre site.",
 "Music HQ tools": "Outils Music HQ",
 "Record shops": "Disquaires",
 "Booking Agent": "Booking Agent",
@@ -1926,6 +1938,12 @@
 "Next leg": "Étape suivante"
 },
 "es": {
+"Checking it plays…": "Comprobando que se reproduce…",
+"Plays in your EPK": "Se reproduce en tu EPK",
+"Won't play inside other sites, so your EPK shows it as a link to the video.": "No se reproduce dentro de otros sitios, así que tu EPK lo muestra como enlace al vídeo.",
+"Not added: this video is removed or private. Check the link.": "No añadido: este vídeo se eliminó o es privado. Revisa el enlace.",
+"Couldn't check it right now. It shows as a player; if it won't play, venues get the link.": "No se pudo comprobar ahora. Aparece como reproductor; si no se reproduce, las salas reciben el enlace.",
+"This video only plays on its own site.": "Este vídeo solo se reproduce en su propio sitio.",
 "Music HQ tools": "Herramientas de Music HQ",
 "Record shops": "Tiendas de discos",
 "Booking Agent": "Booking Agent",
