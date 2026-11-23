@@ -13,7 +13,7 @@ assert.match(epkHtml, /id="epkBookingHandoff"[^>]*hidden/, "the booking handoff 
 assert.match(epkHtml, /href="booking-selections\.html\?from=epk">Use this EPK for booking</, "the published EPK needs a direct booking handoff");
 assert.match(epkHtml, /review every message before anything sends/i, "the handoff must not imply automatic outreach");
 assert.match(epkClient, /handoff\.hidden = row\.hidden/, "published state must control the booking handoff");
-assert.match(bookingHtml, /assets\/booking-selections\.js\?v=38/, "the booking workspace must request the connected handoff client");
+assert.match(bookingHtml, /assets\/booking-selections\.js\?v=39/, "the booking workspace must request the connected handoff client");
 assert.match(bookingHtml, /id="chooseVenuesNext"[\s\S]*href="booking\.html">Choose venues</, "the connected handoff must expose venue discovery as the next primary action");
 assert.match(bookingClient, /epkHandoffRequested[\s\S]*get\("from"\) === "epk"/, "the booking workspace must recognize an explicit EPK handoff");
 assert.match(bookingClient, /artistName[\s\S]*genres[\s\S]*hometown[\s\S]*shortPitch \|\| kit\.shortBio/, "the EPK handoff must carry the act identity and pitch, not only a URL");
