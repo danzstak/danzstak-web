@@ -26,7 +26,8 @@ import {
   CognitoIdentityProviderClient,
   ListUsersCommand
 } from "@aws-sdk/client-cognito-identity-provider";
-import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { EPK_CARD_PARTITION, CARD_MAX_BYTES, validEpkId, validCardKey, epkShareLink, epkSharePage } from "./epk-share-preview.mjs";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { PinpointSMSVoiceV2Client, SendNotifyTextMessageCommand } from "@aws-sdk/client-pinpoint-sms-voice-v2";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
@@ -4750,6 +4751,15 @@ async function epkWorkspace(event, method) {
     const existing = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
     if (!existing.Item) return reply(200, { deleted: false, cleanupPending: false });
     const { transaction, mediaKeys } = epkDeletionPlan(existing.Item, ownerPrefix, ownerKey);
+    // The link-preview card goes with the EPK (epk-share-preview.mjs).
+    const deletedId = validEpkId(existing.Item.publicId?.S) ? existing.Item.publicId.S : "";
+    if (deletedId) {
+      const card = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: EPK_CARD_PARTITION }, tourId: { S: deletedId } }, ConsistentRead: true }))).Item;
+      if (card?.ownerId?.S === userId) {
+        transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: EPK_CARD_PARTITION }, tourId: { S: deletedId } } } });
+        if (validCardKey(card.cardKey?.S, ownerPrefix)) mediaKeys.push(card.cardKey.S);
+      }
+    }
     const cleanupPending = mediaKeys.length
       ? await runCleanup(mediaKeys.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }))))
       : 0;
@@ -4764,7 +4774,10 @@ async function epkWorkspace(event, method) {
   if (method === "GET") {
     const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
     if (!result.Item) return reply(200, { kit: null, publicId: "", published: false, updatedAt: "" });
-    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}")), publicId: result.Item.publicId?.S || "", published: result.Item.published?.BOOL === true, privateShared: Boolean(result.Item.shareHash?.S), updatedAt: result.Item.updatedAt?.S || "" });
+    const sharedId = validEpkId(result.Item.publicId?.S) ? result.Item.publicId.S : "";
+    const card = sharedId ? (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: EPK_CARD_PARTITION }, tourId: { S: sharedId } }, ConsistentRead: true }))).Item : null;
+    const cardOn = card?.ownerId?.S === userId && Boolean(card?.cardKey?.S), cardOff = card?.ownerId?.S === userId && card?.off?.BOOL === true;
+    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}")), publicId: result.Item.publicId?.S || "", published: result.Item.published?.BOOL === true, privateShared: Boolean(result.Item.shareHash?.S), updatedAt: result.Item.updatedAt?.S || "", shareUrl: sharedId ? epkShareLink(sharedId) : "", shareCard: cardOn, shareCardOff: cardOff, shareCardSig: cardOn ? card.sig?.S || "" : "" });
   }
   const data = parseJsonBody(event), kit = cleanEpk(data?.kit, ownerPrefix), publish = data?.publish === true;
   if (!kit) return reply(400, { error: "Add an artist name and valid EPK details." });
@@ -4803,7 +4816,64 @@ async function epkWorkspace(event, method) {
     ...(shareHash ? [{ Put: { TableName: toursTable, Item: { userId: { S: epkSharePartition }, tourId: { S: publicId }, name: { S: `${kit.artistName} private EPK` }, plan: { S: plan }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }] : [])
   ] }));
   const cleanup = await cleanupEpkMediaObjects(ownerKey, ownerPrefix, pendingMediaCleanup, [...retained]);
-  return reply(200, { publicId, published: publish, updatedAt: nowIso, cleanupPending: cleanup.pending });
+  return reply(200, { publicId, published: publish, updatedAt: nowIso, cleanupPending: cleanup.pending, shareUrl: epkShareLink(publicId) });
+}
+
+// EPK link previews (epk-share-preview.mjs). POST /epk/share-card: the artist's browser uploads the card it drew from the
+// laminate (a users/<own prefix>/<uuid>.jpg upload, at most 300 KB) and turns the card on, or sends { off: true }.
+async function epkShareCard(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const ownerPrefix = await mediaOwnerPrefixForUser(userId);
+  if (!ownerPrefix) return reply(409, { error: "Account email could not be verified." });
+  const workspace = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: epkWorkspaceId } }, ConsistentRead: true }))).Item;
+  const publicId = validEpkId(workspace?.publicId?.S) ? workspace.publicId.S : "";
+  if (!publicId) return reply(409, { error: "Save the EPK before sharing it." });
+  const cardRecordKey = { userId: { S: EPK_CARD_PARTITION }, tourId: { S: publicId } };
+  const current = (await db.send(new GetItemCommand({ TableName: toursTable, Key: cardRecordKey, ConsistentRead: true }))).Item;
+  if (current && current.ownerId?.S !== userId) return reply(409, { error: "This EPK link belongs to another account." });
+  const previousKey = validCardKey(current?.cardKey?.S, ownerPrefix) ? current.cardKey.S : "";
+  const data = parseJsonBody(event) || {};
+  if (data.off === true) {
+    // Kept as "off" (not deleted), so the builder remembers the artist's choice and doesn't draw a new card.
+    await db.send(new PutItemCommand({ TableName: toursTable, Item: { ...cardRecordKey, ownerId: { S: userId }, off: { BOOL: true }, updatedAt: { S: new Date().toISOString() } } }));
+    if (previousKey) await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: previousKey })).catch(() => {});
+    return reply(200, { shareCard: false, shareCardOff: true, shareCardSig: "", shareUrl: epkShareLink(publicId) });
+  }
+  const mediaKey = String(data.mediaKey || ""), sig = String(data.sig || "").toLowerCase();
+  if (!validCardKey(mediaKey, ownerPrefix) || !/^[a-f0-9]{16,64}$/.test(sig)) return reply(400, { error: "The link preview couldn't be saved." });
+  let head;
+  try { head = await s3.send(new HeadObjectCommand({ Bucket: mediaBucket, Key: mediaKey })); }
+  catch { return reply(400, { error: "The link preview couldn't be saved." }); }
+  const size = Number(head.ContentLength || 0);
+  if (size < 1000 || size > CARD_MAX_BYTES || (head.ContentType && !/^image\/jpeg$/i.test(head.ContentType))) return reply(400, { error: "The link preview couldn't be saved." });
+  await db.send(new PutItemCommand({ TableName: toursTable, Item: { ...cardRecordKey, ownerId: { S: userId }, cardKey: { S: mediaKey }, sig: { S: sig }, updatedAt: { S: new Date().toISOString() } } }));
+  if (previousKey && previousKey !== mediaKey) await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: previousKey })).catch(() => {});
+  return reply(200, { shareCard: true, shareCardSig: sig, shareUrl: epkShareLink(publicId) });
+}
+
+// GET /share/epk/<id> (the page link crawlers read) and GET /share/epk/<id>/card (the card picture). No Origin: crawlers
+// send none.
+async function epkSharePreview(event, publicId, wantsCard) {
+  const notFound = { statusCode: 404, headers: { ...securityHeaders, "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" }, body: "Not found" };
+  if (!validEpkId(publicId)) return notFound;
+  const get = partition => db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: partition }, tourId: { S: publicId } } })).then(result => result.Item || null);
+  const [card, published, shared] = await Promise.all([get(EPK_CARD_PARTITION), get(epkPublicPartition), get(epkSharePartition)]);
+  const owner = published?.ownerId?.S || shared?.ownerId?.S || "";
+  const cardOn = Boolean(owner) && card?.ownerId?.S === owner && Boolean(card?.cardKey?.S);
+  if (wantsCard) {
+    if (!cardOn) return notFound;
+    const object = await s3.send(new GetObjectCommand({ Bucket: mediaBucket, Key: card.cardKey.S }));
+    const bytes = Buffer.from(await object.Body.transformToByteArray());
+    return { statusCode: 200, isBase64Encoded: true, headers: { ...securityHeaders, "content-type": "image/jpeg", "cache-control": "public, max-age=86400" }, body: bytes.toString("base64") };
+  }
+  const plan = published?.plan?.S || (cardOn ? shared?.plan?.S : "") || "";
+  let kit = null;
+  try { kit = plan ? JSON.parse(plan) : null; } catch { kit = null; }
+  return epkSharePage({ id: publicId, kit, cardSig: cardOn ? card.sig?.S || "" : "" });
 }
 
 async function publicEpk(event, publicId) {
@@ -4812,7 +4882,7 @@ async function publicEpk(event, publicId) {
   if (!allowedOrigins.has(event.headers?.origin) || !/^[a-z0-9-]{3,64}$/i.test(publicId)) return reply(404, { error: "EPK not found." });
   const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } } }));
   if (!result.Item) return reply(404, { error: "EPK not found." });
-  return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), true), updatedAt: result.Item.updatedAt?.S || "" });
+  return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), true), updatedAt: result.Item.updatedAt?.S || "", shareUrl: epkShareLink(publicId) });
 }
 
 async function privateEpkShare(event, method, publicId = "") {
@@ -4825,7 +4895,7 @@ async function privateEpkShare(event, method, publicId = "") {
     const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkSharePartition }, tourId: { S: publicId } }, ConsistentRead: true }));
     const storedHash = result.Item?.shareHash?.S || "";
     if (!epkShareTokenMatches(token, storedHash)) return reply(404, { error: "Private EPK link is invalid or has been revoked." });
-    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), false, false), private: true, updatedAt: result.Item.updatedAt?.S || "" });
+    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), false, false), private: true, updatedAt: result.Item.updatedAt?.S || "", shareUrl: epkShareLink(publicId) });
   }
   const userId = await getAuthenticatedUser(event);
   if (!userId) return reply(401, { error: "Authentication required." });
@@ -4849,7 +4919,7 @@ async function privateEpkShare(event, method, publicId = "") {
     { Update: { TableName: toursTable, Key: ownerKey, UpdateExpression: "SET shareHash = :hash, updatedAt = :updated", ConditionExpression: "attribute_exists(userId)", ExpressionAttributeValues: { ":hash": { S: shareHash }, ":updated": { S: nowIso } } } },
     { Put: { TableName: toursTable, Item: { ...shareKey, name: { S: `${existing.Item.name?.S || "Private EPK"} review` }, plan: { S: existing.Item.plan?.S || "{}" }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }
   ] }));
-  return reply(200, { privateShared: true, publicId: id, token });
+  return reply(200, { privateShared: true, publicId: id, token, shareUrl: epkShareLink(id) });
 }
 
 async function outreachEpkShare(event, method, shareId = "") {
@@ -5886,6 +5956,9 @@ async function routeRequest(event) {
     if ((method === "GET" || method === "POST" || method === "DELETE") && path === "/epk") return await epkWorkspace(event, method);
     if (method === "POST" && path === "/epk/qr") return await epkQr(event);
     if (method === "POST" && path === "/epk/share") return await privateEpkShare(event, method);
+    if (method === "POST" && path === "/epk/share-card") return await epkShareCard(event);
+    const epkPreviewMatch = path.match(/^\/share\/epk\/([a-z0-9-]{3,64})(\/card)?\/?$/);
+    if (method === "GET" && epkPreviewMatch) return await epkSharePreview(event, epkPreviewMatch[1], Boolean(epkPreviewMatch[2]));
     if ((method === "GET" || method === "POST") && path === "/epk/outreach-share") return await outreachEpkShare(event, method);
     const epkOutreachMatch = path.match(/^\/epk\/outreach\/([a-f0-9]{32})$/i);
     if (method === "POST" && epkOutreachMatch) return await outreachEpkShare(event, method, epkOutreachMatch[1].toLowerCase());

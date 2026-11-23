@@ -88,3 +88,10 @@
   body[data-epk-print="one-page"] .epk-contact{display:flex;flex-wrap:wrap;gap:5px 14px;align-items:center}
   body[data-epk-print="one-page"] .epk-contact>*{margin:0}
 }
+/* The EPK's link preview (owner 2026-11-23: "Should have a preview … Like this"): the card shared links show, and its switch. */
+.epk-card-row{display:grid;gap:8px;margin:12px 0}.epk-card-row[hidden]{display:none}
+.epk-card-row img{width:100%;max-width:480px;height:auto;aspect-ratio:1200/630;border-radius:12px;border:1px solid #2a2d33;background:#0b0b0c}
+.epk-card-row img[hidden]{display:none}
+.epk-card-toggle{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:700}
+.epk-card-toggle input{width:22px;height:22px;margin:0;accent-color:#15803d}
+.epk-card-row .hint{margin:0}

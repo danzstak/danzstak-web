@@ -70,7 +70,10 @@
     const preview = await fetchPreview(href);
     if (!placeholder.isConnected) return;
     if (!preview) { frame.remove(); placeholder.classList.remove("is-loading"); placeholder.classList.add("no-image"); return; }
-    placeholder.replaceWith(card(preview));
+    // The server never sees a link's #fragment, so its preview comes back without it. A private EPK review link keeps its
+    // #token that way (owner 2026-11-23): the card opens the link exactly as it was posted.
+    const same = (() => { try { const posted = new URL(href); posted.hash = ""; return posted.href === new URL(preview.url).href; } catch { return false; } })();
+    placeholder.replaceWith(card(same ? { ...preview, url: href } : preview));
   }
 
   const scan = root => {
