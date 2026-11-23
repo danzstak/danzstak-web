@@ -293,6 +293,38 @@ function fakeDb() {
   const erroring = ai.anthropicLlm({ apiKey: "k", fetcher: async () => ({ ok: false, status: 529, json: async () => ({}) }) });
   await assert.rejects(erroring.complete({ purpose: "extract", system: "", user: "", schema: {}, maxTokens: 1 }), error => error.retryable === true);
 
+  // ---- 9b. Bedrock adapter (D0-4): Converse with a forced tool, retry throttling once, fail closed when denied ----
+  class Converse { constructor(input) { this.input = input; } }
+  const calls = [];
+  const okReply = input => ({ stopReason: "tool_use", output: { message: { content: [{ toolUse: { name: "answer", input: { facts: [] } } }] } }, usage: { inputTokens: 12, outputTokens: 7 } });
+  const fakeClient = script => ({ send: async command => { calls.push(command.input); const step = script.shift(); if (step instanceof Error) throw step; return step(command.input); } });
+  const named = name => Object.assign(new Error(name), { name });
+  const noWait = async () => {};
+  assert.equal(ai.bedrockLlm({ client: null, Command: Converse }), null, "no client, no model");
+  const bedrock = ai.bedrockLlm({ client: fakeClient([okReply]), Command: Converse, sleep: noWait });
+  const bedrockExtract = await bedrock.complete({ purpose: "extract", system: "sys", user: "u", schema: ai.FACTS_SCHEMA, maxTokens: 100 });
+  assert.equal(calls[0].modelId, "us.anthropic.claude-haiku-4-5-20251001-v1:0", "Haiku 4.5 inference profile");
+  assert.deepEqual(calls[0].toolConfig.toolChoice, { tool: { name: "answer" } }, "the answer tool is forced");
+  assert.deepEqual(calls[0].toolConfig.tools[0].toolSpec.inputSchema, { json: ai.FACTS_SCHEMA }, "strict JSON from the schema");
+  assert.deepEqual(calls[0].system, [{ text: "sys" }]); assert.equal(calls[0].inferenceConfig.maxTokens, 100);
+  assert.deepEqual(bedrockExtract, { json: { facts: [] }, model: "us.anthropic.claude-haiku-4-5-20251001-v1:0", usage: { input: 12, output: 7 } });
+  calls.length = 0;
+  const throttledOnce = ai.bedrockLlm({ client: fakeClient([named("ThrottlingException"), okReply]), Command: Converse, sleep: noWait });
+  assert.deepEqual((await throttledOnce.complete({ purpose: "extract", system: "", user: "u", schema: {}, maxTokens: 1 })).json, { facts: [] }, "throttled once: retried and answered");
+  assert.equal(calls.length, 2);
+  const throttledTwice = ai.bedrockLlm({ client: fakeClient([named("ThrottlingException"), named("ThrottlingException")]), Command: Converse, sleep: noWait });
+  await assert.rejects(throttledTwice.complete({ purpose: "extract", system: "", user: "u", schema: {}, maxTokens: 1 }), error => error.retryable === false && !error.denied, "throttled twice: the build stops and gives the credit back");
+  const denied = ai.bedrockLlm({ client: fakeClient([named("AccessDeniedException")]), Command: Converse, sleep: noWait });
+  await assert.rejects(denied.complete({ purpose: "write", system: "", user: "u", schema: {}, maxTokens: 1 }), error => error.retryable === false && error.denied === true && !/arn:|account/i.test(error.message), "denied model fails closed, no AWS details");
+  const noTool = ai.bedrockLlm({ client: fakeClient([() => ({ stopReason: "end_turn", output: { message: { content: [{ text: "hi" }] } } })]), Command: Converse, sleep: noWait });
+  await assert.rejects(noTool.complete({ purpose: "extract", system: "", user: "u", schema: {}, maxTokens: 1 }), /not valid JSON/);
+  // Routed per purpose: extraction on Bedrock, writing on the Anthropic API; a missing provider means no AI at all.
+  const tagged = name => ({ name, complete: async request => ({ json: { by: name, purpose: request.purpose }, model: name, usage: { input: 0, output: 0 } }) });
+  const routed = ai.routedLlm({ extract: tagged("bedrock"), write: tagged("anthropic") });
+  assert.equal((await routed.complete({ purpose: "extract" })).json.by, "bedrock");
+  assert.equal((await routed.complete({ purpose: "write" })).json.by, "anthropic");
+  assert.equal(ai.routedLlm({ extract: tagged("bedrock"), write: null }), null, "no writer: AI builder coming soon");
+
   // ---- 10. page fetching: SSRF guard and robots.txt ----
   const publicResolver = async () => [{ address: "93.184.216.34" }];
   const robotsFetch = async url => url.endsWith("/robots.txt")
@@ -312,6 +344,14 @@ function fakeDb() {
   assert.match(index, /aiEpkReady: async \(userId, kind\) => .*\(await aiEpkHandler\(\)\)\.checkoutReady\(userId, kind\)/);
   assert.match(index, /"\/tour-manager\/ai-epk\/checkout", "\/tour-manager\/refunds\/quote"/);
   for (const route of ["GET /epk/ai", "POST /epk/ai/identify", "POST /epk/ai/confirm", "POST /epk/ai/build", "POST /epk/ai/step", "POST /epk/ai/review", "POST /tour-manager/ai-epk/checkout"]) assert.ok(deploy.includes(`"${route}"`), route);
+  assert.match(index, /pick\("AI_EXTRACT_PROVIDER", "bedrock"\)/, "extraction defaults to Bedrock");
+  assert.match(index, /pick\("AI_WRITE_PROVIDER", "anthropic"\)/, "writing defaults to the Anthropic API");
+  assert.match(index, /createRequire\(import\.meta\.url\)\("@aws-sdk\/client-bedrock-runtime"\)/, "Bedrock SDK from the Lambda runtime, no new package");
+  assert.match(deploy, /\$bedrockPolicyName = "DanzStakBedrockInvoke"/);
+  const bedrockBlock = deploy.slice(deploy.indexOf('$bedrockPolicyName = "DanzStakBedrockInvoke"'), deploy.indexOf("Remove-Item -LiteralPath $bedrockPolicy"));
+  assert.deepEqual([...new Set(bedrockBlock.match(/(?<=Action = @\(")bedrock:[A-Za-z*]+/g))], ["bedrock:InvokeModel"], "Bedrock policy grants only InvokeModel");
+  assert.ok(!/foundation-model\/\*|inference-profile\/\*|"Resource = \"\*\""/.test(bedrockBlock), "no wildcard models");
+  assert.ok(/Invoke-Change "Create managed policy \$bedrockPolicyName/.test(bedrockBlock) && /Invoke-Change "Attach \$bedrockPolicyName/.test(bedrockBlock), "dry run plans the Bedrock policy");
   assert.ok(!/sk-ant-[A-Za-z0-9]{20,}/.test(index + fs.readFileSync("infrastructure/auth-api/ai-epk.mjs", "utf8")), "no key in the code");
 
   console.log("AI EPK checks passed: fail-closed, $6.30 test checkout, verified idempotent webhook (+1 build, +1 included send), only confirmed pages, sourced facts, quote limits, no web images, injection-safe writing, budget guard, credit restore, review-gated publishing, refunds, adapter shape, SSRF and robots.");

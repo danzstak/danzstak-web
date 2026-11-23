@@ -385,6 +385,48 @@ try {
     Remove-Item -LiteralPath $cdnPolicy -Force -ErrorAction SilentlyContinue
   }
 
+  # D0-4 (owner 2026-11-21/22): the AI EPK, AI profile and AI shop read pages with Claude Haiku 4.5 on Amazon Bedrock,
+  # billed on the DanzStak AWS account. Its own managed policy (DanzStakBedrockInvoke): only bedrock:InvokeModel (the
+  # permission the Converse API uses) on the Haiku 4.5 cross-region inference profile and the foundation model it routes
+  # to. Writing stays on the Anthropic API (DanzStakAnthropicKeyRead) until AWS opens Sonnet on Bedrock for this account;
+  # flipping AI_WRITE_PROVIDER=bedrock then also needs the Sonnet profile added here. Updated in place when it changes.
+  $bedrockPolicyName = "DanzStakBedrockInvoke"
+  $bedrockPolicyArn = "arn:aws:iam::$($identity.Account):policy/$bedrockPolicyName"
+  $bedrockPolicy = Join-Path $TempRoot "danzstak-bedrock-invoke-policy.json"
+  @{
+    Version = "2012-10-17"
+    Statement = @(
+      @{ Sid = "HaikuInferenceProfile"; Effect = "Allow"; Action = @("bedrock:InvokeModel"); Resource = "arn:aws:bedrock:${Region}:$($identity.Account):inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0" },
+      @{ Sid = "HaikuFoundationModel"; Effect = "Allow"; Action = @("bedrock:InvokeModel"); Resource = "arn:aws:bedrock:us-*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"; Condition = @{ StringLike = @{ "bedrock:InferenceProfileArn" = "arn:aws:bedrock:${Region}:$($identity.Account):inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0" } } }
+    )
+  } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $bedrockPolicy -Encoding ascii
+  $bedrockLive = aws iam get-policy --policy-arn $bedrockPolicyArn --output json 2>$null | ConvertFrom-Json
+  $bedrockPolicyExists = $LASTEXITCODE -eq 0
+  $global:LASTEXITCODE = 0
+  if (-not $bedrockPolicyExists) { Invoke-Change "Create managed policy $bedrockPolicyName (Claude Haiku 4.5 on Bedrock only)" {
+    aws iam create-policy --policy-name $bedrockPolicyName --policy-document "file://$bedrockPolicy" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Bedrock policy could not be created." }
+  } } else {
+    $bedrockLiveDocument = aws iam get-policy-version --policy-arn $bedrockPolicyArn --version-id $bedrockLive.Policy.DefaultVersionId --query 'PolicyVersion.Document' --output json | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0) { throw "Bedrock policy could not be read." }
+    $bedrockWanted = Get-StatementMap (Get-Content -LiteralPath $bedrockPolicy -Raw | ConvertFrom-Json)
+    $bedrockHave = Get-StatementMap $bedrockLiveDocument
+    $bedrockSame = $bedrockWanted.Count -eq $bedrockHave.Count -and -not @($bedrockWanted.Keys | Where-Object { $bedrockHave[$_] -ne $bedrockWanted[$_] }).Count
+    if (-not $bedrockSame) { Invoke-Change "Update managed policy $bedrockPolicyName" {
+      $versions = @(aws iam list-policy-versions --policy-arn $bedrockPolicyArn --query 'Versions[?IsDefaultVersion==`false`]' --output json | ConvertFrom-Json | Sort-Object CreateDate)
+      if ($versions.Count -ge 4) { aws iam delete-policy-version --policy-arn $bedrockPolicyArn --version-id $versions[0].VersionId }
+      aws iam create-policy-version --policy-arn $bedrockPolicyArn --policy-document "file://$bedrockPolicy" --set-as-default --output json | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "Bedrock policy could not be updated." }
+    } }
+  }
+  $bedrockAttached = @(aws iam list-attached-role-policies --role-name $RoleName --query 'AttachedPolicies[].PolicyArn' --output json | ConvertFrom-Json)
+  if ($LASTEXITCODE -ne 0) { throw "Auth API role policies could not be read." }
+  if ($bedrockAttached -notcontains $bedrockPolicyArn) { Invoke-Change "Attach $bedrockPolicyName to the Auth API role" {
+    aws iam attach-role-policy --role-name $RoleName --policy-arn $bedrockPolicyArn
+    if ($LASTEXITCODE -ne 0) { throw "Bedrock policy could not be attached to the Auth API role." }
+  } }
+  Remove-Item -LiteralPath $bedrockPolicy -Force -ErrorAction SilentlyContinue
+
   $mediaBucket = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query 'StackResourceDetail.PhysicalResourceId' --output text
   if ($LASTEXITCODE -ne 0 -or -not $mediaBucket) { throw "DanzStak media bucket could not be resolved." }
   $activityPushOutboxTable = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id ActivityPushOutboxTable --query 'StackResourceDetail.PhysicalResourceId' --output text

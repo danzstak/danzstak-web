@@ -36,7 +36,7 @@ export const AI_EPK_KEYS = Object.freeze({ draft: "AI_EPK#DRAFT", credits: "AI_E
 export const AI_EPK_DISCLAIMER = "AI drafts can be wrong or out of date. DanzStak doesn't verify them. You must review every word, and you're responsible for what you publish or send. No guarantee of bookings or press. We never train AI on your content.";
 export const DEFAULT_BUDGET = Object.freeze({ maxCandidates: 8, maxConfirmed: 10, maxPages: 8, maxSearches: 6, maxLlmCalls: 6, maxInputTokens: 60000, maxOutputTokens: 9000, pageChars: 8000, pagesPerExtract: 3 });
 // Rough list prices per million tokens, used only to log cost per build (no content is logged).
-const PRICE_PER_MTOK = { "claude-haiku-4-5": [1, 5], "claude-haiku-5-5": [0.1, 0.5], "claude-sonnet-5-5": [2, 10], "claude-sonnet-5": [2, 10] };
+const PRICE_PER_MTOK = { "claude-haiku-4-5": [1, 5], "us.anthropic.claude-haiku-4-5-20251001-v1:0": [1, 5], "us.anthropic.claude-sonnet-5-5": [2, 10], "claude-haiku-5-5": [0.1, 0.5], "claude-sonnet-5-5": [2, 10], "claude-sonnet-5": [2, 10] };
 const BRAVE_COST_CENTS = 0.5;
 const SECTIONS = ["shortPitch", "shortBio", "bio", "genres", "hometown", "lineup", "releases", "notableShows", "achievements", "pressQuotes", "musicLinks", "videoLinks", "socialLinks"];
 const FACT_KINDS = ["release", "show", "press", "achievement", "genre", "member", "hometown"];
@@ -115,6 +115,56 @@ export function anthropicLlm({ apiKey, fetcher = fetch, extractModel = "claude-h
       return { json, model: data.model || model, usage: { input: Number(data.usage?.input_tokens) || 0, output: Number(data.usage?.output_tokens) || 0 } };
     }
   };
+}
+
+// Claude on Amazon Bedrock (D0-4, owner 2026-11-21/22): billed on the DanzStak AWS account, no API key; Bedrock doesn't
+// train on customer content. Only Haiku 4.5 is open on this account, so extraction runs here and writing stays on the
+// Anthropic API until AWS opens Sonnet (then AI_WRITE_PROVIDER=bedrock, no code change). The Converse API with one
+// forced tool whose input schema is the answer's schema gives strict JSON. `client` is a BedrockRuntimeClient (or a
+// test double with send()); `Command` is ConverseCommand. Throttling is tried once more, then the build gives up and
+// restores the credit; a denied or missing model fails closed (retryable false: the credit comes back, nothing charged).
+export const BEDROCK_MODELS = Object.freeze({ haiku: "us.anthropic.claude-haiku-4-5-20251001-v1:0", sonnet: "us.anthropic.claude-sonnet-5-5" });
+const BEDROCK_RETRY = new Set(["ThrottlingException", "TooManyRequestsException", "ServiceUnavailableException", "ModelNotReadyException", "InternalServerException", "ModelTimeoutException"]);
+export function bedrockLlm({ client, Command, extractModel = BEDROCK_MODELS.haiku, writeModel = BEDROCK_MODELS.haiku, retryDelayMs = 1500, sleep = ms => new Promise(done => setTimeout(done, ms)) }) {
+  if (!client || !Command) return null;
+  return {
+    name: "bedrock",
+    async complete({ purpose, system, user, schema, maxTokens }) {
+      const modelId = purpose === "write" ? writeModel : extractModel;
+      const input = {
+        modelId,
+        system: system ? [{ text: system }] : undefined,
+        messages: [{ role: "user", content: [{ text: user }] }],
+        inferenceConfig: { maxTokens },
+        toolConfig: { tools: [{ toolSpec: { name: "answer", description: "Give the answer in this exact shape.", inputSchema: { json: schema } } }], toolChoice: { tool: { name: "answer" } } }
+      };
+      let data;
+      for (let attempt = 0; ; attempt++) {
+        try { data = await client.send(new Command(input)); break; }
+        catch (cause) {
+          const name = cause?.name || "Error";
+          if (BEDROCK_RETRY.has(name) && attempt === 0) { await sleep(retryDelayMs); continue; }
+          const error = new Error(`AI provider returned ${name}`);
+          // One retry already happened inside: the build stops and gives the credit back instead of trying again.
+          error.retryable = false; error.denied = name === "AccessDeniedException" || name === "ResourceNotFoundException" || name === "ValidationException";
+          throw error;
+        }
+      }
+      if (data.stopReason === "max_tokens") throw new Error("The AI answer was cut off.");
+      if (data.stopReason === "guardrail_intervened" || data.stopReason === "content_filtered") throw new Error("The AI provider declined this request.");
+      const tool = (data.output?.message?.content || []).find(block => block.toolUse)?.toolUse;
+      if (!tool || typeof tool.input !== "object" || tool.input === null) throw new Error("The AI answer was not valid JSON.");
+      return { json: tool.input, model: modelId, usage: { input: Number(data.usage?.inputTokens) || 0, output: Number(data.usage?.outputTokens) || 0 } };
+    }
+  };
+}
+
+// Picks the provider per purpose (AI_EXTRACT_PROVIDER / AI_WRITE_PROVIDER). Fail-closed: if a purpose has no working
+// provider, there is no AI at all ("AI builder coming soon"), so nobody can pay for a build that can't finish.
+export function routedLlm({ extract, write }) {
+  if (!extract || !write) return null;
+  if (extract === write) return extract;
+  return { name: `${extract.name}+${write.name}`, complete: request => (request.purpose === "write" ? write : extract).complete(request) };
 }
 
 // Brave Search (owner decision: independent index). Results only; DanzStak never logs in anywhere.

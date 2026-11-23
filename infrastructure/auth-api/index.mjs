@@ -43,7 +43,7 @@ import {
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
-import { anthropicLlm, braveSearch, createAiEpk, safeFetchPage } from "./ai-epk.mjs";
+import { BEDROCK_MODELS, anthropicLlm, bedrockLlm, braveSearch, createAiEpk, routedLlm, safeFetchPage } from "./ai-epk.mjs";
 import { createAiProfile } from "./ai-profile.mjs";
 import { EPK_WORKSPACE_KEY, canMove, epkGate, pitchStats, stageOf, venueEvents, withPipeline } from "./booking-pipeline.mjs";
 import { MAX_ROUTE_STOPS, cleanDateOptions, planRouteDates, withRoadLegs } from "./booking-route-dates.mjs";
@@ -286,6 +286,27 @@ async function optionalAiSecret(name, fields) {
   try { return secretText(await secretsManager.send(new GetSecretValueCommand({ SecretId: name })), fields); }
   catch (error) { console.warn("AI secret unavailable", { name, reason: error.name || "error" }); return ""; }
 }
+// D0-4: the model provider per purpose. Extraction on Amazon Bedrock (Haiku 4.5, DanzStakBedrockInvoke), writing on the
+// Anthropic API (key above) until AWS opens Sonnet on Bedrock for this account. AI_EXTRACT_PROVIDER / AI_WRITE_PROVIDER
+// = bedrock | anthropic switch either one with no code change. The Bedrock client comes from the AWS SDK that ships in
+// the Lambda runtime (createRequire, no new package). If it can't load, extraction falls back to the Anthropic API.
+let bedrockRuntime;
+function bedrockAdapter() {
+  if (bedrockRuntime === undefined) {
+    try {
+      const { BedrockRuntimeClient, ConverseCommand } = createRequire(import.meta.url)("@aws-sdk/client-bedrock-runtime");
+      bedrockRuntime = { client: new BedrockRuntimeClient({ region: process.env.AI_BEDROCK_REGION || process.env.AWS_REGION || "us-west-1", maxAttempts: 1 }), Command: ConverseCommand };
+    } catch (error) { console.warn("Bedrock runtime unavailable", { reason: error.code || error.name || "error" }); bedrockRuntime = null; }
+  }
+  if (!bedrockRuntime) return null;
+  return bedrockLlm({ ...bedrockRuntime, extractModel: process.env.AI_BEDROCK_EXTRACT_MODEL || BEDROCK_MODELS.haiku, writeModel: process.env.AI_BEDROCK_WRITE_MODEL || BEDROCK_MODELS.sonnet });
+}
+function aiProviders(anthropicKey) {
+  const anthropic = anthropicLlm({ apiKey: anthropicKey, extractModel: process.env.AI_EPK_EXTRACT_MODEL || "claude-haiku-4-5", writeModel: process.env.AI_EPK_WRITE_MODEL || "claude-sonnet-5-5" });
+  const pick = (setting, fallback) => (String(process.env[setting] || fallback).trim().toLowerCase() === "bedrock" ? bedrockAdapter() : anthropic);
+  const extract = pick("AI_EXTRACT_PROVIDER", "bedrock") || anthropic, write = pick("AI_WRITE_PROVIDER", "anthropic");
+  return routedLlm({ extract, write });
+}
 function aiEpkHandler() {
   if (aiEpkPromise && Date.now() - aiEpkLoadedAt < 10 * 60 * 1000) return aiEpkPromise;
   aiEpkLoadedAt = Date.now();
@@ -294,7 +315,7 @@ function aiEpkHandler() {
       optionalAiSecret(anthropicSecretName, ["apiKey", "ANTHROPIC_API_KEY", "key", "value"]),
       String(process.env.BRAVE_SEARCH_API_KEY || "").trim() || optionalAiSecret(braveSecretName, ["apiKey", "BRAVE_SEARCH_API_KEY", "key", "value"])
     ]);
-    const llm = anthropicLlm({ apiKey: anthropicKey, extractModel: process.env.AI_EPK_EXTRACT_MODEL || "claude-haiku-4-5", writeModel: process.env.AI_EPK_WRITE_MODEL || "claude-sonnet-5-5" });
+    const llm = aiProviders(anthropicKey);
     // Write it with AI (task 19) shares the provider and the key.
     aiProfile = createAiProfile({ db, commands: { GetItemCommand, UpdateItemCommand }, authenticate: getAuthenticatedUser, corsHeaders, tableName: toursTable, llm });
     return createAiEpk({
