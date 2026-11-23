@@ -107,6 +107,13 @@
   addEventListener("danzstak:call-device-ready", event => { if (event.detail?.registered === true) renewExistingSubscription({ force: true }); });
   addEventListener("danzstak:call-device-registered", () => renewExistingSubscription({ force: true }));
   window.danzstakRenewPushSubscription = renewExistingSubscription;
+  // L4: true when the server says this phone's subscription is linked to its registered SYNC device (calls ring with SYNC
+  // closed), false when it saved it unlinked, null when unknown (no subscription, offline).
+  window.danzstakPushLinked = async () => {
+    await renewExistingSubscription({ force: true });
+    const synced = syncedState();
+    return synced === "linked" ? true : synced === "1" ? false : null;
+  };
 
   async function showPermissionPrompt() {
     if (new URLSearchParams(location.search).get("embedded") === "1") return;

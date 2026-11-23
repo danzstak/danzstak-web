@@ -348,6 +348,43 @@ try {
     $global:LASTEXITCODE = 0
   }
 
+  # Task 38 / C1: Mix posts and The Roll through the CDN. Once the call-signaling stack has the CDN, the Auth API may read
+  # only the signing-key secret and invalidate only the media distribution: its own managed policy (DanzStakMediaCdn),
+  # because DanzStakAuthApiAccess is close to its size quota.
+  $mediaCdnDomain = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Call-Signaling --query "Stacks[0].Outputs[?OutputKey=='MediaCdnDomain'].OutputValue | [0]" --output text
+  if ($LASTEXITCODE -ne 0) { throw "Media CDN domain could not be read." }
+  $mediaCdnDistribution = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Call-Signaling --query "Stacks[0].Outputs[?OutputKey=='MediaCdnDistributionId'].OutputValue | [0]" --output text
+  if ($LASTEXITCODE -ne 0) { throw "Media CDN distribution could not be read." }
+  $mediaCdnServe = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Call-Signaling --query "Stacks[0].Parameters[?ParameterKey=='MediaCdnServe'].ParameterValue | [0]" --output text
+  if ($LASTEXITCODE -ne 0) { throw "Media CDN switch could not be read." }
+  $mediaCdnReady = ($mediaCdnDomain -match '^[a-z0-9]+\.cloudfront\.net$') -and ($mediaCdnDistribution -match '^E[A-Z0-9]+$')
+  if ($mediaCdnReady) {
+    $cdnPolicyName = "DanzStakMediaCdn"
+    $cdnPolicyArn = "arn:aws:iam::$($identity.Account):policy/$cdnPolicyName"
+    $cdnPolicy = Join-Path $TempRoot "danzstak-media-cdn-policy.json"
+    @{
+      Version = "2012-10-17"
+      Statement = @(
+        @{ Sid = "MediaCdnSigningKey"; Effect = "Allow"; Action = @("secretsmanager:GetSecretValue"); Resource = "arn:aws:secretsmanager:us-west-1:$($identity.Account):secret:danzstak/cloudfront/media-signing-key-*" },
+        @{ Sid = "MediaCdnInvalidate"; Effect = "Allow"; Action = @("cloudfront:CreateInvalidation"); Resource = "arn:aws:cloudfront::$($identity.Account):distribution/$mediaCdnDistribution" }
+      )
+    } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $cdnPolicy -Encoding ascii
+    aws iam get-policy --policy-arn $cdnPolicyArn --output json 2>$null | Out-Null
+    $cdnPolicyExists = $LASTEXITCODE -eq 0
+    $global:LASTEXITCODE = 0
+    if (-not $cdnPolicyExists) { Invoke-Change "Create managed policy $cdnPolicyName (read the CDN signing key, invalidate $mediaCdnDistribution)" {
+      aws iam create-policy --policy-name $cdnPolicyName --policy-document "file://$cdnPolicy" --output json | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "Media CDN policy could not be created." }
+    } }
+    $cdnAttached = @(aws iam list-attached-role-policies --role-name $RoleName --query 'AttachedPolicies[].PolicyArn' --output json | ConvertFrom-Json)
+    if ($LASTEXITCODE -ne 0) { throw "Auth API role policies could not be read." }
+    if ($cdnAttached -notcontains $cdnPolicyArn) { Invoke-Change "Attach $cdnPolicyName to the Auth API role" {
+      aws iam attach-role-policy --role-name $RoleName --policy-arn $cdnPolicyArn
+      if ($LASTEXITCODE -ne 0) { throw "Media CDN policy could not be attached to the Auth API role." }
+    } }
+    Remove-Item -LiteralPath $cdnPolicy -Force -ErrorAction SilentlyContinue
+  }
+
   $mediaBucket = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query 'StackResourceDetail.PhysicalResourceId' --output text
   if ($LASTEXITCODE -ne 0 -or -not $mediaBucket) { throw "DanzStak media bucket could not be resolved." }
   $activityPushOutboxTable = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id ActivityPushOutboxTable --query 'StackResourceDetail.PhysicalResourceId' --output text
@@ -383,6 +420,9 @@ try {
   # Fail closed: provider availability controls whether a text can be sent,
   # never whether an unverified device is allowed to register.
   $variables.PHONE_DEVICE_OTP_REQUIRED = if ($EnableDeviceSmsOtp) { 'true' } else { 'false' }
+  # CDN URLs only while call-signaling serves the CDN (the pages allow that host); S3 links otherwise.
+  if ($mediaCdnReady -and $mediaCdnServe -eq 'true') { $variables.MEDIA_CDN_DOMAIN = [string]$mediaCdnDomain; $variables.MEDIA_CDN_DISTRIBUTION_ID = [string]$mediaCdnDistribution }
+  else { $variables.Remove('MEDIA_CDN_DOMAIN'); $variables.Remove('MEDIA_CDN_DISTRIBUTION_ID') }
   @{ Variables = $variables } | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $Environment -Encoding ascii
   # Names only (values can be private settings): which environment variables a real run adds or changes.
   $liveVariables = @{}
