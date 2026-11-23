@@ -9,7 +9,7 @@ assert.doesNotMatch(editor, /addBioButton|profile-add-bio/, "no + bio in the act
 assert.match(editor, /const canEditThisProfile = \(\) => !viewingOtherProfile && window\.danzstakCurrentProfile\?\.isOwner !== false;/);
 assert.match(editor, /editButton\.addEventListener\("click", \(\) => \{\r?\n\s*if \(!canEditThisProfile\(\)\) return;/, "the editor never opens on someone else's profile");
 assert.match(editor, /if \(!canEditThisProfile\(\)\) \{ closeEditScreen\(false\); return; \}/, "and never saves there");
-assert.match(editor, /bioElement\.hidden = !profile\.bio;/, "visitors see nothing when there is no bio");
+assert.match(editor, /bioElement\.hidden = !profile\.bio \|\| sameWords\(profile\.bio, /, "visitors see nothing when there is no bio, or when it only repeats the name (F14)");
 assert.match(editor, /empty\.className = "profile-empty-wall"; empty\.textContent = profileTranslate\("No posts yet"\);/, "empty wall says so");
 for (const [lang, word] of [["it", "Ancora nessun post"], ["fr", "Pas encore de publications"], ["es", "Aún no hay publicaciones"]]) assert.ok(people.includes(`"No posts yet": "${word}"`), lang);
 console.log("Profile empty-state checks passed.");
