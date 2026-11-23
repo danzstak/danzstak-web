@@ -15,17 +15,59 @@
   const listeners = new Set();
   let box = null;
 
-  function embedSource(url, { api: jsApi = false } = {}) {
+  function ids(url) {
     try {
       const u = new URL(url), host = u.hostname.replace(/^www\.|^m\./, "").toLowerCase();
-      let id = "";
-      if (host === "youtube.com" || host === "music.youtube.com") id = u.searchParams.get("v") || (u.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]{6,20})/) || [])[1] || "";
-      else if (host === "youtu.be") id = u.pathname.split("/").filter(Boolean)[0] || "";
-      if (/^[\w-]{6,20}$/.test(id)) return `https://www.youtube-nocookie.com/embed/${id}${jsApi ? `?enablejsapi=1&playsinline=1&origin=${encodeURIComponent(location.origin)}` : ""}`;
-      if (host === "vimeo.com") { const vid = u.pathname.split("/").filter(Boolean).find(part => /^\d+$/.test(part)); if (vid) return `https://player.vimeo.com/video/${vid}`; }
+      let youtube = "";
+      if (host === "youtube.com" || host === "music.youtube.com") youtube = u.searchParams.get("v") || (u.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]{6,20})/) || [])[1] || "";
+      else if (host === "youtu.be") youtube = u.pathname.split("/").filter(Boolean)[0] || "";
+      if (/^[\w-]{6,20}$/.test(youtube)) return { youtube };
+      if (host === "vimeo.com") { const vimeo = u.pathname.split("/").filter(Boolean).find(part => /^\d+$/.test(part)); if (vimeo) return { vimeo }; }
     } catch { /* not a URL */ }
+    return {};
+  }
+  // play: the visitor tapped the video's picture, so the player starts at once (autoplay only after that tap).
+  function embedSource(url, { api: jsApi = false, play = false } = {}) {
+    const { youtube, vimeo } = ids(url);
+    if (youtube) {
+      const query = [jsApi && `enablejsapi=1&playsinline=1&origin=${encodeURIComponent(location.origin)}`, play && "autoplay=1"].filter(Boolean).join("&");
+      return `https://www.youtube-nocookie.com/embed/${youtube}${query ? `?${query}` : ""}`;
+    }
+    if (vimeo) return `https://player.vimeo.com/video/${vimeo}${play ? "?autoplay=1" : ""}`;
     return "";
   }
+
+  // The video's own picture (owner 2026-11-23, a screenshot of Watch cards that only said "Load YouTube player": "Links
+  // from YouTube need the videos if video unavailable then dont put it in the epk"). YouTube keeps every video's picture
+  // at i.ytimg.com and answers a removed, private or mistyped video with a 120x90 grey stand-in; Vimeo's oEmbed gives the
+  // picture, or 404 for a removed or private video. → { state: "ok" | "gone" | "link" | "unknown", src }
+  const posters = new Map();
+  function poster(url) {
+    if (posters.has(url)) return posters.get(url);
+    const { youtube, vimeo } = ids(url);
+    let job = Promise.resolve({ state: "skip", src: "" });
+    if (youtube) job = new Promise(resolve => {
+      const image = new Image(), src = `https://i.ytimg.com/vi/${youtube}/hqdefault.jpg`;
+      const done = value => { clearTimeout(timer); image.onload = image.onerror = null; resolve(value); };
+      const timer = setTimeout(() => done({ state: "unknown", src: "" }), 8000);
+      image.onload = () => done(image.naturalWidth > 120 ? { state: "ok", src } : { state: "gone", src: "" });
+      image.onerror = () => done({ state: "unknown", src: "" });
+      image.referrerPolicy = "no-referrer";
+      image.src = src;
+    });
+    else if (vimeo) job = fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(`https://vimeo.com/${vimeo}`)}&width=640`, { credentials: "omit", referrerPolicy: "no-referrer" })
+      .then(async response => {
+        if (response.status === 404) return { state: "gone", src: "" };
+        if (response.status === 403) return { state: "link", src: "" }; // the owner keeps it off other sites
+        if (!response.ok) return { state: "unknown", src: "" };
+        const data = await response.json().catch(() => ({}));
+        return { state: "ok", src: /^https:\/\/i\.vimeocdn\.com\/[^\s"'()\\]+$/.test(data.thumbnail_url || "") ? data.thumbnail_url : "" };
+      })
+      .catch(() => ({ state: "unknown", src: "" }));
+    posters.set(url, job);
+    return job;
+  }
+
   const isYouTube = source => source.startsWith("https://www.youtube-nocookie.com/embed/");
 
   // The YouTube player reports errors over postMessage once a page says it is listening. Error codes: 2 bad id,
@@ -62,14 +104,15 @@
   async function check(url) {
     const source = embedSource(url, { api: true });
     if (!source) return { state: "skip" };
-    let server = null;
-    try {
-      const response = await fetch(`${api}/link-preview?url=${encodeURIComponent(url)}`, { credentials: "include", cache: "no-store" });
-      if (response.ok) server = (await response.json()).preview || null;
-    } catch { /* offline: the browser test still runs */ }
+    const asked = fetch(`${api}/link-preview?url=${encodeURIComponent(url)}`, { credentials: "include", cache: "no-store" })
+      .then(async response => response.ok ? (await response.json()).preview || null : null)
+      .catch(() => null); // offline: the picture and the browser test still run
+    const [server, picture] = await Promise.all([asked, poster(url)]);
     const title = server?.title || "";
+    if (picture.state === "gone") return { state: "gone", title };
+    if (picture.state === "link") return { state: "link", title };
     if (server?.playable === false) return { state: server.reason === "embed_off" ? "link" : "gone", title };
-    if (!isYouTube(source)) return { state: server?.playable === true ? "ok" : "unknown", title };
+    if (!isYouTube(source)) return { state: server?.playable === true || picture.state === "ok" ? "ok" : "unknown", title };
     const probe = await testInBrowser(source);
     if (probe.error) return { state: [100, 2].includes(probe.error) ? "gone" : "link", title };
     if (probe.ok || server?.playable === true) return { state: "ok", title };
@@ -139,6 +182,6 @@
     setInterval(() => { if (area.value !== last && document.activeElement !== area) { last = area.value; scan(read()); } }, 1500);
   }
 
-  window.danzstakEpkVideoCheck = Object.freeze({ embedSource, watchPlayer, mark, seed, scan, onChange: fn => listeners.add(fn), state: url => results.get(url)?.state || "" });
+  window.danzstakEpkVideoCheck = Object.freeze({ embedSource, poster, watchPlayer, mark, seed, scan, onChange: fn => listeners.add(fn), state: url => results.get(url)?.state || "" });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true }); else start();
 })();

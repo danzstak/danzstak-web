@@ -129,27 +129,75 @@
     document.querySelectorAll(".epk-media-card[data-player-active='true']").forEach(card => {
       if (card === except) return;
       card.querySelector("iframe")?.remove();
-      const button = card.querySelector(".epk-player-load");
-      if (button) button.hidden = false;
+      card.querySelectorAll(".epk-player-load, .epk-video-face").forEach(node => { node.hidden = false; });
       delete card.dataset.playerActive;
     });
+  }
+  const say = value => window.danzstakTranslate?.(value) || value;
+  // A removed or private video never shows in the EPK, and a Watch section with nothing left goes too.
+  function dropCard(card) {
+    const wrap = card.parentElement;
+    card.remove();
+    if (wrap && !wrap.querySelector(".epk-media-card")) wrap.closest("section")?.remove();
+  }
+  // A video that won't play inside other sites: its picture opens it on its own site instead.
+  function toLink(card, item, face) {
+    if (!face || face.tagName === "A") return;
+    const link = document.createElement("a");
+    link.className = "epk-video-face";
+    link.href = item.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.setAttribute("aria-label", `${say(`Open on ${providerName(item.url)}`)}: ${item.label}`);
+    link.append(...face.childNodes);
+    face.replaceWith(link);
+    card.dataset.embed = "off";
+    if (!card.querySelector(".epk-player-note")) card.querySelector(".epk-media-actions")?.append(text("p", "This video only plays on its own site.", "epk-player-note"));
   }
   function activateProvider(card, item, source, button) {
     stopProviderEmbeds(card);
     card.querySelector("iframe")?.remove();
     const frame = document.createElement("iframe");
-    const check = window.danzstakEpkVideoCheck;
-    frame.src = check?.embedSource(item.url, { api:true }) || source;
+    const check = window.danzstakEpkVideoCheck, video = button.classList.contains("epk-video-face");
+    // A tap on the video's picture plays it there and then (autoplay only after that tap).
+    frame.src = check?.embedSource(item.url, { api:true, play:video }) || source;
     frame.title = `${item.label} player`;
     frame.loading = "eager";
-    frame.allow = "encrypted-media; fullscreen; picture-in-picture";
+    frame.allow = `${video ? "autoplay; " : ""}encrypted-media; fullscreen; picture-in-picture`;
     frame.referrerPolicy = "strict-origin-when-cross-origin";
     frame.allowFullscreen = true;
     card.dataset.playerActive = "true";
     button.hidden = true;
-    card.append(frame);
-    // YouTube's "Video unavailable" never shows to a venue: on a player error the card keeps only the link.
-    const stop = check?.watchPlayer?.(frame, { onError: () => { stop?.(); frame.remove(); button.remove(); delete card.dataset.playerActive; card.dataset.embed = "off"; card.querySelector(".epk-media-actions")?.append(text("p", "This video only plays on its own site.", "epk-player-note")); } });
+    if (video) button.before(frame); else card.append(frame); // a video's player takes its picture's place
+    // YouTube's "Video unavailable" never shows to a venue: a removed or private video leaves the EPK, one that won't
+    // play inside other sites opens on its own site.
+    const stop = check?.watchPlayer?.(frame, { onError: code => {
+      stop?.(); frame.remove(); delete card.dataset.playerActive;
+      if (!video) { button.remove(); card.dataset.embed = "off"; card.querySelector(".epk-media-actions")?.append(text("p", "This video only plays on its own site.", "epk-player-note")); return; }
+      button.hidden = false;
+      if ([2, 100].includes(code)) dropCard(card); else toLink(card, item, button);
+    } });
+  }
+  // YouTube and Vimeo show the video's own picture with a play button; a tap plays it in place.
+  function videoFace(card, item, source) {
+    const face = document.createElement("button"), picture = document.createElement("img"), play = document.createElement("span");
+    face.type = "button";
+    face.className = "epk-video-face";
+    face.setAttribute("aria-label", `${say("Play video")}: ${item.label}`);
+    picture.alt = "";
+    picture.decoding = "async";
+    picture.referrerPolicy = "no-referrer";
+    picture.hidden = true;
+    play.className = "epk-video-play";
+    play.setAttribute("aria-hidden", "true");
+    face.append(picture, play);
+    face.addEventListener("click", () => activateProvider(card, item, source, face));
+    window.danzstakEpkVideoCheck?.poster?.(item.url).then(result => {
+      if (result.state === "gone") return dropCard(card);
+      if (result.src) { picture.src = result.src; picture.hidden = false; }
+      if (result.state === "link") toLink(card, item, card.querySelector(".epk-video-face"));
+    });
+    return face;
   }
   function mediaLinks(items) {
     if (!items?.length) return null;
@@ -158,7 +206,8 @@
     items.forEach(item => {
       if (!/^https:\/\//i.test(item.url || "")) return;
       const card = document.createElement("article"), mark = text("span", "", "epk-provider-mark"), copy = document.createElement("div"), actions = document.createElement("div"), source = providerSource(item), provider = providerName(item.url), link = text("a", `Open on ${provider}`);
-      card.className = "epk-media-card";
+      const video = Boolean(source && window.danzstakEpkVideoCheck?.embedSource(item.url));
+      card.className = video ? "epk-media-card epk-video-card" : "epk-media-card";
       card.dataset.provider = provider.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       mark.textContent = providerMark(provider);
       mark.setAttribute("aria-hidden", "true");
@@ -169,6 +218,14 @@
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       if (item.embed === false) card.dataset.embed = "off";
+      if (video) {
+        const face = videoFace(card, item, source);
+        actions.append(link);
+        card.append(face, mark, copy, actions);
+        if (item.embed === false) toLink(card, item, face);
+        wrap.append(card);
+        return;
+      }
       if (source && item.embed !== false) {
         const load = text("button", `Load ${provider} player`, "epk-player-load");
         load.type = "button";

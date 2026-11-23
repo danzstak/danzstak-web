@@ -21,6 +21,8 @@ function kit(look) {
   };
 }
 
+// A plain 480x360 picture standing in for YouTube's video pictures (i.ytimg.com), so the check never depends on YouTube.
+const videoPicture = (() => { const zlib = require("node:zlib"), w = 480, h = 360, chunk = (type, data) => { const length = Buffer.alloc(4); length.writeUInt32BE(data.length); const body = Buffer.concat([Buffer.from(type), data]), crc = Buffer.alloc(4); crc.writeUInt32BE(zlib.crc32(body)); return Buffer.concat([length, body, crc]); }, header = Buffer.alloc(13); header.writeUInt32BE(w, 0); header.writeUInt32BE(h, 4); header[8] = 8; header[9] = 2; return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header), chunk("IDAT", zlib.deflateSync(Buffer.alloc((w * 3 + 1) * h, 40))), chunk("IEND", Buffer.alloc(0))]); })();
 (async () => {
   fs.mkdirSync(captureDir,{recursive:true});
   const browser = await chromium.launch({ channel:"msedge", headless:true });
@@ -30,13 +32,14 @@ function kit(look) {
       const page = await context.newPage(), errors = [], externalFonts = [];
       page.on("pageerror", error => errors.push(error.message));
       page.on("request", request => { if (request.frame() === page.mainFrame() && /fonts\.(googleapis|gstatic)\.com/.test(request.url())) externalFonts.push(request.url()); });
+      await page.route("https://i.ytimg.com/vi/**", route => route.fulfill({ status:200, contentType:"image/png", body:videoPicture }));
       await page.route("https://api.danzstak.com/epk/public/**", route => route.fulfill({ status:200, contentType:"application/json", body:JSON.stringify({kit:kit(look)}) }));
       await page.goto(`${baseUrl}/epk.html?id=visual-${look}`, { waitUntil:"networkidle" });
       await page.locator(`#epkPreview[data-look="${look}"]`).waitFor({state:"visible"});
       const state = await page.evaluate(() => {
         const preview=document.getElementById("epkPreview"), hero=preview.querySelector(".epk-hero"), style=getComputedStyle(preview), heroStyle=getComputedStyle(hero);
-        const loadButton=preview.querySelector(".epk-player-load");
-        return { scrollWidth:document.documentElement.scrollWidth, bodyWidth:document.body.scrollWidth, look:preview.dataset.look, ground:style.backgroundColor, ink:style.color, display:heroStyle.fontFamily, emptyNotes:preview.querySelectorAll(".empty-note").length, sections:preview.querySelectorAll(".epk-body>section").length, reviewsHidden:document.getElementById("epkReviews").hidden, iframeCount:preview.querySelectorAll("iframe").length, loadButtonCount:preview.querySelectorAll(".epk-player-load").length, loadButtonHeight:loadButton?.getBoundingClientRect().height || 0 };
+        const loadButton=preview.querySelector(".epk-video-face");
+        return { scrollWidth:document.documentElement.scrollWidth, bodyWidth:document.body.scrollWidth, look:preview.dataset.look, ground:style.backgroundColor, ink:style.color, display:heroStyle.fontFamily, emptyNotes:preview.querySelectorAll(".empty-note").length, sections:preview.querySelectorAll(".epk-body>section").length, reviewsHidden:document.getElementById("epkReviews").hidden, iframeCount:preview.querySelectorAll("iframe").length, loadButtonCount:preview.querySelectorAll(".epk-video-face").length, oldLoadButtons:preview.querySelectorAll(".epk-player-load").length, loadButtonHeight:loadButton?.getBoundingClientRect().height || 0 };
       });
       assert.equal(errors.length,0,`${look} ${width}px browser errors: ${errors.join(" | ")}`);
       assert.equal(externalFonts.length,0,`${look} requested a third-party font`);
@@ -47,11 +50,12 @@ function kit(look) {
       assert.ok(state.sections>=2,`${look} lost useful sparse content`);
       assert.equal(state.reviewsHidden,true,`${look} exposes optional review errors on the public EPK`);
       assert.equal(state.iframeCount,0,`${look} eagerly loads a third-party player before consent`);
-      assert.equal(state.loadButtonCount,look === "punk" ? 0 : 1,`${look} has the wrong number of explicit player controls`);
+      assert.equal(state.loadButtonCount,look === "punk" ? 0 : 1,`${look} has the wrong number of video pictures to tap`);
+      assert.equal(state.oldLoadButtons,0,`${look} still shows a "Load … player" button for a video`);
       if (look !== "punk") assert.ok(state.loadButtonHeight>=44,`${look} player control is too small to tap`);
       await page.screenshot({ path:path.join(captureDir,`${look}-${width}.png`), fullPage:true });
       if (look === "techno" && width === 390) {
-        await page.locator(".epk-player-load").click();
+        await page.locator(".epk-video-face").click();
         await page.locator(".epk-media-card iframe").waitFor({state:"attached"});
         assert.equal(await page.locator("#epkPreview iframe").count(),1,"explicit activation must load exactly one player");
         await page.evaluate(() => Object.defineProperty(document,"hidden",{configurable:true,value:true}));
