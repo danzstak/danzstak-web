@@ -16,13 +16,17 @@ assert.match(chat, /event\.payload\?\.reason==="connection-failed"/, "the other 
 assert.match(chat, /async function end\(notify=true\).*clearTimeout\(connectionLossTimer\);connectionLossTimer=null/, "manual and remote hangup should cancel pending connection-loss cleanup");
 assert.match(chat, /activePeer\.addEventListener\("connectionstatechange",\(\)=>handleConnectionState\(activePeer\)\)/, "connection events should retain their peer identity");
 
-function setup(state = "disconnected") {
+function setup(state = "disconnected", { role = "", connected = false } = {}) {
   const activePeer = { connectionState: state };
   const context = vm.createContext({
     peer: activePeer, contact: "friend@example.com", callId: "call-1",
     mode: "video",
+    callRole: role, everConnected: connected, restartPending: false, restartCount: 0,
+    restarts: [],
+    restartIce(target) { context.restarts.push(target); },
     connectionLossTimer: null,
     timerCallback: null,
+    timers: [],
     cleared: [],
     statuses: [],
     ended: [], signals: [],
@@ -32,7 +36,7 @@ function setup(state = "disconnected") {
     callLinkState() {},
     setStatus(value) { context.statuses.push(value); },
     clearTimeout(value) { context.cleared.push(value); },
-    setTimeout(callback) { context.timerCallback = callback; return 37; },
+    setTimeout(callback, ms) { context.timers.push({ callback, ms }); if (callback.toString().includes("failConnection")) { context.timerCallback = callback; return 37; } return 38; },
     async signal(type,payload) { context.signals.push({type,payload}); },
     async end(notify) { context.ended.push(notify); context.peer = null; }
   });
@@ -70,5 +74,34 @@ function setup(state = "disconnected") {
   await stale.context.timerCallback();
   assert.equal(stale.context.ended.length, 0, "a stale peer timer must not end a replacement call");
 
-  console.log("Call connection-loss checks passed: interrupted calls recover briefly, then release media and controls cleanly.");
+  // Owner 2026-11-23 ("Glitched out and stopped working"): once a call has connected, a dropped network gets an ICE
+  // restart from the caller and 25 s to come back before the call is ended; before it ever connected the 10 s rule stays.
+  assert.equal(lost.context.timers.find(timer => timer.callback === lost.context.timerCallback).ms, 10000, "before the call ever connected: 10 s");
+  const caller = setup("disconnected", { role: "caller", connected: true });
+  await caller.context.handleConnectionState(caller.activePeer);
+  assert.equal(caller.context.timers.find(timer => timer.callback === caller.context.timerCallback).ms, 25000, "a connected call gets 25 s to come back");
+  assert.equal(caller.context.restartPending, true, "the page checks for the restart's answer quickly");
+  const restartTimer = caller.context.timers.find(timer => timer.callback !== caller.context.timerCallback);
+  assert.equal(restartTimer?.ms, 2000, "the caller tries an ICE restart 2 s into the drop");
+  restartTimer.callback();
+  assert.deepEqual(caller.context.restarts, [caller.activePeer], "the caller restarts ICE on the same call");
+  const callerFailed = setup("failed", { role: "caller", connected: true });
+  await callerFailed.context.handleConnectionState(callerFailed.activePeer);
+  assert.equal(callerFailed.context.ended.length, 0, "a connected call whose ICE failed is not ended at once");
+  assert.equal(callerFailed.context.timers.find(timer => timer.callback !== callerFailed.context.timerCallback)?.ms, 0, "a failed connection restarts at once");
+  const callee = setup("disconnected", { role: "callee", connected: true });
+  await callee.context.handleConnectionState(callee.activePeer);
+  assert.equal(callee.context.timers.filter(timer => timer.callback !== callee.context.timerCallback).length, 0, "the person who answered waits for the caller's restart (no crossed offers)");
+  assert.equal(callee.context.timers.find(timer => timer.callback === callee.context.timerCallback).ms, 25000);
+  await callee.context.timerCallback();
+  assert.match(callee.context.statuses.at(-1), /The call dropped\. Call again to keep talking\./, "a call that dropped for good says so (not the could-not-connect message)");
+  const again = setup("disconnected", { role: "caller", connected: true });
+  await again.context.handleConnectionState(again.activePeer);
+  await again.context.handleConnectionState(again.activePeer);
+  assert.equal(again.context.timers.filter(timer => timer.callback === again.context.timerCallback).length, 1, "a second 'disconnected' doesn't push the 25 s back");
+  assert.match(chat, /async function restartIce\(activePeer\)\{if\(peer!==activePeer\|\|callRole!=="caller"\|\|restartCount>=3/, "only the caller restarts, at most three times");
+  assert.match(chat, /createOffer\(\{iceRestart:true\}\)[\s\S]*?signal\("restart",activePeer\.localDescription\)/, "the restart offer goes over call-signaling's restart signal");
+  assert.match(chat, /if\(event\.signalType==="restart"\)\{[\s\S]*?createAnswer\(\)[\s\S]*?signal\("restart-answer",peer\.localDescription\)/, "the other side answers a restart");
+
+  console.log("Call connection-loss checks passed: interrupted calls recover briefly, then release media and controls cleanly; a connected call gets an ICE restart from the caller and 25 s before it ends, and says the call dropped.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

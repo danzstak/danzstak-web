@@ -69,6 +69,13 @@ async function centreTap(page, selector, label) {
   await page.touchscreen.tap(spot.x, spot.y);
 }
 
+// A send has finished when the server has it and Send is back (the box empties as soon as the send starts).
+async function settled(page, sent, count) {
+  const deadline = Date.now() + 8000;
+  while (sent.length < count && Date.now() < deadline) await page.waitForTimeout(50);
+  await page.waitForFunction(() => !document.querySelector('#messageForm button[type="submit"]').disabled, null, { timeout: 8000 });
+}
+
 async function type(page, text) {
   await page.locator("#messageInput").fill(text);
 }
@@ -89,14 +96,14 @@ async function run(browser, width) {
   assert.deepEqual(box, { input: false, send: false }, `${tag}: after the call the text box and Send still work`);
   await type(page, "Bro it fell out");
   await centreTap(page, '#messageForm button[type="submit"]', `${tag} Send`);
-  await page.waitForFunction(() => document.getElementById("messageInput").value === "", null, { timeout: 8000 });
+  await settled(page, sent, 1);
   assert.equal(sent.at(-1)?.content, "Bro it fell out", `${tag}: the text after the call went`);
 
   // 2. The phone says it's offline (wrongly): Send still sends for real.
   await page.evaluate(() => { Object.defineProperty(Navigator.prototype, "onLine", { configurable: true, get: () => false }); });
   await type(page, "Still here");
   await centreTap(page, '#messageForm button[type="submit"]', `${tag} Send while 'offline'`);
-  await page.waitForFunction(() => document.getElementById("messageInput").value === "", null, { timeout: 8000 }).catch(() => {});
+  await settled(page, sent, 2).catch(() => {});
   const status = await page.locator("#callStatus").textContent();
   assert.doesNotMatch(status, /offline access/i, `${tag}: Send didn't try: "${status}"`);
   assert.equal(sent.at(-1)?.content, "Still here", `${tag}: a send while the phone says it's offline still goes`);
