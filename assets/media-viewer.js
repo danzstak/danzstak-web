@@ -147,6 +147,7 @@
     });
     state.root.querySelector(".ds-media-viewer-count").textContent = state.items.length > 1 ? `${state.index + 1} / ${state.items.length}` : "";
     state.root.dataset.index = String(state.index);
+    state.root.dataset.kind = state.items[state.index].type === "video" ? "video" : "image"; // photo: frame hugs it (see media-viewer.css)
     // Directive F1a: a post's video gets the rail (like, comment, save, share) and its caption; media-actions.js finds the
     // rest of the post (author, photo, text) in the page's post list. Photos stay media only (queue 5a1).
     const item = state.items[state.index], slide = state.slides[state.index];

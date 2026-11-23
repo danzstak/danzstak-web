@@ -25,6 +25,19 @@ body[data-call-mode="phone"] .video-grid{display:none!important}
 /* Status line (errors, "Connecting…") sits just above the panel, never over the photo or the name. */
 body[data-call-mode] .conversation-status{position:absolute;z-index:6;right:16px;bottom:calc(var(--call-panel-h) + 10px);left:16px;margin:0;border:0!important;background:none!important;color:#d7dae0!important;font-size:.88rem;text-align:center;text-shadow:0 1px 6px #000}
 
+/* "Calling {name}…" says what the photo already says: hidden while it does (sync-call-ui.js echoesStage). */
+body[data-call-status-echo] .conversation-status{visibility:hidden}
+/* Until the other camera arrives, your camera fills the screen behind their photo instead of a small window over it. */
+body[data-call-mode="video"]:not([data-call-connected]) .video-grid>figure:first-child{display:none}
+/* call-screen.css places the window with !important (corners, dragging); the same weight is needed to undo it here,
+   as its own swapped-view rule does. */
+body[data-call-mode="video"]:not([data-call-connected]) .video-grid .local-video{inset:0!important;z-index:1;width:100%!important;height:100%!important;aspect-ratio:auto;border:0!important;border-radius:0!important;box-shadow:none;transform:none;pointer-events:none}
+body[data-call-mode="video"]:not([data-call-connected]) .video-grid .local-video::after{content:"";position:absolute;z-index:1;inset:0;background:rgba(5,6,8,.55)}
+body[data-call-mode="video"]:not([data-call-connected]) .local-video figcaption{display:none}
+/* Focus ring for keyboards only: a tap never leaves an orange ring on End. */
+html[data-call-pointer] body[data-call-mode] button:focus{outline:none!important;box-shadow:none!important}
+body[data-call-mode] .ds-call-key>button:focus-visible{outline:2px solid rgba(255,255,255,.8);outline-offset:3px}
+
 /* Top: minimise · name, SYNC Mobile / call time, Encrypted · (add person, later). */
 .ds-call-top,.ds-call-stage{display:none}
 body[data-call-mode] .ds-call-top,.ds-call-incoming .ds-call-top{position:absolute;z-index:7;top:calc(12px + env(safe-area-inset-top,0px));right:12px;left:12px;display:grid;grid-template-columns:56px minmax(0,1fr) 56px;align-items:start;gap:8px}

@@ -116,9 +116,20 @@
     if (on) bubble?.focus(); else $("callMinimise")?.focus();
   }
 
+  // The chat header draws the contact's photo as a background image (direct-messages.js), not an <img>: reading only
+  // an <img> left every call on the letter (owner 2026-11-23: "Images are funky").
   function photoFor() {
     const avatar = $("conversationAvatar"), img = avatar?.querySelector("img");
-    return img?.currentSrc || img?.src || "";
+    if (img?.currentSrc || img?.src) return img.currentSrc || img.src;
+    const match = /url\(["']?(.+?)["']?\)/.exec(avatar?.style.backgroundImage || "");
+    return match ? match[1] : "";
+  }
+  // chat.js writes "Calling {name}…" / "Connecting to {name}…" to the status line while the photo already says
+  // "Calling…": the same words twice on one screen. Those two hide; anything else (an error, Hear call) still shows.
+  function echoesStage() {
+    const text = $("callStatus")?.textContent.trim() || "", name = otherName() || $("conversationName")?.textContent?.trim() || "";
+    if (!text || connectedAt) return false;
+    return ["Calling {name}…", "Connecting to {name}…"].some(line => t(line).replace("{name}", name) === text || line.replace("{name}", name) === text);
   }
   function paintWho() {
     const name = otherName() || $("conversationName")?.textContent?.trim() || "";
@@ -154,6 +165,7 @@
     const bubbleTime = $("callBubble")?.querySelector(".ds-call-bubble-time");
     if (bubbleTime) bubbleTime.textContent = connectedAt ? clock() : t("Calling…");
     document.body.toggleAttribute("data-call-connected", Boolean(connectedAt) && Boolean(kind));
+    document.body.toggleAttribute("data-call-status-echo", Boolean(kind) && echoesStage());
   }
 
   // Owner 2026-11-23 (a video call with a desktop): "Control panel in video it should hide when the answer should hide
@@ -277,6 +289,10 @@
     for (const button of [mic, camera, $("toggleRingback")]) button?.addEventListener("click", () => setTimeout(refreshKeys));
     new MutationObserver(refreshKeys).observe($("toggleRingback") || controls, { attributes: true, attributeFilter: ["hidden", "aria-pressed"] });
     setInterval(() => { if (callKind() && connectedAt) paintState(); }, 1000);
+    if ($("callStatus")) new MutationObserver(paintState).observe($("callStatus"), { childList: true, characterData: true, subtree: true });
+    // A tap focuses End (chat.js moves focus there for keyboards and screen readers); only a keyboard shows the ring.
+    document.addEventListener("pointerdown", () => { document.documentElement.dataset.callPointer = "1"; }, true);
+    document.addEventListener("keydown", () => { delete document.documentElement.dataset.callPointer; }, true);
     paintWho(); paintState(); refreshKeys();
   }
   window.danzstakCallScreen = Object.freeze({ refresh: () => { paintWho(); paintState(); refreshKeys(); } });

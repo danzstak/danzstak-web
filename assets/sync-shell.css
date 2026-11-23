@@ -27,7 +27,7 @@ body.messages-page .message-meta{display:flex;justify-content:flex-end;align-ite
 @media (max-width:760px){
   body.messages-page.is-conversation-open:not([data-call-mode]){position:fixed;inset:0;height:var(--sync-view-height,100dvh);overflow:hidden}
   body.is-conversation-open:not([data-call-mode]) .conversation{position:fixed!important;left:0;right:0;top:var(--sync-view-top,0px);height:var(--sync-view-height,100dvh)!important;min-height:0!important;display:flex!important;flex-direction:column;overflow:hidden;isolation:isolate}
-  body.is-conversation-open:not([data-call-mode]) .conversation-header{position:relative;z-index:3;flex:none;padding-top:env(safe-area-inset-top,0px);background:#fff}
+  body.is-conversation-open:not([data-call-mode]) .conversation-header{position:relative;z-index:4;flex:none;padding-top:env(safe-area-inset-top,0px);background:#fff}
   body.is-conversation-open:not([data-call-mode]) .conversation-status,body.is-conversation-open:not([data-call-mode]) #callStatus{position:relative;z-index:3;flex:none}
   body.is-conversation-open:not([data-call-mode]) .message-list{position:relative;z-index:1;flex:1 1 auto;min-height:0!important;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;contain:paint;scrollbar-width:none}
   body.is-conversation-open:not([data-call-mode]) .message-list::-webkit-scrollbar{display:none}
