@@ -112,6 +112,7 @@ jobs:
             '.\browser-checks\marketplace-ticketing.cjs'
             '.\browser-checks\roll-fullscreen-sound.cjs'
             '.\browser-checks\registration-short-screen.cjs'
+            '.\browser-checks\registration-reasons.cjs'
             '.\browser-checks\media-viewer.cjs'
             '.\browser-checks\dailies-strip-clean.cjs'
             '.\browser-checks\dailies-empty-clapper.cjs'
