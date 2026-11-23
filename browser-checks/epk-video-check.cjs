@@ -11,7 +11,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
-const base = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8141").replace(/\/$/, "");
+const base = String(process.env.DANZSTAK_BASE_URL || process.env.DANZSTAK_LOCAL_URL || "http://127.0.0.1:8141").replace(/\/$/, "");
 const output = path.resolve("docs/screenshots/epk-video-check");
 const json = body => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 const PREVIEW = {
