@@ -353,6 +353,11 @@ try {
   if ($LASTEXITCODE -ne 0 -or -not $activityPushOutboxTable) { throw "Activity push outbox could not be resolved. Deploy the reviewed signaling stack first." }
   $current = aws lambda get-function-configuration --region $Region --function-name $FunctionName --output json | ConvertFrom-Json
   if ($LASTEXITCODE -ne 0) { throw "Auth API configuration could not be read." }
+  # Lambda keeps the settings encrypted. A caller that may not decrypt them gets Environment.Error and no Variables: the
+  # GitHub deploy role, whose boundary denies kms:Decrypt so it never sees a secret value. Writing the environment then
+  # would replace every live setting (sign-in, sessions, Stripe, ...) with only the ones set below and take the Auth API
+  # down, so the environment is written only when the live settings were read (deploy run 7, 2026-11-23, planned that).
+  $settingsRead = -not $current.Environment.Error -and @($current.Environment.Variables.PSObject.Properties).Count -gt 0
   $variables = @{}
   foreach ($property in $current.Environment.Variables.PSObject.Properties) { $variables[$property.Name] = [string]$property.Value }
   $variables.MEDIA_BUCKET = [string]$mediaBucket
@@ -382,7 +387,9 @@ try {
   $liveVariables = @{}
   foreach ($property in $current.Environment.Variables.PSObject.Properties) { $liveVariables[$property.Name] = [string]$property.Value }
   $changedVariables = @($variables.Keys | Where-Object { -not $liveVariables.ContainsKey($_) -or $liveVariables[$_] -ne [string]$variables[$_] } | Sort-Object)
-  if (-not $DryRun -or $changedVariables.Count -gt 0) { Invoke-Change "Set Auth API environment: $($changedVariables -join ', ')" {
+  if (-not $settingsRead) {
+    Write-Host "SKIP  Auth API environment: this account can't read the live settings (they are encrypted), so they stay exactly as they are. Change a setting from CloudShell."
+  } elseif (-not $DryRun -or $changedVariables.Count -gt 0) { Invoke-Change "Set Auth API environment: $($changedVariables -join ', ')" {
     aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }
     aws lambda wait function-updated --region $Region --function-name $FunctionName
