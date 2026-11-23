@@ -61,14 +61,16 @@ try {
     Statement = @(
       @{ Effect = "Allow"; Action = @("logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"); Resource = "arn:aws:logs:${Region}:${AccountId}:*" },
       @{ Effect = "Allow"; Action = "s3:GetObject"; Resource = "arn:aws:s3:::$Bucket/incoming/*" },
-      @{ Effect = "Allow"; Action = @("dynamodb:GetItem", "dynamodb:TransactWriteItems"); Resource = "arn:aws:dynamodb:${AppRegion}:${AccountId}:table/DANZSTAK-Tours" }
+      # UpdateItem: the venue reply signal (task 07). PutItem on notifications: the artist's bell when a venue replies (owner 2026-11-16).
+      @{ Effect = "Allow"; Action = @("dynamodb:GetItem", "dynamodb:TransactWriteItems", "dynamodb:UpdateItem"); Resource = "arn:aws:dynamodb:${AppRegion}:${AccountId}:table/DANZSTAK-Tours" },
+      @{ Effect = "Allow"; Action = @("dynamodb:PutItem"); Resource = "arn:aws:dynamodb:${AppRegion}:${AccountId}:table/DANZSTAK-EngagementNotifications" }
     )
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $PolicyFile -Encoding ascii
   aws iam put-role-policy --role-name $RoleName --policy-name DanzStakBookingInbound --policy-document "file://$PolicyFile"
   Assert-Success "Booking reply Lambda policy failed."
 
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
-  Copy-Item -LiteralPath (Join-Path $Source "index.mjs"),(Join-Path $Source "mime.mjs"),(Join-Path $Source "package.json"),(Join-Path $Source "package-lock.json") -Destination $Stage
+  Copy-Item -LiteralPath (Join-Path $Source "index.mjs"),(Join-Path $Source "mime.mjs"),(Join-Path $Source "notice.mjs"),(Join-Path $Source "package.json"),(Join-Path $Source "package-lock.json") -Destination $Stage
   Push-Location $Stage
   try { npm ci --omit=dev --ignore-scripts --no-audit --no-fund; Assert-Success "Booking reply dependencies failed." } finally { Pop-Location }
   Compress-Archive -Path (Join-Path $Stage "*") -DestinationPath $Bundle -Force

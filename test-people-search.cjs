@@ -8,7 +8,7 @@ assert.match(source, /They do not need to be online/, "the finder explains that 
 
 function element(tag = "div") {
   return {
-    tagName: tag.toUpperCase(), children: [], hidden: false, textContent: "", className: "", disabled: false,
+    tagName: tag.toUpperCase(), children: [], dataset: {}, hidden: false, textContent: "", className: "", disabled: false,
     listeners: {}, setAttribute() {}, append(...items) { this.children.push(...items); }, appendChild(item) { this.children.push(item); },
     replaceChildren(...items) { this.children = items; }, addEventListener(type, fn) { this.listeners[type] = fn; }
   };
@@ -54,13 +54,17 @@ vm.runInContext(source, context);
   assert.equal(list.children.length, 2, "offline strangers and existing friends are both listed");
   const stranger = list.children[0];
   assert.equal(stranger.children[1].children[0].textContent, "Liana");
-  assert.equal(stranger.children[2].textContent, "Add Friend");
+  const [strangerAction, strangerMessage] = stranger.children[2].children;
+  assert.equal(strangerAction.textContent, "Add friend");
+  assert.equal(stranger.children[1].children[1].textContent, "@liana", "the row shows the @username");
+  assert.match(strangerMessage.href, /^messages\.html\?member=22222222-2222-2222-2222-222222222222$/, "Message opens SYNC with the opaque member ID");
   assert.equal(stranger.children[1].children[0].tagName, "A", "a discoverable member can be opened before sending a friend request");
   assert.match(stranger.children[1].children[0].href, /profile\.html\?member=/, "the stranger profile route uses only the opaque member ID");
-  await stranger.children[2].listeners.click();
+  await strangerAction.listeners.click();
   const request = requests.find(item => item.url.endsWith("/friends/request"));
   assert.deepEqual(JSON.parse(request.options.body), { memberId: "22222222-2222-2222-2222-222222222222" });
-  assert.equal(stranger.children[2].textContent, "Requested");
+  assert.equal(strangerAction.textContent, "Requested");
+  assert.equal(strangerAction.disabled, true);
   assert.match(feedback[0], /Friend request sent to Liana/);
   const friend = list.children[1];
   assert.equal(friend.children[1].children[0].tagName, "A");

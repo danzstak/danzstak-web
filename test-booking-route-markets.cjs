@@ -81,7 +81,7 @@ assert.match(bookingUi, /return start\.includes\("seattle"\) \? i5Markets : \[\.
 assert.match(bookingUi, /section = document\.createElement\("details"\),[\s\S]*heading = document\.createElement\("summary"\)/, "each route town should be a compact expandable result instead of a long open panel");
 assert.match(bookingUi, /recommendedRoom = marketVenues\[0\]\?\.name/, "a collapsed tour stop should name its recommended room instead of showing only a city and count");
 assert.match(bookingUi, /section\.open = false/, "tour stops should start collapsed on phones");
-assert.match(bookingUi, /needsHomeDay = !data\.route\.local && days > 1/, "a round-trip calendar must reserve its final day for reaching home");
+assert.match(bookingUi, /needsHomeDay = !data\.route\.local && !data\.route\.oneWay && days > 1/, "a round-trip calendar must reserve its final day for reaching home");
 assert.match(bookingUi, /finalHomeDay = needsHomeDay && day === days - 1/, "the final round-trip day must not be consumed by another venue target");
 assert.match(bookingUi, /returningHome = finalHomeDay \|\| showIndex >= shows/, "a rest day must not claim the band is returning home while later shows remain");
 assert.match(bookingUi, /Drive toward the next show; load-in buffer, laundry, or sleep/, "mid-tour rest days should point toward the next show");
@@ -130,3 +130,19 @@ vm.runInContext(discoverySource, discoveryContext);
   assert.ok(markets.length >= 6, "round-trip sampling should retain a useful set of distinct intermediate markets");
   console.log("Booking route-market checks passed: I-5 cities and road-geometry sampling cover intermediate tour markets.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
+{
+  // Owner test 2026-11-16: Bellingham → San Diego must search markets all along I-5 / the coast.
+  const ctxSrc = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
+  const part = ctxSrc.slice(ctxSrc.indexOf("// Any north–south West Coast run"), ctxSrc.indexOf("async function addManualBookingVenue("));
+  const ctx = vm.createContext({}); vm.runInContext(part, ctx);
+  const bellingham = { label: "Bellingham, Washington, United States", position: [-122.48, 48.75] };
+  const sanDiego = { label: "San Diego, California, United States", position: [-117.16, 32.72] };
+  const tacoma = { label: "Tacoma, Washington, United States", position: [-122.44, 47.25] };
+  const corridor = Array.from(ctx.westCoastTourCorridor([bellingham, tacoma, sanDiego, bellingham]));
+  assert.equal(corridor[0], "Bellingham, Washington"); assert.equal(corridor.at(-1), "San Diego, California");
+  for (const m of ["Seattle, Washington", "Portland, Oregon", "Eugene, Oregon", "Sacramento, California", "San Francisco, California", "Los Angeles, California"]) assert.ok(corridor.includes(m), `${m} on the Bellingham–San Diego circuit`);
+  const sampled = Array.from(ctx.sampleTourCorridorMarkets(corridor, 20, 14));
+  for (const m of ["Portland, Oregon", "Sacramento, California", "Los Angeles, California"]) assert.ok(sampled.includes(m), `${m} searched for a 20-day run`);
+  assert.equal(ctx.westCoastTourCorridor([{ label: "Austin, Texas", position: [-97.74, 30.27] }, { label: "Denver, Colorado", position: [-104.99, 39.74] }]), null, "non-West-Coast routes keep the generic path");
+  console.log("Bellingham–San Diego corridor checks passed.");
+}

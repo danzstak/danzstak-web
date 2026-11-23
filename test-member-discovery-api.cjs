@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const source = readFileSync("infrastructure/call-signaling/template.yaml", "utf8");
 
 assert.match(source, /async function peopleSearch\(event,user\)/, "authenticated member search exists");
-assert.match(source, /query\.length<2/, "short broad directory scans are rejected");
+assert.match(source, /tokens\.join\(''\)\.length<2/, "short broad directory scans are rejected");
 assert.match(source, /users:users\.slice\(0,20\)/, "member discovery is result-limited");
 assert.match(source, /\{memberId,name,handle,picture:/, "results expose only public profile identity fields");
 assert.doesNotMatch(source.match(/async function peopleSearch[\s\S]*?async function groupMembership/)?.[0] || "", /users\.push\(\{email/, "search results never expose account email addresses");

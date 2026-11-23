@@ -14,6 +14,41 @@
 - Server: `MIN_CREDITS_PER_CHECKOUT = 20`, enforced in checkout creation and webhook validation; the UI copy says "Minimum 20 pitches".
 - The AI EPK's free distribution (task 08) is separate and doesn't count toward the 20.
 
+## Packs and prices (owner, 2026-11-16, FINAL; supersedes the sections below where they differ)
+| Pack | What's in it | Email price | Price | Buyer pays (6% + $1 under $30) |
+| --- | --- | --- | --- | --- |
+| **Starter Pack** | AI EPK + 10 emails + 1 free = 11 emails | $1.50 | $20.00 | **$22.20** |
+| **Club Pack** | AI EPK + 20 emails + 1 free = 21 emails | $1.40 | $33.00 | **$34.98** |
+| **Tour Pack** | AI EPK + 30 emails + 1 free = 31 emails + **Tour Itinerary included** | $1.25 | $42.50 | **$45.05** |
+| **Single email** | 1 booking email (any target) | $2.50 | $2.50 | **$3.65** |
+| Tour Itinerary (alone) | Tour book PDF + Google Maps route + day sheets | n/a | $5.00 | **$6.30** |
+- Emails work for any target: clubs, record stores, radio, press. They stay on the account and are sent whenever the artist wants.
+- **AI EPK in every pack.** If the account already has an AI EPK, the pack's EPK becomes an **AI redesign** credit (same $5 value) instead of a second EPK. (Claude's default; the owner can change it.)
+- Single email $2.50 is the price before fees ($3.65 all-in), shown all-in.
+- Bigger packs are always cheaper per email. Packs can be bought repeatedly.
+- This replaces "20 minimum per purchase" and the earlier Starter/Club/Tour definitions below.
+
+## Product names (owner, 2026-11-16)
+| Pack | What's in it | Price | With fees |
+| --- | --- | --- | --- |
+| **Starter Pack** | AI EPK + 11 booking emails (10 + 1 free), one per account | $20.00 | **$22.20** |
+| **Club Pack** | 20 booking emails, any target (clubs, record stores, radio, press) | $30.00 | **$31.80** |
+| **Tour Pack** | The Tour Itinerary: tour book PDF + Google Maps route + day sheets for the band; free with 20+ confirmed shows | $5.00 | **$6.30** |
+Buy any pack as many times as needed (except the Starter). Prices shown all-in.
+
+## Starter: AI EPK + 11 club emails for $22.20 (owner, 2026-11-16)
+- One-off purchase for new artists: **AI EPK ($5) + 10 booking emails ($15) = $20.00 + 6% ($1.20) + $1 = $22.20**. Includes the AI EPK's free distribution, so the artist gets **11 club emails**.
+- This is the only way to buy fewer than 20 booking emails. After the Starter, booking emails are 20 minimum ($31.80).
+- One Starter per account. The emails stay on the account and are sent whenever the artist wants (not all at once), consumed one per pitch.
+- Shown as the main offer on the EPK builder's "Let AI build it" choice and on the Booking Agent for artists with no credits: "Starter: AI EPK + 11 club pitches — $22.20 (incl. fees)".
+- Refunds per 8A: the AI EPK is consumed when the first draft is shown; unused emails follow the credit rules.
+
+## Record stores, radio, press and Tour Manager (owner, 2026-11-16)
+- **One booking email, any target**: the same credit ($1.50, 20 minimum) sends a pitch to a club, a record-store in-store request, a radio on-air or ad/underwriting request, a program-director rotation package, or a zine/press pitch. One product.
+- **Lists are free**: browsing the directory (clubs, record stores, radio, press) and the town plan suggestions costs nothing; artists pay only to send.
+- **Tour Itinerary: a one-off product, $5 per tour** ($6.30 with fees): the full tour book PDF with the Google Maps route, contacts, call times and day sheets, for every band member (task 06). Free for tours with 20+ confirmed shows. The Tour Manager's budget, schedule and in-app shared itinerary stay free. Consumed when the first PDF is generated (8A).
+- Marketing line: "Clubs, record stores, radio, press and a tour manager in one place." Don't claim no one else offers any of it.
+
 ## How it's described (owner, 2026-11-16)
 - Not "5% + 3.5%": it's one **6% flat fee**. DanzStak pays Stripe's processing fees out of that 6% (+ $1 under $30). Buyers see "6% fee" (and "$1 processing fee" under $30); the app doesn't break out Stripe.
 - The Terms (8A/8B/8C) say plainly where the fee goes: "DanzStak's fee covers payment processing by Stripe and the cost of running the marketplace."
@@ -29,3 +64,10 @@
 4. **Refunds**: refunds of unused/cancelled items return the item price. Whether fees are refunded follows ToS 8A/8B (lawyer to confirm; EU withdrawal within 14 days refunds everything).
 5. **Copy and terms**: update ToS 8A/8B, the event composer, the store fee preview, OWNER-DIRECTIVES and CLAUDE.md (already updated in this PR).
 6. **Tests**: $5 → $6.30; $29.99 → +$1.80 + $1; $30 → +$1.80 only; multi-item crossing $30 drops the $1; shipping excluded; payouts equal the item price; webhook rejects a wrong `amount_total`; the displayed price matches the server total.
+
+## Tell members nothing renews (owner 2026-11-18)
+DanzStak has no subscriptions and nothing renews automatically. Members must be able to see that, so they decide each time:
+- The purchase pop-up shown before every payment carries one plain line under the price: **"One-time payment. Nothing renews — you choose if you buy again."** Same line on the Stripe checkout description and on the email receipt.
+- Anything with a time limit (StakGuard monitoring month) or a balance (booking credits, translation minutes, Shop Manager AI batches) shows what is left where it is used ("3 credits left", "StakGuard monitoring ends 18 Dec"). One reminder before a time-limited purchase ends, with **Buy again** and **No thanks**; no repeat nagging.
+- No saved-card auto-charge, no "continue automatically" box, no free trial that turns into a charge. Stripe Checkout runs in `payment` mode only, never `subscription`; add a test that fails if `mode: "subscription"` or a recurring price appears anywhere.
+- Terms of Service and the Bazaar/Booking help say it once in plain words: "No subscriptions. Every purchase is one-time."

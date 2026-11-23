@@ -161,6 +161,9 @@ async function createPortraitVideo(browser) {
       await page.locator("body").evaluate(body => body.classList.remove("danzstak-original"));
       await page.screenshot({ path: path.join(output, `before-feed-${width}.png`), fullPage: width >= 700 });
       await page.locator("body").evaluate(body => body.classList.add("danzstak-original"));
+      // Re-adding the scope class restarts CSS transitions (0.01ms under reduced motion, but they only finish on the next
+      // frame). Until then getComputedStyle reports their start values, e.g. the 5px pre-scope gutter. Measure settled styles.
+      await page.evaluate(() => Promise.all(document.getAnimations().filter(animation => animation instanceof CSSTransition).map(animation => animation.finished.catch(() => {}))));
       await page.waitForFunction(expectedGap => {
         const feed = document.querySelector("#feed");
         const post = feed?.querySelector(":scope > .post");
@@ -184,6 +187,7 @@ async function createPortraitVideo(browser) {
             media: [m.left, m.right],
             aligned: Math.abs(p.left - m.left) <= 1 && Math.abs(p.right - m.right) <= 1,
             ratio: m.width / m.height,
+            natural: media.matches("img") && media.naturalHeight ? media.naturalWidth / media.naturalHeight : player?.videoHeight ? player.videoWidth / player.videoHeight : 0,
             fit: player ? getComputedStyle(player).objectFit : getComputedStyle(media).objectFit,
             type: {
               author: [authorStyle.fontSize, authorStyle.fontWeight, authorStyle.lineHeight],
@@ -280,10 +284,15 @@ async function createPortraitVideo(browser) {
         assert.ok(Math.abs(geometry.image.media[0]) <= 1 && Math.abs(geometry.image.media[1] - width) <= 1, `${width}px image media is not exactly 100vw: ${JSON.stringify(geometry.image)}`);
         assert.ok(Math.abs(geometry.video.post[0]) <= 1 && Math.abs(geometry.video.post[1] - width) <= 1, `${width}px video post is not viewport-wide: ${JSON.stringify(geometry.video)}`);
         assert.ok(Math.abs(geometry.video.media[0]) <= 1 && Math.abs(geometry.video.media[1] - width) <= 1, `${width}px video media is not exactly 100vw: ${JSON.stringify(geometry.video)}`);
-        assert.ok(Math.abs(geometry.image.ratio - .8) <= .02, `${width}px image preview is not 4:5: ${JSON.stringify(geometry.image)}`);
-        assert.equal(geometry.image.fit, "cover", `${width}px image preview does not fill its 4:5 frame`);
+        // Owner 2026-11-22 ("Make the container the size of the image or the video"): the photo keeps its own shape,
+        // limited only to 9:20..3:1 (browser-checks/photo-frame.cjs).
+        const photoRatio = Math.min(3, Math.max(.45, geometry.image.natural));
+        assert.ok(geometry.image.natural > 0 && Math.abs(geometry.image.ratio - photoRatio) <= .02, `${width}px image preview is not the photo's own shape: ${JSON.stringify(geometry.image)}`);
+        assert.equal(geometry.image.fit, "cover", `${width}px image preview does not fill its frame`);
       }
-      assert.ok(Math.abs(geometry.video.ratio - .8) <= .02, `${width}px portrait Mix preview is not 4:5: ${JSON.stringify(geometry.video)}`);
+      // The same for a video: the 9:16 test video gets a 9:16 frame (it was cut to 4:5 before).
+      const videoRatio = Math.min(3, Math.max(.45, geometry.video.natural));
+      assert.ok(geometry.video.natural > 0 && Math.abs(geometry.video.ratio - videoRatio) <= .02, `${width}px portrait Mix video is not its own shape: ${JSON.stringify(geometry.video)}`);
       assert.equal(geometry.video.fit, "cover", `${width}px portrait Mix preview does not fill its frame`);
       assert.ok(geometry.menuTargets.every(row => row.height >= 44), `${width}px menu row below 44px: ${JSON.stringify(geometry.menuTargets.filter(row => row.height < 44))}`);
       if (width < 700) {
@@ -305,9 +314,15 @@ async function createPortraitVideo(browser) {
           scrollTo(0, Math.max(0, post.offsetTop - headerHeight));
         }, videoPostId);
         await page.waitForTimeout(80);
+        // Owner 2026-11-22 ("Make the container the size of the image or the video"): a 9:16 video keeps its whole shape,
+        // so on most phones the author line, the video and the buttons no longer fit on one screen together. Scrolled to
+        // the post, its author sits below the app bar; scrolled to its buttons, they sit above the tab bar.
+        const authorVisible = await page.evaluate(videoPostId => document.querySelector(`.post[data-post-id="${videoPostId}"] .post-header`).getBoundingClientRect().top >= document.querySelector(".topbar").getBoundingClientRect().bottom - 1, videoPostId);
+        assert.equal(authorVisible, true, `${width}px video author is hidden behind the app header`);
         await page.evaluate(videoPostId => {
           const actions = document.querySelector(`.post[data-post-id="${videoPostId}"] .post-actions`)?.getBoundingClientRect();
-          const navigation = document.querySelector(".topnav")?.getBoundingClientRect();
+          // The phone bottom bar is the shared tab bar (app-tabs.js, audit 36 B2); on desktop Mix's .topnav sits in the header.
+          const navigation = [...document.querySelectorAll("nav.ds-mobile-nav, .topnav")].find(element => element.getClientRects().length && getComputedStyle(element).display !== "none")?.getBoundingClientRect();
           if (actions && navigation && actions.bottom > navigation.top) scrollBy(0, actions.bottom - navigation.top + 1);
         }, videoPostId);
         await page.waitForTimeout(40);
@@ -317,7 +332,7 @@ async function createPortraitVideo(browser) {
           const media = post.querySelector(":scope > .danzstak-media-shell").getBoundingClientRect();
           const actions = post.querySelector(".post-actions").getBoundingClientRect();
           const appHeader = document.querySelector(".topbar").getBoundingClientRect();
-          const navigation = document.querySelector(".topnav").getBoundingClientRect();
+          const navigation = [...document.querySelectorAll("nav.ds-mobile-nav, .topnav")].find(element => element.getClientRects().length && getComputedStyle(element).display !== "none").getBoundingClientRect();
           return {
             headerBelowApp: header.top >= appHeader.bottom - 1,
             actionsAboveNavigation: actions.bottom <= navigation.top + 1,
@@ -329,9 +344,8 @@ async function createPortraitVideo(browser) {
             navigationTop: navigation.top
           };
         }, videoPostId);
-        assert.equal(composition.headerBelowApp, true, `${width}px video author is hidden behind the app header`);
         assert.equal(composition.actionsAboveNavigation, true, `${width}px video reactions are hidden by the bottom navigation: ${JSON.stringify(composition)}`);
-        assert.ok(Math.abs(composition.mediaRatio - .8) <= .02, `${width}px real Mix post lost its 4:5 preview`);
+        assert.ok(Math.abs(composition.mediaRatio - videoRatio) <= .02, `${width}px real Mix video is not its own shape (${composition.mediaRatio} vs ${videoRatio})`);
         assert.ok(composition.postVisibleHeight > 0, `${width}px video post is outside the usable viewport`);
         await page.screenshot({ path: path.join(output, `video-post-${width}.png`) });
       }
@@ -361,7 +375,10 @@ async function createPortraitVideo(browser) {
         const mediaRect = post.querySelector(".profile-post-media").getBoundingClientRect();
         const content = post.querySelector(".profile-post-content");
         const contentStyle = getComputedStyle(content);
-        const tools = [...post.querySelectorAll(".profile-post-tools > *")].map(node => node.getBoundingClientRect());
+        // Fix-it 18 (owner 2026-11-17): no "View in Your Mix" / "Feature on profile" text buttons on a profile post; the
+        // compact row is the post's own Like / Comment / Share actions.
+        const tools = [...post.querySelectorAll(".profile-post-actions > button")].filter(node => node.checkVisibility()).map(node => node.getBoundingClientRect());
+        const retiredButtons = [...post.querySelectorAll("button, a")].map(node => node.textContent.trim()).filter(text => /^(View in Your Mix|Feature on profile|Featured)$/i.test(text));
         return {
           documentWidth: document.documentElement.scrollWidth,
           inside: card.left >= 0 && card.right <= innerWidth + 1,
@@ -379,7 +396,8 @@ async function createPortraitVideo(browser) {
           lineHeight: parseFloat(contentStyle.lineHeight),
           toolCount: tools.length,
           toolsShareRow: tools.length < 2 || tools.every(rect => Math.abs(rect.top - tools[0].top) <= 1),
-          toolsMeetTarget: tools.every(rect => rect.height >= 44)
+          toolsMeetTarget: tools.every(rect => rect.height >= 44),
+          retiredButtons
         };
       }, imagePostId);
       assert.ok(profileGeometry.documentWidth <= width && profileGeometry.inside, `${width}px Profile overflow: ${JSON.stringify(profileGeometry)}`);
@@ -392,7 +410,8 @@ async function createPortraitVideo(browser) {
       assert.equal(normalize(profileGeometry.postHeaderBackground), "rgba(0,0,0,0)", `${width}px Profile app-header paint leaked into the imported post header`);
       assert.equal(profileGeometry.postHeaderPosition, "static", `${width}px imported post header inherited sticky app-header positioning`);
       assert.ok(profileGeometry.collapsed && profileGeometry.contentHeight <= profileGeometry.lineHeight * 7.1, `${width}px imported Profile text was not compacted behind See more: ${JSON.stringify(profileGeometry)}`);
-      assert.ok(profileGeometry.toolCount >= 2 && profileGeometry.toolsShareRow && profileGeometry.toolsMeetTarget, `${width}px Profile actions are not one compact accessible row: ${JSON.stringify(profileGeometry)}`);
+      assert.deepEqual(profileGeometry.retiredButtons, [], `${width}px Profile post shows retired text buttons`);
+      assert.ok(profileGeometry.toolCount >= 3 && profileGeometry.toolsShareRow && profileGeometry.toolsMeetTarget, `${width}px Profile actions are not one compact accessible row: ${JSON.stringify(profileGeometry)}`);
       await page.screenshot({ path: path.join(output, `profile-${width}.png`), fullPage: width >= 700 });
       if (width < 700) {
         await page.locator(`.profile-post-card[data-post-id="${imagePostId}"]`).scrollIntoViewIfNeeded();

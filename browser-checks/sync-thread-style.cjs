@@ -106,10 +106,11 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
     assert.equal(listGeometry.overflow, false, `${width}px conversation list overflows horizontally`);
     const listSurface = await page.locator(".chat-list-panel").evaluate(element => {
       const computed = getComputedStyle(element), watermark = getComputedStyle(element, "::after");
-      return { backgroundImage:computed.backgroundImage, watermarkImage:watermark.backgroundImage, watermarkOpacity:watermark.opacity };
+      return { backgroundImage:computed.backgroundImage, watermarkImage:watermark.backgroundImage, watermarkOpacity:watermark.opacity, watermarkContent:watermark.content };
     });
-    assert.match(listSurface.backgroundImage, /danzstak-score-pattern\.svg/, `${width}px sparse chat list is missing its musical-score layer`);
-    assert.match(listSurface.watermarkImage, /danzstak-d-icon\.png/, `${width}px sparse chat list is missing its DanzStak watermark`);
+    // Fix-it 18 (owner 2026-11-18): the score wallpaper belongs in threads; the chat list is plain, edge to edge.
+    assert.equal(listSurface.backgroundImage, "none", `${width}px chat list must not draw the musical-score box`);
+    assert.ok(["none", "normal"].includes(listSurface.watermarkContent), `${width}px chat list must not draw the DanzStak watermark (${listSurface.watermarkContent})`);
     assert.equal(listSurface.watermarkOpacity, "0.055", `${width}px chat-list watermark is not restrained`);
     const initialPicture = await chatRow.locator("img.conversation-list-avatar").getAttribute("src");
     await page.evaluate(() => {
@@ -129,9 +130,18 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
     assert.equal(avatarStability.contactSame, true, `${width}px contact-strip avatar was rebuilt for a refreshed signed URL`);
     assert.equal(avatarStability.src, initialPicture, `${width}px stable profile photo was replaced by a new signed URL`);
     if (listScreenshot) { fs.mkdirSync(path.dirname(listScreenshot), { recursive: true }); await page.screenshot({ path: listScreenshot }); }
-    const videoCall = page.getByRole("button", { name: "Start a video call" });
-    await videoCall.waitFor();
+    // SYNC list (owner check 2026-11-18, fix-it 18 "SYNC list"): the header keeps ONE ⋮; New video call is a row in the
+    // SYNC settings sheet it opens, and it still lands on the real Calls directory.
+    const syncMore = page.getByRole("button", { name: "More options" });
+    await syncMore.waitFor();
+    await syncMore.click();
+    const sheet = page.getByRole("dialog", { name: "SYNC settings" });
+    await sheet.waitFor({ state: "visible" });
+    const videoCall = sheet.locator('.sync-settings-row[data-settings-row="video"]');
+    assert.match((await videoCall.textContent()).trim(), /^New video call/, `${width}px New video call row is missing from the ⋮ sheet`);
+    assert.ok(await videoCall.evaluate(element => element.getBoundingClientRect().height >= 44), `${width}px New video call row is below 44px`);
     await videoCall.click();
+    await sheet.waitFor({ state: "hidden" });
     assert.equal(await page.locator('[data-chat-filter="calls"]').getAttribute("aria-selected"), "true", "the visible video-call action must open the real Calls directory");
     await page.locator('.conversation-row[data-sync-section="calls"] .conversation-call[data-call-kind="video"]').first().waitFor();
     if (callsScreenshot) { fs.mkdirSync(path.dirname(callsScreenshot), { recursive: true }); await page.screenshot({ path: callsScreenshot }); }
@@ -172,13 +182,14 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
     const finalIncoming = await bubbleStyle(4);
     assert.equal(firstIncoming.background, "rgb(255, 255, 255)");
     assert.equal(firstIncoming.topLeft, "0px");
-    assert.equal(firstOutgoing.background, "rgb(217, 239, 255)");
+    // SYNC "Make it yours" (16-H, owner 2026-11-17): your own bubbles wear the accent tint, DanzStak orange by default.
+    assert.equal(firstOutgoing.background, "rgb(255, 232, 220)", `${width}px own bubbles must use the default DanzStak orange tint`);
     assert.equal(firstOutgoing.topRight, "0px");
     assert.equal(firstIncoming.fontSize, "15px");
     assert.equal(firstIncoming.lineHeight, "20px");
     assert.equal(firstIncoming.paddingTop, "8px");
     assert.equal(firstIncoming.paddingLeft, "12px");
-    assert.equal(firstIncoming.maxWidth, "min(75%, 540px)");
+    assert.equal(firstIncoming.maxWidth, "min(80%, 540px)", "bubbles are at most ~80% wide (task 16-A, owner 2026-11-17)");
     assert.ok(Math.abs(groupedIncoming.top - firstIncoming.bottom - 2) <= 1, `${width}px same-speaker incoming gap is not 2px`);
     assert.ok(Math.abs(firstOutgoing.top - groupedIncoming.bottom - 8) <= 1, `${width}px incoming-to-outgoing gap is not 8px`);
     assert.ok(Math.abs(groupedOutgoing.top - firstOutgoing.bottom - 2) <= 1, `${width}px same-speaker outgoing gap is not 2px`);

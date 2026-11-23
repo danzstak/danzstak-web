@@ -12,13 +12,15 @@ assert.match(template, /TransactWriteItemsCommand\(\{TransactItems:\[\{Put:\{Tab
   "publishing a Daily must save the media record and advance its Take counter atomically");
 assert.match(template, /ADD dailyTakeCount :one/,
   "the creator's durable Dailies Take counter must advance after a successful publish");
-assert.match(template, /mediaType==='video'\?\[\{Update:/,
-  "photos must not advance the Dailies video Take counter");
+// Owner 2026-11-22: TAKE N counts every Daily ever posted, photos and videos ("I had 15 before and now I just uploaded
+// four more so it should be … take 19").
+assert.doesNotMatch(template, /mediaType==='video'\?\[\{Update:/,
+  "photos must advance the Dailies Take counter too");
 assert.match(template, /observedTakeCount=Math\.max\(0,Number\(dailySettings\.Item\?\.dailyTakeCount\?\.N\|\|0\)\)/,
   "GET /stories must read the durable creator Take count");
-assert.match(template, /storedVideoCount=items\.filter\(item=>item\.userEmail\?\.S===user\.email&&item\.dedicated\?\.BOOL===true&&item\.mediaType\?\.S==='video'/,
-  "GET /stories must count legacy dedicated Dailies videos owned by the current member");
-assert.match(template, /dailyTakeCount=Math\.max\(observedTakeCount,storedVideoCount\)/,
+assert.match(template, /storedDailyCount=items\.filter\(item=>item\.userEmail\?\.S===user\.email&&\(item\.dedicated\?\.BOOL===true\|\|item\.fromPost\?\.BOOL===true\)&&\['image','video'\]\.includes\(item\.mediaType\?\.S\)/,
+  "GET /stories must count the member's Dailies photos and videos, dedicated or made from a post (owner 2026-11-19: TAKE showed 0)");
+assert.match(template, /dailyTakeCount=Math\.max\(observedTakeCount,storedDailyCount\)/,
   "legacy reconciliation must never lower a member's durable Take count");
 assert.match(template, /ADD dailyTakeCount :difference[\s\S]*?dailyTakeCount = :observed/,
   "legacy reconciliation must add only the missing count behind an optimistic concurrency guard");
@@ -26,8 +28,8 @@ assert.match(feed, /data\.dailyTakeCount/,
   "the clapper must use the server's durable Take count");
 assert.doesNotMatch(feed, /filter\(story => story\.isOwner && story\.mediaType === "video"\)\.length/,
   "the clapper must not fall back to counting only unexpired visible videos");
-assert.match(feed, /SCENE 1<\/strong><small>TAKE 0/,
-  "the Dailies creator tile must contain a Scene 1 / Take clapper");
+assert.match(feed, /SCENE 1<\/strong><small hidden><\/small>/,
+  "the Dailies creator tile has a Scene 1 clapper; the script fills in TAKE N on load (owner 2026-11-18)");
 assert.match(feed, /formatDailyDate\(now\)/,
   "the creator clapper must show today's date");
 assert.doesNotMatch(art, /daily-clapper \{display:none!important\}/,
@@ -68,7 +70,7 @@ vm.runInContext(createStoryLine.trim(), context);
   assert.equal(transactions.at(-1).TransactItems.length, 2, "a successful Dailies video must atomically advance Take N");
   assert.equal(transactions.at(-1).TransactItems[1].Update.TableName, "settings");
   await publish("image");
-  assert.equal(transactions.at(-1).TransactItems.length, 1, "a Dailies photo must not advance the video Take counter");
+  assert.equal(transactions.at(-1).TransactItems.length, 2, "a Dailies photo advances Take N too");
 
   const backfillLines = template.split("\n").filter(line => line.includes("const observedTakeCount=") || line.includes("if(dailyTakeCount>observedTakeCount)"));
   assert.equal(backfillLines.length, 2, "legacy Take reconciliation must remain executable as one guarded unit");
@@ -97,12 +99,12 @@ vm.runInContext(createStoryLine.trim(), context);
     { storyId: { S: "other-video" }, userEmail: { S: "other@danzstak.invalid" }, dedicated: { BOOL: true }, mediaType: { S: "video" } }
   ];
   const backfilled = await reconcile(0, legacyItems);
-  assert.equal(backfilled.dailyTakeCount, 3, "three existing creator videos must display TAKE 3");
-  assert.equal(backfilled.updates[0].ExpressionAttributeValues[":difference"].N, "3", "the durable counter must add exactly the missing legacy videos");
+  assert.equal(backfilled.dailyTakeCount, 4, "three existing creator videos and a photo must display TAKE 4");
+  assert.equal(backfilled.updates[0].ExpressionAttributeValues[":difference"].N, "4", "the durable counter must add exactly the missing legacy Dailies");
   const durableWins = await reconcile(5, legacyItems);
   assert.equal(durableWins.dailyTakeCount, 5, "expiry or deletion must never lower the lifetime Take number");
   assert.equal(durableWins.updates.length, 0, "a larger durable counter must not be rewritten");
   const raced = await reconcile(0, legacyItems, true);
-  assert.equal(raced.dailyTakeCount, 3, "a concurrent upload must not break the current clapper response");
-  console.log("Dailies clapper checks passed: date, Scene 1, durable video-only Take count, and legacy video backfill.");
+  assert.equal(raced.dailyTakeCount, 4, "a concurrent upload must not break the current clapper response");
+  console.log("Dailies clapper checks passed: date, Scene 1, durable Take count of every Daily (photos and videos), and legacy backfill.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

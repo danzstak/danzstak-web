@@ -53,14 +53,13 @@
 
 /* Icon controls: round, quiet, orange on focus. */
 #feed > .post .post-menu-toggle{width:36px;height:36px;border-radius:50%}
-.load-more-posts{
-  display:grid!important;place-items:center;
-  width:48px!important;height:48px;min-height:48px!important;margin:8px auto 16px!important;padding:0!important;
-  border:1px solid var(--mix-rule)!important;border-radius:50%!important;
-  background:#fff!important;color:var(--mix-ink)!important;
-}
-.load-more-posts:hover,.load-more-posts:focus-visible{border-color:var(--mix-accent)!important;color:var(--mix-accent)!important;background:#fff!important}
-.load-more-posts .ds-action-icon{width:24px;height:24px}
+/* F15c: Mix flows. The marker is where the next posts appear (a skeleton you only glimpse on a fast fling); the feed ends
+   with one quiet line. */
+.feed-more-marker{height:96px;margin:0 var(--mix-pad,12px) 12px;border-radius:12px;background:linear-gradient(90deg,#ececea 25%,#f6f6f4 50%,#ececea 75%) 0 0/200% 100%;animation:feed-skeleton 1.2s linear infinite}
+@keyframes feed-skeleton{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.feed-more-marker{animation:none}}
+.post-pinned{grid-column:1/-1;justify-self:start;margin-top:2px;padding:1px 6px;border-radius:4px;background:rgba(255,90,31,.12);color:#9a3412;font:600 11px/1.4 var(--ds-mono,"JetBrains Mono",ui-monospace,monospace);letter-spacing:.04em;text-transform:uppercase} /* F15b */
+.feed-caught-up{margin:0;padding:20px 16px 28px;color:var(--mix-muted,#667085);font:600 12px/1.4 var(--ds-mono,"JetBrains Mono",ui-monospace,monospace);letter-spacing:.06em;text-align:center;text-transform:uppercase}
 .roll-add-toggle.ds-icon-button{width:40px;min-width:40px;height:40px;padding:0;border-radius:50%;display:grid;place-items:center}
 
 :is(#feed,.reels-rail) :is(button,a):focus-visible{outline:2px solid var(--mix-accent);outline-offset:2px}
@@ -100,15 +99,19 @@ body:has(#feed){background:var(--mix-surface)!important}
 #feed > .post .post-actions{border-top:0!important}
 #feed > .post .comments-more[hidden]{display:none!important}
 /* DanzStak palette instead of stock social blue: initials avatars and in-post links. */
-.menu-profile-avatar,.story-create-avatar,.composer-avatar,.post-avatar-fallback{background:#0b0b0c!important;color:#ff5a1f!important}
+.menu-profile-avatar,.story-create-avatar,.composer-avatar,.post-avatar-fallback{background-color:#0b0b0c!important;background-size:cover;background-position:center;background-repeat:no-repeat;color:#ff5a1f!important}
+/* Fix-it 18: background-color only. The old "background:#0b0b0c!important" wiped the member's photo (set as an inline
+   background-image) after the initial was removed, leaving an empty black circle in the composer. */
 #feed .user-content-link{color:#d9480f!important}
 /* Share dialog: other networks as one wrapping row of chips. */
 .post-share-socials-label{margin:12px 0 6px;font:600 11px/1.3 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#626b78}
 .post-share-socials{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .post-share-social{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border:1px solid #e7e9ee;border-radius:999px;background:#fff;color:#121418;font:inherit;font-weight:700;font-size:13px;text-decoration:none;cursor:pointer}
 .post-share-social:hover,.post-share-social:focus-visible{border-color:#ff5a1f;color:#d9480f;outline:none}
-/* Tighter rhythm (owner 2026-11-16): 36px avatars, time + audience on one line, no idle gaps. */
-#feed > .post{padding:10px var(--mix-pad) 0!important}
+/* Tighter rhythm (owner 2026-11-16): 36px avatars, time + audience on one line, no idle gaps.
+   Vertical only: the side padding stays 12px on phones and 14px above 700px (rules above), matching each width's
+   --post-inline-padding so photos and videos bleed exactly to the card edge (they stuck out 2px per side above 700px). */
+#feed > .post{padding-top:10px!important;padding-bottom:0!important}
 #feed > .post .post-header{margin:0 0 6px!important;gap:8px!important}
 #feed > .post .post-avatar img{width:36px!important;height:36px!important}
 #feed > .post .post-author-details{display:grid!important;grid-template-columns:auto 1fr;column-gap:6px;row-gap:0;align-items:baseline}
@@ -120,3 +123,72 @@ body:has(#feed){background:var(--mix-surface)!important}
 #feed > .post .post-actions{margin:0!important;padding:0!important}
 #feed > .post .commentList:empty{margin:0!important}
 #feed > .post .comments[hidden]{display:none!important}
+/* Phone Mix top (owner 2026-11-17): Dailies sits right under the header, the post box right under
+   Dailies, and the first post right under the post box. No idle gaps; one hairline between sections. */
+@media (max-width:700px){
+  body:has(#feed) .layout{margin-top:0!important;padding-top:0!important}
+  body:has(#feed) #newsFeedView{padding-top:0!important;margin-top:0!important}
+  body:has(#feed) #storiesRail{margin:0!important;padding:4px 0 6px!important}
+  body:has(#feed) #postComposer{margin:0!important;padding-top:6px!important;padding-bottom:6px!important;border:0!important;border-bottom:1px solid var(--mix-rule)!important;border-radius:0!important;box-shadow:none!important}
+  body:has(#feed) #feed > :first-child{margin-top:0!important}
+}
+
+/* Mix Dailies strip (owner 2026-11-18): exactly three tiles across, each a third of the screen and the full height
+   of the strip. The member's own tile (their photo + clapper with their Dailies count) is pinned on the left; the
+   friends' Dailies scroll horizontally beside it, two at a time. Media fills each tile top to bottom (cover).
+   Selectors match the older danzstak-original rules exactly so this later file wins. */
+@media(max-width:700px){
+  body.danzstak-original #storiesRail.stories{display:flex!important;gap:2px!important;margin:0 0 6px!important;padding:0!important;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding-left:calc((100% - 4px) / 3 + 2px);scrollbar-width:none}
+  body.danzstak-original #storiesRail.stories::-webkit-scrollbar{display:none}
+  body.danzstak-original #storiesRail .story,
+  body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create{
+    flex:0 0 calc((100% - 4px) / 3)!important;width:calc((100% - 4px) / 3)!important;max-width:calc((100% - 4px) / 3)!important;min-width:calc((100% - 4px) / 3)!important;
+    height:196px!important;min-height:196px!important;margin:0!important;border-radius:0!important;scroll-snap-align:start;aspect-ratio:auto!important;overflow:hidden
+  }
+  /* F15a (owner 2026-11-19, again 21:40 UTC): friends' tiles slide fully BEHIND your own tile. Each scrolling tile is its own
+     stacking context, so its name/label (z-index 3 inside) can no longer paint over the pinned tile, and the pinned tile is
+     opaque, so nothing shows through its rounded corners or gaps. */
+  body.danzstak-original #storiesRail .story:not(.story-create){isolation:isolate}
+  body.danzstak-original #storiesRail .story-create{position:sticky!important;left:0;z-index:10;isolation:isolate;scroll-snap-align:none;background-color:#fff!important;box-shadow:2px 0 0 #fff}
+  body.danzstak-original #storiesRail .story > img,
+  body.danzstak-original #storiesRail .story > video,
+  body.danzstak-original #storiesRail .story .story-open img,
+  body.danzstak-original #storiesRail .story .story-open video,
+  body.danzstak-original #storiesRail .story-create-art img{width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important}
+  body.danzstak-original #storiesRail .story .story-open{display:block;width:100%;height:100%}
+  /* Owner 2026-11-18: empty slots look like a strip of film — sprocket holes along the top and bottom, a frame in the middle. */
+  html body.danzstak-original #storiesRail.stories .story.story-placeholder{position:relative;box-sizing:border-box;border:0!important;
+    background:repeating-linear-gradient(90deg,#d9d6cf 0 8px,transparent 8px 16px) left 4px top 5px/calc(100% - 4px) 7px no-repeat,
+      repeating-linear-gradient(90deg,#d9d6cf 0 8px,transparent 8px 16px) left 4px bottom 5px/calc(100% - 4px) 7px no-repeat,#0b0b0c!important}
+  html body.danzstak-original #storiesRail.stories .story.story-placeholder::before,html body.danzstak-original #storiesRail.stories .story.story-placeholder::after{display:none!important}
+  body.danzstak-original #storiesRail .story-placeholder-cue{position:absolute;inset:17px 5px;border-radius:3px;background:#1b1f26;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
+  /* A set call never splits a word (it wrapped "ACTIO" / "N!" at 320px). The words scale with the tile (container query
+     units, with a viewport fallback for older browsers) and wrap only between words. 10-letter BACKGROUND is the widest
+     cue; 11.5cqi keeps it inside the frame even in wide fallback fonts. Checked by browser-checks/dailies-set-call-fit.cjs. */
+  body.danzstak-original #storiesRail .story-placeholder-cue{padding:0 4px;container-type:inline-size}
+  body.danzstak-original #storiesRail .story-placeholder-cue b{display:block;max-width:100%;font:900 14px/1.1 Archivo,system-ui,sans-serif;font-size:clamp(8px,calc((33.33vw - 18px) * .115),14px);font-size:clamp(8px,11.5cqi,14px);letter-spacing:.04em;color:#c7ccd4;overflow-wrap:normal;word-break:keep-all;-webkit-hyphens:none;hyphens:none;text-wrap:balance}
+  body.danzstak-original #storiesRail .story-placeholder-cue b.is-action{font-size:20px;font-size:clamp(12px,calc((33.33vw - 18px) * .19),20px);font-size:clamp(12px,19cqi,20px);color:#ff5a1f}
+}
+
+/* Fix-it 18 (owner 2026-11-17): no gradient placeholder avatars. A member without a photo shows their initial on the
+   DanzStak colours (orange on near-black, as on profiles); a real photo always covers it. */
+.post-avatar,.feed-online-avatar,.friend-avatar,.comment-avatar,.comment-composer-avatar{background:#121418!important;color:#ff5a1f!important;font-weight:900}
+img.post-avatar,img.feed-online-avatar,img.friend-avatar,img.comment-avatar,img.comment-composer-avatar{background:#121418!important}
+/* Views ride in the post header line: "1D · Public · 42 views". */
+.post-view-count.is-inline{display:inline!important;margin:0!important;font-size:11.52px!important;font-weight:400!important;line-height:1.3!important;color:#626b78!important;text-align:left!important;white-space:nowrap}
+.post-view-count.is-inline::before{content:"·";margin:0 5px}
+.post-meta-line{display:inline-flex;align-items:center;flex-wrap:wrap;gap:0;min-width:0}
+/* Owner 2026-11-18: an empty status line between the post box and Mix added a 15px gap above the first post; hide it so post 1 sits like post 2. */
+#feedStatus:empty,.feed-search-feedback:empty{display:none!important;margin:0!important}
+/* Owner 2026-11-18: The Roll runs from the far left edge to the far right edge, like post media. */
+#feed > .reels-rail .reels-list,.reels-rail.post .reels-list{margin-left:calc(-1 * var(--mix-pad,12px))!important;margin-right:calc(-1 * var(--mix-pad,12px))!important;width:auto!important;max-width:none!important;padding:0!important;scroll-padding-inline:0!important;gap:4px!important;background:transparent!important;border-radius:0!important}
+#feed > .reels-rail .reels-list>.reel-card,.reels-rail.post .reels-list>.reel-card{border-radius:0!important}
+/* Directive F15 (owner 2026-11-19): friends' Dailies "just bounce and settle" when the strip appears: each tile slides in
+   with a short spring (about 6px overshoot), settles within 400ms, 40ms apart. No motion with reduced motion. */
+@keyframes danzstak-daily-settle{0%{opacity:0;transform:translateX(28px)}60%{opacity:1;transform:translateX(-6px)}82%{transform:translateX(2px)}100%{opacity:1;transform:none}}
+#storiesRail .story.story-enter{animation:danzstak-daily-settle 400ms cubic-bezier(.2,.8,.3,1) both;animation-delay:calc(var(--enter-index,0) * 40ms)}
+@media (prefers-reduced-motion:reduce){#storiesRail .story.story-enter{animation:none}}
+/* F15a (owner 2026-11-19): photos and video posters fill the tile, and a small time label replaces the icons and slates
+   (each tile's own stacking layer is set with the pinned tile's rules above). */
+#storiesRail .story video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#storiesRail .story-time{position:absolute;top:7px;left:7px;z-index:1;padding:2px 6px;border-radius:4px;background:rgba(11,11,12,.72);color:#fff;font:600 11px/1.3 var(--ds-mono,"JetBrains Mono",ui-monospace,monospace);letter-spacing:.04em;text-transform:uppercase;pointer-events:none}

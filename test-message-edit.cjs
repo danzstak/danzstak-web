@@ -10,8 +10,8 @@ assert.match(source, /body: JSON\.stringify\(\{ action: "edit", contactEmail: di
 assert.match(source, /text\.textContent = message\.content/, "message text remains XSS-safe");
 assert.match(source, /message\.senderEmail === currentEmail && message\.content/, "only sent text offers Edit");
 assert.match(source, /edit\.textContent = "✎ " \+ messageTranslate\("Edit message"\)/, "the long-press palette contains a translated Edit action");
-assert.match(source, /for \(const emoji of \["👍","❤️","😂","😮","😢","😡"\]\)/, "long press retains emoji reactions");
-assert.match(source, /message\.editedAt \? " · " \+ messageTranslate\("edited"\) : ""/, "edited messages are labeled in the selected language");
+assert.match(source, /for \(const emoji of \(globalThis\.danzstakSyncPrefs\?\.reactions\?\.\(\) \|\| \["👍","❤️","😂","😮","😢","😡"\]\)\)/, "long press retains emoji reactions");
+assert.match(source, /message\.editedAt \? messageTranslate\("edited"\) \+ " · " : ""/, "edited messages are labeled in the selected language");
 assert.match(source, /event\.key\.toLowerCase\(\) === "e"/, "keyboard users can edit sent text");
 assert.match(css, /\.message-edit-form\{/, "message editor is styled");
 assert.match(css, /\.message-edit-choice\{/, "Edit action is styled in the reaction palette");
@@ -33,7 +33,7 @@ assert.match(backend, /mediaPrefix=`messages\/\$\{ownerPrefix\(user\)\}\//, "del
 assert.match(backend, /if\(mediaKey&&!mediaKey\.startsWith\(mediaPrefix\)\)return json\(409,\{error:'Message media ownership failed'\}\)/, "delete for everyone refuses media outside the sender's storage prefix");
 assert.match(backend, /DeleteObjectCommand\(\{Bucket:process\.env\.MEDIA_BUCKET,Key:mediaKey\}\)/, "delete for everyone removes its attached photo or video from storage");
 assert.match(backend, /if\(!removed\)return json\(503,\{error:'Message attachment could not be removed yet\. Try again\.',deleted:false\}\)/, "storage failure keeps delete-for-everyone retryable");
-assert.match(backend, /return json\(200,\{deleted:true,scope,cleanupPending:false\}\)/, "message deletion reports complete cleanup only after storage and database records are gone");
+assert.match(backend, /return json\(200,\{deleted:true,scope,cleanupPending:copiesPending>0\}\)/, "message deletion reports complete cleanup only after storage, database records and (16-E) forwarded copies are gone");
 assert.match(backend, /if\(found\.Item\.senderEmail\?\.S!==user\.email\)return json\(403,\{error:'Only the sender can delete for everyone'\}\)/, "delete for everyone enforces sender ownership");
 assert.match(backend, /hiddenMessages=new Set\(state\.Item\?\.hiddenMessages\?\.SS\|\|\[\]\)/, "hidden messages remain deleted after refresh");
 

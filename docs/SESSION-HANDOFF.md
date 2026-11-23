@@ -7,6 +7,22 @@ Keep this file current at the end of every working session so a new Claude sessi
 - Standing permission to build anything DanzStak. He must approve: going live with real money, charges/refunds (named amount), anything irreversible.
 - He pastes secret keys into AWS himself; Claude never handles key values.
 
+## Session 2026-11-17 (evening) — read first
+**Live and verified today**
+- Twilio Verify SMS registration works on real phones (US and Italian numbers). People search works.
+- First real two-device **video call worked** (computer Chrome ↔ phone). Messages and notifications reach the phone. The Claude desktop browser pane blocks mic/camera: don't use it to test call audio.
+- Shipped by owner's Claude: Moving Day for shops (`moving-day.html`, `POST /marketplace/products/import`, shop/Bazaar paging past 250, server-side Bazaar search) + Pivot **Discogs** tab; louder ring; fix for the registration window reopening on every poll; `POST /push/test` + "Send a test notification" button; registered devices re-link their push subscription (calls only ring a closed app when linked).
+- Specs added (Claude Code's queue): 18-fix-it (walkthrough, profile notes, SYNC call test, audio box on computers only, full-screen received video with a bottom band for subtitles, draggable self view, DS number at the top of the device window then test-notification button then an obvious registered status), 19 AI helpers + AI shop + Moving Day, 20 artist verification, 21 live call subtitles (teleprompter style, IT/FR/DE/ES at launch, packs 30 min $5 / 180 min $30 + buyer fee — the one approved prepaid exception, minutes never expire).
+
+**Stripe — changed tonight (owner: "test mode")**
+- Both Lambdas were on the LIVE key with `TOUR_MANAGER_LIVE_PAYMENTS=true`. Now: `STRIPE_SECRET_NAME=danzstak/stripe/secret-key`, test webhook secrets, live payments **false**.
+- `danzstak/stripe/secret-key` now holds the **main DanzStak account's test-mode key** (acct …rqZs), pasted by the owner. Fresh test webhooks created for `/tour-manager/stripe/webhook` and `/sync-network-number/stripe/webhook`; their secrets were written to `danzstak/stripe/webhook-secret` and `danzstak/stripe/sync-network-webhook-secret`.
+- Test checkout verified: the owner bought a DS number in test mode (alias works). First item of the go-live test list passed.
+- **Open:** the marketplace/Connect code (payouts, tickets) was built against the **sandbox "DanzStak Test"** key, which used to be in `danzstak/stripe/secret-key`. That secret now has the main-account test key; the sandbox key is still in the secret's **AWSPREVIOUS** version. Next session: with the owner's OK, copy it into its own secret (e.g. `danzstak/stripe/sandbox-secret-key`) and point the marketplace code there, or move marketplace testing to the main account's test mode. An automated copy was blocked tonight; ask first.
+- Go-live gate: every paid product end to end in test mode (list in QUEUE.md) before live keys go back on, on the owner's word only.
+
+**Waiting on the owner:** Twilio upgrade from trial; AWS support reply (Bedrock, SMS); Shop Manager AI price; AI shop listing cap (10 assumed).
+
 ## Shipped 2026-11-15/16 (PRs #302–#322)
 - Mix/profile: full-width media, tight continuous surface, icon buttons, 2 comments + "+N", FB-style profile tabs (Posts · About · Friends · Photos · Videos (+Shop)), Add friend (incl. locked profiles), black/orange palette (no stock blue), no Official store.
 - Signup: members choose name + @username, then SYNC device prompt ("Later — text only").
@@ -58,3 +74,8 @@ Keep this file current at the end of every working session so a new Claude sessi
 - Booking email end-to-end test (who sends the pitch).
 - Recommended: remove the SOL wallet from live Stripe payouts (no crypto payouts per product boundary).
 - Still pending at AWS: SMS approval case for SYNC calls.
+
+## 2026-11-17 (night) — next session starts with docs/tasks/14-promoters-crews-and-city-sweeps.md
+- Live tonight: Booking/EPK/Record Stores/Bazaar/Shop in IT/FR/ES (+ IT/FR/ES tour briefs), one-gig plans, one-way tours reach the end city, long drives get a travel day, EPK laminate look + rider/stage-plot upload (PDF 50 MB), club database (saving), promoter search + contact reader (weak results; AI reader next).
+- Owner did: club database IAM policy, Brave key on both Lambdas.
+- Owner to do: delete the AWS root access key used on his PC.

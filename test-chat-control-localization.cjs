@@ -42,8 +42,11 @@ assert.match(messages, /const translated = messageTranslate\(labels\[key\]\)/, "
 assert.match(messages, /mine \? messageTranslate\("You"\)/, "message ownership labels should stay translated");
 assert.match(messages, /messageFormat\("Loading messages with \{name\}…", \{ name: activeContactName \}\)/, "conversation loading should translate without losing the contact name");
 assert.match(messages, /messageFormat\("You can message \{name\} directly\.", \{ name: activeContactName \}\)/, "conversation permission guidance should translate without losing the contact name");
-assert.match(messages, /messageTranslate\(isOnline \? "Online" : "Offline"\)/, "conversation presence should use the selected language");
+assert.match(messages, /isOnline \? messageTranslate\("Online"\) : lastSeenText\(conversation\?\.lastSeenAt\)/, "conversation presence should use the selected language");
 assert.match(messages, /addChoice\(messageTranslate\("Remove for everyone"\)/, "destructive message choices should use the selected language");
-assert.match(messages, /callStatus\.textContent = messageTranslate\("Saved offline — waiting to send when you reconnect\."\)/, "offline delivery guidance should use the selected language");
+// Owner 2026-11-23: Send always tries for real (phones get navigator.onLine wrong); a send that fails for want of a
+// connection keeps the words, says so in the member's language and goes by itself when the connection is back.
+assert.match(messages, /callStatus\.textContent = messageTranslate\("No connection right now\. Your message is still here and sends when you're back\."\)/, "no-connection guidance should use the selected language");
+assert.doesNotMatch(messages, /navigator\?\.onLine === false && window\.danzstakQueueOffline/, "Send never skips trying because the phone says it's offline");
 
 console.log("Chat localization checks passed: all supported languages cover active conversation and call controls.");

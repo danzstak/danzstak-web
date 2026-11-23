@@ -2,7 +2,7 @@
 (() => {
   const input = document.querySelector(".search");
   const feed = document.getElementById("feed");
-  if (!input || !feed) return;
+  const feedPanel = Boolean(input && feed); // the shared row and search helpers work on every page
 
   const section = document.createElement("section");
   section.className = "panel user-search-results";
@@ -12,14 +12,14 @@
   heading.textContent = "People";
   const help = document.createElement("p");
   help.className = "muted user-search-help";
-  help.textContent = "Find a DanzStak member by name and send a friend request, even when they are offline.";
+  help.textContent = (window.danzstakTranslate?.("Find a DanzStak member by name or @username and send a friend request.") || "Find a DanzStak member by name or @username and send a friend request.");
   const status = document.createElement("p");
   status.className = "muted";
   status.setAttribute("role", "status");
   const list = document.createElement("div");
   list.className = "user-search-list";
   section.append(heading, help, status, list);
-  feed.insertAdjacentElement("beforebegin", section);
+  if (feedPanel) feed.insertAdjacentElement("beforebegin", section);
 
   let generation = 0;
   let timer;
@@ -65,76 +65,82 @@
     return authors;
   }
 
+  // Familiar person row (owner 2026-11-17): avatar, name, @username, friend state and Message. Never an email or number.
+  const t = value => window.danzstakTranslate?.(value) || value;
+  const tf = (value, values) => Object.entries(values).reduce((text, [key, replacement]) => text.split("{" + key + "}").join(replacement), t(value));
+  const messageIcon = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 3C6.5 3 2 6.9 2 11.7c0 2.6 1.3 4.9 3.4 6.5L5 22l4-2.1c.9.2 1.9.4 3 .4 5.5 0 10-3.9 10-8.6S17.5 3 12 3Z"/></svg>';
   function personRow(person) {
     const id = memberId(person.memberId);
     const row = document.createElement("div");
-    row.className = "user-search-result";
-    const avatar = person.picture ? document.createElement("img") : document.createElement("span");
-    avatar.className = "user-search-avatar";
+    row.className = "user-search-result person-row";
+    const profileHref = id ? "profile.html?member=" + encodeURIComponent(id) : "";
+    const avatarLink = document.createElement(id ? "a" : "span");
+    avatarLink.className = "user-search-avatar";
+    if (id) { avatarLink.href = profileHref; avatarLink.tabIndex = -1; avatarLink.setAttribute("aria-hidden", "true"); }
     if (person.picture) {
-      avatar.src = person.picture;
-      avatar.alt = "";
-      avatar.referrerPolicy = "no-referrer";
-      window.danzstakIdentityMedia?.install(avatar, person);
-    } else {
-      avatar.textContent = String(person.name || "D").charAt(0).toUpperCase();
-      avatar.setAttribute("aria-hidden", "true");
-    }
+      const image = document.createElement("img");
+      image.src = person.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; image.loading = "lazy";
+      window.danzstakIdentityMedia?.install(image, person);
+      avatarLink.append(image);
+    } else avatarLink.textContent = String(person.name || "D").charAt(0).toUpperCase();
     const identity = document.createElement("span");
     identity.className = "user-search-identity";
-    const name = id ? document.createElement("a") : document.createElement("strong");
-    if (name.tagName === "A") {
-      name.href = "profile.html?member=" + encodeURIComponent(id);
-      name.setAttribute("aria-label", "Open " + (person.name || "DanzStak member") + " profile");
-    }
-    name.textContent = person.name || "DanzStak member";
+    const name = document.createElement(id ? "a" : "strong");
+    if (id) name.href = profileHref;
+    name.textContent = person.name || "";
+    if (id) name.setAttribute("aria-label", tf("Open {name} profile", { name: name.textContent }));
     name.setAttribute("data-no-translate", "");
     identity.appendChild(name);
-    const detail = document.createElement("small");
-    detail.textContent = [person.handle ? "@" + person.handle.replace(/^@/, "") : "", person.online ? "Online" : ""].filter(Boolean).join(" · ");
-    if (detail.textContent) identity.appendChild(detail);
+    const handle = String(person.handle || "").replace(/^@+/, "");
+    if (handle) { const detail = document.createElement("small"); detail.textContent = "@" + handle; detail.setAttribute("data-no-translate", ""); identity.appendChild(detail); }
+    const actions = document.createElement("span");
+    actions.className = "person-row-actions";
     const action = document.createElement("button");
     action.type = "button";
     action.className = "user-search-action";
-    if (person.friendStatus === "friends") {
-      action.textContent = "Friends";
-      action.addEventListener("click", () => { location.href = "profile.html?member=" + encodeURIComponent(id); });
-    } else if (person.friendStatus === "outgoing") {
-      action.textContent = "Requested";
-      action.disabled = true;
-    } else if (person.friendStatus === "incoming") {
-      action.textContent = "Respond";
-      action.addEventListener("click", () => { location.href = "feed.html#notifications"; });
-    } else if (person.friendStatus === "visible-author") {
-      action.textContent = "View Profile";
-      action.addEventListener("click", () => { location.href = "profile.html?member=" + encodeURIComponent(id); });
-    } else {
-      action.textContent = "Add Friend";
-      action.setAttribute("aria-label", "Send friend request to " + name.textContent);
-      action.addEventListener("click", async () => {
-        action.disabled = true;
-        action.textContent = "Sending…";
-        try {
-          const response = await peopleFetch("/friends/request", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ memberId: id })
-          });
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(data.error || "Friend request could not be sent.");
-          action.textContent = data.alreadyFriends ? "Friends" : "Requested";
-          window.danzstakShowFeedback?.(data.alreadyFriends ? `You and ${name.textContent} are already friends.` : `Friend request sent to ${name.textContent}.`);
-        } catch (error) {
-          action.disabled = false;
-          action.textContent = "Add Friend";
-          window.danzstakShowFeedback?.(error.message || "Friend request could not be sent.", { urgent: true });
-        }
-      });
+    const setState = state => {
+      action.dataset.state = state;
+      action.disabled = state === "outgoing" || state === "sending";
+      action.textContent = t({ friends: "Friends", outgoing: "Requested", incoming: "Respond", "visible-author": "View profile", sending: "Sending…" }[state] || "Add friend");
+      action.setAttribute("aria-label", state === "none" ? tf("Add {name} as a friend", { name: name.textContent }) : action.textContent);
+    };
+    setState(person.friendStatus || "none");
+    action.addEventListener("click", async () => {
+      const state = action.dataset.state;
+      if (state === "friends" || state === "visible-author") { location.href = profileHref; return; }
+      if (state === "incoming") { location.href = "feed.html#notifications"; return; }
+      if (state !== "none") return;
+      setState("sending");
+      try {
+        const response = await peopleFetch("/friends/request", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ memberId: id }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || t("Friend request could not be sent."));
+        setState(data.alreadyFriends ? "friends" : "outgoing");
+        window.danzstakShowFeedback?.(tf(data.alreadyFriends ? "You and {name} are already friends." : "Friend request sent to {name}.", { name: name.textContent }));
+      } catch (error) {
+        setState("none");
+        window.danzstakShowFeedback?.(t(error.message || "Friend request could not be sent."), { urgent: true });
+      }
+    });
+    actions.append(action);
+    if (id) {
+      const message = document.createElement("a");
+      message.className = "person-row-message";
+      message.href = "messages.html?member=" + encodeURIComponent(id);
+      message.innerHTML = messageIcon;
+      message.setAttribute("aria-label", tf("Message {name}", { name: name.textContent }));
+      message.title = t("Message");
+      actions.append(message);
     }
-    row.append(avatar, identity, action);
+    row.append(avatarLink, identity, actions);
     return row;
   }
+  window.danzstakPersonRow = personRow;
+  window.danzstakSearchPeople = async (query, signal) => {
+    const response = await peopleFetch("/people?query=" + encodeURIComponent(query), { credentials: "include", cache: "no-store", signal });
+    if (!response.ok) throw new Error(t("Member search is temporarily unavailable."));
+    return (await response.json()).users || [];
+  };
 
   window.danzstakMountPeopleFinder = function mountPeopleFinder(container, options = {}) {
     if (!container || container.querySelector(".friend-name-finder")) return;
@@ -239,6 +245,7 @@
     timer = setTimeout(() => runSearch(version, query), 250);
   }
 
+  if (!feedPanel) return;
   input.addEventListener("input", searchPeople);
   window.addEventListener("danzstak:posts-loaded", searchPeople);
 })();

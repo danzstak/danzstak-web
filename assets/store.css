@@ -13,7 +13,7 @@ a{color:var(--ds-brand,#121418)}
 .skip-link{position:fixed;left:12px;top:-80px;z-index:100;padding:10px;background:#fff}.skip-link:focus{top:12px}
 @media(max-width:700px){.store-header{min-height:58px;padding:6px 12px}.store-brand span{display:none}.store-header nav a{padding:0 9px;font-size:13px}.store-main{width:100%;margin:0 auto 84px;padding:0 12px}.store-hero{padding:20px 0 16px}.product-grid{display:block}.product-card{margin-bottom:16px}.product-image{width:calc(100% + 24px);max-width:none;margin-left:-12px}.product-card-copy{padding:12px 0 14px}.product-numbers{grid-template-columns:1fr}.manager-heading{align-items:start;flex-direction:column}.ds-mobile-nav{display:grid}}
 @media(max-width:350px){.store-header nav a{padding:0 7px;font-size:12px}}
-@media(min-width:701px){.product-card{max-width:360px}.ds-mobile-nav{display:none}}
+@media(min-width:701px){.product-card{max-width:360px}}
 
 /* Get paid (Stripe Connect payouts) */
 .payouts-card{margin:0 0 16px;padding:14px 16px;border-left:3px solid #ff5a1f;background:#fff}
@@ -25,3 +25,30 @@ a{color:var(--ds-brand,#121418)}
 .payouts-row label{display:grid;gap:4px;font-size:13px;font-weight:600}
 .payouts-row select{min-height:44px}
 .payouts-start{min-height:44px;padding:0 16px;border-radius:999px;background:#121418;color:#fff;font-weight:800;border:0}
+
+.moving-day-link a{display:inline-flex;align-items:center;min-height:44px;padding:4px 0;font-weight:900}
+
+/* Owner 2026-11-19: shop cover, shop album and product photos from the phone. */
+.store-hero{position:relative}
+.store-cover{display:block;width:calc(100% + 32px);max-width:none;margin:-16px -16px 14px;aspect-ratio:16/7;object-fit:cover;background:#121418}
+.store-cover[hidden]{display:none}
+.shop-album{margin:18px 0}
+.shop-album[hidden]{display:none}
+.shop-album h2,.shop-photos h2,.shop-photos h3{margin:0 0 10px}
+.shop-album-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+.shop-album-grid img{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:#121418}
+.shop-album-tile{position:relative;margin:0}
+.shop-album-remove{position:absolute;top:4px;right:4px;width:32px;height:32px;min-height:32px;padding:0;border:0;border-radius:50%;background:rgba(11,11,12,.72);color:#fff;font-size:20px;line-height:32px}
+.shop-album-remove::after{content:"";position:absolute;inset:-6px}
+.shop-photos{margin:18px 0;padding-top:14px;border-top:1px solid rgba(18,20,24,.12)}
+.shop-photos .store-note{margin:0 0 10px;color:#5d6066}
+.shop-photos .store-note[hidden]{display:none}
+.shop-cover-preview{display:block;width:100%;aspect-ratio:16/7;object-fit:cover;margin:0 0 10px;background:#121418}
+.shop-cover-preview[hidden]{display:none}
+.shop-photo-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.shop-photos button,.product-photo-field button{min-height:44px}
+#addAlbumPhotos{margin-top:10px}
+.product-photo-field{display:grid;gap:8px;margin:0 0 12px}
+.product-photo-label{font-weight:700}
+.product-photo-preview{width:120px;height:120px;object-fit:cover;background:#121418}
+.product-photo-preview[hidden]{display:none}

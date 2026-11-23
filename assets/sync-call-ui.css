@@ -1,0 +1,115 @@
+/* F15k (owner 2026-11-19): the SYNC call screen, like the phone's own messenger, DanzStak colours. One place for the
+   call screen: the full-screen call rules moved here from sync.css, and the old header pill, "SYNC" backdrop and single
+   row of bare buttons are replaced by the top bar, the big round photo and the two-row panel (sync-call-ui.js). */
+body[data-call-mode]{--call-panel-h:calc(246px + env(safe-area-inset-bottom,0px))}
+
+/* Full screen while a call is on (moved from sync.css). */
+body[data-call-mode="video"],body[data-call-mode="phone"]{overflow:hidden!important;background:#0b0d10!important}
+body[data-call-mode="video"] .chat-header,body[data-call-mode="phone"] .chat-header,
+body[data-call-mode="video"] .chat-sidebar,body[data-call-mode="phone"] .chat-sidebar,
+body[data-call-mode="video"] .ds-mobile-nav,body[data-call-mode="phone"] .ds-mobile-nav,
+body[data-call-mode="video"] .site-ownership,body[data-call-mode="phone"] .site-ownership,
+body[data-call-mode] .conversation-header,body[data-call-mode] #callPhoneAudioNote{display:none!important}
+body[data-call-mode] .chat-shell{display:block!important;width:100%!important;height:100dvh!important;min-height:0!important;margin:0!important;padding:0!important}
+/* The chat's own wallpaper, dimmed, behind the call (copied onto the screen by sync-call-ui.js). */
+body[data-call-mode] .conversation{position:fixed;z-index:10010;inset:0;display:flex!important;height:100dvh!important;min-height:0!important;border:0!important;border-radius:0!important;background-color:var(--sync-wp-color,#0b0d10)!important;background-image:linear-gradient(rgba(5,6,8,.62),rgba(5,6,8,.62)),var(--sync-wp-image,radial-gradient(circle at 50% 38%,#1f2a36,#0b0d10 70%))!important;background-size:cover!important;background-position:center!important;color:#fff!important}
+body[data-call-mode] .message-list,body[data-call-mode] .message-form,body[data-call-mode] #remoteAudio{display:none!important}
+body[data-call-mode="video"] .video-grid{display:grid!important;position:absolute;inset:0;width:100%;height:100%;padding:0!important;background:#020711}
+body[data-call-mode="video"] .video-grid>figure:first-child{position:absolute;inset:0;width:100%!important;max-width:none!important;height:100%!important;margin:0!important;border:0!important;border-radius:0!important}
+body[data-call-mode="video"] #remoteVideo{width:100%;height:100%;object-fit:cover;background:#020711}
+body[data-call-mode="video"] .video-grid>figure:first-child figcaption{display:none}
+body[data-call-mode="video"] .video-grid .local-video{position:absolute;z-index:3;top:88px;right:14px;width:min(29vw,160px);aspect-ratio:3/4;margin:0!important;overflow:hidden;border:2px solid #fff;border-radius:16px;background:#16263a;box-shadow:0 10px 30px #0008}
+body[data-call-mode="video"] #localVideo{width:100%;height:100%;object-fit:cover}
+body[data-call-mode="video"] .local-video figcaption{position:absolute;right:6px;bottom:5px;color:#fff;font-size:.7rem;text-shadow:0 1px 4px #000}
+body[data-call-mode="phone"] .video-grid{display:none!important}
+/* Status line (errors, "Connecting…") sits just above the panel, never over the photo or the name. */
+body[data-call-mode] .conversation-status{position:absolute;z-index:6;right:16px;bottom:calc(var(--call-panel-h) + 10px);left:16px;margin:0;border:0!important;background:none!important;color:#d7dae0!important;font-size:.88rem;text-align:center;text-shadow:0 1px 6px #000}
+
+/* "Calling {name}…" says what the photo already says: hidden while it does (sync-call-ui.js echoesStage). */
+body[data-call-status-echo] .conversation-status{visibility:hidden}
+/* Until the other camera arrives, your camera fills the screen behind their photo instead of a small window over it. */
+body[data-call-mode="video"]:not([data-call-connected]) .video-grid>figure:first-child{display:none}
+/* call-screen.css places the window with !important (corners, dragging); the same weight is needed to undo it here,
+   as its own swapped-view rule does. */
+body[data-call-mode="video"]:not([data-call-connected]) .video-grid .local-video{inset:0!important;z-index:1;width:100%!important;height:100%!important;aspect-ratio:auto;border:0!important;border-radius:0!important;box-shadow:none;transform:none;pointer-events:none}
+body[data-call-mode="video"]:not([data-call-connected]) .video-grid .local-video::after{content:"";position:absolute;z-index:1;inset:0;background:rgba(5,6,8,.55)}
+body[data-call-mode="video"]:not([data-call-connected]) .local-video figcaption{display:none}
+/* Focus ring for keyboards only: a tap never leaves an orange ring on End. */
+html[data-call-pointer] body[data-call-mode] button:focus{outline:none!important;box-shadow:none!important}
+body[data-call-mode] .ds-call-key>button:focus-visible{outline:2px solid rgba(255,255,255,.8);outline-offset:3px}
+
+/* Top: minimise · name, SYNC Mobile / call time, Encrypted · (add person, later). */
+.ds-call-top,.ds-call-stage{display:none}
+body[data-call-mode] .ds-call-top,.ds-call-incoming .ds-call-top{position:absolute;z-index:7;top:calc(12px + env(safe-area-inset-top,0px));right:12px;left:12px;display:grid;grid-template-columns:56px minmax(0,1fr) 56px;align-items:start;gap:8px}
+/* Over a video the top line keeps its contrast. */
+body[data-call-mode="video"] .ds-call-top::before{content:"";position:absolute;z-index:-1;top:calc(-12px - env(safe-area-inset-top,0px));right:-12px;left:-12px;height:calc(150px + env(safe-area-inset-top,0px));background:linear-gradient(rgba(0,0,0,.55),transparent);pointer-events:none}
+/* The phone-speaker hint is the Speaker button's job now. */
+#callPhoneAudioNote{display:none}
+.ds-call-round{display:grid;place-items:center;width:56px;height:56px;min-width:56px;min-height:56px;padding:0;border:0;border-radius:50%;background:rgba(42,45,51,.88);color:#fff}
+.ds-call-round svg{width:24px;height:24px}
+.ds-call-who{display:grid;justify-items:center;gap:3px;min-width:0;padding-top:4px;color:#fff;text-align:center}
+.ds-call-name{max-width:100%;overflow:hidden;font-size:1.3rem;font-weight:800;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
+.ds-call-sub{color:#e3e6ea;font-size:.98rem;font-variant-numeric:tabular-nums}
+.ds-call-lock{display:inline-flex;align-items:center;gap:6px;color:#b6bbc4;font-size:.86rem}
+.ds-call-lock::before{content:"";width:12px;height:12px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4'%3E%3Cpath d='M5 10h14v11H5Z'/%3E%3Cpath d='M8 10V7a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4'%3E%3Cpath d='M5 10h14v11H5Z'/%3E%3Cpath d='M8 10V7a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat}
+
+/* Middle: the big round photo (voice calls, and a video call until the other camera arrives). */
+body[data-call-mode="phone"] .ds-call-stage,body[data-call-mode="video"]:not([data-call-connected]) .ds-call-stage{position:absolute;z-index:4;inset:0;display:grid;place-content:center;justify-items:center;gap:16px;padding:0 24px var(--call-panel-h)}
+.ds-call-photo{display:grid;place-items:center;width:min(55vw,250px);aspect-ratio:1;overflow:hidden;border-radius:50%;background:#2a2d33;color:#fff;font-size:clamp(2.6rem,15vw,4.4rem);font-weight:900}
+.ds-call-photo img{display:block;width:100%;height:100%;object-fit:cover}
+.ds-call-state{margin:0;color:#e3e6ea;font-size:1.02rem;font-variant-numeric:tabular-nums}
+
+/* Bottom: one rounded panel, two rows of three equal round buttons with labels under them. */
+body[data-call-mode] .media-controls.ds-call-panel{position:absolute!important;z-index:8;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px) + var(--call-subtitle-band,0px));left:12px;display:block!important;max-width:460px;margin:0 auto;padding:20px 12px 14px!important;border:0;border-radius:28px;background:rgba(22,24,28,.92)!important;backdrop-filter:blur(16px)}
+body[data-call-mode] .media-controls.ds-call-panel[hidden]{display:none!important}
+.ds-call-keys{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));row-gap:14px;justify-items:center}
+.ds-call-key{display:grid;justify-items:center;gap:8px;min-width:0}
+body[data-call-mode] .ds-call-key>button{display:grid;place-items:center;width:64px;height:64px;min-width:64px;min-height:64px;padding:0!important;border:0!important;border-radius:50%!important;background:#2c3036!important;color:#fff!important;transition:background-color .15s,transform .15s}
+body[data-call-mode] .ds-call-key>button svg{width:26px;height:26px}
+body[data-call-mode] .ds-call-key>button:active{transform:scale(.96)}
+body[data-call-mode] .ds-call-key>button[aria-pressed="true"]{background:#eceef1!important;color:#0b0b0c!important}
+body[data-call-mode] .ds-call-key>button:disabled{opacity:.42}
+body[data-call-mode] .ds-call-key--end>button{background:#df3347!important}
+.ds-call-key--end svg{transform:rotate(135deg)}
+.ds-call-label{max-width:100%;overflow:hidden;color:#eceef1;font-size:.9rem;text-overflow:ellipsis;white-space:nowrap}
+/* Reached from Speaker and More instead of their own buttons; "Hear call" floats above the panel when needed. */
+.ds-call-panel>#toggleRingback,.ds-call-panel>#callNoteButton,.ds-call-panel #callAudioSettings{display:none!important}
+.ds-call-panel>#resumeRemoteAudio:not([hidden]){position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);min-height:44px;padding:0 20px;border:0;border-radius:999px;background:#15803d;color:#fff;font-weight:800}
+
+/* More and Share sheets, and short messages. */
+.ds-call-sheet{position:absolute;z-index:12;right:12px;bottom:calc(var(--call-panel-h) + 8px);left:12px;display:grid;gap:6px;max-width:460px;margin:0 auto;padding:16px;border-radius:22px;background:#1b1e23;box-shadow:0 18px 40px rgba(0,0,0,.45);color:#fff}
+.ds-call-sheet>strong{padding:4px 52px 6px 6px;font-size:1.05rem}
+.ds-call-sheet-close{position:absolute;top:8px;right:8px;width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:#fff}
+.ds-call-sheet-row{min-height:48px;padding:0 14px;border:0;border-radius:14px;background:#2c3036;color:#fff;font:inherit;font-weight:700;text-align:left}
+.ds-call-toast{position:absolute;z-index:12;right:24px;bottom:calc(var(--call-panel-h) + 12px);left:24px;margin:0 auto;max-width:420px;padding:10px 14px;border-radius:14px;background:rgba(27,30,35,.95);color:#fff;font-size:.92rem;text-align:center}
+.ds-call-toast[hidden]{display:none}
+
+/* Minimised: the chat comes back, the call keeps going in a bubble (tap to return). */
+.ds-call-bubble{position:fixed;z-index:10030;right:16px;bottom:calc(92px + env(safe-area-inset-bottom,0px));display:grid;justify-items:center;gap:4px;width:88px;padding:10px 8px;border:0;border-radius:24px;background:#15803d;box-shadow:0 12px 28px rgba(0,0,0,.35);color:#fff}
+.ds-call-bubble[hidden]{display:none}
+.ds-call-bubble .ds-call-photo{width:56px;font-size:1.4rem}
+.ds-call-bubble-time{font:700 .82rem ui-monospace,monospace;font-variant-numeric:tabular-nums}
+body[data-call-minimised] .video-grid,body[data-call-minimised] .media-controls,body[data-call-minimised] .ds-call-sheet,body[data-call-minimised] .ds-call-toast{display:none!important}
+
+/* Incoming: the same screen, Decline and Accept at the bottom (moved from sync.css). */
+.sync-call-screen{position:fixed!important;z-index:10020!important;inset:0!important;display:grid!important;place-content:center;justify-items:center;gap:16px;width:100%!important;min-height:100dvh!important;padding:0 24px var(--call-panel-h,246px)!important;border:0!important;border-radius:0!important;background-color:var(--sync-wp-color,#0b0d10)!important;background-image:linear-gradient(rgba(5,6,8,.62),rgba(5,6,8,.62)),var(--sync-wp-image,radial-gradient(circle at 50% 38%,#1f2a36,#0b0d10 70%))!important;background-size:cover!important;color:#fff!important;text-align:center;--call-panel-h:calc(150px + env(safe-area-inset-bottom,0px))}
+.sync-call-screen[hidden]{display:none!important}
+.sync-call-screen .sync-call-avatar{border:0;box-shadow:none}
+.sync-call-screen>.sync-call-kicker,.sync-call-screen>p{display:none}
+.sync-call-screen>strong{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sync-call-screen .ds-call-incoming-state{margin:0;color:#e3e6ea;font-size:1.02rem}
+.sync-call-screen .call-actions{position:absolute;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:12px;display:grid;grid-template-columns:1fr 1fr;justify-items:center;max-width:460px;margin:0 auto;padding:20px 12px 14px;border-radius:28px;background:rgba(22,24,28,.92)}
+.sync-call-screen .call-actions .ds-call-key>button{display:grid;place-items:center;width:72px;height:72px;min-width:72px;min-height:72px;padding:0!important;border:0!important;border-radius:50%!important;color:#fff!important}
+.sync-call-screen .call-actions .ds-call-key>button svg{width:28px;height:28px}
+.sync-call-screen #declineCall{background:#df3347!important}
+.sync-call-screen #declineCall svg{transform:rotate(135deg)}
+.sync-call-screen #acceptCall{background:var(--ds-btn-go,#15803d)!important}
+@media(prefers-reduced-motion:reduce){body[data-call-mode] .ds-call-key>button{transition:none}}
+
+/* Owner 2026-11-23: on a connected video call the top bar, status line and buttons step aside after 4 s (sync-call-ui.js
+   showChrome/hideChrome); a tap on the video brings them back. Hidden ones can't be pressed by that tap. */
+body[data-call-mode="video"] .ds-call-top,body[data-call-mode="video"] .media-controls.ds-call-panel,body[data-call-mode="video"] .conversation-status{transition:opacity .2s ease,transform .2s ease,visibility 0s}
+body[data-call-mode="video"][data-call-chrome="hidden"] .ds-call-top,body[data-call-mode="video"][data-call-chrome="hidden"] .media-controls.ds-call-panel,body[data-call-mode="video"][data-call-chrome="hidden"] .conversation-status{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,transform .2s ease,visibility 0s .2s}
+body[data-call-mode="video"][data-call-chrome="hidden"] .ds-call-top{transform:translateY(-12px)}
+body[data-call-mode="video"][data-call-chrome="hidden"] .media-controls.ds-call-panel{transform:translateY(16px)}
+@media (prefers-reduced-motion:reduce){body[data-call-mode="video"] .ds-call-top,body[data-call-mode="video"] .media-controls.ds-call-panel,body[data-call-mode="video"] .conversation-status{transition:none!important;transform:none!important}}

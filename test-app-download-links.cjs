@@ -20,11 +20,9 @@ assert.match(
   /<meta property="og:image:width" content="1744">[\s\S]*?<meta property="og:image:height" content="909">/,
   "the share preview publishes explicit image dimensions"
 );
-assert.match(
-  feed,
-  /Terms of Service<\/span><\/a>\s*<a class="app-menu-link"[^>]*href="#install-danzstak"[^>]*data-app-platform="android"[\s\S]*?Install on Android[\s\S]*?<a class="app-menu-link"[^>]*data-app-platform="apple"[\s\S]*?Apple App[\s\S]*?<button type="button" class="menu-action logout-menu-link" data-logout>/,
-  "the left menu stacks the Android PWA and Apple home-screen install actions above Logout"
-);
+// Owner 2026-11-18: one "Install DanzStak" item in the signed-in Menu; separate Android/Apple items were redundant.
+assert.doesNotMatch(feed, /data-app-platform="(android|apple)"/, "no separate Android/Apple install items in the signed-in menu");
+assert.match(appDownloads, /window\.danzstakOpenInstallHelp = \(\) => openInstallHelp\(isAppleMobile \? "apple" : "android"\);/, "the Menu item opens the right install steps");
 assert.match(home, /href="#install-danzstak"[^>]*data-app-platform="android"/, "the homepage uses the real browser PWA install flow on Android");
 assert.match(home, /Install for<\/small><strong>Android<\/strong>/, "the public Android action describes installation rather than a preview download");
 assert.doesNotMatch(home, /data-app-platform="android"[^>]*\bdownload\b|Download preview/, "the public homepage must install the PWA instead of downloading a preview package");

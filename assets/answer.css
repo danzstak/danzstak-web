@@ -1,0 +1,29 @@
+/* Answer to join (owner 2026-11-18): looks like the phone's own incoming-call screen, DanzStak colors. */
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#0b0b0c;color:#ededea;font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.answer{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:max(24px,env(safe-area-inset-top)) 20px max(24px,env(safe-area-inset-bottom));text-align:center}
+.answer-brand{margin:0;font:700 .72rem/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#8b8f99}
+.answer-brand span{color:#ff5a1f}
+.answer-card{width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.answer-card[hidden]{display:none}
+.answer-ring{position:relative;width:112px;height:112px;border-radius:50%;display:grid;place-items:center;background:#1c1d21;margin:28px 0 22px}
+.answer-ring::before,.answer-ring::after{content:"";position:absolute;inset:-10px;border-radius:50%;border:2px solid rgba(255,90,31,.55);animation:answer-pulse 1.8s ease-out infinite}
+.answer-ring::after{animation-delay:.9s}
+.answer-ring img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.answer-ring span{font-size:2.6rem;font-weight:900;color:#ededea}
+@keyframes answer-pulse{from{transform:scale(.92);opacity:1}to{transform:scale(1.25);opacity:0}}
+@media (prefers-reduced-motion:reduce){.answer-ring::before,.answer-ring::after{animation:none;opacity:.5}}
+.answer h1{margin:0;font-size:1.75rem;font-weight:900;letter-spacing:-.02em;overflow-wrap:anywhere}
+.answer-kind{margin:0 0 14px;color:#b9bcc4}
+.answer-go{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:64px;width:100%;max-width:300px;border:0;border-radius:999px;background:#1fae5b;color:#fff;font:inherit;font-size:1.15rem;font-weight:800;cursor:pointer;text-decoration:none}
+.answer-go svg{width:26px;height:26px;fill:currentColor}
+.answer-go:focus-visible{outline:3px solid #ff5a1f;outline-offset:3px}
+.answer-go:disabled{opacity:.6;cursor:wait}
+.answer-go--plain{background:var(--ds-btn-go,#15803d);color:#fff;min-height:52px}
+.answer-legal{display:flex;gap:10px;align-items:flex-start;max-width:320px;margin-top:6px;text-align:left;font-size:.88rem;color:#b9bcc4;cursor:pointer}
+.answer-legal input{flex:none;width:22px;height:22px;margin:0;accent-color:#ff5a1f}
+.answer-legal a,.answer-login{color:#ededea}
+.answer-steps{margin:0;max-width:320px;font-size:.82rem;color:#8b8f99}
+.answer-login{display:inline-flex;align-items:center;min-height:44px;font-size:.9rem}
+.answer-card p{margin:0}
+.answer-status{min-height:1.3em;margin:0;font-size:.9rem;color:#ff8a6b}

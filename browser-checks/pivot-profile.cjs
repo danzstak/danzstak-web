@@ -8,7 +8,7 @@ const { chromium } = require("playwright");
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8023").replace(/\/$/, "");
 const widths = [320, 360, 390, 414, 430, 1366];
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
-const profile = { memberId: "11111111-1111-4111-8111-111111111111", name: "Pivot Artist", username: "pivotartist", bio: "Independent artist.", picture: "", cover: "", website: "", isOwner: true };
+const profile = { memberId: "11111111-1111-4111-8111-111111111111", name: "Pivot Artist", username: "pivotartist", handle: "pivotartist", bio: "Independent artist.", picture: "", cover: "", website: "", isOwner: true };
 
 function fixture(pathname) {
   if (pathname === "/auth/session") return { authenticated: true, user: { sub: profile.memberId, email: "pivot@example.test" } };
@@ -33,15 +33,15 @@ function fixture(pathname) {
       await page.goto(`${baseUrl}/profile.html?edit=identity`, { waitUntil: "domcontentloaded" });
       const panel = page.locator(".edit-profile-panel");
       await panel.waitFor({ state: "visible" });
-      const section = panel.locator(".profile-import");
-      await section.locator("summary").click();
-      const pivot = section.locator(".profile-pivot-button");
-      await pivot.waitFor({ state: "visible" });
-      assert.match(await pivot.textContent(), /Open Moving Day/);
-      const buttonBox = await pivot.boundingBox();
-      assert.ok(buttonBox && buttonBox.height >= 44 && buttonBox.x >= 0 && buttonBox.x + buttonBox.width <= width, `${width}px profile Pivot action must remain touchable and contained`);
+      // Owner 2026-11-18: Edit profile no longer carries the Moving Day box; Pivot opens from the Menu.
+      assert.equal(await panel.locator(".profile-import, #profilePivotButton").count(), 0, `${width}px no Moving Day box on Edit profile`);
+      if (process.env.PIVOT_DEBUG) { await page.screenshot({ path: process.env.PIVOT_DEBUG }); console.log("dbg", await page.evaluate(() => [document.body.className, location.href, getComputedStyle(document.querySelector(".edit-screen-bar")).display, JSON.stringify(document.querySelector("[data-edit-back]")?.getBoundingClientRect())])); }
+      await page.locator("[data-edit-back]").click();
+      await panel.waitFor({ state: "hidden" });
+      // The Menu's Pivot item (app-bar.js, on Mix) is a [data-pivot-trigger]; pivot.js still opens Moving Day from one here.
+      assert.match(require("node:fs").readFileSync("assets/app-bar.js", "utf8"), /className = "menu-pivot"; pivot\.setAttribute\("data-pivot-trigger", ""\)/);
       if (captureDir) { fs.mkdirSync(captureDir, { recursive: true }); await page.screenshot({ path: path.join(captureDir, `pivot-profile-entry-${width}.png`), fullPage: false }); }
-      await pivot.click();
+      await page.evaluate(() => { const trigger = Object.assign(document.createElement("a"), { href: "#pivot", className: "menu-pivot" }); trigger.setAttribute("data-pivot-trigger", ""); document.body.append(trigger); trigger.click(); });
       const dialog = page.locator(".pivot-dialog");
       await dialog.waitFor({ state: "visible" });
       assert.equal((await dialog.locator("h2").textContent()).trim(), "Moving Day");

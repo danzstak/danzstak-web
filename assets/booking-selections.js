@@ -68,7 +68,7 @@
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
   }
 
-  async function usePublishedEpk({ save = false, clearHandoff = false } = {}) {
+  async function usePublishedEpk({ save = false, clearHandoff = false, auto = false } = {}) {
     const button = document.getElementById("usePublishedEpk");
     if (button) button.disabled = true;
     accountStatus.textContent = "Finding your published EPK…";
@@ -86,7 +86,8 @@
         pitch: String(kit.shortPitch || kit.shortBio || "").trim()
       };
       const current = artist();
-      if (current.name && next.name && current.name.localeCompare(next.name, undefined, { sensitivity:"base" }) !== 0) {
+      // The published EPK is the source of truth (task 25); only a manual switch asks first.
+      if (!auto && current.name && next.name && current.name.localeCompare(next.name, undefined, { sensitivity:"base" }) !== 0) {
         if (!window.danzstakConfirm) throw new Error("DanzStak could not open the act-switch review. Reload and try again.");
         const confirmReplace = await window.danzstakConfirm(`This workspace is for ${current.name}. Use the published EPK for ${next.name} and replace the act details? Saved venues and tour costs will stay.`, { title:"Switch the act for this pitch?", confirmLabel:"Use published EPK" });
         if (!confirmReplace) {
@@ -97,6 +98,9 @@
       for (const [key, value] of Object.entries(next)) {
         if (value) document.getElementById(artistInputs[key]).value = value;
       }
+      const changed = Object.entries(next).some(([key, value]) => value && current[key] !== value);
+      paintPitchingAs();
+      if (auto && !changed && !clearHandoff) return true;
       dirty = true;
       persist();
       render();
@@ -117,7 +121,24 @@
     }
   }
 
-  document.getElementById("usePublishedEpk")?.addEventListener("click", () => usePublishedEpk({ save:true }));
+  // "Pitching as Erotica · techno · San Francisco · View EPK · Edit in the EPK builder"
+  function paintPitchingAs() {
+    const line = document.getElementById("pitchingAs");
+    if (!line) return;
+    const a = artist();
+    if (!a.name) { line.textContent = "Pitches are built from your published EPK."; return; }
+    const who = document.createElement("strong"); who.textContent = a.name; who.setAttribute("data-no-translate", "");
+    const facts = [a.genre, a.hometown].filter(Boolean).join(" · ");
+    const parts = [document.createTextNode("Pitching as "), who];
+    if (facts) parts.push(document.createTextNode(` · ${facts}`));
+    if (/^https:\/\//.test(a.epk) || a.epk.startsWith(location.origin)) {
+      const view = document.createElement("a"); view.href = a.epk; view.textContent = "View EPK"; view.target = "_blank"; view.rel = "noopener";
+      parts.push(document.createTextNode(" · "), view);
+    }
+    const edit = document.createElement("a"); edit.href = "epk.html"; edit.textContent = "Edit in the EPK builder";
+    parts.push(document.createTextNode(" · "), edit);
+    line.replaceChildren(...parts);
+  }
 
   const link = (label, href) => {
     const anchor = document.createElement("a");
@@ -290,6 +311,13 @@
       });
       label.append(input); fields.append(label);
     }
+    // Owner 2026-11-16: pay to play is the band's call. Marking it warns other bands (counts only, never who).
+    const payLabel = document.createElement("label"), pay = document.createElement("select");
+    payLabel.append(document.createTextNode("Pay to play?"));
+    pay.setAttribute("aria-label", "Pay to play?");
+    for (const [value, text] of [["", "No"], ["tickets", "Yes: we must sell a ticket quota"], ["fee", "Yes: we must pay the venue"]]) { const option = document.createElement("option"); option.value = value; option.textContent = text; option.selected = String(booking.payToPlay || "") === value; pay.append(option); }
+    pay.addEventListener("change", () => { booking.payToPlay = pay.value; persist(); render(); });
+    payLabel.append(pay); fields.append(payLabel);
     if (["replied", "offer"].includes(pipeline.stageOf(bookingStatus(venue)))) fields.append(dateOptionsField(venue, booking));
     const hint = document.createElement("small");
     hint.textContent = "Save after editing. Cards move one step at a time; sending a pitch and a venue reply move them for you. Confirmed requires a date and written evidence of the promoter's agreement. Played unlocks after the show date.";
@@ -446,7 +474,7 @@
     progressText.className = "epk-gate-progress"; progressText.textContent = `${done} of ${total} done`;
     for (const item of [...(Array.isArray(epkGate.missing) ? epkGate.missing : []), ...(epkGate.published ? [] : ["Publish your EPK"])]) list.append(Object.assign(document.createElement("li"), { textContent: String(item) }));
     action.className = "booking-next-action"; action.href = "epk.html"; action.textContent = "Open the EPK builder";
-    note.textContent = "Free by hand, or $5 with AI. You can keep searching and saving venues; pitches unlock when your EPK is published.";
+    note.textContent = "You can keep searching and saving venues; pitches unlock when your EPK is published.";
     gate.replaceChildren(title, tagline, progress, progressText, list, action, note);
   }
 
@@ -595,7 +623,9 @@
       render();
     });
     const freshnessChip = window.danzstakVenueFreshness?.chip(venue);
-    body.append(stageChip, title, ...(freshnessChip ? [freshnessChip] : []), address, links, note, venueReport(venue));
+    let clubChip = null;
+    if (venue.club?.label) { clubChip = document.createElement("p"); clubChip.className = `venue-club venue-club-${String(venue.club.tier || "found").replace(/[^a-z]/g, "")}`; clubChip.textContent = venue.club.label; }
+    body.append(stageChip, title, ...(freshnessChip ? [freshnessChip] : []), ...(clubChip ? [clubChip] : []), address, links, note, venueReport(venue));
     if (evidence.textContent) address.after(evidence);
     body.append(bookingFields(venue), outreach(venue), remove);
     card.append(body);
@@ -611,7 +641,7 @@
     const fit = document.createElement("p");
     const shareEvidence = document.createElement("p"), venueShares = outreachShares.filter(item => item.venueKey === identity(venue) && item.revoked !== true), openCount = venueShares.reduce((sum, item) => sum + Number(item.openCount || 0), 0), lastOpenedAt = venueShares.map(item => item.lastOpenedAt).filter(Boolean).sort().at(-1);
     shareEvidence.className = "epk-open-evidence";
-    shareEvidence.textContent = openCount ? `Private EPK opened ${openCount} time${openCount === 1 ? "" : "s"}${lastOpenedAt ? ` · last opened ${new Intl.DateTimeFormat(undefined, { dateStyle:"medium", timeStyle:"short" }).format(new Date(lastOpenedAt))}` : ""}. Counts only; DanzStak does not identify the viewer.` : "Private venue EPK not opened yet.";
+    shareEvidence.textContent = openCount ? `Private EPK opened ${openCount} time${openCount === 1 ? "" : "s"}${lastOpenedAt ? ` · last opened ${new Intl.DateTimeFormat(undefined, { dateStyle:"medium", timeStyle:"short" }).format(new Date(lastOpenedAt))}` : ""}. Counts only; DanzStak does not identify the viewer.` : venueShares.some(item => item.creditReturnedAt) ? "Not opened within 30 days. Your credit came back." : "Private venue EPK not opened yet.";
     const venueOutreach = (window.danzstakTourManagerBilling?.outreach || []).filter(item => item.venueKey === identity(venue)).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), latestDelivery = venueOutreach[0];
     const deliveryEvidence = document.createElement("p");
     deliveryEvidence.className = "booking-delivery-evidence";
@@ -684,7 +714,9 @@
       }
     });
     creditPrompt.append(creditMessage, buyCredit);
-    creditPrompt.hidden = !window.danzstakTourManagerBilling?.credits || Number(window.danzstakTourManagerBilling.credits.bookingEmailCredits || 0) > 0;
+    // Task 25 (owner 2026-11-18): no standing paywall on the venue card. The buy prompt appears only when an
+    // approved send needs a credit the artist doesn't have (the 402 below); previewing and selecting never ask to pay.
+    creditPrompt.hidden = true;
     button.addEventListener("click", async () => {
       const currentArtist = artist(), currentSubject = subject.value.trim(), currentMessage = draft.value.trim();
       if (booking.dateEnd && booking.showDate && booking.dateEnd < booking.showDate) { window.danzstakShowFeedback?.("The end of the date range cannot be before the proposed show date.", { urgent:true }); return; }
@@ -1087,7 +1119,10 @@
   render();
   if (loadAccount) {
     loadWorkspace().then(async loaded => {
-      if (epkHandoffRequested) await usePublishedEpk({ save:loaded, clearHandoff:true });
+      paintPitchingAs();
+      // Task 25: act name, genres, hometown, EPK link and pitch always come from the published EPK.
+      if (epkHandoffRequested) await usePublishedEpk({ save:loaded, clearHandoff:true, auto:true });
+      else if (loaded && epkGate?.published) await usePublishedEpk({ save:true, auto:true });
       if (loaded && followUpFocusVenue) focusFollowUpVenue(followUpFocusVenue);
     });
   }

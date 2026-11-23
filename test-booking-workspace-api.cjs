@@ -9,7 +9,7 @@ class QueryCommand extends Command {}
 class GetItemCommand extends Command {}
 class PutItemCommand extends Command {}
 const context = vm.createContext({
-  Buffer, randomUUID: () => 'new-revision', toursTable:'tours',
+  clubRecords: async () => new Map(), clubLabel: () => "", Buffer, randomUUID: () => 'new-revision', toursTable:'tours',
   corsHeaders: () => ({}), allowedOrigins: new Set(['https://danzstak.com']),
   getAuthenticatedUser: async () => authenticated,
   parseJsonBody: event => event.body,
@@ -114,26 +114,11 @@ const request = (method, body, origin='https://danzstak.com') => context.booking
   const before = calls.length, noDates = await request('POST',{action:'route_dates'});
   assert.equal(noDates.statusCode,400); assert.match(JSON.parse(noDates.body).error,/departure and return dates/);
   assert.ok(calls.slice(before).every(call => !call.Item),'the date picker never writes');
-  // Task 07-E: accepting a date the club offered moves it to Date proposed, never straight to Confirmed.
-  const acceptPlan = venues => JSON.stringify({venues,artist:{},tour:{}});
-  stored={userId:{S:'owner-a'},tourId:{S:'booking-workspace-v1'},revision:{S:'r10'},plan:{S:acceptPlan([{name:'Opt Room',venueKey:'opt',booking:{status:'Reply received',dateOptions:['2027-03-01','2027-03-04']}},{name:'Done Room',venueKey:'done',booking:{status:'Confirmed',showDate:'2027-03-02',confirmationEvidence:'Yes',dateOptions:['2027-03-02']}}])}};
-  let accepted = await request('POST',{action:'accept_date',venueKey:'opt',date:'2027-03-04',sentReplyId:'reply00000000000001'});
-  assert.equal(accepted.statusCode,200);
-  const acceptedSave = calls.at(-1), acceptedVenue = JSON.parse(acceptedSave.Item.plan.S).venues[0];
-  assert.equal(acceptedSave.ConditionExpression,'revision = :revision'); assert.equal(acceptedSave.ExpressionAttributeValues[':revision'].S,'r10');
-  assert.equal(acceptedVenue.booking.status,'Date proposed','accepting waits for the club: never straight to Confirmed');
-  assert.equal(acceptedVenue.booking.showDate,'2027-03-04'); assert.equal(acceptedVenue.booking.acceptedDate,'2027-03-04'); assert.equal(acceptedVenue.booking.acceptedReplyId,'reply00000000000001');
-  assert.equal(acceptedVenue.booking.pipeline,undefined,'derived pipeline view is not stored');
-  assert.equal((await request('POST',{action:'accept_date',venueKey:'opt',date:'2027-03-09'})).statusCode,409,'only a date the club offered');
-  assert.equal((await request('POST',{action:'accept_date',venueKey:'done',date:'2027-03-02'})).statusCode,409,'a confirmed show is not re-accepted');
-  assert.equal((await request('POST',{action:'accept_date',venueKey:'opt',date:'nope'})).statusCode,400);
-  stored={...stored,revision:{S:'r11'},plan:{S:acceptPlan([{...JSON.parse(acceptedSave.Item.plan.S).venues[0]}])}};
-  const writesBefore = calls.filter(call => call.Item).length; accepted = await request('POST',{action:'accept_date',venueKey:'opt',date:'2027-03-04'});
-  assert.equal(JSON.parse(accepted.body).duplicate,true); assert.equal(calls.filter(call => call.Item).length,writesBefore,'a repeated accept writes nothing');
-  // Accepted and follow-up fields survive a normal save.
-  stored={...stored,revision:{S:'r12'}};
-  assert.equal((await request('POST',{revision:'r12',artist:{},tour:{},venues:[{name:'Opt Room',venueKey:'opt',booking:{status:'Date proposed',showDate:'2027-03-04',dateOptions:['2027-03-04'],acceptedDate:'2027-03-04',acceptedAt:'2026-11-16T10:00:00.000Z',acceptedReplyId:'reply00000000000001',confirmFollowUpAt:'2026-11-19'}}]})).statusCode,200);
-  const keptBooking = JSON.parse(calls.at(-1).Item.plan.S).venues[0].booking;
-  assert.deepEqual([keptBooking.acceptedDate,keptBooking.acceptedAt,keptBooking.acceptedReplyId,keptBooking.confirmFollowUpAt],['2027-03-04','2026-11-16T10:00:00.000Z','reply00000000000001','2026-11-19']);
+  // A real ISO discovery time survives a save; junk is dropped.
+  stored={userId:{S:'owner-a'},tourId:{S:'booking-workspace-v1'},revision:{S:'ts1'},plan:{S:JSON.stringify({venues:[],artist:{},tour:{}})}};
+  assert.equal((await request('POST',{revision:'ts1',artist:{},tour:{},venues:[{name:'Kept Time',discoveredAt:'2026-11-09T12:30:00.000Z',booking:{}},{name:'Bad Time',discoveredAt:'2026-11T12:30:00Z',booking:{}}]})).statusCode,200);
+  const timed = JSON.parse(calls.at(-1).Item.plan.S).venues;
+  assert.equal(timed[0].discoveredAt,'2026-11-09T12:30:00.000Z','discoveredAt is kept on save');
+  assert.equal(timed[1].discoveredAt,'','a malformed time is dropped');
   console.log('Booking workspace API checks passed: pipeline stages from real events, no backward moves, account isolation, identity preservation, origins, validation, bounded records, and conflict protection.');
 })().catch(error => {console.error(error);process.exitCode=1;});

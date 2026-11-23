@@ -20,6 +20,9 @@ const messageForm = document.getElementById("messageForm");
 const messageInput = document.getElementById("messageInput");
 const messageMedia = document.getElementById("messageMedia");
 const messageCamera = document.getElementById("messageCamera");
+const messageCameraVideo = document.getElementById("messageCameraVideo");
+const messageCameraButton = document.getElementById("messageCameraButton");
+const messageCaptureMenu = document.getElementById("messageCaptureMenu");
 const messageMediaPreview = document.getElementById("messageMediaPreview");
 const messageList = document.getElementById("messageList");
 const messageSelectionToolbar = document.getElementById("messageSelectionToolbar");
@@ -133,7 +136,11 @@ function conversationVisualState(conversation) {
     canContact: conversation?.canContact !== false,
     unread: Math.max(0, Number(conversation?.unread || 0)),
     hasConversation: conversation?.hasConversation === true,
-    sharedGroup: conversation?.sharedGroup === true
+    sharedGroup: conversation?.sharedGroup === true,
+    typing: conversation?.typing === true,
+    pinned: conversation?.pinned === true,
+    muted: conversation?.muted === true,
+    archived: conversation?.archived === true
   };
 }
 
@@ -246,13 +253,15 @@ function setConversationActionsEnabled(enabled) {
     button.setAttribute("aria-disabled", String(!enabled));
   }
   if (messageMedia) messageMedia.disabled = !enabled;
-  if (messageCamera) messageCamera.disabled = !enabled;
+  for (const control of [messageCamera, messageCameraVideo, messageCameraButton]) if (control) control.disabled = !enabled;
+  if (!enabled) closeCaptureMenu();
 }
 
 function clearSelectedMessageMedia() {
   selectedMessageMedia = null;
   if (messageMedia) messageMedia.value = "";
   if (messageCamera) messageCamera.value = "";
+  if (messageCameraVideo) messageCameraVideo.value = "";
   if (selectedMessageMediaUrl) URL.revokeObjectURL(selectedMessageMediaUrl);
   selectedMessageMediaUrl = "";
   if (messageMediaPreview) { messageMediaPreview.replaceChildren(); messageMediaPreview.hidden = true; }
@@ -324,12 +333,13 @@ async function directFetch(path, options = {}, timeoutMs = 10000) {
     return await fetch(String(target), { ...options, headers, signal: controller.signal });
   }
   catch (error) {
-    if (error.name === "AbortError") throw new Error(messageTranslate("DanzStak is taking too long to respond. Try again."));
-    throw new Error(messageTranslate("DanzStak cannot connect right now. Check your connection and try again."));
+    if (error.name === "AbortError") throw Object.assign(new Error(messageTranslate("DanzStak is taking too long to respond. Try again.")), { network: true });
+    throw Object.assign(new Error(messageTranslate("DanzStak cannot connect right now. Check your connection and try again.")), { network: true });
   }
   finally { clearTimeout(timer); }
 }
 let activeFilter = "chats";
+let showArchivedChats = false; // task 16-A: archived chats live behind one "Archived" row, like the phone's messenger
 const chatReadKey = "danzstak_chat_read";
 const chatDraftKey = "danzstak_chat_drafts";
 let memoryChatDrafts = {};
@@ -588,7 +598,7 @@ async function copySelectedDirectMessages() {
 function openMessageReactions(item, message, x, y, focusFirst = false) {
   document.querySelector(".message-reaction-palette")?.remove();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
-  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
+  for (const emoji of (globalThis.danzstakSyncPrefs?.reactions?.() || ["👍","❤️","😂","😮","😢","😡"])) { /* 16-H: the member's 6 quick reactions */ const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
   if (message.content) {
     const copy = document.createElement("button");
     copy.type = "button";
@@ -608,7 +618,8 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
     select.addEventListener("click", () => toggleMessageSelection(item, message));
     palette.appendChild(select);
   }
-  if (message.senderEmail === currentEmail && message.content) {
+  globalThis.danzstakSyncReply?.paletteActions?.(palette, item, message, () => palette.remove(), { me: currentEmail, contactName: activeContactName, chats: () => cachedConversations }); // 16-E
+  if (message.senderEmail === currentEmail && message.content && !message.forwarded && Date.now() - Date.parse(message.createdAt) < 15 * 60 * 1000) { // 16-E: edit for 15 minutes
     const edit = document.createElement("button");
     edit.type = "button";
     edit.className = "message-edit-choice";
@@ -635,15 +646,26 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
   if (focusFirst) palette.querySelector("button")?.focus();
 }
 
+// 16-D: "last seen today at 22:41" / "yesterday" / a date; nothing when the member hides it.
+function lastSeenText(iso) {
+  const at = new Date(iso);
+  if (!iso || Number.isNaN(at.getTime())) return "";
+  const time = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), today = new Date(), yesterday = new Date(today.getTime() - 86400000);
+  if (at.toDateString() === today.toDateString()) return messageFormat("last seen today at {time}", { time });
+  if (at.toDateString() === yesterday.toDateString()) return messageFormat("last seen yesterday at {time}", { time });
+  return messageFormat("last seen {date}", { date: at.toLocaleDateString([], { day: "numeric", month: "short" }) });
+}
+let contactTyping = false;
 function updateConversationPresence(conversation) {
   if (!conversationPresence) return;
   const isOnline = conversation?.online === true;
   const contactName = conversation?.name || conversationName?.textContent || "DanzStak member";
-  const translatedPresence = messageTranslate(isOnline ? "Online" : "Offline");
-  conversationPresence.hidden = false;
+  const translatedPresence = contactTyping ? messageTranslate("typing…") : isOnline ? messageTranslate("Online") : lastSeenText(conversation?.lastSeenAt);
+  conversationPresence.hidden = !translatedPresence;
   conversationPresence.textContent = translatedPresence;
-  conversationPresence.classList.toggle("is-offline", !isOnline);
-  conversationPresence.setAttribute("aria-label", `${contactName}: ${translatedPresence}`);
+  conversationPresence.classList.toggle("is-offline", !isOnline && !contactTyping);
+  conversationPresence.classList.toggle("is-typing", contactTyping);
+  conversationPresence.setAttribute("aria-label", translatedPresence ? `${contactName}: ${translatedPresence}` : contactName);
 }
 
 function openConversation(conversation, { updateHistory = true } = {}) {
@@ -660,6 +682,7 @@ function openConversation(conversation, { updateHistory = true } = {}) {
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: true }, location.origin);
   contactInput.value = conversation.contactEmail;
   window.danzstakActiveContactName = conversation.name || "DanzStak member";
+  if (typeof CustomEvent === "function") window.dispatchEvent?.(new CustomEvent("danzstak:sync-conversation-opened")); // 16-B: the per-chat wallpaper follows the open chat
   activeCanContact = conversation.canContact !== false;
   setConversationActionsEnabled(activeCanContact);
   directContact = "";
@@ -815,6 +838,7 @@ function directMessageItem(message) {
   item.className = "message" + (mine ? " mine" : "");
   item.tabIndex = 0;
   item.dataset.messageId = message.messageId;
+  if (message.createdAt) item.dataset.createdAt = message.createdAt; // date chips (task 16-A)
   if (message.content) {
     const text = document.createElement("span");
     text.className = "message-text";
@@ -828,19 +852,22 @@ function directMessageItem(message) {
   item.dataset.baseAriaLabel = item.getAttribute("aria-label");
   const meta = document.createElement("span");
   meta.className = "message-meta";
-  meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · " + messageTranslate("edited") : "");
+  // Like familiar messengers: time (and "edited") inside the bubble; the sender is clear from the side and stays in
+  // the message's accessible label.
+  meta.textContent = (message.editedAt ? messageTranslate("edited") + " · " : "") + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   if (mine) {
     const receipt = document.createElement("span");
-    receipt.className = message.read ? "message-receipt is-read" : "message-receipt";
-    receipt.textContent = message.read ? "✓✓" : "✓";
-    receipt.setAttribute("aria-label", messageTranslate(message.read ? "Read" : "Sent"));
+    receipt.className = "message-receipt";
     meta.append(" ", receipt);
+    updateDirectMessageReceipt(item, message, receipt);
   }
   item.appendChild(meta);
+  globalThis.danzstakSyncReply?.decorate?.(item, message, { me: currentEmail, contactName: activeContactName }); // 16-E
   updateMessageReactionBadge(item, message);
-  item.addEventListener("pointerdown", event => { if (event.target.closest?.(".message-text")) return; reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
+  // Long-press anywhere on the bubble opens its actions (Copy included), like the phone's messenger (task 16-A).
+  item.addEventListener("pointerdown", event => { if (event.target.closest?.("a,button,video,input,textarea")) return; reactionTimer = setTimeout(() => { window.danzstakSyncBuzz?.(15); openMessageReactions(item, message, event.clientX, event.clientY); }, 500); });
   for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
-  item.addEventListener("contextmenu", event => { if (event.target.closest?.(".message-text")) return; event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
+  item.addEventListener("contextmenu", event => { if (event.target.closest?.("a,video")) return; event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
   item.addEventListener("click", event => {
     if (!selectedMessages.size || event.target.closest?.("a,button,input,textarea,video")) return;
     event.preventDefault();
@@ -859,13 +886,15 @@ function directMessageItem(message) {
   return item;
 }
 
-function updateDirectMessageReceipt(item, message) {
-  const receipt = item?.querySelector?.(".message-receipt");
+// 16-D: ✓ sent, ✓✓ delivered (grey), ✓✓ read (blue) — server-side states, like familiar messengers.
+function updateDirectMessageReceipt(item, message, given) {
+  const receipt = given || item?.querySelector?.(".message-receipt");
   if (!receipt || message.senderEmail !== currentEmail) return;
-  const read = message.read === true;
+  const read = message.read === true, delivered = read || message.delivered === true;
   receipt.classList.toggle("is-read", read);
-  receipt.textContent = read ? "✓✓" : "✓";
-  receipt.setAttribute("aria-label", messageTranslate(read ? "Read" : "Sent"));
+  receipt.classList.toggle("is-delivered", delivered && !read);
+  receipt.textContent = delivered ? "✓✓" : "✓";
+  receipt.setAttribute("aria-label", messageTranslate(read ? "Read" : delivered ? "Delivered" : "Sent"));
 }
 
 function firstSafeMessageUrl(content) {
@@ -985,7 +1014,7 @@ async function loadDirectMessages(reset = false) {
     const distanceFromBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight;
     const followNewest = reset || distanceFromBottom < 80;
     if (reset) { shownMessages.clear(); nextMessageCursor = data.nextCursor || ""; messageList.replaceChildren(); }
-    let appended = 0;
+    let appended = 0, incomingArrived = false;
     for (const message of data.messages || []) {
       if (shownMessages.has(message.messageId)) {
         const existing = [...messageList.querySelectorAll(".message")].find(item => item.dataset.messageId === message.messageId);
@@ -998,7 +1027,9 @@ async function loadDirectMessages(reset = false) {
       shownMessages.add(message.messageId);
       messageList.appendChild(directMessageItem(message));
       appended += 1;
+      if (!reset && message.senderEmail !== currentEmail) incomingArrived = true;
     }
+    if (incomingArrived) window.danzstakSyncTones?.messageArrived?.(contact); // 16-B2: the member's message tone, app open only
     if (reset) renderEarlierMessagesButton();
     const receivedMessages = data.messages || [];
     const newest = receivedMessages.length ? receivedMessages[receivedMessages.length - 1].createdAt : "";
@@ -1006,6 +1037,7 @@ async function loadDirectMessages(reset = false) {
     if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-read", contact }, location.origin);
     if (followNewest && appended) messageList.scrollTop = messageList.scrollHeight;
     activeCanContact = data.canContact !== false;
+    if (contactTyping !== (data.typing === true)) { contactTyping = data.typing === true; updateConversationPresence(activeConversation); }
     setConversationActionsEnabled(activeCanContact);
     messageInput.disabled = !activeCanContact;
     sendButton.disabled = !activeCanContact;
@@ -1031,6 +1063,8 @@ async function loadDirectMessages(reset = false) {
 }
 
 let loadingConversations = false;
+const unreadSeen = new Map(); // 16-B2: unread counts from the last list refresh (message tone on increase)
+let unreadPrimed = false;
 async function readMessagingArrayResponse(response, key) {
   if (!response?.ok) return { available: false, items: [] };
   try {
@@ -1137,6 +1171,94 @@ function appendConversationAvailabilityWarning() {
   panel.append(status, retry);
   conversationUsers.appendChild(panel);
 }
+// ---- Chat list like the phone's messenger (task 16-A, owner 2026-11-17) ----
+// Time: "14:32" today, "Yesterday", weekday this week, then a short date.
+function chatListTime(value) {
+  const date = new Date(value);
+  if (!value || !Number.isFinite(date.valueOf())) return "";
+  const now = new Date(), day = 86400000, startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).valueOf();
+  if (date.valueOf() >= startOfToday) return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (date.valueOf() >= startOfToday - day) return messageTranslate("Yesterday");
+  if (date.valueOf() >= startOfToday - 6 * day) return date.toLocaleDateString([], { weekday: "short" });
+  return date.toLocaleDateString([], { day: "numeric", month: "short", ...(date.getFullYear() === now.getFullYear() ? {} : { year: "2-digit" }) });
+}
+const chatIcons = {
+  pinned: '<path fill="currentColor" d="M16 3v2h-1v6l2 3v2h-4v5l-1 1-1-1v-5H7v-2l2-3V5H8V3h8Z"/>',
+  muted: '<path fill="currentColor" d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.4 2.4c.1-.2.1-.4.1-.6ZM19 12c0 .9-.2 1.8-.5 2.6l1.5 1.5A8.9 8.9 0 0 0 21 12c0-4.3-3-7.9-7-8.8v2.1c2.9.9 5 3.5 5 6.7ZM4.3 3 3 4.3 7.7 9H3v6h4l5 5v-6.7l4.3 4.3c-.7.5-1.4.9-2.3 1.2v2.1c1.4-.3 2.6-1 3.7-1.8l2 2 1.3-1.3-9-9L4.3 3ZM12 4 9.9 6.1 12 8.2V4Z"/>',
+  archived: '<path fill="currentColor" d="M20.5 5.2 19.1 3.5A1.5 1.5 0 0 0 18 3H6c-.5 0-.9.2-1.2.5L3.5 5.2C3.2 5.6 3 6 3 6.5V19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.5c0-.5-.2-.9-.5-1.3ZM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5ZM5.1 5l.8-1h12l.9 1H5.1Z"/>'
+};
+function chatSvg(kind) { return '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' + chatIcons[kind] + "</svg>"; }
+function chatMark(kind, label) { const mark = document.createElement("span"); mark.className = "conversation-mark is-" + kind; mark.setAttribute("role", "img"); mark.setAttribute("aria-label", label); mark.innerHTML = chatSvg(kind); return mark; }
+function archivedChatsRow(count) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "conversation-archived-row";
+  button.innerHTML = showArchivedChats ? '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2Z"/></svg>' : chatSvg("archived");
+  const label = document.createElement("span");
+  label.textContent = showArchivedChats ? messageTranslate("Back to chats") : messageTranslate("Archived");
+  button.appendChild(label);
+  if (!showArchivedChats) { const total = document.createElement("span"); total.className = "conversation-archived-count"; total.textContent = String(count); button.appendChild(total); }
+  button.addEventListener("click", () => { showArchivedChats = !showArchivedChats; lastConversationListSignature = ""; loadConversations(); });
+  return button;
+}
+async function setChatPreference(conversation, changes) {
+  try {
+    const response = await directFetch("/conversations/prefs", { method: "POST", credentials: "include", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contactEmail: conversation.contactEmail, ...changes }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "That chat could not be changed.");
+    const cached = cachedConversations.find(item => item.contactEmail === conversation.contactEmail);
+    if (cached) Object.assign(cached, "pinned" in changes ? { pinned: changes.pinned, pinnedAt: changes.pinned ? new Date().toISOString() : "" } : {}, "muted" in changes ? { muted: changes.muted } : {}, "archived" in changes ? { archived: changes.archived, ...(changes.archived ? { pinned: false, pinnedAt: "" } : {}) } : {});
+    window.danzstakSyncBuzz?.(8);
+  } catch (error) { callStatus.textContent = messageTranslate(error.message); }
+  lastConversationListSignature = "";
+  loadConversations();
+}
+function closeChatRowActions(row) { row.dataset.swiped = "false"; row.style.removeProperty("--swipe"); }
+function attachChatRowActions(row, button, conversation) {
+  const actions = document.createElement("div");
+  actions.className = "conversation-swipe-actions";
+  for (const [kind, label, changes] of [
+    ["pinned", messageTranslate(conversation.pinned ? "Unpin" : "Pin"), { pinned: !conversation.pinned }],
+    ["muted", messageTranslate(conversation.muted ? "Unmute chat" : "Mute chat"), { muted: !conversation.muted }],
+    ["archived", messageTranslate(conversation.archived ? "Unarchive" : "Archive"), { archived: !conversation.archived }]
+  ]) {
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "conversation-swipe-action is-" + kind;
+    action.innerHTML = chatSvg(kind);
+    const text = document.createElement("span"); text.textContent = label; action.appendChild(text);
+    action.setAttribute("aria-label", label + " · " + (conversation.name || ""));
+    action.tabIndex = -1;
+    action.addEventListener("click", event => { event.stopPropagation(); closeChatRowActions(row); setChatPreference(conversation, changes); });
+    actions.appendChild(action);
+  }
+  row.classList.add("has-swipe-actions");
+  row.prepend(actions);
+  const open = () => { row.dataset.swiped = "true"; row.style.setProperty("--swipe", "-" + actions.offsetWidth + "px"); actions.querySelectorAll("button").forEach(item => { item.tabIndex = 0; }); };
+  // Swipe left to reveal Pin / Mute / Archive; tap the row or swipe right to close.
+  let startX = 0, startY = 0, dragging = false, pointer = null;
+  button.addEventListener("pointerdown", event => { if (event.pointerType === "mouse") return; startX = event.clientX; startY = event.clientY; dragging = false; pointer = event.pointerId; });
+  button.addEventListener("pointermove", event => {
+    if (pointer !== event.pointerId) return;
+    const dx = event.clientX - startX, dy = event.clientY - startY;
+    if (!dragging && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5) { dragging = true; row.classList.add("is-dragging"); }
+    if (dragging) { const base = row.dataset.swiped === "true" ? -actions.offsetWidth : 0; row.style.setProperty("--swipe", Math.max(-actions.offsetWidth, Math.min(0, base + dx)) + "px"); }
+  });
+  const end = event => {
+    if (pointer !== event.pointerId) return;
+    pointer = null; row.classList.remove("is-dragging");
+    if (!dragging) return;
+    const dx = event.clientX - startX;
+    if (dx < -40) open(); else closeChatRowActions(row);
+    row.dataset.justSwiped = "1"; setTimeout(() => { delete row.dataset.justSwiped; }, 0);
+  };
+  button.addEventListener("pointerup", end);
+  button.addEventListener("pointercancel", end);
+  button.addEventListener("click", event => { if (row.dataset.justSwiped) { event.stopImmediatePropagation(); event.preventDefault(); } }, true);
+  // Without a swipe (mouse, keyboard): right-click / long-press opens the same actions.
+  button.addEventListener("contextmenu", event => { event.preventDefault(); row.dataset.swiped === "true" ? closeChatRowActions(row) : open(); });
+}
+
 async function loadConversations() {
   if (document.hidden || loadingConversations) return;
   loadingConversations = true;
@@ -1179,6 +1301,18 @@ async function loadConversations() {
     for (const conversation of conversationSource.items) {
       if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), { ...conversation, hasConversation: true });
     }
+    // 16-B2: a chat that is not open gained unread messages since the last refresh → one message tone.
+    if (conversationSource.available) try {
+      const openContact = document.body?.classList?.contains("is-conversation-open") ? String(document.getElementById?.("contactEmail")?.value || "").toLowerCase() : "";
+      let toneFor = "";
+      for (const conversation of conversationSource.items) {
+        const email = String(conversation.contactEmail || "").toLowerCase(), unread = Math.max(0, Number(conversation.unread || 0));
+        if (email && unreadSeen.has(email) && unread > unreadSeen.get(email) && email !== openContact) toneFor = toneFor || email;
+        if (email) unreadSeen.set(email, unread);
+      }
+      if (toneFor && unreadPrimed) globalThis.danzstakSyncTones?.messageArrived?.(toneFor);
+      unreadPrimed = true;
+    } catch { /* a tone is never worth breaking the chat list */ }
     for (const friend of friendsSource.items) {
       const email = String(friend.email || "").toLowerCase();
       if (!email) continue;
@@ -1209,6 +1343,7 @@ async function loadConversations() {
         updatedAt: existing?.updatedAt || "",
         sharedGroup: existing?.sharedGroup === true || member.sharedGroup === true,
         online: member.online === true,
+        lastSeenAt: member.lastSeenAt || existing?.lastSeenAt || "",
         hasConversation: existing?.hasConversation === true
       });
     }
@@ -1230,14 +1365,18 @@ async function loadConversations() {
     const visible = cachedConversations.filter(item => {
       const matchesSearch = !query || (item.name + " " + item.contactEmail + " " + item.preview).toLowerCase().includes(query);
       const matchesFilter = activeFilter === "chats"
-        ? item.hasConversation === true
+        ? item.hasConversation === true && (query ? true : item.archived === true ? showArchivedChats : !showArchivedChats)
         : activeFilter === "calls"
           ? item.canContact !== false
           : activeFilter === "contacts";
       return matchesSearch && matchesFilter;
     });
+    if (activeFilter === "chats") visible.sort((a, b) => Number(b.pinned === true) - Number(a.pinned === true) || String(b.pinnedAt || "").localeCompare(String(a.pinnedAt || "")) || String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+    const archivedCount = cachedConversations.filter(item => item.hasConversation === true && item.archived === true).length;
     const listSignature = JSON.stringify({
       activeFilter,
+      showArchivedChats,
+      archivedCount,
       query,
       activeContact,
       sourcesComplete,
@@ -1246,16 +1385,26 @@ async function loadConversations() {
     if (listSignature === lastConversationListSignature) return;
     lastConversationListSignature = listSignature;
     conversationUsers.replaceChildren();
+    if (activeFilter === "chats" && !query && (archivedCount || showArchivedChats)) conversationUsers.appendChild(archivedChatsRow(archivedCount));
     if (!visible.length) {
       const empty = document.createElement("p");
       empty.className = "chat-note";
       const emptyBySection = activeFilter === "chats"
-        ? "No saved conversations yet. Open Contacts to start one."
+        ? "No chats yet."
         : activeFilter === "calls"
           ? "No contacts are currently available to call."
           : "No permitted contacts are available yet.";
       empty.textContent = messageTranslate(query ? "No contacts match your search." : emptyBySection);
       conversationUsers.appendChild(empty);
+      // Fix-it 18 (SYNC list): an empty chat list is one short line and a "Start a chat" action, no framed box.
+      if (activeFilter === "chats" && !query) {
+        empty.className = "chat-note sync-empty-line";
+        const start = document.createElement("button");
+        start.type = "button"; start.className = "sync-empty-start";
+        start.textContent = messageTranslate("Start a chat");
+        start.addEventListener("click", () => document.querySelector(".sync-new-chat")?.click());
+        conversationUsers.appendChild(start);
+      }
       if (!sourcesComplete) appendConversationAvailabilityWarning();
       return;
     }
@@ -1279,12 +1428,17 @@ async function loadConversations() {
       }
       const copy = document.createElement("span"); copy.className = "conversation-copy";
       const name = document.createElement("strong"); name.textContent = conversation.name || "DanzStak member";
-      const preview = document.createElement("small"); preview.textContent = conversation.preview || messageTranslate("Open chat");
+      const preview = document.createElement("small"); preview.textContent = conversation.typing === true ? messageTranslate("typing…") : conversation.preview || messageTranslate("Open chat");
+      preview.classList.toggle("is-typing", conversation.typing === true);
       const unread = Number(conversation.unread || 0) > 0;
       button.classList.toggle("is-unread", Boolean(unread));
       const meta = document.createElement("span"); meta.className = "conversation-list-meta";
-      const time = document.createElement("time"); time.textContent = conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
+      const time = document.createElement("time"); time.textContent = chatListTime(conversation.updatedAt); if (conversation.updatedAt) time.dateTime = conversation.updatedAt;
       meta.appendChild(time);
+      const marks = document.createElement("span"); marks.className = "conversation-marks";
+      if (conversation.muted) marks.appendChild(chatMark("muted", messageTranslate("Muted")));
+      if (conversation.pinned) marks.appendChild(chatMark("pinned", messageTranslate("Pinned")));
+      if (marks.childElementCount) meta.appendChild(marks);
       if (unread) {
         const badge = document.createElement("span");
         badge.className = "conversation-unread";
@@ -1293,9 +1447,14 @@ async function loadConversations() {
         meta.appendChild(badge);
       }
       copy.append(name, preview); button.append(avatarWrap, copy, meta);
-      button.addEventListener("click", () => openConversationFromInbox(
+      // T2a (owner 2026-11-18): tapping the photo opens that member's profile; the rest of the row opens the chat.
+      // (The row is a button, so the photo cannot be its own link; the thread header's photo is a real link.)
+      const rowProfileHref = /^[a-f0-9-]{36}$/i.test(String(conversation.memberId || "")) ? "profile.html?member=" + encodeURIComponent(conversation.memberId) : "";
+      if (rowProfileHref) { avatarWrap.dataset.profileHref = rowProfileHref; avatarWrap.title = messageFormat("Open {name} profile", { name: conversation.name || "DanzStak member" }); }
+      button.addEventListener("click", event => { if (row.dataset.swiped === "true") { closeChatRowActions(row); return; } if (rowProfileHref && event.target?.closest?.(".conversation-avatar-wrap")) { location.href = rowProfileHref; return; } openConversationFromInbox(
         cachedConversations.find(item => item.contactEmail === conversation.contactEmail) || conversation
-      ));
+      ); });
+      if (activeFilter === "chats" && conversation.hasConversation === true) attachChatRowActions(row, button, conversation);
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [kind, targetId] of [["phone", "startPhone"], ["video", "startVideo"]]) {
         const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.dataset.callKind = kind; call.appendChild(createCallActionIcon(kind)); call.title = `${messageTranslate(targetId === "startPhone" ? "Phone call" : "Video call")}: ${publicName}`; call.setAttribute("aria-label", call.title);
@@ -1437,6 +1596,17 @@ window.addEventListener("danzstak-contact-selected", event => {
 });
 
 messageInput?.addEventListener("input", () => saveChatDraft(contactInput.value.trim().toLowerCase(), messageInput.value));
+// 16-D: tell the other person "typing…" at most every 4 s; it fades by itself after 6 s on the server.
+let typingSentAt = 0;
+function sendTyping(typing) {
+  const contact = String(contactInput?.value || "").trim().toLowerCase();
+  if (!contact || !activeCanContact) return;
+  if (typing && Date.now() - typingSentAt < 4000) return;
+  typingSentAt = typing ? Date.now() : 0;
+  directFetch("/messages/typing", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ contactEmail: contact, typing }) }).catch(() => {});
+}
+messageInput?.addEventListener("input", () => { if (messageInput.value.trim()) sendTyping(true); });
+globalThis.danzstakStopTyping = () => { if (typingSentAt) sendTyping(false); };
 
 // Mobile Return and physical Enter use the same guarded send path.
 messageInput?.addEventListener("keydown", event => {
@@ -1452,6 +1622,7 @@ messageForm?.addEventListener("submit", async event => {
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
   if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
+  globalThis.danzstakStopTyping?.(); // 16-D: "typing…" stops the moment the message goes
   conversationFeedbackVersion += 1;
   availabilityNoticePending = false;
   const mediaFile = selectedMessageMedia;
@@ -1465,17 +1636,11 @@ messageForm?.addEventListener("submit", async event => {
     retryMessageSend = null;
   }
   const clientMessageId = retry?.clientMessageId || `${String(Date.now()).padStart(13, "0")}#${crypto.randomUUID()}`;
-  if (window.navigator?.onLine === false && window.danzstakQueueOffline) {
-    try {
-      if (selectedMessageMedia) throw new Error(messageTranslate("Attachments need a connection. Your draft is still here."));
-      window.danzstakQueueOffline("/messages", { recipientEmail, content, clientMessageId });
-      retryMessageSend = null;
-      messageInput.value = "";
-      saveChatDraft(recipientEmail, "");
-      callStatus.textContent = messageTranslate("Saved offline — waiting to send when you reconnect.");
-    } catch (error) { callStatus.textContent = error.message; }
-    return;
-  }
+  const replyToId = globalThis.danzstakSyncReply?.idFor?.(recipientEmail) || ""; // 16-E
+  // Owner 2026-11-23: after a dropped call the phone reported itself offline, so Send didn't even try and said "Turn on
+  // offline access in App and device settings first." until the app was reopened. Phones get navigator.onLine wrong after
+  // a network change, so Send always tries for real; a send that really fails for want of a connection keeps the words
+  // and goes again by itself when the connection is back (sendWhenBack).
   const version = conversationVersion;
   const pendingItem = pendingMessageItem(content, mediaFile);
   let attachment = retry?.attachment || {};
@@ -1487,12 +1652,13 @@ messageForm?.addEventListener("submit", async event => {
   try {
     if (mediaFile && !attachment.mediaKey) callStatus.textContent = messageTranslate("Uploading attachment…");
     if (mediaFile && !attachment.mediaKey) attachment = await uploadSelectedMessageMedia(mediaFile);
-    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, clientMessageId, ...attachment }) });
+    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, clientMessageId, ...attachment, ...(replyToId ? { replyToId } : {}) }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(data.error || messageTranslate("Message could not be sent"));
     }
     retryMessageSend = null;
+    if (replyToId) globalThis.danzstakSyncReply?.clear?.();
     if (version !== conversationVersion) { await loadConversations(); return; }
     if (data.message?.messageId) {
       shownMessages.add(data.message.messageId);
@@ -1509,15 +1675,100 @@ messageForm?.addEventListener("submit", async event => {
     if (version === conversationVersion) {
       retryMessageSend = { recipientEmail, content, mediaFile, clientMessageId, attachment };
       if (content && !messageInput.value.trim()) messageInput.value = content;
-      callStatus.textContent = messageFormat("{error}. Your message is still in the composer.", { error: error.message });
-      messageInput.focus();
+      saveChatDraft(recipientEmail, content);
+      if (error.network) {
+        callStatus.textContent = messageTranslate("No connection right now. Your message is still here and sends when you're back.");
+        sendWhenBack();
+      } else {
+        callStatus.textContent = messageFormat("{error}. Your message is still in the composer.", { error: String(error.message || "").replace(/\.$/, "") });
+        messageInput.focus();
+      }
     }
   }
   finally { pendingMessageSends.delete(version); if (version === conversationVersion) sendButton.disabled = !activeCanContact; }
 }, true);
 
+// A message that couldn't go for want of a connection goes again by itself: when the phone says it's back online, when
+// SYNC comes back to the front, and every 10 s while it's on screen (phones don't always say). Same message id, so it
+// can never arrive twice. Stops when it's sent, the words change, or another chat opens.
+let sendAgainTimer = 0;
+function sendWhenBack() {
+  clearTimeout(sendAgainTimer);
+  const pending = retryMessageSend;
+  const again = () => {
+    clearTimeout(sendAgainTimer);
+    window.removeEventListener("online", again);
+    document.removeEventListener("visibilitychange", onFront);
+    if (!pending || retryMessageSend !== pending || messageInput.value.trim() !== pending.content || contactInput.value.trim().toLowerCase() !== pending.recipientEmail) return;
+    if (document.hidden) { document.addEventListener("visibilitychange", onFront); return; }
+    messageForm.requestSubmit();
+  };
+  const onFront = () => { if (!document.hidden) again(); };
+  window.addEventListener("online", again, { once: true });
+  document.addEventListener("visibilitychange", onFront);
+  sendAgainTimer = setTimeout(again, 10000);
+}
+
 messageMedia?.addEventListener("change", () => previewSelectedMessageMedia(messageMedia.files?.[0]));
 messageCamera?.addEventListener("change", () => previewSelectedMessageMedia(messageCamera.files?.[0]));
+messageCameraVideo?.addEventListener("change", () => previewSelectedMessageMedia(messageCameraVideo.files?.[0]));
+
+// The camera button offers a choice (owner 2026-11-23: "with the camera i should be able to choose a video or the
+// camera"): a photo or a video straight from the camera, or a photo or video already on the phone. One camera input
+// holding both kinds opens the camera in photo mode on most phones, so each choice has its own input.
+// browser-checks/sync-attach.cjs taps each choice.
+const captureChoices = [
+  ["photo", "Take a photo", "camera", () => messageCamera],
+  ["video", "Record a video", "video", () => messageCameraVideo],
+  ["library", "Choose from your phone", "image", () => messageMedia]
+];
+// While the menu is open, an invisible layer covers the rest of the screen: a tap outside closes the menu and never
+// reaches what's underneath (a video's own controls would keep that tap to themselves, and a chat row would open).
+const captureBackdrop = messageCaptureMenu ? Object.assign(document.createElement("div"), { className: "message-capture-backdrop", hidden: true }) : null;
+// Both live at page level: inside the message form (its own stacking layer) the menu would sit under the layer.
+if (captureBackdrop) { document.body.append(captureBackdrop, messageCaptureMenu); captureBackdrop.addEventListener("click", () => closeCaptureMenu()); }
+function closeCaptureMenu() {
+  if (!messageCaptureMenu || messageCaptureMenu.hidden) return;
+  messageCaptureMenu.hidden = true;
+  if (captureBackdrop) captureBackdrop.hidden = true;
+  messageCameraButton?.setAttribute("aria-expanded", "false");
+}
+function openCaptureMenu() {
+  if (!messageCaptureMenu || !messageCameraButton || messageCameraButton.disabled) return;
+  messageCaptureMenu.setAttribute("aria-label", messageTranslate("Take a photo or video"));
+  for (const [kind, label, icon] of captureChoices) {
+    const item = messageCaptureMenu.querySelector(`[data-capture="${kind}"]`);
+    if (!item) continue;
+    const text = document.createElement("span");
+    text.textContent = messageTranslate(label);
+    item.replaceChildren(...[window.danzstakIcons?.create?.(icon)].filter(Boolean), text);
+  }
+  if (captureBackdrop) captureBackdrop.hidden = false;
+  messageCaptureMenu.hidden = false;
+  messageCameraButton.setAttribute("aria-expanded", "true");
+  // Just above the camera button, inside the screen (the composer's own box clips anything drawn inside it).
+  const button = messageCameraButton.getBoundingClientRect(), menu = messageCaptureMenu.getBoundingClientRect();
+  messageCaptureMenu.style.left = `${Math.round(Math.max(8, Math.min(button.left, window.innerWidth - menu.width - 8)))}px`;
+  messageCaptureMenu.style.bottom = `${Math.round(window.innerHeight - button.top + 8)}px`;
+  messageCaptureMenu.querySelector("[data-capture]")?.focus({ preventScroll: true });
+}
+messageCameraButton?.addEventListener("click", event => {
+  event.preventDefault();
+  if (messageCaptureMenu?.hidden) openCaptureMenu(); else closeCaptureMenu();
+});
+messageCaptureMenu?.addEventListener("click", event => {
+  const item = event.target.closest?.("[data-capture]");
+  if (!item) return;
+  const input = captureChoices.find(([kind]) => kind === item.dataset.capture)?.[3]();
+  closeCaptureMenu();
+  if (input && !input.disabled) input.click(); // still inside the tap, so the phone opens its camera or gallery
+});
+// Focus moves into the menu when it opens, so Escape is heard there.
+messageCaptureMenu?.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
+  closeCaptureMenu();
+  messageCameraButton?.focus();
+});
 
 deleteChat?.addEventListener("click", async () => {
   const contact = contactInput.value.trim().toLowerCase();

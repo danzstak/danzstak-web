@@ -15,7 +15,9 @@ assert.match(source, /dialog\.querySelector\("button\[value=done\]"\)\.focus\(\)
   "successful report submission must move focus to its completion action");
 assert.match(source, /dialog\.querySelector\('\[name="reason"\]'\)\.focus\(\)/,
   "report dialogs must focus their first field");
-assert.match(source, /if \(menu\.contains\(document\.activeElement\)\) toggle\.focus\(\{ preventScroll: true \}\)/,
+assert.match(source, /closePostMenu\(\{ focus: menu\.contains\(document\.activeElement\) \}\)/,
   "completed post-menu actions must not leave focus inside a hidden menu");
+assert.match(source, /if \(open\.focus && open\.toggle\.isConnected\) open\.toggle\.focus\(\{ preventScroll: true \}\)/,
+  "closing the post menu returns focus to its ⋯ button");
 
 console.log("Dialog focus checks passed: named dialogs, initial focus, completion focus, and opener restoration.");

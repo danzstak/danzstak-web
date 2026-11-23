@@ -21,7 +21,7 @@ for (const required of [
 
 for (const required of [
   "post.groupId",
-  'body: JSON.stringify({ content: content || "Shared media", groupId: group.id, mediaKey, mediaType, originalContentCertified: true })',
+  'body: JSON.stringify({ content: content || "Shared media", groupId: group.id, mediaKey, mediaType, reel: mediaType === "video", originalContentCertified: true })',
   "renderTribePosts(group, feed)"
 ]) assert.ok(tribes.includes(required), `Tribe discussion UI missing: ${required}`);
 
@@ -41,6 +41,7 @@ assert.match(feed, /post-sharing\.js\?v=\d+/);
   const post = { postId: { S: "22222222-2222-4222-a222-222222222222" }, userId: { S: "viewer" }, userEmail: { S: "viewer@example.com" }, groupId: { S: groupId }, content: { S: "Tribe post" }, audience: { S: "group" }, createdAt: { S: "2026-11-08T00:00:00Z" } };
   let pending = true;
   const context = vm.createContext({
+    postMoreMedia: vm.runInNewContext("(" + api.match(/const postMoreMedia = (.*);/)[1] + ")"), // the post's other photos (owner 2026-11-22)
     corsHeaders: () => ({}), getAuthenticatedUser: async () => "viewer", accountForSub: async () => "viewer@example.com",
     postsTable: "posts", groupsTable: "groups", defaultGroupIds: new Set(), postEditHistory: () => [],
     scanAll: async request => request.TableName === "posts" ? [post] : [

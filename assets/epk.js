@@ -14,7 +14,15 @@
       throw new Error("DanzStak cannot connect right now. Check your connection and try again.");
     } finally { clearTimeout(timer); }
   }
+  // Shared EPK links are danzstak.com/e/<id>: link previews show the EPK's card there (epk-share-preview.mjs), and the page
+  // opens the review view when the link carries its #token, otherwise the published EPK. Only once the server says that
+  // address works (its answers carry shareUrl); until then the long epk.html links.
+  let shortLinks = false;
+  const useShortLinks = data => { if (/^https:\/\/danzstak\.com\/e\//.test(String(data?.shareUrl || ""))) shortLinks = true; };
+  const epkLink = id => shortLinks && /^[a-z0-9-]{3,64}$/.test(String(id || "")) ? `https://danzstak.com/e/${id}` : "";
   function canonicalEpkUrl() {
+    const query = new URLSearchParams(location.search), short = epkLink(query.get("id") || query.get("share"));
+    if (short) return short + location.hash;
     const url = new URL("https://danzstak.com/epk.html");
     url.search = location.search;
     url.hash = location.hash;
@@ -31,7 +39,7 @@
   const quoteLines = value => lines(value).map(item => { const [quote, source, ...rest] = item.split("|"); return { quote: quote?.trim(), source: source?.trim(), url: rest.join("|").trim() }; }).filter(item => item.quote && item.source);
   const kitFromForm = (includeLocalPreviews = false) => ({
     artistName: byId("artistName").value.trim(), hometown: byId("hometown").value.trim(), actType: byId("actType").value, genres: byId("genres").value.split(",").map(item => item.trim()).filter(Boolean), look: epkLooks.has(byId("epkLook").value) ? byId("epkLook").value : "techno", shortPitch: byId("shortPitch").value.trim(), shortBio: byId("shortBio").value.trim(), bio: byId("bio").value.trim(),
-    lineup: lines(byId("lineup").value), releases: lines(byId("releases").value), notableShows: lines(byId("notableShows").value), achievements: lines(byId("achievements").value), musicLinks: linkLines(byId("musicLinks").value), videoLinks: linkLines(byId("videoLinks").value), socialLinks: linkLines(byId("socialLinks").value), heroImage: byId("heroImage").value.trim(), logoImage: byId("logoImage").value.trim(), media: epkMedia.map(({url,previewUrl,...item}) => includeLocalPreviews ? {...item,url,previewUrl} : item), pressQuotes: quoteLines(byId("pressQuotes").value), stageRequirements: byId("stageRequirements").value.trim(), production:window.danzstakEpkProduction?.getData?.() || {plotItems:[],inputs:[]}, techRequirements: byId("techRequirements").value.trim(), hospitalityRequirements: byId("hospitalityRequirements").value.trim(), bookingName: byId("bookingName").value.trim(), bookingEmail: byId("bookingEmail").value.trim(), bookingPhone: byId("bookingPhone").value.trim(), website: byId("website").value.trim(), publicDetails: { bookingEmail:byId("publicBookingEmail").checked, bookingPhone:byId("publicBookingPhone").checked, technical:byId("publicTechnical").checked, hospitality:byId("publicHospitality").checked }
+    lineup: lines(byId("lineup").value), releases: lines(byId("releases").value), notableShows: lines(byId("notableShows").value), achievements: lines(byId("achievements").value), musicLinks: linkLines(byId("musicLinks").value), videoLinks: linkLines(byId("videoLinks").value).map(item => window.danzstakEpkVideoCheck ? window.danzstakEpkVideoCheck.mark(item) : item).filter(Boolean), socialLinks: linkLines(byId("socialLinks").value), heroImage: byId("heroImage").value.trim(), logoImage: byId("logoImage").value.trim(), media: epkMedia.map(({url,previewUrl,...item}) => includeLocalPreviews ? {...item,url,previewUrl} : item), pressQuotes: quoteLines(byId("pressQuotes").value), stageRequirements: byId("stageRequirements").value.trim(), production:window.danzstakEpkProduction?.getData?.() || {plotItems:[],inputs:[]}, techRequirements: byId("techRequirements").value.trim(), hospitalityRequirements: byId("hospitalityRequirements").value.trim(), bookingName: byId("bookingName").value.trim(), bookingEmail: byId("bookingEmail").value.trim(), bookingPhone: byId("bookingPhone").value.trim(), website: byId("website").value.trim(), publicDetails: { bookingEmail:byId("publicBookingEmail").checked, bookingPhone:byId("publicBookingPhone").checked, technical:byId("publicTechnical").checked, hospitality:byId("publicHospitality").checked }
   });
   function guideCompletion() {
     const kit = kitFromForm(true);
@@ -49,6 +57,9 @@
     byId("epkGuideChecklist").querySelectorAll("[data-check]").forEach(item => {
       const ready = completed[item.dataset.check] === true;
       item.classList.toggle("is-complete", ready);
+      const current = item === byId("epkGuideChecklist").querySelectorAll("[data-check]")[currentGuideStep - 1];
+      item.classList.toggle("is-current", current);
+      if (current) item.setAttribute("aria-current", "step"); else item.removeAttribute("aria-current");
       if (ready) count += 1;
     });
     byId("epkGuideProgress").value = count;
@@ -118,24 +129,75 @@
     document.querySelectorAll(".epk-media-card[data-player-active='true']").forEach(card => {
       if (card === except) return;
       card.querySelector("iframe")?.remove();
-      const button = card.querySelector(".epk-player-load");
-      if (button) button.hidden = false;
+      card.querySelectorAll(".epk-player-load, .epk-video-face").forEach(node => { node.hidden = false; });
       delete card.dataset.playerActive;
     });
+  }
+  const say = value => window.danzstakTranslate?.(value) || value;
+  // A removed or private video never shows in the EPK, and a Watch section with nothing left goes too.
+  function dropCard(card) {
+    const wrap = card.parentElement;
+    card.remove();
+    if (wrap && !wrap.querySelector(".epk-media-card")) wrap.closest("section")?.remove();
+  }
+  // A video that won't play inside other sites: its picture opens it on its own site instead.
+  function toLink(card, item, face) {
+    if (!face || face.tagName === "A") return;
+    const link = document.createElement("a");
+    link.className = "epk-video-face";
+    link.href = item.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.setAttribute("aria-label", `${say(`Open on ${providerName(item.url)}`)}: ${item.label}`);
+    link.append(...face.childNodes);
+    face.replaceWith(link);
+    card.dataset.embed = "off";
+    if (!card.querySelector(".epk-player-note")) card.querySelector(".epk-media-actions")?.append(text("p", "This video only plays on its own site.", "epk-player-note"));
   }
   function activateProvider(card, item, source, button) {
     stopProviderEmbeds(card);
     card.querySelector("iframe")?.remove();
     const frame = document.createElement("iframe");
-    frame.src = source;
+    const check = window.danzstakEpkVideoCheck, video = button.classList.contains("epk-video-face");
+    // A tap on the video's picture plays it there and then (autoplay only after that tap).
+    frame.src = check?.embedSource(item.url, { api:true, play:video }) || source;
     frame.title = `${item.label} player`;
     frame.loading = "eager";
-    frame.allow = "encrypted-media; fullscreen; picture-in-picture";
+    frame.allow = `${video ? "autoplay; " : ""}encrypted-media; fullscreen; picture-in-picture`;
     frame.referrerPolicy = "strict-origin-when-cross-origin";
     frame.allowFullscreen = true;
     card.dataset.playerActive = "true";
     button.hidden = true;
-    card.append(frame);
+    if (video) button.before(frame); else card.append(frame); // a video's player takes its picture's place
+    // YouTube's "Video unavailable" never shows to a venue: a removed or private video leaves the EPK, one that won't
+    // play inside other sites opens on its own site.
+    const stop = check?.watchPlayer?.(frame, { onError: code => {
+      stop?.(); frame.remove(); delete card.dataset.playerActive;
+      if (!video) { button.remove(); card.dataset.embed = "off"; card.querySelector(".epk-media-actions")?.append(text("p", "This video only plays on its own site.", "epk-player-note")); return; }
+      button.hidden = false;
+      if ([2, 100].includes(code)) dropCard(card); else toLink(card, item, button);
+    } });
+  }
+  // YouTube and Vimeo show the video's own picture with a play button; a tap plays it in place.
+  function videoFace(card, item, source) {
+    const face = document.createElement("button"), picture = document.createElement("img"), play = document.createElement("span");
+    face.type = "button";
+    face.className = "epk-video-face";
+    face.setAttribute("aria-label", `${say("Play video")}: ${item.label}`);
+    picture.alt = "";
+    picture.decoding = "async";
+    picture.referrerPolicy = "no-referrer";
+    picture.hidden = true;
+    play.className = "epk-video-play";
+    play.setAttribute("aria-hidden", "true");
+    face.append(picture, play);
+    face.addEventListener("click", () => activateProvider(card, item, source, face));
+    window.danzstakEpkVideoCheck?.poster?.(item.url).then(result => {
+      if (result.state === "gone") return dropCard(card);
+      if (result.src) { picture.src = result.src; picture.hidden = false; }
+      if (result.state === "link") toLink(card, item, card.querySelector(".epk-video-face"));
+    });
+    return face;
   }
   function mediaLinks(items) {
     if (!items?.length) return null;
@@ -144,7 +206,8 @@
     items.forEach(item => {
       if (!/^https:\/\//i.test(item.url || "")) return;
       const card = document.createElement("article"), mark = text("span", "", "epk-provider-mark"), copy = document.createElement("div"), actions = document.createElement("div"), source = providerSource(item), provider = providerName(item.url), link = text("a", `Open on ${provider}`);
-      card.className = "epk-media-card";
+      const video = Boolean(source && window.danzstakEpkVideoCheck?.embedSource(item.url));
+      card.className = video ? "epk-media-card epk-video-card" : "epk-media-card";
       card.dataset.provider = provider.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       mark.textContent = providerMark(provider);
       mark.setAttribute("aria-hidden", "true");
@@ -154,7 +217,16 @@
       link.href = item.url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      if (source) {
+      if (item.embed === false) card.dataset.embed = "off";
+      if (video) {
+        const face = videoFace(card, item, source);
+        actions.append(link);
+        card.append(face, mark, copy, actions);
+        if (item.embed === false) toLink(card, item, face);
+        wrap.append(card);
+        return;
+      }
+      if (source && item.embed !== false) {
         const load = text("button", `Load ${provider} player`, "epk-player-load");
         load.type = "button";
         load.setAttribute("aria-label", `Load ${item.label} from ${provider}`);
@@ -192,8 +264,44 @@
     const publicEmail = publicDetails.bookingEmail ? kit.bookingEmail : "", publicPhone = publicDetails.bookingPhone ? kit.bookingPhone : "", contactBits = [kit.bookingName, publicEmail, publicPhone].filter(Boolean); if (contactBits.length || kit.website) { const wrap = document.createElement("div"); wrap.className = "epk-contact"; if (kit.bookingName) wrap.append(text("p", kit.bookingName)); if (publicEmail) { const a = text("a", `Email ${kit.bookingName || "booking contact"}`); a.href = `mailto:${publicEmail}`; wrap.append(a); } if (publicPhone) { const phone = text("a", publicPhone); if (/^\+?[0-9 ()-]{7,24}$/.test(publicPhone)) phone.href = `tel:${publicPhone.replace(/[^+\d]/g, "")}`; wrap.append(phone); } if (/^https:\/\//i.test(kit.website || "")) { const a = text("a", "Official website"); a.href = kit.website; a.target = "_blank"; a.rel = "noopener noreferrer"; wrap.append(a); } section("Booking", wrap); }
   }
   const releasePreview = item => { if (/^blob:/i.test(item?.previewUrl || "")) URL.revokeObjectURL(item.previewUrl); };
-  function fill(kit = {}) { epkMedia.forEach(releasePreview); fields.forEach(id => { if (["genres","lineup","releases","notableShows","achievements","musicLinks","videoLinks","socialLinks","pressQuotes"].includes(id)) return; byId(id).value = kit[id] || (id === "actType" ? "band" : ""); }); byId("epkLook").value = epkLooks.has(kit.look) ? kit.look : "techno"; byId("actType").value = ["band","dj","electronic","solo"].includes(kit.actType) ? kit.actType : "band"; byId("genres").value = (kit.genres || []).join(", "); for (const id of ["lineup","releases","notableShows","achievements"]) byId(id).value = (kit[id] || []).join("\n"); for (const id of ["musicLinks","videoLinks","socialLinks"]) byId(id).value = (kit[id] || []).map(item => `${item.label} | ${item.url}`).join("\n"); byId("pressQuotes").value = (kit.pressQuotes || []).map(item => `${item.quote} | ${item.source}${item.url ? ` | ${item.url}` : ""}`).join("\n"); window.danzstakEpkProduction?.setData?.(kit.production || {}); const details = kit.publicDetails && typeof kit.publicDetails === "object" ? kit.publicDetails : { bookingEmail:true, bookingPhone:true, technical:true, hospitality:true }; byId("publicBookingEmail").checked = details.bookingEmail === true; byId("publicBookingPhone").checked = details.bookingPhone === true; byId("publicTechnical").checked = details.technical === true; byId("publicHospitality").checked = details.hospitality === true; epkMedia = Array.isArray(kit.media) ? kit.media : []; renderMediaManager(); render(kit); updateGuide(); }
-  function showLink(publicId, published) { const row = byId("publicLinkRow"), link = byId("publicLink"), handoff = byId("epkBookingHandoff"); row.hidden = !publicId || !published; if (handoff) handoff.hidden = row.hidden; if (!row.hidden) { link.href = `epk.html?id=${encodeURIComponent(publicId)}`; link.textContent = new URL(link.href, location.href).href; } }
+  function fill(kit = {}) { epkMedia.forEach(releasePreview); fields.forEach(id => { if (["genres","lineup","releases","notableShows","achievements","musicLinks","videoLinks","socialLinks","pressQuotes"].includes(id)) return; byId(id).value = kit[id] || (id === "actType" ? "band" : ""); }); byId("epkLook").value = epkLooks.has(kit.look) ? kit.look : "techno"; byId("actType").value = ["band","dj","electronic","solo"].includes(kit.actType) ? kit.actType : "band"; byId("genres").value = (kit.genres || []).join(", "); for (const id of ["lineup","releases","notableShows","achievements"]) byId(id).value = (kit[id] || []).join("\n"); window.danzstakEpkVideoCheck?.seed(kit.videoLinks); for (const id of ["musicLinks","videoLinks","socialLinks"]) byId(id).value = (kit[id] || []).map(item => `${item.label} | ${item.url}`).join("\n"); byId("pressQuotes").value = (kit.pressQuotes || []).map(item => `${item.quote} | ${item.source}${item.url ? ` | ${item.url}` : ""}`).join("\n"); window.danzstakEpkProduction?.setData?.(kit.production || {}); const details = kit.publicDetails && typeof kit.publicDetails === "object" ? kit.publicDetails : { bookingEmail:true, bookingPhone:true, technical:true, hospitality:true }; byId("publicBookingEmail").checked = details.bookingEmail === true; byId("publicBookingPhone").checked = details.bookingPhone === true; byId("publicTechnical").checked = details.technical === true; byId("publicHospitality").checked = details.hospitality === true; epkMedia = Array.isArray(kit.media) ? kit.media : []; renderMediaManager(); render(kit); updateGuide(); }
+  function showLink(publicId, published) { const row = byId("publicLinkRow"), link = byId("publicLink"), handoff = byId("epkBookingHandoff"); row.hidden = !publicId || !published; if (handoff) handoff.hidden = row.hidden; byId("unpublishEpk").hidden = row.hidden; /* audit 36 D6: nothing to unpublish yet */ if (!row.hidden) { link.href = epkLink(publicId) || new URL(`epk.html?id=${encodeURIComponent(publicId)}`, location.href).href; link.textContent = link.href; } }
+  // The EPK's link preview card (assets/epk-share-card.js): shown once there's a link to share (published, or a private
+  // review link), drawn from the saved EPK, and uploaded and kept up to date while "Show my EPK card in link previews" is on.
+  const cardState = { publicId: "", published: false, privateShared: false, shareCard: false, shareCardOff: false, shareCardSig: "", kit: null };
+  let cardBusy = null, cardAgain = false, cardImageUrl = "";
+  function showCardImage(blob) { const image = byId("epkCardImage"); if (cardImageUrl) URL.revokeObjectURL(cardImageUrl); cardImageUrl = URL.createObjectURL(blob); image.src = cardImageUrl; image.hidden = false; }
+  function syncCard(update = {}) {
+    Object.assign(cardState, update);
+    const row = byId("epkCardRow"), toggle = byId("epkCardOn"), note = byId("epkCardStatus"), card = window.danzstakEpkCard;
+    if (!row || !card) return Promise.resolve();
+    row.hidden = !shortLinks || !cardState.publicId || !(cardState.published || cardState.privateShared) || !String(cardState.kit?.artistName || "").trim();
+    if (row.hidden) return Promise.resolve();
+    if (cardBusy) { cardAgain = true; return cardBusy; } // a change while busy is applied right after
+    toggle.checked = !cardState.shareCardOff;
+    cardBusy = (async () => {
+      try {
+        const kit = cardState.kit;
+        if (!cardState.shareCardOff) {
+          if (cardState.shareCard && cardState.shareCardSig === await card.signature(kit)) showCardImage(await card.draw(kit));
+          else {
+            note.textContent = "Making your link preview...";
+            const result = await card.publish(kit);
+            Object.assign(cardState, { shareCard: true, shareCardSig: result.shareCardSig || "" });
+            showCardImage(result.blob);
+          }
+          note.textContent = "Links to this EPK show this card on Facebook, WhatsApp, Messages and in Mix.";
+        } else {
+          if (cardState.shareCard) await card.turnOff();
+          Object.assign(cardState, { shareCard: false, shareCardSig: "" });
+          byId("epkCardImage").hidden = true;
+          note.textContent = "Links to this EPK show a plain DanzStak card.";
+        }
+      } catch (error) { note.textContent = error.message; }
+      finally { cardBusy = null; if (cardAgain) { cardAgain = false; syncCard(); } }
+    })();
+    return cardBusy;
+  }
   function showPrivateShare(shared, href = "") { const create = byId("createPrivateLink"), revoke = byId("revokePrivateLink"), row = byId("privateLinkRow"), link = byId("privateLink"); create.textContent = shared ? "Replace private link" : "Create private link"; revoke.hidden = !shared; row.hidden = !href; if (href) { link.href = href; link.textContent = href; } else { link.removeAttribute("href"); link.textContent = ""; } }
   const mediaRoles = [
     ["press-photo","Press photo"],["logo","Logo"],["artwork","Artwork"],["press-clipping","Press clipping"],
@@ -201,6 +309,7 @@
   ];
   function renderMediaManager() {
     const listNode = byId("epkMediaList"); if (!listNode) return; listNode.replaceChildren();
+    renderRiderSlots();
     if (!epkMedia.length) { listNode.append(text("p", "No files uploaded yet.", "hint")); updateGuide(); return; }
     epkMedia.forEach((item,index) => {
       const row = document.createElement("article"), name = document.createElement("input"), role = document.createElement("select"), publicLabel = document.createElement("label"), publicInput = document.createElement("input"), featuredLabel = document.createElement("label"), featured = document.createElement("input"), up = document.createElement("button"), down = document.createElement("button"), replace = document.createElement("input"), remove = document.createElement("button");
@@ -246,15 +355,36 @@
   }
   async function uploadEpkFile(file, requestedRole = "") {
     file = await prepareEpkImage(file);
-    const allowed = new Set(["image/jpeg","image/png","image/webp","application/pdf"]), maximum = file.type === "application/pdf" ? 20 * 1024 * 1024 : 12 * 1024 * 1024, uploadStatus = byId("epkUploadStatus");
+    const allowed = new Set(["image/jpeg","image/png","image/webp","application/pdf"]), maximum = file.type === "application/pdf" ? 50 * 1024 * 1024 : 12 * 1024 * 1024, uploadStatus = byId("epkUploadStatus");
     if (!allowed.has(file.type) || !file.size || file.size > maximum) { uploadStatus.textContent = `${file.name} is not a supported file or exceeds the size limit.`; return null; }
     uploadStatus.textContent = `Uploading ${file.name}...`;
     let ticket = null;
     try { const response = await request(`${api}/stories`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({contentType:file.type,purpose:"epk"}) }); ticket = await response.json().catch(() => ({})); if (!response.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || "Upload could not start."); await putWithProgress(ticket.uploadUrl, file); uploadStatus.textContent = `${file.name} uploaded. Save the EPK to keep it.`; return { id:ticket.mediaKey.split("/").at(-1).split(".")[0], key:ticket.mediaKey, name:file.name, role:requestedRole || (file.type === "application/pdf" ? "other" : "press-photo"), public:false, featured:false, contentType:file.type, size:file.size, previewUrl:file.type.startsWith("image/") ? URL.createObjectURL(file) : "" }; } catch (error) { await discardEpkMedia(ticket?.mediaKey); uploadStatus.textContent = error.message; return null; }
   }
+  // Owner 2026-11-16: bands already have riders and plots as files. Let them drop the file instead of retyping it.
+  const riderSlots = [["technical-rider","publicTechnical"],["hospitality-rider","publicHospitality"],["stage-plot","publicTechnical"]];
+  function renderRiderSlots() {
+    for (const [role] of riderSlots) {
+      const slot = document.querySelector(`[data-rider-slot="${role}"]`); if (!slot) continue;
+      const files = epkMedia.filter(item => item.role === role), state = slot.querySelector(".epk-rider-slot__state");
+      slot.classList.toggle("has-file", files.length > 0);
+      if (state) state.textContent = files.length ? files.map(item => item.name || "File").join(", ") : "";
+    }
+    const typed = byId("epkTypeInstead");
+    if (typed && !typed.dataset.autoOpened && ["stageRequirements","techRequirements","hospitalityRequirements"].some(id => byId(id)?.value.trim()) ) { typed.open = true; typed.dataset.autoOpened = "1"; }
+  }
+  async function uploadRider(role, publicField, file) {
+    const slot = document.querySelector(`[data-rider-slot="${role}"]`), state = slot?.querySelector(".epk-rider-slot__state");
+    if (state) state.textContent = `Uploading ${file.name}...`;
+    const item = await uploadEpkFile(file, role);
+    if (!item) { if (state) state.textContent = byId("epkUploadStatus").textContent; return; }
+    item.public = byId(publicField)?.checked === true;
+    epkMedia.push(item); renderMediaManager(); render(kitFromForm(true));
+    if (state) state.textContent = `${file.name} uploaded. Save the EPK to keep it.`;
+  }
   async function uploadFiles(files) { for (const file of files) { const item = await uploadEpkFile(file); if (item) epkMedia.push(item); } renderMediaManager(); render(kitFromForm(true)); }
-  async function save(publish) { const kit = kitFromForm(); if (!kit.artistName) { status.textContent = "Add the artist or act name first."; byId("artistName").focus(); return; } status.textContent = publish ? "Publishing EPK..." : "Saving private draft..."; try { const response = await request(`${api}/epk`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({kit,publish}) }, 20000); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "The EPK could not be saved."); showLink(data.publicId, data.published); status.textContent = data.published ? "EPK published. Review the public link before sending it." : "Private draft saved. The public copy is unavailable."; } catch (error) { status.textContent = error.message; } }
-  async function updatePrivateShare(action) { const shareStatus = byId("privateShareStatus"); shareStatus.textContent = action === "create" ? "Creating a private review link..." : "Revoking the private review link..."; try { const response = await request(`${api}/epk/share`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({action}) }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "The private link could not be updated."); if (action === "create") { const href = new URL(`epk.html?share=${encodeURIComponent(data.publicId)}#token=${encodeURIComponent(data.token)}`, location.href).href; showPrivateShare(true, href); shareStatus.textContent = "Private review link created. Copy it now; DanzStak does not show this secret again after you leave the page."; } else { showPrivateShare(false); shareStatus.textContent = "Private review link revoked."; } } catch (error) { shareStatus.textContent = error.message; } }
+  async function save(publish) { const kit = kitFromForm(); if (!kit.artistName) { status.textContent = "Add the artist or act name first."; byId("artistName").focus(); return; } status.textContent = publish ? "Publishing EPK..." : "Saving private draft..."; try { const response = await request(`${api}/epk`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({kit,publish}) }, 20000); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "The EPK could not be saved."); useShortLinks(data); showLink(data.publicId, data.published); syncCard({ publicId: data.publicId, published: data.published === true, kit }); status.textContent = data.published ? "EPK published. Review the public link before sending it." : "Private draft saved. The public copy is unavailable."; } catch (error) { status.textContent = error.message; } }
+  async function updatePrivateShare(action) { const shareStatus = byId("privateShareStatus"); shareStatus.textContent = action === "create" ? "Creating a private review link..." : "Revoking the private review link..."; try { const response = await request(`${api}/epk/share`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({action}) }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "The private link could not be updated."); if (action === "create") { useShortLinks(data); const short = epkLink(data.publicId), href = short ? `${short}#token=${encodeURIComponent(data.token)}` : new URL(`epk.html?share=${encodeURIComponent(data.publicId)}#token=${encodeURIComponent(data.token)}`, location.href).href; showPrivateShare(true, href); syncCard({ publicId: data.publicId, privateShared: true }); shareStatus.textContent = "Private review link created. Copy it now; DanzStak does not show this secret again after you leave the page."; } else { showPrivateShare(false); shareStatus.textContent = "Private review link revoked."; syncCard({ privateShared: false }); } } catch (error) { shareStatus.textContent = error.message; } }
   async function deleteEpk() {
     const confirmed = await window.danzstakConfirm("Permanently delete this EPK and all uploaded EPK files? This cannot be undone.", {
       title: "Delete this EPK?",
@@ -282,7 +412,7 @@
   }
   const query = new URLSearchParams(location.search), publicId = query.get("id"), privateId = query.get("share"), outreachId = query.get("outreach"), privateToken = new URLSearchParams(location.hash.slice(1)).get("token");
   if (publicId || privateId || outreachId) { document.body.classList.add("public-mode"); status.textContent = "Loading EPK..."; let endpoint = `${api}/epk/public/${encodeURIComponent(publicId || "")}`, options = { credentials:"omit", cache:"no-store" }; if (privateId) { endpoint = `${api}/epk/shared/${encodeURIComponent(privateId)}`; options = { method:"POST", credentials:"omit", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({token:privateToken || ""}) }; } else if (outreachId) { let openId = sessionStorage.getItem(`danzstakEpkOpen:${outreachId}`); if (!openId) { openId = crypto.randomUUID(); sessionStorage.setItem(`danzstakEpkOpen:${outreachId}`, openId); } endpoint = `${api}/epk/outreach/${encodeURIComponent(outreachId)}`; options = { method:"POST", credentials:"omit", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({token:privateToken || "",openId}) }; }
-    request(endpoint, options).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "EPK not found."); render(data.kit); document.title = `${data.kit.artistName} EPK | DanzStak`; const actions = byId("publicEpkActions"), privateView = Boolean(privateId || outreachId || data.private); byId("copyEpkLink").hidden = privateView; byId("showEpkQr").hidden = privateView; const notice = byId("publicEpkNotice"); notice.hidden = false; if (data.bookingShare) { notice.textContent = data.disclosure || "Private booking EPK."; document.querySelectorAll(".epk-pdf-action").forEach(button => { button.hidden = data.permissions?.allowPdf !== true; }); } else notice.textContent = data.private ? "Private EPK link." : "Published EPK."; actions.hidden = [...actions.children].every(control => control.hidden); if (publicId) window.danzstakEpkReviews?.load?.(publicId, data.kit); }).catch(error => { const notice = byId("publicEpkNotice"); notice.hidden = false; notice.textContent = error.message; preview.replaceChildren(text("p", error.message, "empty-note")); });
+    request(endpoint, options).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "EPK not found."); useShortLinks(data); render(data.kit); document.title = `${data.kit.artistName} EPK | DanzStak`; const actions = byId("publicEpkActions"), privateView = Boolean(privateId || outreachId || data.private); byId("copyEpkLink").hidden = privateView; byId("showEpkQr").hidden = privateView; const notice = byId("publicEpkNotice"); notice.hidden = false; if (data.bookingShare) { notice.textContent = data.disclosure || "Private booking EPK."; document.querySelectorAll(".epk-pdf-action").forEach(button => { button.hidden = data.permissions?.allowPdf !== true; }); } else notice.textContent = data.private ? "Private EPK link." : "Published EPK."; actions.hidden = [...actions.children].every(control => control.hidden); if (publicId) window.danzstakEpkReviews?.load?.(publicId, data.kit); }).catch(error => { const notice = byId("publicEpkNotice"); notice.hidden = false; notice.textContent = error.message; preview.replaceChildren(text("p", error.message, "empty-note")); });
     const printEpk = mode => { document.body.dataset.epkPrint = mode; requestAnimationFrame(() => window.print()); };
     window.addEventListener("afterprint", () => { delete document.body.dataset.epkPrint; });
     byId("printEpkOnePage").addEventListener("click", () => printEpk("one-page"));
@@ -308,8 +438,10 @@
     return; }
   window.danzstakEpkProduction?.init?.();
   setGuidedMode(true);
-  request(`${api}/epk`, { credentials:"include", cache:"no-store" }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Could not load your EPK."); if (data.kit) { fill(data.kit); setGuidedMode(false); } else { render({}); setGuidedMode(true); } showLink(data.publicId, data.published); showPrivateShare(data.privateShared === true); byId("privateShareStatus").textContent = data.privateShared ? "A private review link is active. Replace it to get a new secret or revoke access." : "No private review link is active."; status.textContent = data.kit ? (data.published ? "Published EPK loaded." : "Private draft loaded.") : "Start with the act name. Your draft is private."; }).catch(error => { render({}); setGuidedMode(true); status.textContent = error.message; });
+  request(`${api}/epk`, { credentials:"include", cache:"no-store" }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Could not load your EPK."); if (data.kit) { fill(data.kit); setGuidedMode(false); } else { render({}); setGuidedMode(true); } useShortLinks(data); showLink(data.publicId, data.published); showPrivateShare(data.privateShared === true); syncCard({ publicId: data.publicId || "", published: data.published === true, privateShared: data.privateShared === true, shareCard: data.shareCard === true, shareCardOff: data.shareCardOff === true, shareCardSig: data.shareCardSig || "", kit: data.kit }); byId("privateShareStatus").textContent = data.privateShared ? "A private review link is active. Replace it to get a new secret or revoke access." : "No private review link is active."; status.textContent = data.kit ? (data.published ? "Published EPK loaded." : "Private draft loaded.") : "Start with the act name. Your draft is private."; }).catch(error => { render({}); setGuidedMode(true); status.textContent = error.message; });
+  for (const [role, publicField] of riderSlots) document.querySelector(`[data-rider-slot="${role}"] input[type=file]`)?.addEventListener("change", event => { const file = event.target.files?.[0]; event.target.value = ""; if (file) uploadRider(role, publicField, file); });
   const mediaInput = byId("epkMediaInput"), dropZone = byId("epkDropZone"); mediaInput.addEventListener("change", () => uploadFiles([...mediaInput.files])); for (const eventName of ["dragenter","dragover"]) dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.add("is-dragging"); }); for (const eventName of ["dragleave","drop"]) dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.remove("is-dragging"); }); dropZone.addEventListener("drop", event => uploadFiles([...event.dataTransfer.files]));
+  window.danzstakEpkVideoCheck?.onChange(() => render(kitFromForm(true)));
   form.addEventListener("input", event => { if (!event.target.closest(".epk-media-item")) render(kitFromForm(true)); updateGuide(); });
   form.addEventListener("epkproductionchange", () => render(kitFromForm(true)));
   byId("epkLook").addEventListener("change", () => render(kitFromForm(true)));
@@ -317,5 +449,6 @@
   byId("guideNext").addEventListener("click", () => { if (currentGuideStep < 5) setGuideStep(currentGuideStep + 1, true); else { byId("saveDraft").focus(); byId("saveDraft").scrollIntoView({ behavior:"smooth", block:"center" }); } });
   byId("showAllFields").addEventListener("click", () => setGuidedMode(!guidedMode, true));
   byId("toggleMobilePreview").addEventListener("click", () => setMobilePreview(!document.body.classList.contains("epk-preview-open")));
+  byId("epkCardOn")?.addEventListener("change", event => syncCard({ shareCardOff: !event.target.checked }));
   byId("saveDraft").addEventListener("click", () => save(false)); byId("publishEpk").addEventListener("click", () => save(true)); byId("unpublishEpk").addEventListener("click", () => save(false)); byId("deleteEpk").addEventListener("click", deleteEpk); byId("copyPublicLink").addEventListener("click", async () => { try { await navigator.clipboard.writeText(byId("publicLink").href); status.textContent = "Public EPK link copied."; } catch { status.textContent = "Copy was blocked. Select the visible link instead."; } }); byId("createPrivateLink").addEventListener("click", () => updatePrivateShare("create")); byId("revokePrivateLink").addEventListener("click", () => updatePrivateShare("revoke")); byId("copyPrivateLink").addEventListener("click", async () => { try { await navigator.clipboard.writeText(byId("privateLink").href); byId("privateShareStatus").textContent = "Private review link copied."; } catch { byId("privateShareStatus").textContent = "Copy was blocked. Select the visible link instead."; } });
 })();

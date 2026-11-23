@@ -37,8 +37,39 @@
     return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
 
+  // Owner 2026-11-16: Italians, French and Spanish write the brief in their own language. Turn the common phrases into the English the parser reads.
+  function toEnglishBrief(value) {
+    let text = String(value || "").trim();
+    if (!text) return text;
+    const swap = (pattern, replacement) => { text = text.replace(pattern, replacement); };
+    swap(/\b(\d{1,3})\s*(?:giorni|giorno|jours?|d[ií]as?)\b/gi, "$1 days");
+    swap(/\b(\d{1,3})\s*(?:concerti|concerto|date|serate|concerts?|dates|conciertos?|bolos?|fechas|shows?)\b/gi, "$1 shows");
+    swap(/\b(?:il mese prossimo|il prossimo mese|le mois prochain|el mes que viene|el pr[oó]ximo mes)\b/gi, "next month");
+    swap(/\b(?:la settimana prossima|la prossima settimana|la semaine prochaine|la semana que viene|la pr[oó]xima semana)\b/gi, "next week");
+    swap(/\b(?:stasera|ce soir|esta noche)\b/gi, "tonight");
+    swap(/\b(?:domani|demain|ma[nñ]ana)\b/gi, "tomorrow");
+    swap(/\b(?:solo andata|sola andata|aller[- ]simple|solo ida|s[oó]lo ida)\b/gi, "one way");
+    swap(/\b(?:e|et|y)\s+(?:ritorno|ritornare|tornare|retour|rentrer|vuelta|volver)(?:\s+(?:a|à)\s+casa|\s+(?:à la maison|chez nous|a casa))?\b/gi, "and back");
+    swap(/\b(?:andata e ritorno|aller[- ]retour|ida y vuelta)\b/gi, "and back");
+    swap(/\band back\s+(?:a|à|al|alla|en|hasta|jusqu'à)\s+/gi, "and back to ");
+    const fromWords = /\b(?:da|dal|dalla|de|du|desde|depuis)\s+/gi;
+    let match;
+    while ((match = fromWords.exec(text))) {
+      const rest = text.slice(match.index + match[0].length);
+      const route = rest.match(/^([^,.;!?]+?)\s+(?:a|à|al|alla|hasta|jusqu'à|fino a)\s+([^,.;!?]+)/i);
+      if (route && !/\d|\bdays\b|\bshows\b/i.test(route[1])) {
+        text = `${text.slice(0, match.index)}from ${route[1]} to ${route[2]}${rest.slice(route[0].length)}`;
+        break;
+      }
+    }
+    swap(/\b(?:vogli(?:o|amo|ono)|vuole|voudr(?:ais|ions)|veu(?:x|t|lent)|voulons|quier(?:o|e|en)|queremos)\s+(?:suonare|jouer|tocar)\s+(?:a|à|en|in|au)\s+/gi, "want to play a gig in ");
+    swap(/\b(?:suonare|jouer|tocar)\s+(?:a|à|en|au)\s+/gi, "play a gig in ");
+    swap(/\b(?:un\s+|une\s+)?(?:concerto|data|concert|date|concierto|bolo)\s+(?:a|à|en|au)\s+/gi, "a gig in ");
+    return text;
+  }
+
   function parseTourBrief(value) {
-    const text = String(value || "").trim();
+    const text = toEnglishBrief(value);
     const lower = text.toLowerCase();
     const parsed = {};
     const days = lower.match(/\b(\d{1,3})\s*(?:-| )?days?\b/);
@@ -69,9 +100,23 @@
       parsed.mode = "tour";
     }
     const routeText = text.replace(/^tour\s+(?!from\b)/i, "from "),
-      route = !chainedRoute && routeText.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:and\s+back|then\s+back|and\s+home|return(?:ing)?\s+home|(?:for|in)\s+\d+\s*(?:-| )?days?|starting\s+\d{4}-\d{2}-\d{2})\b|$)/i),
+      route = !chainedRoute && routeText.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:and\s+back|then\s+back|and\s+home|return(?:ing)?\s+home|(?:for|in)\s+\d+\s*(?:-| )?days?|starting\s+\d{4}-\d{2}-\d{2})\b|(?<!\bSt)[.!?](?:\s|$)|$)/i),
       bareRoute = !chainedRoute && !route && routeText.match(/(?:^|[,.!?]\s*)([a-z][a-z '-]{1,80}?)\s+to\s+([a-z][a-z '-]{1,80}?)(?=\s+and\s+back(?:\s+to\s+[a-z][a-z '-]{1,80}?)?(?:[,;.!?]|\s+|$))/i);
-    const parsedRoute = route || bareRoute;
+    // One-way runs typed without "from" or "and back", e.g. "Bellingham to San Diego" or
+    // "Punk. Bellingham, WA to San Diego, CA. 14 days." (owner bug report 2026-11-16).
+    const oneWay = !chainedRoute && !route && !bareRoute && routeText.match(/(?:^|[.!?;]\s+)([a-z][a-z ,'-]{1,80}?)\s+to\s+([a-z][a-z .,'-]{1,80}?)(?=\s+(?:for|in)\s+\d+\s*(?:-| )?days?|\s+starting\b|[.!?;](?:\s|$)|$)/i);
+    // One gig in one city: "my band wants to play a gig in portland", "book us a show in Detroit next month".
+    const singleCity = !chainedRoute && !route && !bareRoute && text.match(/\b(?:gig|gigs|show|shows|concert|play|playing|book(?:\s+us)?)\b[^.!?]*?\b(?:in|at|near)\s+([a-z][a-z .'-]*?)(?:,\s*([a-z]{2}))?(?=\s+(?:next|this|on|for|tonight|tomorrow|in\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|around|sometime)\b|[.!?,]|$)/i);
+    if (singleCity && !/^(?:home|here|me|town|my town|the area|my area)$/i.test(singleCity[1].trim()) && !/\bto\s+[a-z]+\s+(?:and back|one way|1 way)\b/i.test(text)) {
+      parsed.mode = "local";
+      parsed.home = tidyPlace(singleCity[2] ? `${singleCity[1]}, ${singleCity[2].toUpperCase()}` : singleCity[1]);
+      parsed.singleCity = true;
+      if (!parsed.shows) parsed.shows = 1;
+      // One gig is one night: no 10-day calendar of "return toward Portland" rows.
+      if (!parsed.days) parsed.days = parsed.shows;
+    }
+    const oneWayOk = !parsed.singleCity && oneWay && !/\b(?:want|wants|need|needs|going|like|love|try|trying|have|plan|planning|hoping|ready|able|i|we|my|our|band|find|look|looking|search|book|get|clubs|shows|gigs|venues)\b/i.test(oneWay[1]) && !/\bbetween\b/i.test(text);
+    const parsedRoute = route || bareRoute || (oneWayOk ? oneWay : null);
     if (parsedRoute) { parsed.home = tidyPlace(parsedRoute[1]); parsed.destination = tidyPlace(parsedRoute[2]); parsed.mode = "tour"; }
     else {
       const betweenRoute = text.match(/\bbetween\s+(.+?)\s+and\s+(.+?)(?=\s+(?:for|in)\s+\d+\s*(?:-| )?days?|[.!?]|$)/i);
@@ -88,6 +133,30 @@
       const direction = lower.match(/\b(?:travel|tour|head|go)\s+(northwest|northeast|southwest|southeast|north|south|east|west)\b/);
       if (direction) { parsed.direction = direction[1]; parsed.mode = "direction"; }
     }
+    // Natural-language fallback (owner test 2026-11-16): "i want to tour 20 days bellingham to san diego and back tacoma
+    // find me clubs ...". Walk outward from the "to" between two places, stopping at filler words.
+    if (!parsed.mode) {
+      const stop = new Set("i we me my our want wanna would like to tour tours touring play playing go going do book booking find get show shows gig gigs day days week weeks a an the for from in on and then back return returning home with of clubs venues places stay record stores radio stations there calculate cost costs please run trip drive driving up down via".split(" "));
+      const words = text.replace(/[.!?;]/g, " , ").split(/\s+/).filter(Boolean);
+      const isWord = w => /^[a-z][a-z'-]*,?$/i.test(w) && !stop.has(w.toLowerCase().replace(/,$/, ""));
+      const placeBack = i => { const out = []; for (let j = i; j >= 0 && (isWord(words[j]) || (/^[A-Z]{2},?$/.test(words[j]) && out.length === 0)); j--) out.unshift(words[j]); return tidyPlace(out.join(" ")); };
+      const placeFwd = i => { const out = []; for (let j = i; j < words.length && (isWord(words[j]) || (/^[A-Z]{2},?$/.test(words[j]) && out.length)); j++) { out.push(words[j]); if (/,$/.test(words[j]) && !/^[A-Z]{2},$/.test(words[j + 1] || "")) break; } return tidyPlace(out.join(" ")); };
+      for (let i = 1; i < words.length - 1; i++) {
+        if (words[i].toLowerCase() !== "to") continue;
+        const from = placeBack(i - 1), to = placeFwd(i + 1);
+        if (from && to) {
+          parsed.home = from; parsed.destination = to; parsed.mode = "tour";
+          const rest = words.slice(i + 1).join(" ");
+          const back = rest.match(/\b(?:and|then)\s+back(?:\s+to)?\s+([a-z][a-z' -]*?)(?=\s+(?:find|and|for|with|in|then)\b|[,]|$)/i);
+          if (back && !stop.has(back[1].trim().toLowerCase())) parsed.returnTo = tidyPlace(back[1]);
+          break;
+        }
+      }
+    }
+    // One-way runs (owner test 2026-11-16: "salt lake to detroit 1 way").
+    if (/\b(?:one|1)[- ]?way\b|\bno return\b|\bdon'?t (?:drive|come) (?:back|home)\b/i.test(text)) parsed.oneWay = true;
+    if (parsed.destination) parsed.destination = tidyPlace(parsed.destination.replace(/\s*\b(?:one|1)[- ]?way\b.*$/i, ""));
+    if (parsed.home) parsed.home = parsed.home.replace(/^\d+\s*(?:-| )?days?\s+/i, "");
     parsed.departOn = parseDepartureDate(text) || undefined;
     return parsed;
   }
@@ -97,14 +166,19 @@
     setValue("startCity", parsed.home);
     setValue("musicGenre", parsed.genre);
     setValue("days", parsed.days);
-    setValue("showCount", parsed.shows);
+    // No show count given: plan about 70% of the days as show nights (owner test 2026-11-16: 20 days gave only 8 shows).
+    setValue("showCount", parsed.shows || (parsed.days > 2 ? Math.max(1, Math.round(parsed.days * 0.7)) : undefined));
     setValue("departOn", parsed.departOn);
     if (parsed.mode) setValue("bookingMode", parsed.mode);
     if (parsed.direction) setValue("travelDirection", parsed.direction);
     if (parsed.destination) setValue("endCity", parsed.destination);
+    const oneWayBox = field("oneWayTour");
+    if (oneWayBox) { oneWayBox.checked = Boolean(parsed.oneWay); oneWayBox.dispatchEvent(new Event("change", { bubbles: true })); }
     if (parsed.mode) {
       const stops = field("tourStops");
-      if (stops) stops.value = (parsed.stops || []).join("\n");
+      const allStops = [...(parsed.stops || [])];
+      if (parsed.returnTo && parsed.returnTo.toLowerCase() !== String(parsed.home || "").toLowerCase()) allStops.push(parsed.returnTo);
+      if (stops) stops.value = allStops.join("\n");
     }
   }
 
@@ -113,6 +187,12 @@
     requestStarted = true;
     const parsed = parseTourBrief(brief.value);
     if (!brief.value.trim()) { status.textContent = "Describe where you are starting, how long you have, and where you want to go."; brief.focus(); return; }
+    if (!parsed.mode && !parsed.home && /\bto\b/i.test(brief.value) && !/\b(?:want|need|book|play|near|around|local)\b/i.test(brief.value)) {
+      requestStarted = false;
+      status.textContent = "I couldn't read the route. Try: From Bellingham to San Diego, 14 days, 10 shows.";
+      brief.focus();
+      return;
+    }
     applyTourBrief(parsed);
     const missing = [];
     if (!field("startCity")?.value.trim()) missing.push("home town");

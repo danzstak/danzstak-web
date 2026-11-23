@@ -17,4 +17,8 @@ assert.equal(context.isRecordStore({ name: "Fixture Platenzaak", categories: [] 
 assert.equal(context.isRecordStore({ name: "Fixture", categories: ["music"], sourceName: "© OpenStreetMap contributors" }), true);
 assert.equal(context.isRecordStore({ name: "Fixture Dental", categories: ["Record, CD and Video"] }), false);
 assert.equal(context.isRecordStore({ name: "Fixture", categories: ["Music store"] }), false);
+// Owner live run 2026-11-16: a police records office is not a record store.
+assert.equal(context.isRecordStore({ name: "Portland Police Department Records", categories: ["Government/Community Facility", "government_or_community_facility"] }), false);
+assert.equal(context.isRecordStore({ name: "Portland Archives & Records", categories: ["Record, CD & Video"] }), false);
+assert.equal(context.isRecordStore({ name: "Mississippi Records", categories: ["Record, CD & Video"] }), true);
 console.log("Localized record-store category regression checks passed.");

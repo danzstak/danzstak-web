@@ -9,9 +9,15 @@ const styles = fs.readFileSync("assets/chat.css", "utf8");
 const template = fs.readFileSync("infrastructure/call-signaling/template.yaml", "utf8");
 
 assert.match(page, /id="messageMedia"[^>]+accept="image\/jpeg,image\/png,image\/webp,image\/gif,video\/mp4,video\/webm,video\/quicktime"/);
-assert.match(page, /id="messageCamera"[^>]+accept="image\/jpeg,image\/png,image\/webp,video\/mp4,video\/webm,video\/quicktime"[^>]+capture="environment"/, "the composer needs a camera capture control for a new photo or video");
+// The camera offers a choice (owner 2026-11-23: "with the camera i should be able to choose a video or the camera"): one
+// input holding both kinds opens the camera in photo mode on most phones, so photo and video each have their own.
+assert.match(page, /id="messageCamera"[^>]+accept="image\/jpeg,image\/png,image\/webp"[^>]+capture="environment"/, "Take a photo opens the camera for photos");
+assert.match(page, /id="messageCameraVideo"[^>]+accept="video\/mp4,video\/webm,video\/quicktime"[^>]+capture="environment"/, "Record a video opens the camera for video");
+assert.match(page, /id="messageCameraButton"[^>]+aria-haspopup="menu"[^>]+aria-controls="messageCaptureMenu"/, "the camera button opens the choices");
+for (const kind of ["photo", "video", "library"]) assert.match(page, new RegExp(`data-capture="${kind}"`), `the camera menu offers ${kind}`);
 assert.match(page, /<div class="message-input-shell">[\s\S]*class="message-attach"[\s\S]*class="message-camera"[\s\S]*id="messageInput"/, "attachment and camera controls should live inside the message field");
-assert.match(client, /messageCamera\?\.addEventListener\("change"/, "camera captures must use the existing secure attachment preview and upload path");
+assert.match(client, /messageCamera\?\.addEventListener\("change"/, "camera photos must use the existing secure attachment preview and upload path");
+assert.match(client, /messageCameraVideo\?\.addEventListener\("change"/, "camera videos too");
 assert.match(page, /media-src[^;]+danzstak-call-signaling-mediabucket/);
 assert.match(client, /Standalone audio files are not supported/);
 assert.match(client, /purpose: "message"/);
