@@ -4,3 +4,6 @@
 /* Incoming decisions are primary phone actions and retain a full touch target. */
 .global-call-actions button{min-height:44px}
 @media(max-width:600px){.global-incoming-call{bottom:calc(var(--mobile-app-nav,54px) + 14px + env(safe-area-inset-bottom,0px))}}
+/* L1: a call to an unregistered device. "Register this device to answer" is long in most languages, so the two choices stack
+   full width instead of wrapping into a narrow column. */
+.global-incoming-call.needs-registration .global-call-actions{grid-template-columns:1fr}
