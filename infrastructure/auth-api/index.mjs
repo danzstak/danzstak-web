@@ -4551,7 +4551,9 @@ function cleanEpk(data, ownerPrefix = "") {
   const links = value => list(value, 12, item => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return null;
     const label = text(item.label, 100), url = https(item.url);
-    return label && url ? { label, url } : null;
+    // embed:false = the builder found the video won't play inside other sites (removed, private or embedding off):
+    // the public EPK shows it as a link, never a broken player (owner 2026-11-23).
+    return label && url ? { label, url, ...(item.embed === false ? { embed: false } : {}) } : null;
   });
   const quotes = list(data.pressQuotes, 8, item => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return null;
