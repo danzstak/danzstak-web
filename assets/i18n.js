@@ -784,6 +784,25 @@
   id:["Hapus lampiran","Edit teks pesan","Simpan","Pesan dihapus untuk semua orang.","Pesan dihapus untuk Anda.","Hapus untuk saya","Hapus untuk semua orang","Edit pesan","Hapus pesan","Muat pesan sebelumnya","Disimpan offline — akan dikirim saat Anda tersambung kembali.","Mengunggah lampiran…","Obrolan dihapus dari akun Anda.","Buka obrolan","Mulai percakapan","Anggota Suku yang sama","Tidak ada teman atau obrolan yang cocok dengan pencarian Anda.","Belum ada teman atau obrolan tersimpan.","Kontak sementara tidak tersedia. Mencoba lagi secara otomatis…"]
  };
  for(const [language,values] of Object.entries(messageActions)){const dictionary=dictionaries[language]||(dictionaries[language]={});messageActionKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ // SYNC camera choices (owner 2026-11-23: "with the camera i should be able to choose a video or the camera").
+ const captureKeys=["Take a photo","Record a video","Choose from your phone"];
+ const captureChoices={
+  es:["Hacer una foto","Grabar un video","Elegir del teléfono"],
+  fr:["Prendre une photo","Filmer une vidéo","Choisir dans le téléphone"],
+  de:["Foto aufnehmen","Video aufnehmen","Vom Handy auswählen"],
+  pt:["Tirar uma foto","Gravar um vídeo","Escolher do celular"],
+  it:["Scatta una foto","Registra un video","Scegli dal telefono"],
+  ko:["사진 찍기","동영상 촬영","휴대폰에서 선택"],
+  ja:["写真を撮る","動画を撮影","スマホから選ぶ"],
+  "zh-Hans":["拍照","录制视频","从手机中选择"],
+  "zh-Hant":["拍照","錄製影片","從手機中選擇"],
+  fil:["Kumuha ng litrato","Mag-record ng video","Pumili mula sa phone"],
+  hi:["फ़ोटो लें","वीडियो रिकॉर्ड करें","फ़ोन से चुनें"],
+  vi:["Chụp ảnh","Quay video","Chọn từ điện thoại"],
+  th:["ถ่ายรูป","อัดวิดีโอ","เลือกจากโทรศัพท์"],
+  id:["Ambil foto","Rekam video","Pilih dari ponsel"]
+ };
+ for(const [language,values] of Object.entries(captureChoices)){const dictionary=dictionaries[language]||(dictionaries[language]={});captureKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const partialMessageKeys=["Some chats or online statuses are temporarily unavailable.","Retry contacts"];
  const partialMessageGuidance={
   es:["Algunos chats o estados en línea no están disponibles temporalmente.","Reintentar contactos"],
