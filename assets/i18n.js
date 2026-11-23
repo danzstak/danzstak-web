@@ -382,6 +382,25 @@
   id:["Anggota DanzStak","{name} menelepon melalui {mode}.","Tidak dapat menolak panggilan. Coba lagi."]
  };
  for(const [language,values] of Object.entries(globalCallGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(globalCallKeys.map((key,index)=>[key,values[index]])));
+ // L1 (owner 2026-11-19): a call to a device that isn't registered says so instead of staying silent.
+ const registerToAnswerKeys=["Register this device to answer","{name} is calling. Register this device to answer."];
+ const registerToAnswer={
+  es:["Registra este dispositivo para responder","{name} te está llamando. Registra este dispositivo para responder."],
+  fr:["Enregistrez cet appareil pour répondre","{name} vous appelle. Enregistrez cet appareil pour répondre."],
+  de:["Registriere dieses Gerät, um anzunehmen","{name} ruft an. Registriere dieses Gerät, um anzunehmen."],
+  pt:["Registre este dispositivo para atender","{name} está ligando. Registre este dispositivo para atender."],
+  it:["Registra questo dispositivo per rispondere","{name} ti sta chiamando. Registra questo dispositivo per rispondere."],
+  ko:["이 기기를 등록하고 받기","{name}님이 전화하고 있습니다. 받으려면 이 기기를 등록하세요."],
+  ja:["この端末を登録して応答","{name}から着信中です。応答するにはこの端末を登録してください。"],
+  "zh-Hans":["注册此设备以接听","{name}正在来电。注册此设备即可接听。"],
+  "zh-Hant":["註冊此裝置以接聽","{name}正在來電。註冊此裝置即可接聽。"],
+  fil:["I-register ang device na ito para sumagot","Tumatawag si {name}. I-register ang device na ito para sumagot."],
+  hi:["जवाब देने के लिए यह डिवाइस रजिस्टर करें","{name} कॉल कर रहे हैं। जवाब देने के लिए यह डिवाइस रजिस्टर करें।"],
+  vi:["Đăng ký thiết bị này để trả lời","{name} đang gọi. Đăng ký thiết bị này để trả lời."],
+  th:["ลงทะเบียนอุปกรณ์นี้เพื่อรับสาย","{name} กำลังโทรมา ลงทะเบียนอุปกรณ์นี้เพื่อรับสาย"],
+  id:["Daftarkan perangkat ini untuk menjawab","{name} sedang menelepon. Daftarkan perangkat ini untuk menjawab."]
+ };
+ for(const [language,values] of Object.entries(registerToAnswer))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(registerToAnswerKeys.map((key,index)=>[key,values[index]])));
  const callNetworkKeys=["DanzStak is taking too long to respond. Retrying automatically.","DanzStak cannot connect to calls right now. Check your connection and try again.","Session expired","Request failed"];
  const callNetworkGuidance={
   es:["DanzStak está tardando demasiado en responder. Reintentando automáticamente.","DanzStak no puede conectarse a las llamadas ahora. Comprueba tu conexión y vuelve a intentarlo.","La sesión caducó","La solicitud falló"],
