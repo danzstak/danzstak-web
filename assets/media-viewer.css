@@ -13,6 +13,13 @@ html.ds-media-viewer-open,html.ds-media-viewer-open body{overflow:hidden!importa
 .ds-media-viewer-close:focus-visible{outline:2px solid #ff5a1f;outline-offset:2px}
 .ds-media-viewer-count{position:absolute;top:max(18px,calc(env(safe-area-inset-top) + 10px));left:50%;z-index:4;transform:translateX(-50%);font:600 12px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;color:#ededea;text-shadow:0 1px 3px #000;pointer-events:none}
 .ds-media-viewer-count:empty{display:none}
+/* Owner 2026-11-23 (a wide Mix photo on a phone with black above and below: "Need to make the container fit the image";
+   chose "box hugs the photo"): a photo opens in a frame its own shape, full width, over the page dimmed and blurred
+   behind it. No black boxes around a photo. The top bar and tabs hide while it is open. Videos stay full screen on black
+   (F1a, like the short-video apps). */
+.ds-media-viewer[data-kind="image"]{background:rgb(11 11 12/calc(.82 * var(--ds-viewer-fade)));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.ds-media-viewer[data-kind="image"] .ds-media-viewer-slide>img{box-shadow:0 8px 32px #0009}/* the img box is the photo itself (max 100% each way, own shape) */
+html.ds-media-viewer-open .ds-app-bar,html.ds-media-viewer-open .ds-feed-bar,html.ds-media-viewer-open .ds-app-tabs,html.ds-media-viewer-open .ds-mobile-nav{visibility:hidden}
 .ds-media-viewer.is-zoomed .ds-media-viewer-count{opacity:0}
 .ds-media-viewer-opener{cursor:zoom-in}
 video.ds-media-viewer-opener{cursor:pointer}
