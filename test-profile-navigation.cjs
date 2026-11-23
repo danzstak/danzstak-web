@@ -27,7 +27,9 @@ assert.match(nav, /back\.dataset\.icon = "back";/);
 assert.match(nav, /if \(sameSite && history\.length > 1\) history\.back\(\); else location\.href = "feed\.html\?view=feed";/, "Back never leaves DanzStak");
 assert.match(nav, /search\.dataset\.icon = "search";[\s\S]*aria-controls", "profileHeaderSearch"/, "search toggle controls the existing search field");
 assert.match(polish, /@media\(max-width:700px\)\{[\s\S]*body\.profile-page>header\.profile-app-header>\.brand,body\.profile-page>header\.profile-app-header>\.header-actions\{display:none!important\}/, "phone top bar drops brand and text links");
-assert.match(polish, /grid-template-columns:44px minmax\(0,1fr\) 44px 44px!important/, "phone top bar: back, name, search, Pivot (directive F15j)");
+assert.match(polish, /grid-template-columns:44px minmax\(0,1fr\) 44px 44px 44px!important/, "phone top bar: back, name, search, Pivot (directive F15j), bell (owner 2026-11-23)");
+assert.match(nav, /bell\.className = "profile-bell"; bell\.href = "feed\.html#notifications";/, "the bell opens Notifications in Mix");
+assert.match(nav, /\["notifications", "engagement-notifications"\]/, "the bell counts the same two lists as Mix");
 assert.match(polish, /color:#f5f5f2!important;-webkit-tap-highlight-color:transparent\}/, "top-bar icons are light on the dark bar");
 
 // Visitor row: Message joins the row as an icon; Share moves into ⋯.

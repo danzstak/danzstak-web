@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v1027";
+const CACHE = "danzstak-shell-v1028";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/time-label.js", "/assets/page-missing.js", "/assets/scramble-by-seller.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -29,7 +29,8 @@ const SHELL = [
 self.addEventListener("install", event => {
   // Cache.addAll() rejects the whole install when a URL is listed twice, which left new phones without a working
   // service worker (no offline shell, no push, so "Call alerts" never finished). De-duplicate before caching.
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll([...new Set(SHELL)])));
+  // A fresh install is a fresh copy: the hourly refresh (refreshAppShell) starts counting from here.
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll([...new Set(SHELL)]).then(() => cache.put(SHELL_REFRESHED, new Response(String(Date.now()))))));
 });
 
 self.addEventListener("activate", event => {
@@ -87,19 +88,35 @@ self.addEventListener("fetch", event => {
   })));
 });
 
-let lastShellRefresh = 0;
+// Keeps the offline copy fresh between updates. Owner 2026-11-23 ("Update is hanging"): this used to re-download every
+// shell file (7 MB, no-store) each time the app came back to the front, because the once-an-hour guard lived in memory and
+// the browser restarts the worker after half a minute idle. While it ran, an update had to wait for it. Now:
+// - at most once an hour, remembered in the cache itself;
+// - "no-cache" asks the server whether each file changed, so an unchanged file costs a 304, not the file;
+// - never while a newer version is installing or waiting, and it stops as soon as one turns up or the page asks
+//   (STOP_SHELL_REFRESH, sent when the member updates).
+const SHELL_REFRESHED = "/__danzstak-shell-refreshed";
+let shellRefresh = null;
+function stopShellRefresh() { shellRefresh?.abort(); shellRefresh = null; }
+self.registration?.addEventListener?.("updatefound", stopShellRefresh);
 async function refreshAppShell() {
-  if (Date.now() - lastShellRefresh < 60 * 60 * 1000) return;
-  lastShellRefresh = Date.now();
-  const cache = await caches.open(CACHE);
-  await Promise.allSettled(SHELL.map(async path => {
-    const response = await fetch(path, { cache: "no-store" });
-    if (response.ok) await cache.put(path, response.clone());
-  }));
+  if (shellRefresh || self.registration?.installing || self.registration?.waiting) return;
+  const controller = shellRefresh = new AbortController();
+  try {
+    const cache = await caches.open(CACHE);
+    const last = Number(await (await cache.match(SHELL_REFRESHED))?.text() || 0);
+    if (Date.now() - last < 60 * 60 * 1000 || controller.signal.aborted) return;
+    await cache.put(SHELL_REFRESHED, new Response(String(Date.now())));
+    await Promise.allSettled(SHELL.map(async path => {
+      const response = await fetch(path, { cache: "no-cache", signal: controller.signal });
+      if (response.ok && !controller.signal.aborted) await cache.put(path, response.clone());
+    }));
+  } finally { if (shellRefresh === controller) shellRefresh = null; }
 }
 
 self.addEventListener("message", event => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data?.type === "STOP_SHELL_REFRESH") stopShellRefresh(); // the member is updating: don't hold the update up
   if (event.data?.type === "REFRESH_SHELL" && event.data?.allow !== false) event.waitUntil(refreshAppShell());
   if (event.data?.type === "CLEAR_MEDIA_CACHE") event.waitUntil(caches.delete(MEDIA_CACHE)); // log out / account switch
   if (event.data?.type === "DANZSTAK_CALL_HANDLED") callHandled(event); // 5a00: answered or declined in an open window

@@ -1781,24 +1781,26 @@ panel.addEventListener("submit", async event => {
   const language = profile.language;
   delete profile.language;
   if (window.danzstakSetLanguage) window.danzstakSetLanguage(language);
-  const status = document.getElementById("profileStatus");
+  // Owner 2026-11-23: "Text hangs on till refresh behind the profile picture". The result used to go in the page's
+  // "Loading profile..." line under the cover, which was then left on show for good, half under the profile picture.
+  // It's a short message that goes away by itself now (app-feedback.js); an error keeps the editor open to fix it.
+  const tell = (message, urgent = false) => window.danzstakShowFeedback?.(message, { urgent, timeout: urgent ? 7000 : 3500 });
   const submit = panel.querySelector('button[type="submit"]');
   submit.disabled = true;
   try {
     if (window.danzstakCurrentProfile?.cloudProfile) {
       const saved = await saveCloudProfile(profile);
       applyProfile(saved || profile);
-      status.textContent = profileTranslate("Profile saved to your DanzStak account.");
+      tell(profileTranslate("Profile saved to your DanzStak account."));
     } else {
       localStorage.setItem(profileKey, JSON.stringify(profile));
       applyProfile(profile);
-      status.textContent = profileTranslate("Profile saved in this browser. Cloud sync is temporarily unavailable.");
+      tell(profileTranslate("Profile saved in this browser. Cloud sync is temporarily unavailable."));
     }
     panel.hidden = true;
   } catch (error) {
-    status.textContent = error.message;
+    tell(error.message, true);
   } finally { submit.disabled = false; }
-  status.hidden = false;
 });
 
 if (!viewingOtherProfile) {
