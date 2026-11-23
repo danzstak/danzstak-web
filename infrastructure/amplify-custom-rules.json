@@ -20,6 +20,21 @@
     "status": "200"
   },
   {
+    "source": "/e/<id>/card.jpg",
+    "target": "https://api.danzstak.com/share/epk/<id>/card",
+    "status": "200"
+  },
+  {
+    "source": "/e/<id>",
+    "target": "https://api.danzstak.com/share/epk/<id>",
+    "status": "200"
+  },
+  {
+    "source": "/e/<id>/",
+    "target": "https://api.danzstak.com/share/epk/<id>",
+    "status": "200"
+  },
+  {
     "source": "/<*>",
     "target": "/index.html",
     "status": "404-200"

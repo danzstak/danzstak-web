@@ -66,14 +66,20 @@ export async function linkPreview(raw, { fetcher = fetch, resolver = lookup, now
   if (hit && now() - hit.at < CACHE_MS) return hit.value;
   const host = url.hostname.replace(/^www\./, "");
   const ytId = youTubeId(url);
+  // DanzStak's own EPK links (epk.html?id=… or ?share=…#token=…) read their card from danzstak.com/e/<id>
+  // (epk-share-preview.mjs): the EPK page itself only carries the builder's general title. The post keeps its own link.
+  const ownEpk = host === "danzstak.com" && url.pathname === "/epk.html" ? url.searchParams.get("id") || url.searchParams.get("share") || "" : "";
+  let target = /^[a-z0-9-]{3,64}$/.test(ownEpk) ? new URL(`https://danzstak.com/e/${ownEpk}`) : url;
   let found = { title: "", description: "", site: "", image: "" };
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-      const response = await fetcher(url.href, { redirect: "manual", signal: controller.signal, headers: { "user-agent": "DanzStakLinkPreview/1.0 (+https://danzstak.com)", accept: "text/html,application/xhtml+xml" } });
+      const response = await fetcher(target.href, { redirect: "manual", signal: controller.signal, headers: { "user-agent": "DanzStakLinkPreview/1.0 (+https://danzstak.com)", accept: "text/html,application/xhtml+xml" } });
       if ([301, 302, 303, 307, 308].includes(response.status)) {
-        const next = await safePublicUrl(new URL(response.headers.get("location") || "", url).href, resolver);
-        if (!next) break; url = next; continue;
+        const next = await safePublicUrl(new URL(response.headers.get("location") || "", target).href, resolver);
+        if (!next) break;
+        if (target === url) url = next;
+        target = next; continue;
       }
       if (!response.ok || !String(response.headers.get("content-type") || "").includes("html")) break;
       const reader = response.body?.getReader?.();
@@ -83,7 +89,7 @@ export async function linkPreview(raw, { fetcher = fetch, resolver = lookup, now
         while (received < MAX_BYTES) { const { done, value } = await reader.read(); if (done) break; received += value.length; html += decoder.decode(value, { stream: true }); if (/<\/head>/i.test(html)) break; }
         try { await reader.cancel(); } catch {}
       } else html = (await response.text()).slice(0, MAX_BYTES);
-      found = parseHead(html, url.href);
+      found = parseHead(html, target.href);
       break;
     } catch { break; } finally { clearTimeout(timer); }
   }
