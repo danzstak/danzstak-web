@@ -36,3 +36,30 @@ for (const page of ["feed.html", "profile.html"]) {
   assert.ok(!/link-preview-desc/.test(js), "the card shows the image, the source title and the clean link — no scraped description");
   console.log("Link preview cleanup checks passed: tracking parameters stripped, image + clean link only.");
 }
+// Owner 2026-11-23: "Before adding to the epk need to make sure the video is there and playable." oEmbed decides.
+(async () => {
+  const { linkPreview } = await import("./infrastructure/auth-api/link-preview.mjs");
+  const publicDns = async () => [{ address: "93.184.216.34" }];
+  const page = { status: 200, ok: true, headers: new Map([["content-type", "text/html"]]), text: async () => "<head><title>- YouTube</title></head>" };
+  const answer = status => async target => /oembed/.test(target)
+    ? { status, ok: status === 200, json: async () => ({ title: "The Delta (More Machine Than Human)", thumbnail_url: "https://i.ytimg.com/vi/x/hqdefault.jpg" }) }
+    : page;
+  const ok = await linkPreview("https://www.youtube.com/watch?v=AAAAAAAAAA1", { resolver: publicDns, fetcher: answer(200) });
+  assert.equal(ok.playable, true); assert.equal(ok.title, "The Delta (More Machine Than Human)");
+  const off = await linkPreview("https://www.youtube.com/watch?v=AAAAAAAAAA2", { resolver: publicDns, fetcher: answer(401) });
+  assert.deepEqual([off.playable, off.reason], [false, "embed_off"], "embedding turned off by the video's owner");
+  const gone = await linkPreview("https://youtu.be/AAAAAAAAAA3", { resolver: publicDns, fetcher: answer(404) });
+  assert.deepEqual([gone.playable, gone.reason, gone.image], [false, "unavailable", ""], "removed or private: no thumbnail of a video that isn't there");
+  const vimeo = await linkPreview("https://vimeo.com/123456", { resolver: publicDns, fetcher: answer(403) });
+  assert.deepEqual([vimeo.playable, vimeo.reason], [false, "embed_off"], "Vimeo: embedding limited to other domains");
+  let calls = 0;
+  const down = async target => { if (/oembed/.test(target)) { calls++; throw new Error("network"); } return page; };
+  assert.equal((await linkPreview("https://youtu.be/AAAAAAAAAA4", { resolver: publicDns, fetcher: down })).playable, null, "unknown when YouTube can't be reached");
+  await linkPreview("https://youtu.be/AAAAAAAAAA4", { resolver: publicDns, fetcher: down });
+  assert.equal(calls, 2, "an unknown answer isn't cached");
+  const music = await linkPreview("https://example.bandcamp.com/album/x", { resolver: publicDns, fetcher: async () => page });
+  assert.equal(music.playable, null, "only YouTube and Vimeo are checked");
+  const index = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
+  assert.match(index, /item\.embed === false \? \{ embed: false \}/, "the EPK keeps a video's embed:false mark");
+  console.log("Video check passed: YouTube/Vimeo oEmbed decides playable (200), embedding off (401/403), removed (400/404), unknown on network errors (not cached); EPK keeps embed:false.");
+})().catch(e => { console.error(e); process.exit(1); });

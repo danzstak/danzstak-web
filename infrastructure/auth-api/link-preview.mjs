@@ -93,15 +93,30 @@ export async function linkPreview(raw, { fetcher = fetch, resolver = lookup, now
       break;
     } catch { break; } finally { clearTimeout(timer); }
   }
-  if (ytId && (!found.title || /^(youtube(\.com)?|- YouTube)$/i.test(found.title))) {
+  // Can the video play inside another site (an EPK)? YouTube's and Vimeo's oEmbed answer that: 200 = it can, 401/403 =
+  // the owner turned embedding off, 400/404 = removed, private or never there. A network failure says nothing (null).
+  // Owner 2026-11-23: "Before adding to the epk need to make sure the video is there and playable."
+  let playable = null, reason = "";
+  const vimeo = /(^|\.)vimeo\.com$/.test(host) && /\/\d+/.test(url.pathname);
+  const oembed = ytId ? "https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + ytId)
+    : vimeo ? "https://vimeo.com/api/oembed.json?url=" + encodeURIComponent(url.href) : "";
+  if (oembed) {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-      const o = await fetcher("https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + ytId), { headers: { accept: "application/json" } });
-      if (o.ok) { const j = await o.json(); found.title = String(j.title || "").slice(0, 200); found.site = "YouTube"; if (!found.image && /^https:\/\//.test(j.thumbnail_url || "")) found.image = j.thumbnail_url; }
-    } catch {}
+      const o = await fetcher(oembed, { headers: { accept: "application/json" }, signal: controller.signal });
+      if (o.ok) {
+        playable = true;
+        const j = await o.json();
+        if (!found.title || /^(youtube(\.com)?|- YouTube|vimeo)$/i.test(found.title)) found.title = String(j.title || "").slice(0, 200);
+        found.site = ytId ? "YouTube" : "Vimeo";
+        if (!found.image && /^https:\/\//.test(j.thumbnail_url || "")) found.image = j.thumbnail_url;
+      } else if ([401, 403].includes(o.status)) { playable = false; reason = "embed_off"; }
+      else if ([400, 404].includes(o.status)) { playable = false; reason = "unavailable"; }
+    } catch {} finally { clearTimeout(timer); }
   }
-  if (ytId && /^[\w-]{6,20}$/.test(ytId) && !found.image) found.image = `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
-  const value = { url: url.href, host, title: found.title || host, description: found.description, site: found.site || host, image: found.image, video: Boolean(ytId) };
-  cache.set(key, { at: now(), value });
+  if (ytId && /^[\w-]{6,20}$/.test(ytId) && !found.image && playable !== false) found.image = `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
+  const value = { url: url.href, host, title: found.title || host, description: found.description, site: found.site || host, image: found.image, video: Boolean(ytId || vimeo), playable, ...(reason ? { reason } : {}) };
+  if (!(oembed && playable === null)) cache.set(key, { at: now(), value }); // a check that couldn't run is asked again next time
   if (cache.size > 500) cache.delete(cache.keys().next().value);
   return value;
 }

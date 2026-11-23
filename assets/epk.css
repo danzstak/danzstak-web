@@ -95,3 +95,17 @@
 .epk-card-toggle{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:700}
 .epk-card-toggle input{width:22px;height:22px;margin:0;accent-color:#15803d}
 .epk-card-row .hint{margin:0}
+/* Video check (owner 2026-11-23: "make sure the video is there and playable"): the test player sits out of sight. */
+.epk-video-probe{position:fixed;left:-10000px;top:0;width:320px;height:180px;border:0;opacity:0;pointer-events:none}
+.epk-video-checks{display:grid;gap:8px;margin:-4px 0 14px;padding:0;list-style:none}
+.epk-video-checks[hidden]{display:none}
+.epk-video-check-row{display:grid;gap:2px;padding:8px 12px 8px 34px;border-radius:12px;background:rgba(127,127,127,.14);color:inherit;font-size:.9rem;line-height:1.35;position:relative}
+.epk-video-check-row strong{overflow:hidden;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+.epk-video-check-row::before{content:"";position:absolute;top:12px;left:12px;width:12px;height:12px;border-radius:50%;background:#9aa0a6}
+.epk-video-check-row[data-state="ok"]::before{background:#15803d}
+.epk-video-check-row[data-state="link"]::before{background:#d97706}
+.epk-video-check-row[data-state="gone"]::before{background:#b42318}
+.epk-video-check-row[data-state="checking"]::before{animation:epk-check-pulse 1s ease-in-out infinite alternate}
+@keyframes epk-check-pulse{to{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.epk-video-check-row[data-state="checking"]::before{animation:none}}
+.epk-player-note{margin:6px 0 0;opacity:.75;font-size:.9rem}
