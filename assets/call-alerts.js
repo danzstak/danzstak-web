@@ -4,6 +4,9 @@
 //   member can check both the in-app ring and the ring with SYNC closed.
 // - One line when this registered phone has no push subscription yet: "Turn on call alerts so calls ring when SYNC is
 //   closed", with Turn on. Dismissing it is remembered on this device; it never nags.
+// - L4 (owner 2026-11-20: "When app is closed it doesn't ring"): when notifications are blocked for DanzStak the phone can't
+//   ring with SYNC closed and no button here can change that, so the same line says so and where to allow them. Once the
+//   member allows them, call alerts turn on by themselves.
 (() => {
   const API = "https://api.danzstak.com", DISMISSED = "danzstak_call_alerts_prompt";
   const t = value => window.danzstakTranslate?.(value) || value;
@@ -43,21 +46,33 @@
     if (!force) { try { if (localStorage.getItem(DISMISSED)) return; } catch {} }
     if (window.danzstakSyncDeviceRegistered?.() !== true || typeof window.danzstakEnablePush !== "function") return;
     const state = await window.danzstakPushState?.().catch(() => "unsupported");
-    if (!["prompt", "incomplete"].includes(state) || document.querySelector(".call-alerts-prompt")) return;
+    if (!["prompt", "incomplete", "blocked"].includes(state) || document.querySelector(".call-alerts-prompt")) return;
     const before = anchor(); if (!before) return;
+    const blocked = state === "blocked";
     const bar = document.createElement("aside");
     bar.className = "call-alerts-prompt"; bar.setAttribute("role", "status");
-    const text = document.createElement("span"); text.textContent = t("Turn on call alerts so calls ring when SYNC is closed");
-    const on = document.createElement("button"); on.type = "button"; on.className = "primary"; on.textContent = t("Turn on");
+    if (blocked) bar.dataset.state = "blocked";
+    const text = document.createElement("span");
+    text.textContent = t(blocked ? "Calls can't ring when SYNC is closed: notifications are blocked. Allow them for danzstak.com in your browser's site settings." : "Turn on call alerts so calls ring when SYNC is closed");
     const close = document.createElement("button"); close.type = "button"; close.className = "call-alerts-close"; close.textContent = "×";
     close.setAttribute("aria-label", t("Not now")); close.title = t("Not now");
-    on.addEventListener("click", async () => {
-      on.disabled = true;
-      try { await window.danzstakEnablePush(); bar.remove(); say(t("Call alerts are on for this phone.")); }
-      catch (error) { text.textContent = error.message; on.disabled = false; }
-    });
     close.addEventListener("click", () => { try { localStorage.setItem(DISMISSED, new Date().toISOString()); } catch {} bar.remove(); });
-    bar.append(text, on, close);
+    const turnOn = async () => { await window.danzstakEnablePush(); bar.remove(); say(t("Call alerts are on for this phone.")); };
+    if (blocked) {
+      bar.append(text, close);
+      // Allowed in the browser's settings while SYNC is open (or on the next visit): turn call alerts on straight away.
+      globalThis.navigator?.permissions?.query?.({ name: "notifications" }).then(status => {
+        status.addEventListener("change", () => { if (status.state === "granted" && bar.isConnected) turnOn().catch(error => { text.textContent = error.message; }); });
+      }).catch(() => {});
+    } else {
+      const on = document.createElement("button"); on.type = "button"; on.className = "primary"; on.textContent = t("Turn on");
+      on.addEventListener("click", async () => {
+        on.disabled = true;
+        try { await turnOn(); }
+        catch (error) { text.textContent = error.message; on.disabled = false; }
+      });
+      bar.append(text, on, close);
+    }
     before.before(bar);
   }
 

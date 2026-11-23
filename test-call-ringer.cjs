@@ -313,7 +313,7 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     const rows = [], requests = [], panel = { before(node) { inserted.push(node); } }, inserted = [];
     let pushState = "prompt", enabled = 0, tests = 0;
     const store = new Map();
-    const makeNode = tag => ({ tag, children: [], attributes: {}, textContent: "", hidden: false, handlers: {}, setAttribute(k, v) { this.attributes[k] = v; }, append(...n) { this.children.push(...n); }, addEventListener(t, f) { this.handlers[t] = f; }, remove() { this.removed = true; inserted.splice(inserted.indexOf(this), 1); } });
+    const makeNode = tag => ({ tag, children: [], attributes: {}, dataset: {}, textContent: "", hidden: false, handlers: {}, setAttribute(k, v) { this.attributes[k] = v; }, append(...n) { this.children.push(...n); }, addEventListener(t, f) { this.handlers[t] = f; }, remove() { this.removed = true; inserted.splice(inserted.indexOf(this), 1); } });
     const sandbox = {
       window: null, localStorage: { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) },
       document: { body: { classList: { contains: c => c === "messages-page" } }, createElement: makeNode, querySelector: s => s === ".chat-sidebar .chat-list-panel" ? panel : s === ".call-alerts-prompt" ? inserted.find(n => n.className === "call-alerts-prompt") || null : s === ".call-alerts-note" ? inserted.find(n => n.className === "call-alerts-note") || null : null },
@@ -342,6 +342,23 @@ function fakeBrowser({ playAllowed = () => true, contextStartsRunning = false, r
     // Dismissed once: never again.
     pushState = "prompt"; inserted.length = 0; store.set("danzstak_call_alerts_prompt", "x");
     await sandbox.danzstakCallAlerts.prompt(); assert.equal(inserted.length, 0, "a dismissed prompt stays dismissed");
+    // L4 (owner 2026-11-20: "When app is closed it doesn't ring"): notifications blocked → never silent. One line says why
+    // and where to allow them (no button can change a browser block), and allowing them turns call alerts on by itself.
+    store.clear(); pushState = "blocked"; const before = enabled;
+    const permission = { state: "denied", handlers: {}, addEventListener(type, fn) { this.handlers[type] = fn; } };
+    sandbox.navigator = { permissions: { query: async ({ name }) => { assert.equal(name, "notifications"); return permission; } } };
+    await sandbox.danzstakCallAlerts.prompt();
+    const blocked = inserted.find(n => n.className === "call-alerts-prompt");
+    assert.ok(blocked, "a registered phone with notifications blocked is told so");
+    assert.equal(blocked.dataset.state, "blocked");
+    assert.equal(blocked.children[0].textContent, "Calls can't ring when SYNC is closed: notifications are blocked. Allow them for danzstak.com in your browser's site settings.");
+    assert.equal(blocked.children.length, 2, "only the reason and Not now: no button that can't work");
+    assert.ok(!blocked.children.some(node => node.className === "primary"));
+    await new Promise(resolve => setImmediate(resolve));
+    permission.state = "granted"; blocked.isConnected = true; permission.handlers.change();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(enabled, before + 1, "allowing notifications turns call alerts on by itself");
+    assert.ok(!inserted.includes(blocked), "and the line goes away");
   }
 
   // ---------- 11. Wiring and translations ----------
