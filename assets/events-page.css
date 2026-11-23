@@ -1,0 +1,140 @@
+/* Events page (task 14-D, owner 2026-11-17): the EPK builder's DanzStak Techno skin (assets/epk-skin.css) for the
+   Events workspace and the flyer-first creator. Black ground, silver ink, one hazard-orange accent, Archivo wide
+   display, JetBrains Mono labels, square edges, 1px rules. Public event pages keep the event's own look. */
+@font-face{font-family:Archivo;src:url(fonts/archivo.woff2) format("woff2");font-weight:400 900;font-stretch:75% 125%;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url(fonts/jetbrains-mono.woff2) format("woff2");font-weight:400 700;font-display:swap}
+.ev-skin{
+  --sk-ground:#0b0b0c;--sk-panel:#121214;--sk-field:#18181b;--sk-ink:#ededea;--sk-muted:#a9a9a3;--sk-rule:#2c2c30;--sk-accent:#ff5a1f;
+  --sk-display:Archivo,"Arial Black",Arial,sans-serif;--sk-mono:"JetBrains Mono",ui-monospace,monospace;
+  display:grid;gap:0;margin:0;padding:16px;background:var(--sk-ground);color:var(--sk-ink);font-family:Archivo,Arial,sans-serif;color-scheme:dark;min-width:0
+}
+.ev-skin *{box-sizing:border-box;min-width:0}
+.ev-skin [hidden]{display:none!important}
+.ev-skin a{color:var(--sk-ink)}
+.ev-skin :is(button,input,select,textarea,summary){min-height:44px;font:inherit}
+.ev-skin :focus-visible{outline:2px solid var(--sk-accent);outline-offset:2px}
+.ev-block{padding:18px 0;border-top:1px solid var(--sk-rule)}
+.ev-h2{margin:0 0 12px;font-family:var(--sk-mono);font-size:.78rem;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--sk-muted)}
+.ev-eyebrow{margin:0 0 6px;font-family:var(--sk-mono);font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sk-accent)}
+.ev-display{margin:0 0 14px;font-family:var(--sk-display);font-size:clamp(1.7rem,8vw,2.6rem);font-weight:900;font-stretch:125%;line-height:.98;text-transform:uppercase;letter-spacing:-.01em}
+.ev-muted,.ev-hint{margin:0;color:var(--sk-muted);font-size:.92rem;line-height:1.45}
+.ev-end{margin:10px 0 0;font-family:var(--sk-mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sk-muted)}
+.ev-status{margin:12px 0 0;min-height:1.4em;color:var(--sk-ink);font-weight:700}
+.ev-status a{color:var(--sk-accent)}
+
+/* Search */
+.ev-search{display:flex;margin:0 0 4px}
+.ev-search-input{flex:1;width:100%;padding:0 14px;border:1px solid var(--sk-rule);border-radius:0;background:var(--sk-field);color:var(--sk-ink);font-size:1rem}
+.ev-search-input::placeholder{color:var(--sk-muted)}
+.ev-results{display:grid;gap:8px;padding:10px 0 4px}
+
+/* Night cards: small poster rows, not a feed */
+.ev-nights{display:grid;gap:8px}
+.ev-night{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:center;min-height:76px;padding:6px;border:1px solid var(--sk-rule);background:var(--sk-panel);text-decoration:none}
+.ev-night:hover,.ev-night:focus-visible{border-color:var(--sk-accent)}
+.ev-night-thumb{display:grid;place-items:center;width:64px;height:80px;overflow:hidden;background:var(--sk-field)}
+.ev-night-thumb img{width:100%;height:100%;object-fit:cover}
+.ev-night-thumb-blank{font-family:var(--sk-display);font-weight:900;font-size:1.8rem;color:var(--sk-accent)}
+.ev-night-copy{display:grid;gap:2px}
+.ev-night-copy strong{font-family:var(--sk-display);font-stretch:112%;font-weight:800;font-size:1rem;line-height:1.15;overflow-wrap:anywhere}
+.ev-night-when,.ev-night-venue{color:var(--sk-muted);font-size:.86rem}
+.ev-night-price{font-family:var(--sk-mono);font-size:.78rem;color:var(--sk-accent)}
+
+/* My tickets: the door code first */
+.ev-my-tickets{display:grid;gap:8px}
+.ev-my-ticket{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;align-items:center;padding:12px;border:1px dashed var(--sk-accent);background:var(--sk-panel);text-decoration:none}
+.ev-my-ticket-code{font-family:var(--sk-mono);font-size:1.25rem;font-weight:700;letter-spacing:.06em;color:var(--sk-accent)}
+.ev-my-ticket-copy{display:grid;gap:2px;font-size:.88rem}
+.ev-my-ticket-copy span{color:var(--sk-muted)}
+
+/* Promoter pitch */
+.ev-perks{display:grid;gap:8px;margin:0 0 16px;padding:0;list-style:none}
+.ev-perks li{padding:0 0 0 14px;border-left:2px solid var(--sk-accent);font-size:.95rem;line-height:1.4}
+.ev-perks span{color:var(--sk-muted)}
+.ev-primary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border:0;border-radius:0;background:var(--sk-accent);color:#0b0b0c;font-family:var(--sk-display);font-stretch:112%;font-weight:900;font-size:1rem;letter-spacing:.02em;text-transform:uppercase;cursor:pointer}
+.ev-primary:disabled{opacity:.55;cursor:progress}
+.ev-secondary{min-width:96px;padding:0 16px;border:1px solid var(--sk-ink);border-radius:0;background:transparent;color:var(--sk-ink);font-family:var(--sk-mono);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.ev-secondary:disabled{opacity:.35}
+
+/* Creator: poster preview + one question at a time */
+.ev-creator{display:grid;gap:18px;padding:4px 0 8px}
+.ev-poster{position:relative;margin:0;border:1px solid var(--sk-rule);background:#000;overflow:hidden}
+.ev-poster-media{display:grid;place-items:center;aspect-ratio:4/5;max-height:62vh;width:100%;background:repeating-linear-gradient(135deg,#151517 0 12px,#101012 12px 24px)}
+.ev-poster-media :is(img,video){display:block;width:100%;height:100%;object-fit:cover}
+.ev-poster-placeholder{font-family:var(--sk-mono);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sk-muted)}
+.ev-poster figcaption{display:grid;gap:4px;padding:14px;border-top:2px solid var(--sk-accent);background:var(--sk-ground)}
+.ev-poster-title{margin:0;font-family:var(--sk-display);font-size:clamp(1.5rem,7vw,2.2rem);font-weight:900;font-stretch:125%;line-height:1;text-transform:uppercase;overflow-wrap:anywhere}
+.ev-poster-title.is-empty{color:#55555a}
+.ev-poster-when{margin:0;font-family:var(--sk-mono);font-size:.82rem;color:var(--sk-accent);text-transform:uppercase;letter-spacing:.06em}
+.ev-poster-venue,.ev-poster-lineup{margin:0;font-size:.92rem;color:var(--sk-ink)}
+.ev-poster-lineup{color:var(--sk-muted)}
+.ev-poster-stub{display:flex;gap:6px;align-items:baseline;width:max-content;max-width:100%;margin-top:6px;padding:6px 10px;border:1px dashed var(--sk-ink);font-family:var(--sk-mono);font-size:.8rem;text-transform:uppercase}
+.ev-poster-stub:empty{display:none}
+.ev-steps{display:grid;gap:14px}
+.ev-drop{position:relative;display:grid;place-items:center;gap:6px;min-height:150px;padding:20px;border:2px dashed var(--sk-accent);background:var(--sk-panel);text-align:center;cursor:pointer}
+.ev-drop.is-over{background:#1e1310}
+.ev-drop.has-file{min-height:64px;padding:10px;border-style:solid;border-width:1px}
+.ev-drop-title{font-family:var(--sk-display);font-size:1.5rem;font-weight:900;font-stretch:125%;text-transform:uppercase}
+.ev-drop.has-file .ev-drop-title{font-size:1rem}
+.ev-drop.has-file .ev-drop-hint{display:none}
+.ev-drop-hint{color:var(--sk-muted);font-size:.9rem}
+.ev-file{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.ev-step{display:grid;gap:10px}
+.ev-step-count{margin:0;font-family:var(--sk-mono);font-size:.74rem;color:var(--sk-accent);letter-spacing:.1em}
+.ev-question{margin:0;font-family:var(--sk-display);font-size:1.5rem;font-weight:900;font-stretch:118%;text-transform:uppercase;line-height:1.05}
+.ev-field{display:grid;gap:6px}
+.ev-label{font-family:var(--sk-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sk-muted)}
+.ev-skin :is(.ev-field input,.ev-field select,.ev-field textarea){width:100%;padding:10px 12px;border:1px solid var(--sk-rule);border-radius:0;background:var(--sk-field);color:var(--sk-ink);font-size:1rem}
+.ev-skin .ev-field textarea{min-height:110px;resize:vertical}
+.ev-check{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;align-items:start;min-height:44px;padding:10px 0;font-size:.92rem;line-height:1.4;cursor:pointer}
+.ev-check input{width:22px;height:22px;min-height:22px;margin:0;accent-color:var(--sk-accent)}
+.ev-payout{margin:0;font-family:var(--sk-mono);font-size:.85rem}
+.ev-payout:empty{display:none}
+.ev-step-nav{display:flex;gap:10px;justify-content:space-between}
+.ev-step-nav .ev-next{margin-left:auto}
+.ev-more{border-top:1px solid var(--sk-rule);border-bottom:1px solid var(--sk-rule)}
+.ev-more summary{display:flex;align-items:center;font-family:var(--sk-mono);font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.ev-more[open]{display:grid;gap:14px;padding-bottom:16px}
+.ev-delivery p{margin:4px 0 0;font-size:.9rem;color:var(--sk-muted)}
+
+/* Ticket options as ticket stubs: perforated tear-off on the right */
+.ev-stubs-wrap{display:grid;gap:10px}
+.ev-stubs{display:grid;gap:10px}
+.ev-stub{display:grid;grid-template-columns:minmax(0,1fr) 44px;border:1px solid var(--sk-ink);background:var(--sk-panel)}
+.ev-stub-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;padding:10px}
+.ev-stub-main .ev-field:first-child{grid-column:1/-1}
+.ev-stub-tear{display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:6px;padding:8px 0;border-left:2px dashed var(--sk-ink)}
+.ev-stub-admit{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--sk-mono);font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--sk-accent)}
+.ev-stub-remove{writing-mode:vertical-rl;transform:rotate(180deg);min-height:44px;width:44px;padding:0;border:0;background:transparent;color:var(--sk-muted);font-family:var(--sk-mono);font-size:.66rem;text-transform:uppercase;cursor:pointer}
+.ev-finish{display:grid;gap:12px}
+.ev-publish{width:100%}
+
+/* The promoter's own nights */
+.ev-own{display:grid;gap:2px;padding:10px 0;border-bottom:1px solid var(--sk-rule);text-decoration:none}
+.ev-own strong{font-family:var(--sk-display);font-stretch:112%;font-weight:800}
+.ev-own span{color:var(--sk-muted);font-size:.88rem}
+.ev-own-sold{font-family:var(--sk-mono)}
+.ev-yours{display:grid;gap:8px}
+
+@media (min-width:480px){.ev-my-ticket{grid-template-columns:auto minmax(0,1fr);gap:12px}}
+@media (min-width:768px){
+  .ev-skin{margin:0;padding:24px}
+  .ev-creator{grid-template-columns:minmax(260px,380px) minmax(0,1fr);align-items:start}
+  .ev-poster{position:sticky;top:16px}
+  .ev-nights,.ev-results{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+}
+
+/* Fix-it 18 (owner 2026-11-17): + next to search opens the composer as its own screen (full screen on phones,
+   centred sheet on computers); the date reads back in the member's language. */
+.ev-search{gap:8px}
+.ev-add{flex:none;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:0;background:var(--sk-accent);color:#0b0b0c;cursor:pointer}
+.ev-creator-screen{position:fixed;inset:0;z-index:10050;display:flex;flex-direction:column;background:var(--sk-ground);color:var(--sk-ink);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.ev-screen-bar{flex:none;display:flex;align-items:center;gap:6px;height:52px;padding:0 8px;border-bottom:1px solid var(--sk-rule)}
+.ev-screen-close{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;background:transparent;color:var(--sk-ink);cursor:pointer}
+.ev-screen-title{margin:0;font-family:var(--sk-mono);font-size:.82rem;font-weight:400;letter-spacing:.14em;text-transform:uppercase}
+.ev-screen-body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:12px 16px 24px}
+.ev-date-read{margin:8px 0 0;font-family:var(--sk-mono);font-size:.82rem;color:var(--sk-accent);min-height:1.2em}
+body.ev-creator-open{overflow:hidden}
+@media (min-width:760px){
+  .ev-creator-screen{inset:auto;top:50%;left:50%;width:min(900px,calc(100vw - 48px));height:min(860px,calc(100vh - 48px));transform:translate(-50%,-50%);border:1px solid var(--sk-rule);box-shadow:0 0 0 100vmax #000a}
+}

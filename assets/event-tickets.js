@@ -7,7 +7,8 @@
   const money = c => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(c / 100);
 
   function buyControls(card, event, tier) {
-    if (tier.available < 1) { card.append(el("p", { className: "ticket-note", textContent: "Sold out." })); return; }
+    const host = card.querySelector(".ticket-tier-main") || card;
+    if (tier.available < 1) { host.append(el("p", { className: "ticket-note", textContent: "Sold out." })); return; }
     const form = el("form", { className: "ticket-buy" });
     const qty = el("select", { "aria-label": `How many ${tier.name} tickets` });
     for (let i = 1; i <= Math.min(10, tier.available); i++) qty.append(el("option", { value: String(i), textContent: String(i) }));
@@ -34,10 +35,10 @@
         location.assign(data.url);
       } catch (error) { note.textContent = error.message; button.disabled = false; button.textContent = "Buy tickets"; }
     });
-    card.append(form);
+    host.append(form);
   }
 
-  async function showOrder(host) {
+  async function showOrder(host, event = {}) {
     const orderId = params.get("order");
     if (!/^[a-f0-9-]{36}$/i.test(orderId || "")) return;
     const box = el("section", { className: "ticket-order", "aria-live": "polite" }); host.before(box);
@@ -48,6 +49,8 @@
       const order = data.order;
       if (order?.tickets?.length) {
         box.replaceChildren(el("h2", { textContent: "Your tickets" }), el("p", { textContent: "Emailed to you with a QR code. At the door, show the QR or say the code." }));
+        // My tickets (task 14-D): keep a copy on this phone so the door code opens offline from Events.
+        window.danzstakEvents?.saveTickets({ orderId, eventId: event.id, title: event.title, startsAt: event.startsAt, timezone: event.timezone, venue: [event.venueName, event.venueAddress].filter(Boolean).join(", "), tickets: order.tickets });
         for (const t of order.tickets) box.append(el("div", { className: "ticket-stub" }, el("strong", { textContent: t.code }), el("span", { textContent: [t.name, t.tier].filter(Boolean).join(" · ") })));
         if (order.named) box.append(el("p", { className: "ticket-note", textContent: "Named tickets are non-transferable. Bring photo ID that matches the name." }));
         return;
@@ -87,7 +90,7 @@
   window.addEventListener("danzstak:event-loaded", ({ detail: event }) => {
     const tiers = document.getElementById("ticketTiers");
     if (!tiers) return;
-    showOrder(tiers);
+    showOrder(tiers, event);
     if (event.organizerId) {
       // The promoter sees payout status and the door list instead of buy buttons.
       const holder = el("div", { className: "event-payouts" }); tiers.before(holder);
