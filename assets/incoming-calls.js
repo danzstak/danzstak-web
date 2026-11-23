@@ -94,6 +94,9 @@
       name: current.senderName || t("DanzStak member"),
       mode: t(current.mode === "video" ? "video" : "phone")
     });
+    // L1: this device isn't registered, so the call can't be answered here yet. Say how, instead of staying silent.
+    answer.textContent = t(current.register ? "Register this device to answer" : "Answer");
+    popup.classList.toggle("needs-registration", Boolean(current.register));
   }
 
   async function api(path, options = {}) {
@@ -114,6 +117,7 @@
       if (!response.ok) {
         const error = new Error(data.error || "Call service unavailable");
         error.code = data.code || "";
+        error.data = data;
         throw error;
       }
       return data;
@@ -122,6 +126,39 @@
       if (error.code || error.message === "Call service unavailable") throw error;
       throw new Error("DanzStak cannot connect to calls right now. Check your connection and try again.");
     } finally { clearTimeout(timeout); }
+  }
+
+  // L1 (owner 2026-11-19: a tester's MacBook "didn't ring" when called). An unregistered device gets no call details, only who is
+  // calling (the server's "ringing" list on its registration-required answer). Show it, ring, and on a computer whose window isn't
+  // in front, put up a desktop notification once notifications are allowed. Answer opens registration; Decline still works.
+  function desktopNotice(call, close = false) {
+    const tag = `call-${call.callId}`;
+    const ready = navigator.serviceWorker?.ready;
+    if (close) { ready?.then(registration => registration.getNotifications({ tag })).then(list => list?.forEach(note => note.close())).catch(() => {}); return; }
+    if (globalThis.Notification?.permission !== "granted" || document.hasFocus?.()) return;
+    const title = t("Incoming call"), body = tf("{name} is calling. Register this device to answer.", { name: call.senderName || t("DanzStak member") });
+    const fallback = () => { try { new Notification(title, { body, tag }); } catch { /* notifications are optional */ } };
+    if (!ready) { fallback(); return; }
+    ready.then(registration => registration.showNotification(title, { body, tag, icon: "/assets/favicon-192.png", data: { url: "/messages.html", type: "notification" } })).catch(fallback);
+  }
+
+  function showRegistrationCall(ringing) {
+    const live = ringing.filter(call => /^[a-f0-9-]{36}$/.test(String(call.callId || "")) && ["phone", "video"].includes(call.mode));
+    if (current) {
+      if (current.register && !live.some(call => call.callId === current.callId)) { desktopNotice(current, true); resolveCall(current.callId); }
+      return;
+    }
+    const call = live.find(item => !handledCalls.has(item.callId));
+    if (!call) return;
+    current = { ...call, register: true };
+    ringtoneDeadline = Date.now() + RINGTONE_DURATION_MS;
+    renderCurrentCall();
+    popup.hidden = false;
+    previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    answer.focus();
+    if (!window.danzstakSyncTones && !window.danzstakCallRinger) navigator.vibrate?.([400, 180, 400, 180, 400]);
+    startRingtone();
+    desktopNotice(call);
   }
 
   async function showCall(event) {
@@ -172,12 +209,16 @@
 
   answer.addEventListener("click", () => {
     if (!current) return;
-    if (window.danzstakSyncDeviceRegistered?.() !== true) {
+    if (current.register || window.danzstakSyncDeviceRegistered?.() !== true) {
+      handledCalls.set(current.callId, Date.now() + 120000);
+      desktopNotice(current, true);
       stopRingtone();
       navigator.vibrate?.(0);
       popup.hidden = true;
       current = null;
-      window.danzstakRequireCallingDevice?.({ incoming: true });
+      // Only SYNC has the device panel; from any other page, go there and open it with the accept-the-call reason.
+      if (document.getElementById("callingDevicesDialog")) window.danzstakRequireCallingDevice?.({ incoming: true });
+      else location.assign(new URL("messages.html?device=answer", location.href).href);
       return;
     }
     const event = current;
@@ -208,8 +249,13 @@
     decline.disabled = true;
     window.danzstakCallRinger?.handled(event.callId);
     try {
-      await api("/calls/signal", { method: "POST", body: JSON.stringify({ recipientEmail: event.senderEmail, callId: event.callId, mode: event.mode, signalType: "hangup", payload: null }) });
-      await acknowledge(event.eventId).catch(() => {});
+      if (event.register) {
+        await api("/calls/decline", { method: "POST", body: JSON.stringify({ callId: event.callId }) }).catch(error => { if (error.code !== "CALL_GONE") throw error; });
+        desktopNotice(event, true);
+      } else {
+        await api("/calls/signal", { method: "POST", body: JSON.stringify({ recipientEmail: event.senderEmail, callId: event.callId, mode: event.mode, signalType: "hangup", payload: null }) });
+        await acknowledge(event.eventId).catch(() => {});
+      }
       handledCalls.set(event.callId, Date.now() + 120000);
       popup.hidden = true;
       current = null;
@@ -240,6 +286,7 @@
     for (const [callId, expiry] of handledCalls) if (expiry <= Date.now()) handledCalls.delete(callId);
     try {
       const inbox = await api("/calls/inbox");
+      if (current?.register) { desktopNotice(current, true); resolveCall(current.callId); }
       if (current) {
         const ended = (inbox.events || []).find(event => event.signalType === "hangup" && event.callId === current.callId);
         const activeOffer = (inbox.events || []).some(event => event.signalType === "offer" && event.callId === current.callId);
@@ -256,7 +303,13 @@
       callDeviceRegistrationRequired = false;
       registrationBackoffUntil = 0;
     } catch (error) {
-      if (error.code === "CALL_DEVICE_REGISTRATION_REQUIRED") { callDeviceRegistrationRequired = true; registrationBackoffUntil = Date.now() + 15000; }
+      if (error.code === "CALL_DEVICE_REGISTRATION_REQUIRED") {
+        callDeviceRegistrationRequired = true;
+        const ringing = Array.isArray(error.data?.ringing) ? error.data.ringing : [];
+        showRegistrationCall(ringing);
+        // Listen again soon: every 3 s while a call rings here (to stop when it ends), every 6 s otherwise.
+        registrationBackoffUntil = Date.now() + (ringing.length || current?.register ? 3000 : 6000);
+      }
       /* Other transient failures retry quietly while the user remains on the site. */
     }
     finally { polling = false; }

@@ -13,7 +13,7 @@ assert(!/messages\.html\?contact=/.test(template),'Push notification URLs must n
 assert.match(template,/messages\.html\?member=\$\{encodeURIComponent\(senderMemberId\)\}/,'Push alerts should open a chat with an opaque member ID');
 assert.match(template,/notifyCall\(recipientEmail,user\.email,user\.userId,mode,callId\)/,'Call alerts must pass the opaque sender ID');
 assert.match(template,/notifyMessage\(recipient,user\.email,user\.userId\)/,'Message alerts must pass the opaque sender ID');
-const controls=()=>({handlers:{},hidden:true,setAttribute(){},focus(){this.focuses=(this.focuses||0)+1;},addEventListener(name,fn){this.handlers[name]=fn;}});
+const controls=()=>({handlers:{},hidden:true,classList:{toggle(){},add(){},remove(){}},setAttribute(){},focus(){this.focuses=(this.focuses||0)+1;},addEventListener(name,fn){this.handlers[name]=fn;}});
 const popup=controls(),answer=controls(),decline=controls(),label={};
 popup.querySelector=selector=>selector==='[data-answer]'?answer:selector==='[data-decline]'?decline:label;
 const first={eventId:'offer-1',callId:'11111111-1111-1111-1111-111111111111',signalType:'offer',senderEmail:'caller@example.com',senderName:'Caller Name',mode:'phone'};

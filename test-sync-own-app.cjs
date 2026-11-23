@@ -34,7 +34,7 @@ assert.match(read("assets/call-invite.js"), /location\.pathname\.startsWith\("\/
 // Sign-up (owner 2026-11-19: "save sync to their device and verify the number … it needs to be easy"): SYNC's own page
 // saves the app first, then verifies the number; call-devices.js waits for the install sheet before it opens the number.
 assert.match(read("assets/signup-onboarding.js"), /location\.href = `\/sync\/\?\$\{inSyncIcon \? "" : "install=1&"\}device=register`;/);
-assert.match(read("assets/call-devices.js"), /if\(wantsRegister&&!state\.registered&&await\(window\.danzstakSyncApp\?\.afterInstall\?\.\(\)\?\?true\)&&!state\.registered\)openPanel\(\{auto:true\}\)/);
+assert.match(read("assets/call-devices.js"), /if\(wantsRegister&&!state\.registered&&await\(window\.danzstakSyncApp\?\.afterInstall\?\.\(\)\?\?true\)&&!state\.registered\)openPanel\(\{auto:true,incoming:deviceParam==="answer"\}\)/);
 assert.match(app, /afterInstall = new Promise\(resolve => \{ closed = \(\) => resolve\(!\(verifyAfter && verifyInApp\)\); \}\);/, "iPhone Safari leaves the number to the SYNC icon");
 assert.match(settings, /window\.danzstakSyncApp\.openInstall\(\); else location\.href = "\/sync\/\?install=1";/);
 assert.match(app, /if \(!inSyncApp\) \{ location\.href = `\$\{HOME\}\?install=1`; return; \}/, "outside /sync/ the row opens SYNC's own page, where its manifest applies");
