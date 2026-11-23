@@ -385,6 +385,48 @@ try {
     Remove-Item -LiteralPath $cdnPolicy -Force -ErrorAction SilentlyContinue
   }
 
+  # D0-4 (owner 2026-11-21/22): the AI EPK, AI profile and AI shop read pages with Claude Haiku 4.5 on Amazon Bedrock,
+  # billed on the DanzStak AWS account. Its own managed policy (DanzStakBedrockInvoke): only bedrock:InvokeModel (the
+  # permission the Converse API uses) on the Haiku 4.5 cross-region inference profile and the foundation model it routes
+  # to. Writing stays on the Anthropic API (DanzStakAnthropicKeyRead) until AWS opens Sonnet on Bedrock for this account;
+  # flipping AI_WRITE_PROVIDER=bedrock then also needs the Sonnet profile added here. Updated in place when it changes.
+  $bedrockPolicyName = "DanzStakBedrockInvoke"
+  $bedrockPolicyArn = "arn:aws:iam::$($identity.Account):policy/$bedrockPolicyName"
+  $bedrockPolicy = Join-Path $TempRoot "danzstak-bedrock-invoke-policy.json"
+  @{
+    Version = "2012-10-17"
+    Statement = @(
+      @{ Sid = "HaikuInferenceProfile"; Effect = "Allow"; Action = @("bedrock:InvokeModel"); Resource = "arn:aws:bedrock:${Region}:$($identity.Account):inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0" },
+      @{ Sid = "HaikuFoundationModel"; Effect = "Allow"; Action = @("bedrock:InvokeModel"); Resource = "arn:aws:bedrock:us-*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"; Condition = @{ StringLike = @{ "bedrock:InferenceProfileArn" = "arn:aws:bedrock:${Region}:$($identity.Account):inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0" } } }
+    )
+  } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $bedrockPolicy -Encoding ascii
+  $bedrockLive = aws iam get-policy --policy-arn $bedrockPolicyArn --output json 2>$null | ConvertFrom-Json
+  $bedrockPolicyExists = $LASTEXITCODE -eq 0
+  $global:LASTEXITCODE = 0
+  if (-not $bedrockPolicyExists) { Invoke-Change "Create managed policy $bedrockPolicyName (Claude Haiku 4.5 on Bedrock only)" {
+    aws iam create-policy --policy-name $bedrockPolicyName --policy-document "file://$bedrockPolicy" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Bedrock policy could not be created." }
+  } } else {
+    $bedrockLiveDocument = aws iam get-policy-version --policy-arn $bedrockPolicyArn --version-id $bedrockLive.Policy.DefaultVersionId --query 'PolicyVersion.Document' --output json | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0) { throw "Bedrock policy could not be read." }
+    $bedrockWanted = Get-StatementMap (Get-Content -LiteralPath $bedrockPolicy -Raw | ConvertFrom-Json)
+    $bedrockHave = Get-StatementMap $bedrockLiveDocument
+    $bedrockSame = $bedrockWanted.Count -eq $bedrockHave.Count -and -not @($bedrockWanted.Keys | Where-Object { $bedrockHave[$_] -ne $bedrockWanted[$_] }).Count
+    if (-not $bedrockSame) { Invoke-Change "Update managed policy $bedrockPolicyName" {
+      $versions = @(aws iam list-policy-versions --policy-arn $bedrockPolicyArn --query 'Versions[?IsDefaultVersion==`false`]' --output json | ConvertFrom-Json | Sort-Object CreateDate)
+      if ($versions.Count -ge 4) { aws iam delete-policy-version --policy-arn $bedrockPolicyArn --version-id $versions[0].VersionId }
+      aws iam create-policy-version --policy-arn $bedrockPolicyArn --policy-document "file://$bedrockPolicy" --set-as-default --output json | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "Bedrock policy could not be updated." }
+    } }
+  }
+  $bedrockAttached = @(aws iam list-attached-role-policies --role-name $RoleName --query 'AttachedPolicies[].PolicyArn' --output json | ConvertFrom-Json)
+  if ($LASTEXITCODE -ne 0) { throw "Auth API role policies could not be read." }
+  if ($bedrockAttached -notcontains $bedrockPolicyArn) { Invoke-Change "Attach $bedrockPolicyName to the Auth API role" {
+    aws iam attach-role-policy --role-name $RoleName --policy-arn $bedrockPolicyArn
+    if ($LASTEXITCODE -ne 0) { throw "Bedrock policy could not be attached to the Auth API role." }
+  } }
+  Remove-Item -LiteralPath $bedrockPolicy -Force -ErrorAction SilentlyContinue
+
   $mediaBucket = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query 'StackResourceDetail.PhysicalResourceId' --output text
   if ($LASTEXITCODE -ne 0 -or -not $mediaBucket) { throw "DanzStak media bucket could not be resolved." }
   $activityPushOutboxTable = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id ActivityPushOutboxTable --query 'StackResourceDetail.PhysicalResourceId' --output text
@@ -538,7 +580,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   } }
-  foreach ($routeKey in @("GET /club-directory/contacts", "POST /club-directory/contacts", "POST /tour-manager/stripe/webhook", "POST /sync-network-number/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/refunds", "POST /tour-manager/refunds/quote", "POST /tour-manager/refunds/accept", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /sync-network-number/checkout", "GET /sync-network-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "POST /epk/share-card", "GET /share/epk/{publicId}", "GET /share/epk/{publicId}/card", "GET /albums", "POST /albums", "GET /albums/{albumId}", "PATCH /albums/{albumId}", "DELETE /albums/{albumId}", "POST /albums/{albumId}/items", "DELETE /albums/{albumId}/items/{itemId}", "GET /review-targets", "GET /reviews", "POST /reviews", "PATCH /reviews/{reviewId}", "DELETE /reviews/{reviewId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /marketplace/store", "GET /marketplace/bazaar", "GET /marketplace/bazaar/{productId}", "PUT /marketplace/store", "GET /marketplace/shop", "PUT /marketplace/shop", "GET /marketplace/shop/{memberId}", "POST /marketplace/products", "POST /marketplace/products/import", "PATCH /marketplace/products/{productId}", "DELETE /marketplace/products/{productId}", "POST /marketplace/store/products", "PATCH /marketplace/store/products/{productId}", "DELETE /marketplace/store/products/{productId}", "GET /marketplace/events", "POST /marketplace/events", "GET /marketplace/events/{eventId}", "PATCH /marketplace/events/{eventId}", "POST /marketplace/events/{eventId}/tiers", "GET /auth/reset-password", "GET /auth/sessions", "DELETE /auth/sessions/{deviceId}", "POST /auth/sessions/revoke-others", "GET /auth/reauth", "POST /groups/{groupId}/everyone")) {
+  foreach ($routeKey in @("GET /club-directory/contacts", "POST /club-directory/contacts", "POST /tour-manager/stripe/webhook", "POST /sync-network-number/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/refunds", "POST /tour-manager/refunds/quote", "POST /tour-manager/refunds/accept", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /sync-network-number/checkout", "GET /sync-network-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "POST /epk/share-card", "GET /share/epk/{publicId}", "GET /share/epk/{publicId}/card", "GET /epk/ai", "POST /epk/ai/identify", "POST /epk/ai/confirm", "POST /epk/ai/build", "POST /epk/ai/step", "POST /epk/ai/review", "POST /epk/ai/rewrite", "GET /profile/ai", "POST /profile/ai/draft", "POST /tour-manager/ai-epk/checkout", "GET /albums", "POST /albums", "GET /albums/{albumId}", "PATCH /albums/{albumId}", "DELETE /albums/{albumId}", "POST /albums/{albumId}/items", "DELETE /albums/{albumId}/items/{itemId}", "GET /review-targets", "GET /reviews", "POST /reviews", "PATCH /reviews/{reviewId}", "DELETE /reviews/{reviewId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /marketplace/store", "GET /marketplace/bazaar", "GET /marketplace/bazaar/{productId}", "PUT /marketplace/store", "GET /marketplace/shop", "PUT /marketplace/shop", "GET /marketplace/shop/{memberId}", "POST /marketplace/products", "POST /marketplace/products/import", "PATCH /marketplace/products/{productId}", "DELETE /marketplace/products/{productId}", "POST /marketplace/store/products", "PATCH /marketplace/store/products/{productId}", "DELETE /marketplace/store/products/{productId}", "GET /marketplace/events", "POST /marketplace/events", "GET /marketplace/events/{eventId}", "PATCH /marketplace/events/{eventId}", "POST /marketplace/events/{eventId}/tiers", "GET /auth/reset-password", "GET /auth/sessions", "DELETE /auth/sessions/{deviceId}", "POST /auth/sessions/revoke-others", "GET /auth/reauth", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) { Invoke-Change "Create API route $routeKey" {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
