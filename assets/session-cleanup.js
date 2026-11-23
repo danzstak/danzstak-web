@@ -26,6 +26,9 @@
       sessionStorage.removeItem("danzstak_push_synced");
       sessionStorage.removeItem("danzstak_push_prompt_dismissed");
       sessionStorage.removeItem("danzstak_dailies_visit");
+      sessionStorage.removeItem("danzstak_session_seen"); // L1 session-guard.js: a signed-out tab never gets the sign-in-again sheet
+      sessionStorage.removeItem("danzstak_session_drafts");
+      sessionStorage.removeItem("danzstak_return_to");
     }
     catch { /* Session storage is optional. */ }
   };

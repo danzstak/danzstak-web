@@ -39,7 +39,7 @@ assert.match(hostingHeaders, /Cache-Control'[\s\S]*public, max-age=300, must-rev
 assert.doesNotMatch(hostingHeaders, /s-maxage\s*=\s*31536000/i, "the app shell must not receive a one-year shared-cache lifetime");
 
 for (const [file, expected] of [
-  ["index.html", "assets/home.js?v=313"],
+  ["index.html", "assets/home.js?v=314"],
   ["feed.html", "assets/soft-ui.css?v=428"],
   ["messages.html", "assets/soft-ui.css?v=428"],
   ["profile.html", "assets/soft-ui.css?v=428"],
