@@ -109,7 +109,7 @@ const assert = require('node:assert/strict');
   assert.match(api, /if \(data\?\.action === "route_dates"\) return await bookingRouteDates\(userId, data, reply\);/, 'route dates ride the existing POST /booking-pipeline route');
   assert.match(api, /LegAdditionalFeatures: \["Summary"\]/, 'real road legs come from CalculateRoutes');
   assert.doesNotMatch(api, /CalculateRouteMatrix/, 'no route matrix: the Lambda role only allows CalculateRoutes');
-  const handler = api.slice(api.indexOf('async function bookingRouteDates'), api.indexOf('// Booking sends are the real events'));
+  const routeEnd = api.indexOf('// Accept a date (task 07-E)') > 0 ? api.indexOf('// Accept a date (task 07-E)') : api.indexOf('// Booking sends are the real events'), handler = api.slice(api.indexOf('async function bookingRouteDates'), routeEnd);
   assert.doesNotMatch(handler, /PutItemCommand|UpdateItemCommand|TransactWriteItemsCommand|SendEmail/, 'the picker suggests only: it never saves or sends');
   assert.ok(billing.includes('venue.booking.dateOptions : []), proposedDate])'), 'a venue date offer joins its date options');
   const html = fs.readFileSync('booking-selections.html', 'utf8'), js = fs.readFileSync('assets/booking-selections.js', 'utf8');

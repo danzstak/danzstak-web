@@ -5390,6 +5390,34 @@ async function bookingRouteDates(userId, data, reply) {
   return reply(200, { routeDates: result });
 }
 
+// Accept a date (task 07-E). The artist has just sent (or will send) their confirmation; the
+// venue moves to "Date proposed" with that date and waits for the club's written OK. It only
+// becomes Confirmed through the existing paths (venue confirm_date reply or written evidence).
+async function bookingAcceptDate(userId, data, reply) {
+  const venueKey = String(data.venueKey || "").trim(), acceptDate = String(data.date || "").trim(), sentReplyId = String(data.sentReplyId || "").trim();
+  if (!venueKey || venueKey.length > 240 || cleanDateOptions([acceptDate]).length !== 1 || (sentReplyId && !/^[a-zA-Z0-9_-]{16,100}$/.test(sentReplyId))) return reply(400, { error: "Choose a saved venue and one of the dates it offered." });
+  const Key = { userId: { S: userId }, tourId: { S: bookingWorkspaceId } };
+  const [workspace, sends] = await Promise.all([db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true })), bookingSendItems(userId)]);
+  let saved = {}; try { saved = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { saved = {}; }
+  const venues = withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(sends)), venue = venues.find(item => item?.venueKey === venueKey);
+  if (!venue || !workspace.Item?.revision?.S) return reply(409, { error: "Save this venue to your booking list first." });
+  const booking = venue.booking, offered = cleanDateOptions([...(booking.dateOptions || []), ...(booking.status === "Date proposed" && booking.showDate ? [booking.showDate] : [])]);
+  if (!offered.includes(acceptDate)) return reply(409, { error: `${venue.name} didn't offer ${acceptDate}. Add it to the dates they offered first.` });
+  if (booking.status === "Date proposed" && booking.acceptedDate === acceptDate) return reply(200, { accepted: true, duplicate: true, venueKey, date: acceptDate, status: booking.status, revision: workspace.Item.revision.S });
+  if (!["replied", "offer"].includes(stageOf(booking.status)) || !canMove(booking.status, "Date proposed")) return reply(409, { error: `${venue.name} is ${booking.status}. Only a club that replied or offered a date can get a date accepted.` });
+  const at = new Date().toISOString();
+  Object.assign(booking, { status: "Date proposed", showDate: acceptDate, acceptedDate: acceptDate, acceptedAt: at, ...(sentReplyId ? { acceptedReplyId: sentReplyId } : {}) });
+  const revision = randomUUID(), plan = JSON.stringify({ ...saved, venues: storedVenues(venues) });
+  if (Buffer.byteLength(plan, "utf8") > 250000) return reply(400, { error: "Workspace is too large. Export a copy and reduce the list." });
+  try {
+    await db.send(new PutItemCommand({ TableName: toursTable, Item: { ...workspace.Item, plan: { S: plan }, revision: { S: revision }, updatedAt: { S: at } }, ConditionExpression: "revision = :revision", ExpressionAttributeValues: { ":revision": { S: workspace.Item.revision.S } } }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return reply(409, { error: "Your booking list changed on another device. Reload it, then accept this date again." });
+    throw error;
+  }
+  return reply(200, { accepted: true, venueKey, date: acceptDate, status: "Date proposed", revision });
+}
+
 // Booking sends are the real events behind pipeline stages (pitched, replied) and the email-credit count.
 async function bookingSendItems(userId) {
   const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#EMAIL_SEND#" } }, ProjectionExpression: "tourId, venueKey, #status, sentAt, providerAcceptedAt, createdAt, followUpTo, repliedAt", ExpressionAttributeNames: { "#status": "status" }, ConsistentRead: true, Limit: 500 }));
@@ -5429,6 +5457,7 @@ async function bookingWorkspace(event, method) {
   const data = parseJsonBody(event);
   if (data?.action === "venue_report") return await bookingVenueReport(userId, data, reply);
   if (data?.action === "route_dates") return await bookingRouteDates(userId, data, reply);
+  if (data?.action === "accept_date") return await bookingAcceptDate(userId, data, reply);
   if (!data || !Array.isArray(data.venues) || data.venues.length > 100 || typeof data.revision !== "string") return reply(400, { error: "Provide up to 100 venues and the loaded revision." });
   const text = (value, max = 300) => typeof value === "string" ? value.trim().slice(0, max) : "";
   const https = value => /^https:\/\//i.test(text(value, 600)) ? text(value, 600) : "";
@@ -5444,7 +5473,7 @@ async function bookingWorkspace(event, method) {
     const status = bookingPipelineStatuses.has(requestedStatus) ? requestedStatus : "Not contacted";
     const showDate = date(b.showDate), confirmationEvidence = text(b.confirmationEvidence, 3000);
     if (status === "Confirmed" && (!showDate || !confirmationEvidence)) invalidConfirmation = true;
-    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateOptions: cleanDateOptions(b.dateOptions), dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000), payToPlay: ["tickets", "fee"].includes(String(b.payToPlay)) ? String(b.payToPlay) : "" } };
+    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateOptions: cleanDateOptions(b.dateOptions), ...(date(b.acceptedDate) ? { acceptedDate: date(b.acceptedDate), acceptedAt: typeof b.acceptedAt === "string" && !Number.isNaN(Date.parse(b.acceptedAt)) ? new Date(b.acceptedAt).toISOString() : "" } : {}), ...(/^[a-zA-Z0-9_-]{16,100}$/.test(String(b.acceptedReplyId || "")) ? { acceptedReplyId: String(b.acceptedReplyId) } : {}), ...(date(b.confirmFollowUpAt) ? { confirmFollowUpAt: date(b.confirmFollowUpAt) } : {}), dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000), payToPlay: ["tickets", "fee"].includes(String(b.payToPlay)) ? String(b.payToPlay) : "" } };
   });
   if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
   if (invalidConfirmation) return reply(400, { error: "A confirmed performance requires a show date and written confirmation evidence." });
