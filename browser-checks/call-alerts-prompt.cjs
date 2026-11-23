@@ -6,6 +6,7 @@
 //   the server still says unlinked the line says so, once linked it goes and "Call alerts are on for this phone." shows.
 // Real SYNC page with a registered device in IndexedDB, the API mocked, Italian and English, 320/360/390/430px.
 //   node scripts/static-server.cjs 8153, then: DANZSTAK_BASE_URL=http://127.0.0.1:8153 node browser-checks/call-alerts-prompt.cjs
+//   (DANZSTAK_BROWSER_CHANNEL= for Playwright Chromium instead of Edge)
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -28,7 +29,9 @@ async function centreTap(page, locator) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ ...(process.env.DANZSTAK_BROWSER_CHANNEL ? { channel: process.env.DANZSTAK_BROWSER_CHANNEL } : {}) });
+  // CI runs Edge (its runner has no Playwright Chromium); DANZSTAK_BROWSER_CHANNEL= (empty) uses Playwright's own Chromium.
+  const channel = process.env.DANZSTAK_BROWSER_CHANNEL ?? "msedge";
+  const browser = await chromium.launch({ ...(channel ? { channel } : {}) });
   const failures = [];
   try {
     for (const width of widths) for (const [reason, lang] of [["blocked", width === 360 ? "it-IT" : "en-US"], ["unlinked", width === 390 ? "it-IT" : "en-US"]]) {
