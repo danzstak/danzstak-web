@@ -70,7 +70,11 @@ X, Slack) never run JavaScript, so every profile shares as a bare "My Profile" l
 - **Same mechanism, same look** for posts, EPKs, events and shop items (task 17 share previews), one shared card
   renderer.
 
-**Checks:**
+**Built in #677 (2026-11-21), with three decisions:**
+- **Drawn by the member's own browser, not the server.** The Lambdas have no image library, and the browser already has the pictures, fonts, every script and the Move-to-fit positions. The card is uploaded like any profile picture, served by the share route, and redrawn when the name, @username, bio, cover, photo or shop photos change (a signature of what it was drawn from).
+- **JPEG, not PNG.** A photo card as PNG is about 1 MB, and WhatsApp skips previews over roughly 300 KB.
+- **The member turns it on.** Profiles are friends/Tribe-only, so name and photo reach previews only after "Show my photo and name in link previews" (on by default in their own share sheet; off deletes the card). "Public visibility" in the fix above means this switch.
+
 - `test-share-preview.cjs`: the route answers a crawler user agent (`facebookexternalhit`, `WhatsApp`, `Twitterbot`,
   `TelegramBot`, iMessage's `facebookexternalhit/1.1 Facebot Twitterbot`) with the right `og:*` tags; a private
   profile gets the general card with no personal data; a browser is sent on to the profile.

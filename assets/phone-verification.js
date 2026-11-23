@@ -22,7 +22,10 @@
     resend_window: "You can resend once. Try again in 10 minutes.",
     number_limit: "This number is already linked to 10 DanzStak accounts.",
     provider_unavailable: "SYNC verification texts aren't available yet. No text was sent.",
-    send_failed: "The verification text could not be sent. No number was verified."
+    send_failed: "The verification text could not be sent. No number was verified.",
+    send_try_again: "Couldn't send the code right now. Try again in a minute.",
+    confirm_try_again: "Couldn't check the code right now. Try again in a minute.",
+    try_again: "Something went wrong on our side. Try again in a minute."
   };
   // The phone's languages, so Twilio texts the code in the member's language (the server allowlists them).
   const phoneLanguages = () => (Array.isArray(navigator.languages) && navigator.languages.length ? navigator.languages : [navigator.language || "en"]).slice(0, 8);
@@ -32,15 +35,33 @@
     try {
       const response = await fetch(API + path, { credentials:"include", cache:"no-store", signal:controller.signal, ...options });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) { const error = new Error(ERROR_TEXT[data.code] ? t(ERROR_TEXT[data.code]) : data.error || t("Phone settings could not be updated.")); error.code = data.code || ""; throw error; }
+      if (!response.ok) {
+        // Directive L1: the screen always says why, in the member's language (a known code, signed out, our side, or the
+        // server's own short line), never nothing and never raw English.
+        const text = ERROR_TEXT[data.code] ? ERROR_TEXT[data.code]
+          : response.status === 401 ? "Sign in to register this device."
+          : response.status >= 500 ? ERROR_TEXT.try_again
+          : data.error || "Phone settings could not be updated.";
+        const error = new Error(t(text)); error.code = data.code || (response.status === 401 ? "signed_out" : response.status >= 500 ? "try_again" : ""); throw error;
+      }
       return data;
     } catch (error) {
       if (error.name === "AbortError") throw new Error(t("Phone settings took too long to respond."));
+      // fetch itself failed: no connection (the browser's own "Failed to fetch" / "Load failed" never shows).
+      if (error instanceof TypeError || navigator.onLine === false) { const offline = new Error(t("No connection. Check your internet, then try again.")); offline.code = "offline"; throw offline; }
       throw error;
     } finally { clearTimeout(timeout); }
   }
 
   function message(text, state = "") { statusNode.textContent = t(text); statusNode.dataset.state = state; }
+  // When the first check fails the screen keeps a way forward: Try again (and it retries by itself when the phone gets
+  // its connection back). Never a dead registration screen (directive L1).
+  const retry = Object.assign(document.createElement("button"), { type: "button", id: "syncPhoneRetry", className: "secondary", hidden: true });
+  retry.dataset.musicIcon = "rewind";
+  retry.append(Object.assign(document.createElement("span"), { className: "ds-cue-label" }));
+  statusNode.after(retry);
+  retry.addEventListener("click", () => load());
+  window.addEventListener("online", () => { if (!retry.hidden) load(); });
   function enrollmentBody(extra = {}) { return deviceChallenge ? { ...extra, purpose:"sync_device", deviceChallengeId:deviceChallenge.challengeId, deviceChallenge:deviceChallenge.challenge } : extra; }
   function cooldown() {
     clearTimeout(timer);
@@ -69,9 +90,13 @@
   }
   async function load() {
     setupCountries();
+    retry.hidden = true;
     message(t("Checking SMS verification availability…"));
     try { render(await request("/phone-verification")); }
-    catch(error) { message(error.message, "error"); numberForm.hidden = codeForm.hidden = verified.hidden = true; }
+    catch(error) {
+      message(error.message, "error"); numberForm.hidden = codeForm.hidden = verified.hidden = true;
+      retry.querySelector(".ds-cue-label").textContent = t("Try again"); retry.setAttribute("aria-label", t("Try again")); retry.hidden = false;
+    }
     finally { resolveReady(current); window.dispatchEvent(new CustomEvent("danzstak:phone-verification-ready")); }
   }
   async function startDeviceOtp(challenge, { keepNumber = false } = {}) {

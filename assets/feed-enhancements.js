@@ -2815,10 +2815,17 @@ if (composerActions && publishButton) {
     input.type = "file";
     input.accept = accept;
     input.hidden = true;
+    // Owner 2026-11-22: several photos at once, up to 20 in one post (post-photos.js).
+    if (kind === "image") input.multiple = true;
     button.addEventListener("click", () => { expandComposer(); input.click(); });
     input.addEventListener("change", () => {
-      const file = input.files[0];
+      let file = input.files[0], more = [];
       if (!file) return;
+      if (kind === "image" && input.files.length > 1 && window.danzstakPostPhotos) {
+        const { photos, dropped } = window.danzstakPostPhotos.pick(input.files);
+        if (dropped) showAppFeedback(window.danzstakPostPhotos.tooMany());
+        if (photos.length) [file, ...more] = photos;
+      }
       if (!file.type.startsWith(kind + "/") || (maxBytes && file.size > maxBytes)) {
         input.value = "";
         showAppFeedback(maxBytes
@@ -2827,7 +2834,8 @@ if (composerActions && publishButton) {
         return;
       }
       if (selectedMedia?.url) URL.revokeObjectURL(selectedMedia.url);
-      selectedMedia = { file, kind, url: URL.createObjectURL(file) };
+      selectedMedia?.more?.forEach(item => URL.revokeObjectURL(item.url));
+      selectedMedia = { file, kind, url: URL.createObjectURL(file), more: more.map(photo => ({ file: photo, url: URL.createObjectURL(photo) })) };
       window.danzstakSelectedMedia = selectedMedia;
       const storyToggle = document.getElementById("shareToStory");
       if (storyToggle) {
@@ -2849,12 +2857,29 @@ if (composerActions && publishButton) {
       media.style.borderRadius = "10px";
       if (kind === "video") media.controls = true;
       preview.replaceChildren(media);
+      if (selectedMedia.more.length) {
+        // Several photos: one row of squares with the count (they post as one swipeable photo post).
+        const strip = document.createElement("div");
+        strip.className = "post-photos-picked";
+        for (const url of [selectedMedia.url, ...selectedMedia.more.map(item => item.url)]) {
+          const thumb = document.createElement("img");
+          thumb.src = url; thumb.alt = "";
+          strip.append(thumb);
+        }
+        const count = document.createElement("p");
+        count.className = "post-photos-picked-count";
+        count.textContent = (window.danzstakTranslate?.("{count} photos") || "{count} photos").replace("{count}", String(selectedMedia.more.length + 1));
+        preview.replaceChildren(strip, count);
+      }
       if (kind === "video") {
         const scanStatus = document.createElement("p");
         scanStatus.className = "copyright-scan-status";
         scanStatus.textContent = isLocalHost() ? "Rights certification: local preview only" : "Rights certification required; automated content matching is not currently available.";
         preview.appendChild(scanStatus);
       }
+      // Owner 2026-11-22: the member chooses the album the photos or video go into (default: Mobile/Computer uploads).
+      const albumChoice = window.danzstakPostPhotos?.albumChoice?.();
+      if (albumChoice) { selectedMedia.albumChoice = albumChoice; preview.appendChild(albumChoice.element); }
     });
     mediaTools.append(button, input);
   }
@@ -3323,9 +3348,7 @@ function addPostDeleteButton(post) {
       button.disabled = true;
       try {
         await handler(button);
-        menu.hidden = true;
-        toggle.setAttribute("aria-expanded", "false");
-        if (menu.contains(document.activeElement)) toggle.focus({ preventScroll: true });
+        if (openPostMenu?.menu === menu) closePostMenu({ focus: menu.contains(document.activeElement) });
       } catch (error) { showAppFeedback(error.message || "This action could not be saved. Please try again.", { urgent: true }); }
       finally { button.disabled = false; }
     });
@@ -3485,7 +3508,7 @@ function addPostDeleteButton(post) {
     });
     option("Move to archive", "Hide this post from your account.", () => hidePostForAccount(post));
   const deleteTitle = owner ? "Delete post" : "Remove from My Mix";
-  option(deleteTitle, owner ? "Choose whether to remove this placement or delete your post everywhere." : "Hide this member's post from Your Mix.", async () => {
+  const deleteOption = option(deleteTitle, owner ? "Choose whether to remove this placement or delete your post everywhere." : "Hide this member's post from Your Mix.", async () => {
     const postId = post.dataset.postId;
     if (post.dataset.isOwner !== "true") {
       if (await window.danzstakConfirm("You did not create this post. It will only be removed from Your Mix.", { title: "Remove this post from Your Mix?", confirmLabel: "Remove from My Mix", danger: true })) await removePostFromThisFeed();
@@ -3546,25 +3569,19 @@ function addPostDeleteButton(post) {
     }
     option("Report post", "Tell DanzStak about copyright or safety concerns.", () => openPostReportDialog(post, toggle));
   }
+  // Owner 2026-11-22: "put delete post under edit post".
+  const editRow = [...menu.querySelectorAll(".post-option-row")].find(row => row.querySelector("strong")?.textContent === "Edit post");
+  if (editRow) editRow.after(deleteOption);
 
   toggle.addEventListener("click", () => {
-    document.querySelectorAll(".post-options-menu").forEach(other => {
-      if (other !== menu) {
-        other.hidden = true;
-        other.closest(".post")?.querySelector(".post-menu-toggle")?.setAttribute("aria-expanded", "false");
-      }
-    });
-    menu.hidden = !menu.hidden;
-    toggle.setAttribute("aria-expanded", String(!menu.hidden));
-    if (!menu.hidden) menu.querySelector('[role="menuitem"]')?.focus();
+    if (openPostMenu?.menu === menu) closePostMenu();
+    else showPostMenu(menu, toggle);
   });
   menu.addEventListener("keydown", event => {
     const items = [...menu.querySelectorAll('[role="menuitem"]:not(:disabled)')];
     if (event.key === "Escape") {
       event.preventDefault();
-      menu.hidden = true;
-      toggle.setAttribute("aria-expanded", "false");
-      toggle.focus();
+      closePostMenu({ focus: true });
       return;
     }
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key) || !items.length) return;
@@ -3576,12 +3593,34 @@ function addPostDeleteButton(post) {
   post.append(toggle, menu);
 }
 
+// One post ⋯ menu open at a time. Owner 2026-11-22: "when users hit back on their device it goes back to the mix"
+// (before, Back left the app): opening the menu adds a history step, so the phone's Back closes the menu and stays on
+// the Mix; closing it any other way takes that step back off.
+let openPostMenu = null;
+function showPostMenu(menu, toggle) {
+  const previous = openPostMenu;
+  if (previous) { previous.menu.hidden = true; previous.toggle.setAttribute("aria-expanded", "false"); }
+  let pushed = previous?.history === true && history.state?.danzstakPostMenu === true;
+  if (!pushed) { try { history.pushState({ ...(history.state || {}), danzstakPostMenu: true }, ""); pushed = true; } catch {} }
+  openPostMenu = { menu, toggle, history: pushed, focus: false };
+  menu.hidden = false;
+  toggle.setAttribute("aria-expanded", "true");
+  menu.querySelector('[role="menuitem"]')?.focus({ preventScroll: true });
+}
+function closePostMenu({ fromHistory = false, focus = false } = {}) {
+  const open = openPostMenu;
+  if (!open) return;
+  open.focus = open.focus || focus;
+  if (!fromHistory && open.history && history.state?.danzstakPostMenu === true) { history.back(); return; } // popstate closes it
+  openPostMenu = null;
+  open.menu.hidden = true;
+  open.toggle.setAttribute("aria-expanded", "false");
+  if (open.focus && open.toggle.isConnected) open.toggle.focus({ preventScroll: true });
+}
+addEventListener("popstate", () => { if (openPostMenu && history.state?.danzstakPostMenu !== true) closePostMenu({ fromHistory: true }); });
 document.addEventListener("click", event => {
   if (event.target.closest(".post-menu-toggle, .post-options-menu")) return;
-  document.querySelectorAll(".post-options-menu:not([hidden])").forEach(menu => {
-    menu.hidden = true;
-    menu.closest(".post")?.querySelector(".post-menu-toggle")?.setAttribute("aria-expanded", "false");
-  });
+  closePostMenu();
 });
 
 const engagementApi = "https://api.danzstak.com";

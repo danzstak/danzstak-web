@@ -26,7 +26,8 @@ import {
   CognitoIdentityProviderClient,
   ListUsersCommand
 } from "@aws-sdk/client-cognito-identity-provider";
-import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { EPK_CARD_PARTITION, CARD_MAX_BYTES, validEpkId, validCardKey, epkShareLink, epkSharePage } from "./epk-share-preview.mjs";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { PinpointSMSVoiceV2Client, SendNotifyTextMessageCommand } from "@aws-sdk/client-pinpoint-sms-voice-v2";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
@@ -43,6 +44,8 @@ import {
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
+import { BEDROCK_MODELS, anthropicLlm, bedrockLlm, braveSearch, createAiEpk, routedLlm, safeFetchPage } from "./ai-epk.mjs";
+import { createAiProfile } from "./ai-profile.mjs";
 import { EPK_WORKSPACE_KEY, canMove, epkGate, pitchStats, stageOf, venueEvents, withPipeline } from "./booking-pipeline.mjs";
 import { MAX_ROUTE_STOPS, cleanDateOptions, planRouteDates, withRoadLegs } from "./booking-route-dates.mjs";
 import { VENUE_REPORT_OWNER, cleanReport, freshness, signalFromItem, signalUpdate, sortByFreshness, validSignalVenueKey, venueSignalKey } from "./booking-venue-signals.mjs";
@@ -60,6 +63,8 @@ import { enrichPromoter } from "./promoter-contact.mjs";
 import { bookingReplyNotice, bookingNoticeWrites } from "./booking-reply-notice.mjs";
 import { unopenedRefunds, unopenedRefundTransaction } from "./unopened-credit.mjs";
 import { isDirectoryEditor, parseTrustedContact, trustedContactItems, trustedContactUpdate, trustedPromotersNear, contactId as trustedContactId } from "./trusted-contacts.mjs";
+import { publicError, sanitizeErrorResponse } from "./public-errors.mjs";
+import { createAlbums } from "./albums.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -92,6 +97,8 @@ const sms = new PinpointSMSVoiceV2Client({ region: "us-west-1", maxAttempts: 2 }
 const tableName = process.env.SESSIONS_TABLE;
 const sessionDevicesTable = process.env.SESSION_DEVICES_TABLE || "DANZSTAK-SessionDevices";
 const postsTable = "DANZSTAK-Posts";
+// A photo post holds up to 20 photos: its first (mediaKey) and up to 19 more, moreMedia (owner 2026-11-22).
+const postMoreMedia = item => (item?.moreMedia?.L || []).map(entry => entry?.S).filter(key => typeof key === "string" && key);
 const friendsTable = "DANZSTAK-Friends";
 const reactionsTable = "DANZSTAK-Reactions";
 const commentsTable = "DANZSTAK-Comments";
@@ -268,6 +275,64 @@ async function personalPhoneService() {
   });
 }
 
+// AI EPK builder (task 08): Claude through the Anthropic API, key in Secrets Manager danzstak/ai/anthropic-key
+// (JSON {"apiKey": ...}, read through the managed policy DanzStakAnthropicKeyRead). Brave Search from the existing
+// BRAVE_SEARCH_API_KEY setting, or the optional secret danzstak/ai/brave-search-key. Fail-closed: without the
+// Anthropic key the builder says "AI builder coming soon" and nothing can be charged.
+const anthropicSecretName = process.env.ANTHROPIC_SECRET_NAME || "danzstak/ai/anthropic-key";
+const braveSecretName = process.env.BRAVE_SEARCH_SECRET_NAME || "danzstak/ai/brave-search-key";
+let aiEpkPromise = null, aiEpkLoadedAt = 0, aiProfile = null;
+async function aiProfileHandler() { await aiEpkHandler(); return aiProfile; }
+async function optionalAiSecret(name, fields) {
+  try { return secretText(await secretsManager.send(new GetSecretValueCommand({ SecretId: name })), fields); }
+  catch (error) { console.warn("AI secret unavailable", { name, reason: error.name || "error" }); return ""; }
+}
+// D0-4: the model provider per purpose. Extraction on Amazon Bedrock (Haiku 4.5, DanzStakBedrockInvoke), writing on the
+// Anthropic API (key above) until AWS opens Sonnet on Bedrock for this account. AI_EXTRACT_PROVIDER / AI_WRITE_PROVIDER
+// = bedrock | anthropic switch either one with no code change. The Bedrock client comes from the AWS SDK that ships in
+// the Lambda runtime (createRequire, no new package). If it can't load, extraction falls back to the Anthropic API.
+let bedrockRuntime;
+function bedrockAdapter() {
+  if (bedrockRuntime === undefined) {
+    try {
+      const { BedrockRuntimeClient, ConverseCommand } = createRequire(import.meta.url)("@aws-sdk/client-bedrock-runtime");
+      bedrockRuntime = { client: new BedrockRuntimeClient({ region: process.env.AI_BEDROCK_REGION || process.env.AWS_REGION || "us-west-1", maxAttempts: 1 }), Command: ConverseCommand };
+    } catch (error) { console.warn("Bedrock runtime unavailable", { reason: error.code || error.name || "error" }); bedrockRuntime = null; }
+  }
+  if (!bedrockRuntime) return null;
+  return bedrockLlm({ ...bedrockRuntime, extractModel: process.env.AI_BEDROCK_EXTRACT_MODEL || BEDROCK_MODELS.haiku, writeModel: process.env.AI_BEDROCK_WRITE_MODEL || BEDROCK_MODELS.sonnet });
+}
+function aiProviders(anthropicKey) {
+  const anthropic = anthropicLlm({ apiKey: anthropicKey, extractModel: process.env.AI_EPK_EXTRACT_MODEL || "claude-haiku-4-5", writeModel: process.env.AI_EPK_WRITE_MODEL || "claude-sonnet-5-5" });
+  const pick = (setting, fallback) => (String(process.env[setting] || fallback).trim().toLowerCase() === "bedrock" ? bedrockAdapter() : anthropic);
+  const extract = pick("AI_EXTRACT_PROVIDER", "bedrock") || anthropic, write = pick("AI_WRITE_PROVIDER", "anthropic");
+  return routedLlm({ extract, write });
+}
+function aiEpkHandler() {
+  if (aiEpkPromise && Date.now() - aiEpkLoadedAt < 10 * 60 * 1000) return aiEpkPromise;
+  aiEpkLoadedAt = Date.now();
+  aiEpkPromise = (async () => {
+    const [anthropicKey, braveKey] = await Promise.all([
+      optionalAiSecret(anthropicSecretName, ["apiKey", "ANTHROPIC_API_KEY", "key", "value"]),
+      String(process.env.BRAVE_SEARCH_API_KEY || "").trim() || optionalAiSecret(braveSecretName, ["apiKey", "BRAVE_SEARCH_API_KEY", "key", "value"])
+    ]);
+    const llm = aiProviders(anthropicKey);
+    // Write it with AI (task 19) shares the provider and the key.
+    aiProfile = createAiProfile({ db, commands: { GetItemCommand, UpdateItemCommand }, authenticate: getAuthenticatedUser, corsHeaders, tableName: toursTable, llm });
+    return createAiEpk({
+      db,
+      commands: { GetItemCommand, PutItemCommand, UpdateItemCommand, TransactWriteItemsCommand },
+      authenticate: getAuthenticatedUser,
+      corsHeaders,
+      tableName: toursTable,
+      llm,
+      search: braveSearch({ apiKey: braveKey }),
+      fetchPage: safeFetchPage()
+    });
+  })();
+  return aiEpkPromise;
+}
+
 const tourManagerBilling = createTourManagerBilling({
   db,
   commands: { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand },
@@ -277,6 +342,7 @@ const tourManagerBilling = createTourManagerBilling({
   env: stripeEnvironment,
   validateOutreachEpkLink: validateBookingOutreachEpkLink,
   accountEmail: userId => accountForSub(userId),
+  aiEpkReady: async (userId, kind) => kind === "profile" ? (await aiProfileHandler()).checkoutReady(userId) : (await aiEpkHandler()).checkoutReady(userId, kind),
   // Bell notification when a venue answers through the reply page (owner 2026-11-16).
   notifyBookingReply: async ({ artistId, outreachId, dedupe, action, preview, proposedDate, at }) => {
     const send = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${outreachId}` } }, ConsistentRead: true }))).Item;
@@ -1896,7 +1962,7 @@ async function getSecurePosts(event) {
   const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames], authorProfiles);
   const authorName = email => authorNames.get(String(email || "").trim().toLowerCase()) || "DanzStak member";
   const authorPicture = email => authorProfiles.get(String(email || "").trim().toLowerCase())?.picture || "";
-  const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
+  const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : "",moreMediaUrls:postMoreMedia(item).map(key => signedMediaUrl(key,3600))}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
@@ -1919,6 +1985,10 @@ async function getSecurePosts(event) {
       mediaKey: item.mediaKey?.S ?? "",
       mediaUrl: item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S, 3600) : "",
       mediaType: item.mediaType?.S ?? "",
+      moreMediaUrls: postMoreMedia(item).map(key => signedMediaUrl(key, 3600)),
+      uploadSource: item.uploadSource?.S || "",
+      albumId: item.albumId?.S || "",
+      mediaRatio: Number(item.mediaRatio?.N || 0),
       reel: item.reel?.BOOL === true,
       commentPolicy: item.commentPolicy?.S ?? "everyone",
       editHistory: postEditHistory(item),
@@ -2461,6 +2531,29 @@ async function createSecurePost(event) {
   if ((mediaKey && (!/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/.test(mediaKey) || !mediaKey.startsWith(`users/${ownerPrefix}/`))) || Boolean(mediaKey) !== Boolean(mediaType)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid media reference." }) };
   }
+  // Owner 2026-11-22: "should be able to upload multiple photos at once", "set a limit of 20 photos". A photo post carries
+  // up to 19 more photos after its first (mediaKey), each the member's own upload; members swipe through them on the post.
+  const morePhotosAllowed = 19, moreMediaKeys = data.moreMediaKeys === undefined ? [] : data.moreMediaKeys;
+  if (!Array.isArray(moreMediaKeys) || moreMediaKeys.length > morePhotosAllowed || (moreMediaKeys.length && (mediaType !== "image" || sharedSource || facebookImport))
+    || new Set([mediaKey, ...moreMediaKeys]).size !== moreMediaKeys.length + 1
+    || moreMediaKeys.some(key => typeof key !== "string" || !/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif)$/.test(key) || !key.startsWith(`users/${ownerPrefix}/`))) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: `A post can hold up to ${morePhotosAllowed + 1} photos.` }) };
+  }
+  // Owner 2026-11-22: "User should get to choose what album that the images go into or what album the videos go into".
+  // A photo or video post may name one of the poster's own albums; its photos then show in that album instead of
+  // "Mobile uploads" / "Computer uploads". Albums live in the tours table under ALBUMS#<member> (albums.mjs).
+  const albumId = data.albumId === undefined || data.albumId === "" ? "" : data.albumId;
+  if (albumId && (typeof albumId !== "string" || !/^[a-f0-9]{32}$/.test(albumId) || !mediaKey || facebookImport || sharedSource)) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose one of your albums." }) };
+  }
+  if (albumId && !(await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: `ALBUMS#${userId}` }, tourId: { S: `ALBUM#${albumId}` } }, ProjectionExpression: "albumId", ConsistentRead: true }))).Item) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "That album is gone. Choose another one." }) };
+  }
+  // Owner 2026-11-22: "photo should automatically go to mobile uploads", "If they're uploaded from a computer should be a
+  // computer uploads". Which automatic album a post's photos and videos belong to: the browser says ("mobile" or
+  // "computer"; it can tell an iPad that reports itself as a Mac); an older app that doesn't is judged by its browser name.
+  const agent = String(event.headers?.["user-agent"] || event.headers?.["User-Agent"] || "");
+  const uploadSource = data.uploadSource === "mobile" || data.uploadSource === "computer" ? data.uploadSource : /Android|iPhone|iPad|iPod|Mobile/i.test(agent) ? "mobile" : "computer";
   const postId = facebookImport ? importPostId : randomUUID();
   const importedAt = new Date().toISOString();
   const createdAt = facebookImport ? importedDate.toISOString() : importedAt;
@@ -2479,7 +2572,13 @@ async function createSecurePost(event) {
       createdAt: { S: createdAt },
       audience: { S: audience },
       ...(facebookImport ? { importSource: { S: "facebook" }, importKey: { S: data.importKey }, importedAt: { S: importedAt } } : {}),
-      ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {})
+      ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {}),
+      ...(mediaKey && !facebookImport ? { uploadSource: { S: uploadSource } } : {}),
+      ...(albumId ? { albumId: { S: albumId } } : {}),
+      // The media's own shape (width / height) as the phone read it, so its frame is right before it loads (F22). A
+      // value that isn't a sane shape is left out (the frame then takes the shape when the media loads).
+      ...(mediaKey && Number.isFinite(Number(data.mediaRatio)) && Number(data.mediaRatio) >= 0.1 && Number(data.mediaRatio) <= 10 ? { mediaRatio: { N: String(Math.round(Number(data.mediaRatio) * 10000) / 10000) } } : {}),
+      ...(moreMediaKeys.length ? { moreMedia: { L: moreMediaKeys.map(key => ({ S: key })) } } : {})
     },
     ConditionExpression: "attribute_not_exists(postId)"
   };
@@ -2500,19 +2599,26 @@ async function createSecurePost(event) {
   // privacy: their Daily is visible only to the poster. A Daily that cannot be written never fails the post itself.
   let daily = null;
   if (mediaKey && !facebookImport && !sharedSource) {
-    const storyId = randomUUID(), expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
-    try {
-      await db.send(new PutItemCommand({
-        TableName: storiesTable,
-        Item: { storyId: { S: storyId }, userEmail: { S: userEmail }, content: { S: content.slice(0, 5000) || "Story" }, audience: { S: audience === "group" ? "private" : audience }, mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, postId: { S: postId }, fromPost: { BOOL: true }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } },
-        ConditionExpression: "attribute_not_exists(storyId)"
-      }));
-      daily = { storyId, expiresAt };
-      // The clapper's TAKE N counts the member's lifetime Dailies videos (same rule as a Daily added directly).
-      if (mediaType === "video") await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :one", ExpressionAttributeValues: { ":one": { N: "1" }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count not updated", { postId, error: error.name }));
-    } catch (error) {
-      console.error("Post Daily could not be created", { postId, error: error.name });
+    const expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
+    // Every photo of a multi-photo post is its own Daily (owner 2026-11-22), in the post's order.
+    let dailies = 0;
+    for (const [index, key] of [mediaKey, ...moreMediaKeys].entries()) {
+      const storyId = randomUUID(), at = new Date(Date.parse(createdAt) + index).toISOString();
+      try {
+        await db.send(new PutItemCommand({
+          TableName: storiesTable,
+          Item: { storyId: { S: storyId }, userEmail: { S: userEmail }, content: { S: content.slice(0, 5000) || "Story" }, audience: { S: audience === "group" ? "private" : audience }, mediaKey: { S: key }, mediaType: { S: mediaType }, postId: { S: postId }, fromPost: { BOOL: true }, createdAt: { S: at }, expiresAt: { N: String(expiresAt) } },
+          ConditionExpression: "attribute_not_exists(storyId)"
+        }));
+        if (!daily) daily = { storyId, expiresAt };
+        dailies += 1;
+      } catch (error) {
+        console.error("Post Daily could not be created", { postId, error: error.name });
+      }
     }
+    // The clapper's TAKE N counts every Daily the member has ever posted, photos and videos (owner 2026-11-22: "I had 15
+    // before and now I just uploaded four more so it should be … take 19"). It never goes down.
+    if (dailies) await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :count", ExpressionAttributeValues: { ":count": { N: String(dailies) }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count could not be updated", { postId, error: error.name }));
   }
 
   return {
@@ -2531,6 +2637,7 @@ async function createSecurePost(event) {
       location,
       mediaKey,
       mediaType,
+      moreMediaKeys,
       reel,
       createdAt
     })
@@ -2581,23 +2688,24 @@ async function deleteSecurePost(event) {
   const deletionRecords = mode === "delete_everywhere" && !isShare ? [...shares, found.Item] : [found.Item];
   let linkedStories = [];
   let mediaKey = "";
-  if (found.Item.mediaKey?.S) {
+  // Every photo of the post (its first and up to 19 more), the files and their Dailies.
+  const postMedia = found.Item.mediaKey?.S ? [found.Item.mediaKey.S, ...postMoreMedia(found.Item)] : [];
+  if (postMedia.length) {
     const ownerPrefix = sha256(found.Item.userEmail?.S || "").slice(0, 24);
-    if (!found.Item.mediaKey.S.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
+    if (postMedia.some(key => !key.startsWith(`users/${ownerPrefix}/`))) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
     mediaKey = found.Item.mediaKey.S;
+    const mediaValues = Object.fromEntries(postMedia.map((key, index) => [`:media${index}`, { S: key }]));
     linkedStories = await scanAll({
       TableName: storiesTable,
-      FilterExpression: "mediaKey = :media AND userEmail = :owner",
-      ExpressionAttributeValues: { ":media": { S: found.Item.mediaKey.S }, ":owner": { S: found.Item.userEmail?.S || "" } },
+      FilterExpression: `mediaKey IN (${Object.keys(mediaValues).join(", ")}) AND userEmail = :owner`,
+      ExpressionAttributeValues: { ...mediaValues, ":owner": { S: found.Item.userEmail?.S || "" } },
       ProjectionExpression: "storyId"
     }, Number.MAX_SAFE_INTEGER);
   }
-  if (mediaKey) {
-    const mediaCleanupPending = await runCleanup([
-      () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey }))
-    ]);
+  if (postMedia.length) {
+    const mediaCleanupPending = await runCleanup(postMedia.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: key }))));
     if (mediaCleanupPending) {
-      console.error("Post media deletion remains pending", { postId, mediaKey });
+      console.error("Post media deletion remains pending", { postId, mediaKey, photos: postMedia.length });
       return { statusCode: 503, headers, body: JSON.stringify({ error: "Post media could not be removed yet. Try again.", deleted: false }) };
     }
   }
@@ -2747,6 +2855,14 @@ async function updateSecurePost(event) {
     const audience = String(data.audience || "");
     if (!["public", "friends", "private"].includes(audience)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid audience." }) };
     updates.push("audience = :audience"); values[":audience"] = { S: audience };
+  }
+  // Owner 2026-11-22: "they could go back through it and move those images to the specific album that they should be in".
+  // A photo or video post moves to one of its owner's albums, or back ("") to Mobile uploads / Computer uploads.
+  if (Object.prototype.hasOwnProperty.call(data, "albumId")) {
+    const albumId = data.albumId;
+    if (typeof albumId !== "string" || (albumId && !/^[a-f0-9]{32}$/.test(albumId)) || !["image", "video"].includes(found.Item.mediaType?.S) || found.Item.importSource?.S) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose one of your albums." }) };
+    if (albumId && !(await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: `ALBUMS#${userId}` }, tourId: { S: `ALBUM#${albumId}` } }, ProjectionExpression: "albumId", ConsistentRead: true }))).Item) return { statusCode: 400, headers, body: JSON.stringify({ error: "That album is gone. Choose another one." }) };
+    updates.push("albumId = :albumId"); values[":albumId"] = { S: albumId };
   }
   if (Object.prototype.hasOwnProperty.call(data, "commentPolicy")) {
     const commentPolicy = String(data.commentPolicy || "");
@@ -4432,6 +4548,21 @@ const epkPublicPartition = "epk-public";
 const epkSharePartition = "epk-private-share";
 const epkOutreachPartition = "epk-outreach-share";
 const epkOutreachPrefix = "EPK#OUTREACH#";
+// Queue 5a2: photo and video albums on the profile (own partition in the tours table). Built on first use.
+let albumsInstance = null;
+const albumsService = () => albumsInstance ||= createAlbums({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, UpdateItemCommand, DeleteItemCommand, TransactWriteItemsCommand },
+  tableName: toursTable,
+  authenticate: getAuthenticatedUser,
+  accountEmail: userId => accountForSub(userId),
+  mediaPrefix: userId => mediaOwnerPrefixForUser(userId),
+  signedUrl: (key, expires) => signedMediaUrl(key, expires),
+  deleteMedia: async keys => (await runCleanup(keys.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }))))) === 0,
+  relationship: async (viewerEmail, ownerEmail) => (await db.send(new GetItemCommand({ TableName: friendsTable, Key: { userEmail: { S: viewerEmail }, friendEmail: { S: ownerEmail } }, ConsistentRead: true, ProjectionExpression: "#status", ExpressionAttributeNames: { "#status": "status" } }))).Item?.status?.S || "",
+  corsHeaders,
+  originAllowed: origin => allowedOrigins.has(origin)
+});
 
 const epkMediaRoles = new Set(["press-photo", "logo", "artwork", "press-clipping", "biography", "technical-rider", "hospitality-rider", "stage-plot", "other"]);
 const epkMediaPattern = ownerPrefix => new RegExp(`^epk/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`);
@@ -4482,7 +4613,9 @@ function cleanEpk(data, ownerPrefix = "") {
   const links = value => list(value, 12, item => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return null;
     const label = text(item.label, 100), url = https(item.url);
-    return label && url ? { label, url } : null;
+    // embed:false = the builder found the video won't play inside other sites (removed, private or embedding off):
+    // the public EPK shows it as a link, never a broken player (owner 2026-11-23).
+    return label && url ? { label, url, ...(item.embed === false ? { embed: false } : {}) } : null;
   });
   const quotes = list(data.pressQuotes, 8, item => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return null;
@@ -4681,6 +4814,15 @@ async function epkWorkspace(event, method) {
     const existing = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
     if (!existing.Item) return reply(200, { deleted: false, cleanupPending: false });
     const { transaction, mediaKeys } = epkDeletionPlan(existing.Item, ownerPrefix, ownerKey);
+    // The link-preview card goes with the EPK (epk-share-preview.mjs).
+    const deletedId = validEpkId(existing.Item.publicId?.S) ? existing.Item.publicId.S : "";
+    if (deletedId) {
+      const card = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: EPK_CARD_PARTITION }, tourId: { S: deletedId } }, ConsistentRead: true }))).Item;
+      if (card?.ownerId?.S === userId) {
+        transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: EPK_CARD_PARTITION }, tourId: { S: deletedId } } } });
+        if (validCardKey(card.cardKey?.S, ownerPrefix)) mediaKeys.push(card.cardKey.S);
+      }
+    }
     const cleanupPending = mediaKeys.length
       ? await runCleanup(mediaKeys.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }))))
       : 0;
@@ -4695,10 +4837,18 @@ async function epkWorkspace(event, method) {
   if (method === "GET") {
     const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
     if (!result.Item) return reply(200, { kit: null, publicId: "", published: false, updatedAt: "" });
-    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}")), publicId: result.Item.publicId?.S || "", published: result.Item.published?.BOOL === true, privateShared: Boolean(result.Item.shareHash?.S), updatedAt: result.Item.updatedAt?.S || "" });
+    const sharedId = validEpkId(result.Item.publicId?.S) ? result.Item.publicId.S : "";
+    const card = sharedId ? (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: EPK_CARD_PARTITION }, tourId: { S: sharedId } }, ConsistentRead: true }))).Item : null;
+    const cardOn = card?.ownerId?.S === userId && Boolean(card?.cardKey?.S), cardOff = card?.ownerId?.S === userId && card?.off?.BOOL === true;
+    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}")), publicId: result.Item.publicId?.S || "", published: result.Item.published?.BOOL === true, privateShared: Boolean(result.Item.shareHash?.S), updatedAt: result.Item.updatedAt?.S || "", shareUrl: sharedId ? epkShareLink(sharedId) : "", shareCard: cardOn, shareCardOff: cardOff, shareCardSig: cardOn ? card.sig?.S || "" : "" });
   }
   const data = parseJsonBody(event), kit = cleanEpk(data?.kit, ownerPrefix), publish = data?.publish === true;
   if (!kit) return reply(400, { error: "Add an artist name and valid EPK details." });
+  if (publish) {
+    // Nothing AI-written is published unseen (task 08): every AI draft section must be reviewed first.
+    const aiBlock = await (await aiEpkHandler()).publishBlock(userId);
+    if (aiBlock) return reply(409, aiBlock);
+  }
   const existing = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
   try { await validatedEpkMedia(kit.media); } catch (error) { return reply(error.statusCode || 422, { error: error.message }); }
   let publicId = /^[a-z0-9-]{3,64}$/.test(existing.Item?.publicId?.S || "") ? existing.Item.publicId.S : kit.artistName.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
@@ -4734,7 +4884,64 @@ async function epkWorkspace(event, method) {
     ...(shareHash ? [{ Put: { TableName: toursTable, Item: { userId: { S: epkSharePartition }, tourId: { S: publicId }, name: { S: `${kit.artistName} private EPK` }, plan: { S: plan }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }] : [])
   ] }));
   const cleanup = await cleanupEpkMediaObjects(ownerKey, ownerPrefix, pendingMediaCleanup, [...retained]);
-  return reply(200, { publicId, published: publish, updatedAt: nowIso, cleanupPending: cleanup.pending });
+  return reply(200, { publicId, published: publish, updatedAt: nowIso, cleanupPending: cleanup.pending, shareUrl: epkShareLink(publicId) });
+}
+
+// EPK link previews (epk-share-preview.mjs). POST /epk/share-card: the artist's browser uploads the card it drew from the
+// laminate (a users/<own prefix>/<uuid>.jpg upload, at most 300 KB) and turns the card on, or sends { off: true }.
+async function epkShareCard(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const ownerPrefix = await mediaOwnerPrefixForUser(userId);
+  if (!ownerPrefix) return reply(409, { error: "Account email could not be verified." });
+  const workspace = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: epkWorkspaceId } }, ConsistentRead: true }))).Item;
+  const publicId = validEpkId(workspace?.publicId?.S) ? workspace.publicId.S : "";
+  if (!publicId) return reply(409, { error: "Save the EPK before sharing it." });
+  const cardRecordKey = { userId: { S: EPK_CARD_PARTITION }, tourId: { S: publicId } };
+  const current = (await db.send(new GetItemCommand({ TableName: toursTable, Key: cardRecordKey, ConsistentRead: true }))).Item;
+  if (current && current.ownerId?.S !== userId) return reply(409, { error: "This EPK link belongs to another account." });
+  const previousKey = validCardKey(current?.cardKey?.S, ownerPrefix) ? current.cardKey.S : "";
+  const data = parseJsonBody(event) || {};
+  if (data.off === true) {
+    // Kept as "off" (not deleted), so the builder remembers the artist's choice and doesn't draw a new card.
+    await db.send(new PutItemCommand({ TableName: toursTable, Item: { ...cardRecordKey, ownerId: { S: userId }, off: { BOOL: true }, updatedAt: { S: new Date().toISOString() } } }));
+    if (previousKey) await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: previousKey })).catch(() => {});
+    return reply(200, { shareCard: false, shareCardOff: true, shareCardSig: "", shareUrl: epkShareLink(publicId) });
+  }
+  const mediaKey = String(data.mediaKey || ""), sig = String(data.sig || "").toLowerCase();
+  if (!validCardKey(mediaKey, ownerPrefix) || !/^[a-f0-9]{16,64}$/.test(sig)) return reply(400, { error: "The link preview couldn't be saved." });
+  let head;
+  try { head = await s3.send(new HeadObjectCommand({ Bucket: mediaBucket, Key: mediaKey })); }
+  catch { return reply(400, { error: "The link preview couldn't be saved." }); }
+  const size = Number(head.ContentLength || 0);
+  if (size < 1000 || size > CARD_MAX_BYTES || (head.ContentType && !/^image\/jpeg$/i.test(head.ContentType))) return reply(400, { error: "The link preview couldn't be saved." });
+  await db.send(new PutItemCommand({ TableName: toursTable, Item: { ...cardRecordKey, ownerId: { S: userId }, cardKey: { S: mediaKey }, sig: { S: sig }, updatedAt: { S: new Date().toISOString() } } }));
+  if (previousKey && previousKey !== mediaKey) await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: previousKey })).catch(() => {});
+  return reply(200, { shareCard: true, shareCardSig: sig, shareUrl: epkShareLink(publicId) });
+}
+
+// GET /share/epk/<id> (the page link crawlers read) and GET /share/epk/<id>/card (the card picture). No Origin: crawlers
+// send none.
+async function epkSharePreview(event, publicId, wantsCard) {
+  const notFound = { statusCode: 404, headers: { ...securityHeaders, "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" }, body: "Not found" };
+  if (!validEpkId(publicId)) return notFound;
+  const get = partition => db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: partition }, tourId: { S: publicId } } })).then(result => result.Item || null);
+  const [card, published, shared] = await Promise.all([get(EPK_CARD_PARTITION), get(epkPublicPartition), get(epkSharePartition)]);
+  const owner = published?.ownerId?.S || shared?.ownerId?.S || "";
+  const cardOn = Boolean(owner) && card?.ownerId?.S === owner && Boolean(card?.cardKey?.S);
+  if (wantsCard) {
+    if (!cardOn) return notFound;
+    const object = await s3.send(new GetObjectCommand({ Bucket: mediaBucket, Key: card.cardKey.S }));
+    const bytes = Buffer.from(await object.Body.transformToByteArray());
+    return { statusCode: 200, isBase64Encoded: true, headers: { ...securityHeaders, "content-type": "image/jpeg", "cache-control": "public, max-age=86400" }, body: bytes.toString("base64") };
+  }
+  const plan = published?.plan?.S || (cardOn ? shared?.plan?.S : "") || "";
+  let kit = null;
+  try { kit = plan ? JSON.parse(plan) : null; } catch { kit = null; }
+  return epkSharePage({ id: publicId, kit, cardSig: cardOn ? card.sig?.S || "" : "" });
 }
 
 async function publicEpk(event, publicId) {
@@ -4743,7 +4950,7 @@ async function publicEpk(event, publicId) {
   if (!allowedOrigins.has(event.headers?.origin) || !/^[a-z0-9-]{3,64}$/i.test(publicId)) return reply(404, { error: "EPK not found." });
   const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } } }));
   if (!result.Item) return reply(404, { error: "EPK not found." });
-  return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), true), updatedAt: result.Item.updatedAt?.S || "" });
+  return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), true), updatedAt: result.Item.updatedAt?.S || "", shareUrl: epkShareLink(publicId) });
 }
 
 async function privateEpkShare(event, method, publicId = "") {
@@ -4756,7 +4963,7 @@ async function privateEpkShare(event, method, publicId = "") {
     const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkSharePartition }, tourId: { S: publicId } }, ConsistentRead: true }));
     const storedHash = result.Item?.shareHash?.S || "";
     if (!epkShareTokenMatches(token, storedHash)) return reply(404, { error: "Private EPK link is invalid or has been revoked." });
-    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), false, false), private: true, updatedAt: result.Item.updatedAt?.S || "" });
+    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), false, false), private: true, updatedAt: result.Item.updatedAt?.S || "", shareUrl: epkShareLink(publicId) });
   }
   const userId = await getAuthenticatedUser(event);
   if (!userId) return reply(401, { error: "Authentication required." });
@@ -4780,7 +4987,7 @@ async function privateEpkShare(event, method, publicId = "") {
     { Update: { TableName: toursTable, Key: ownerKey, UpdateExpression: "SET shareHash = :hash, updatedAt = :updated", ConditionExpression: "attribute_exists(userId)", ExpressionAttributeValues: { ":hash": { S: shareHash }, ":updated": { S: nowIso } } } },
     { Put: { TableName: toursTable, Item: { ...shareKey, name: { S: `${existing.Item.name?.S || "Private EPK"} review` }, plan: { S: existing.Item.plan?.S || "{}" }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }
   ] }));
-  return reply(200, { privateShared: true, publicId: id, token });
+  return reply(200, { privateShared: true, publicId: id, token, shareUrl: epkShareLink(id) });
 }
 
 async function outreachEpkShare(event, method, shareId = "") {
@@ -5594,7 +5801,9 @@ async function sendPersonalPhoneCode(event) {
     const result = await service.send({ userId, countryCode: String(body.countryCode || "").slice(0, 8), localNumber: String(body.localNumber || "").slice(0, 40), requestKey, purpose, locale, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 202, headers, body: JSON.stringify(result) };
   } catch (error) {
-    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
+    if (Number(error?.statusCode || 0) >= 500 || !error?.statusCode) console.error("Phone send failed", { errorName: error?.name || "Error", errorMessage: error?.message || "" });
+    const mapped = publicError(error, { fallback: "Couldn't send the code right now. Try again in a minute.", code: "send_try_again" });
+    return { statusCode: mapped.statusCode, headers, body: JSON.stringify({ error: mapped.error, code: mapped.code }) };
   }
 }
 
@@ -5611,7 +5820,9 @@ async function confirmPersonalPhoneCode(event) {
     const result = await service.confirm({ userId, code: String(body.code || "").slice(0, 12), purpose, requestKey, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (error) {
-    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
+    if (Number(error?.statusCode || 0) >= 500 || !error?.statusCode) console.error("Phone confirm failed", { errorName: error?.name || "Error", errorMessage: error?.message || "" });
+    const mapped = publicError(error, { fallback: "Couldn't check the code right now. Try again in a minute.", code: "confirm_try_again" });
+    return { statusCode: mapped.statusCode, headers, body: JSON.stringify({ error: mapped.error, code: mapped.code }) };
   }
 }
 
@@ -5628,7 +5839,10 @@ async function removePersonalPhone(event) {
 }
 
 // API GATEWAY ROUTES
-export const handler = async event => {
+// Every reply passes the error mapper: no AWS, Stripe or stack details ever reach a member (directive L1).
+export const handler = async event => sanitizeErrorResponse(await routeRequest(event), { route: `${event?.requestContext?.http?.method || ""} ${event?.requestContext?.routeKey || event?.rawPath || ""}`.trim() });
+
+async function routeRequest(event) {
   const method = event?.requestContext?.http?.method;
   const path = event?.rawPath;
   await mediaCdn.ready().catch(() => false);
@@ -5638,9 +5852,17 @@ export const handler = async event => {
       return await tourManagerBilling(event);
     }
     if (path?.startsWith("/tour-manager/") || path?.startsWith("/phone-number/") || path?.startsWith("/sync-network-number/")) {
-      if (method === "POST" && ["/tour-manager/stripe/webhook", "/sync-network-number/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout", "/sync-network-number/checkout", "/tour-manager/refunds/quote", "/tour-manager/refunds/accept"].includes(path)) await ensureStripeSecrets();
+      if (method === "POST" && ["/tour-manager/stripe/webhook", "/sync-network-number/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout", "/sync-network-number/checkout", "/tour-manager/ai-epk/checkout", "/tour-manager/refunds/quote", "/tour-manager/refunds/accept"].includes(path)) await ensureStripeSecrets();
       const billingResponse = await tourManagerBilling(event);
       if (billingResponse) return billingResponse;
+    }
+    if (path === "/profile/ai" || path?.startsWith("/profile/ai/")) {
+      const aiProfileResponse = await (await aiProfileHandler())(event);
+      if (aiProfileResponse) return aiProfileResponse;
+    }
+    if (path === "/epk/ai" || path?.startsWith("/epk/ai/")) {
+      const aiEpkResponse = await (await aiEpkHandler())(event);
+      if (aiEpkResponse) return aiEpkResponse;
     }
     if (path?.startsWith("/marketplace/")) {
       const ticketOrderResponse = await ticketOrders(event);
@@ -5810,6 +6032,9 @@ export const handler = async event => {
     if ((method === "GET" || method === "POST" || method === "DELETE") && path === "/epk") return await epkWorkspace(event, method);
     if (method === "POST" && path === "/epk/qr") return await epkQr(event);
     if (method === "POST" && path === "/epk/share") return await privateEpkShare(event, method);
+    if (method === "POST" && path === "/epk/share-card") return await epkShareCard(event);
+    const epkPreviewMatch = path.match(/^\/share\/epk\/([a-z0-9-]{3,64})(\/card)?\/?$/);
+    if (method === "GET" && epkPreviewMatch) return await epkSharePreview(event, epkPreviewMatch[1], Boolean(epkPreviewMatch[2]));
     if ((method === "GET" || method === "POST") && path === "/epk/outreach-share") return await outreachEpkShare(event, method);
     const epkOutreachMatch = path.match(/^\/epk\/outreach\/([a-f0-9]{32})$/i);
     if (method === "POST" && epkOutreachMatch) return await outreachEpkShare(event, method, epkOutreachMatch[1].toLowerCase());
@@ -5823,6 +6048,7 @@ export const handler = async event => {
     const reviewMatch = path.match(/^\/reviews\/([a-f0-9]{32})$/i);
     if (method === "PATCH" && reviewMatch) return await updateReview(event, reviewMatch[1].toLowerCase());
     if (method === "DELETE" && reviewMatch) return await deleteReview(event, reviewMatch[1].toLowerCase());
+    if (path === "/albums" || path.startsWith("/albums/")) { const albums = await albumsService().handle(event, method, path); if (albums) return albums; }
     if (method === "GET" && path === "/tours") return await listTourPlans(event);
     if (method === "POST" && path === "/tours") return await saveTourPlan(event);
     if (method === "DELETE" && path.startsWith("/tours/")) return await deleteTourPlan(event, decodeURIComponent(path.slice(7)));
@@ -5851,7 +6077,7 @@ export const handler = async event => {
 
     return errorResponse(500, "Authentication service error");
   }
-};
+}
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.

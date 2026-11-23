@@ -116,9 +116,20 @@
     if (on) bubble?.focus(); else $("callMinimise")?.focus();
   }
 
+  // The chat header draws the contact's photo as a background image (direct-messages.js), not an <img>: reading only
+  // an <img> left every call on the letter (owner 2026-11-23: "Images are funky").
   function photoFor() {
     const avatar = $("conversationAvatar"), img = avatar?.querySelector("img");
-    return img?.currentSrc || img?.src || "";
+    if (img?.currentSrc || img?.src) return img.currentSrc || img.src;
+    const match = /url\(["']?(.+?)["']?\)/.exec(avatar?.style.backgroundImage || "");
+    return match ? match[1] : "";
+  }
+  // chat.js writes "Calling {name}…" / "Connecting to {name}…" to the status line while the photo already says
+  // "Calling…": the same words twice on one screen. Those two hide; anything else (an error, Hear call) still shows.
+  function echoesStage() {
+    const text = $("callStatus")?.textContent.trim() || "", name = otherName() || $("conversationName")?.textContent?.trim() || "";
+    if (!text || connectedAt) return false;
+    return ["Calling {name}…", "Connecting to {name}…"].some(line => t(line).replace("{name}", name) === text || line.replace("{name}", name) === text);
   }
   function paintWho() {
     const name = otherName() || $("conversationName")?.textContent?.trim() || "";
@@ -154,6 +165,50 @@
     const bubbleTime = $("callBubble")?.querySelector(".ds-call-bubble-time");
     if (bubbleTime) bubbleTime.textContent = connectedAt ? clock() : t("Calling…");
     document.body.toggleAttribute("data-call-connected", Boolean(connectedAt) && Boolean(kind));
+    document.body.toggleAttribute("data-call-status-echo", Boolean(kind) && echoesStage());
+  }
+
+  // Owner 2026-11-23 (a video call with a desktop): "Control panel in video it should hide when the answer should hide
+  // from both". On a connected video call the top bar, the status line and the button panel step aside 4 s after the last
+  // touch, on both sides of the call (both run this screen). A tap on the video brings them back; a tap on the video while
+  // they're on show puts them away. They stay while a sheet or the note box is open, while the call is reconnecting, while
+  // "Hear call" waits for a tap, and while a keyboard user is in the panel. Voice calls keep their buttons.
+  const CHROME_IDLE_MS = 4000;
+  let chromeTimer = 0;
+  const chromeHidden = () => document.body.dataset.callChrome === "hidden";
+  function chromeMayHide() {
+    return callKind() === "video" && Boolean(connectedAt) && document.body.dataset.callLink !== "reconnecting"
+      && !$("callSheet") && !document.querySelector(".call-note-sheet:not([hidden])")
+      && $("resumeRemoteAudio")?.hidden !== false && !$("mediaControls")?.querySelector(":focus-visible");
+  }
+  function showChrome() {
+    clearTimeout(chromeTimer);
+    delete document.body.dataset.callChrome;
+    if (callKind() === "video" && connectedAt) chromeTimer = setTimeout(hideChrome, CHROME_IDLE_MS);
+  }
+  function hideChrome() {
+    clearTimeout(chromeTimer);
+    if (chromeMayHide()) document.body.dataset.callChrome = "hidden";
+    else if (callKind() === "video" && connectedAt) chromeTimer = setTimeout(hideChrome, CHROME_IDLE_MS);
+  }
+  function resetChrome() { clearTimeout(chromeTimer); delete document.body.dataset.callChrome; }
+  function watchChrome(conversation) {
+    // Capture, so a tap that only brings the buttons back never also presses one.
+    // The click that follows that tap would land on whatever button is now back under the finger (End, for one), so it
+    // is swallowed.
+    const swallowNextClick = () => {
+      const swallow = event => { event.preventDefault(); event.stopPropagation(); };
+      conversation.addEventListener("click", swallow, { capture: true, once: true });
+      setTimeout(() => conversation.removeEventListener("click", swallow, { capture: true }), 700);
+    };
+    conversation.addEventListener("pointerdown", event => {
+      if (callKind() !== "video" || !connectedAt) return;
+      const onVideo = event.target.closest?.(".video-grid") && !event.target.closest(".local-video");
+      if (chromeHidden()) { swallowNextClick(); showChrome(); return; }
+      if (onVideo && chromeMayHide()) { event.preventDefault(); hideChrome(); return; }
+      showChrome();
+    }, true);
+    document.addEventListener("keydown", () => { if (chromeHidden() || chromeTimer) showChrome(); });
   }
 
   function build() {
@@ -217,18 +272,27 @@
     // State: call mode on/off, connection, track changes. A call that ends while minimised clears the bubble.
     new MutationObserver(() => {
       if (!callKind() && !document.body.dataset.callMinimised) { connectedAt = 0; $("callSheet")?.remove(); }
+      if (callKind() !== "video") resetChrome();
       paintWho(); paintState(); refreshKeys(); requestAnimationFrame(fitPanel);
     }).observe(document.body, { attributes: true, attributeFilter: ["data-call-mode", "data-sync-screen"] });
+    // The link dropping brings the buttons and "Reconnecting…" back on show.
+    new MutationObserver(() => { if (document.body.dataset.callLink === "reconnecting" && chromeHidden()) showChrome(); })
+      .observe(document.body, { attributes: true, attributeFilter: ["data-call-link"] });
+    watchChrome(conversation);
     window.addEventListener("resize", () => requestAnimationFrame(fitPanel));
     new MutationObserver(() => {
       requestAnimationFrame(fitPanel);
       if (!controls.hidden) return;
-      connectedAt = 0; delete document.body.dataset.callMinimised; $("callBubble").hidden = true; $("callSheet")?.remove(); paintState();
+      connectedAt = 0; resetChrome(); delete document.body.dataset.callMinimised; $("callBubble").hidden = true; $("callSheet")?.remove(); paintState();
     }).observe(controls, { attributes: true, attributeFilter: ["hidden"] });
-    window.addEventListener("danzstak:remote-media", () => { if (!connectedAt) connectedAt = Date.now(); paintWho(); paintState(); });
+    window.addEventListener("danzstak:remote-media", () => { if (!connectedAt) { connectedAt = Date.now(); showChrome(); } paintWho(); paintState(); });
     for (const button of [mic, camera, $("toggleRingback")]) button?.addEventListener("click", () => setTimeout(refreshKeys));
     new MutationObserver(refreshKeys).observe($("toggleRingback") || controls, { attributes: true, attributeFilter: ["hidden", "aria-pressed"] });
     setInterval(() => { if (callKind() && connectedAt) paintState(); }, 1000);
+    if ($("callStatus")) new MutationObserver(paintState).observe($("callStatus"), { childList: true, characterData: true, subtree: true });
+    // A tap focuses End (chat.js moves focus there for keyboards and screen readers); only a keyboard shows the ring.
+    document.addEventListener("pointerdown", () => { document.documentElement.dataset.callPointer = "1"; }, true);
+    document.addEventListener("keydown", () => { delete document.documentElement.dataset.callPointer; }, true);
     paintWho(); paintState(); refreshKeys();
   }
   window.danzstakCallScreen = Object.freeze({ refresh: () => { paintWho(); paintState(); refreshKeys(); } });

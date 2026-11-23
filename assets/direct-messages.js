@@ -20,6 +20,9 @@ const messageForm = document.getElementById("messageForm");
 const messageInput = document.getElementById("messageInput");
 const messageMedia = document.getElementById("messageMedia");
 const messageCamera = document.getElementById("messageCamera");
+const messageCameraVideo = document.getElementById("messageCameraVideo");
+const messageCameraButton = document.getElementById("messageCameraButton");
+const messageCaptureMenu = document.getElementById("messageCaptureMenu");
 const messageMediaPreview = document.getElementById("messageMediaPreview");
 const messageList = document.getElementById("messageList");
 const messageSelectionToolbar = document.getElementById("messageSelectionToolbar");
@@ -250,13 +253,15 @@ function setConversationActionsEnabled(enabled) {
     button.setAttribute("aria-disabled", String(!enabled));
   }
   if (messageMedia) messageMedia.disabled = !enabled;
-  if (messageCamera) messageCamera.disabled = !enabled;
+  for (const control of [messageCamera, messageCameraVideo, messageCameraButton]) if (control) control.disabled = !enabled;
+  if (!enabled) closeCaptureMenu();
 }
 
 function clearSelectedMessageMedia() {
   selectedMessageMedia = null;
   if (messageMedia) messageMedia.value = "";
   if (messageCamera) messageCamera.value = "";
+  if (messageCameraVideo) messageCameraVideo.value = "";
   if (selectedMessageMediaUrl) URL.revokeObjectURL(selectedMessageMediaUrl);
   selectedMessageMediaUrl = "";
   if (messageMediaPreview) { messageMediaPreview.replaceChildren(); messageMediaPreview.hidden = true; }
@@ -328,8 +333,8 @@ async function directFetch(path, options = {}, timeoutMs = 10000) {
     return await fetch(String(target), { ...options, headers, signal: controller.signal });
   }
   catch (error) {
-    if (error.name === "AbortError") throw new Error(messageTranslate("DanzStak is taking too long to respond. Try again."));
-    throw new Error(messageTranslate("DanzStak cannot connect right now. Check your connection and try again."));
+    if (error.name === "AbortError") throw Object.assign(new Error(messageTranslate("DanzStak is taking too long to respond. Try again.")), { network: true });
+    throw Object.assign(new Error(messageTranslate("DanzStak cannot connect right now. Check your connection and try again.")), { network: true });
   }
   finally { clearTimeout(timer); }
 }
@@ -1632,17 +1637,10 @@ messageForm?.addEventListener("submit", async event => {
   }
   const clientMessageId = retry?.clientMessageId || `${String(Date.now()).padStart(13, "0")}#${crypto.randomUUID()}`;
   const replyToId = globalThis.danzstakSyncReply?.idFor?.(recipientEmail) || ""; // 16-E
-  if (window.navigator?.onLine === false && window.danzstakQueueOffline) {
-    try {
-      if (selectedMessageMedia) throw new Error(messageTranslate("Attachments need a connection. Your draft is still here."));
-      window.danzstakQueueOffline("/messages", { recipientEmail, content, clientMessageId });
-      retryMessageSend = null;
-      messageInput.value = "";
-      saveChatDraft(recipientEmail, "");
-      callStatus.textContent = messageTranslate("Saved offline — waiting to send when you reconnect.");
-    } catch (error) { callStatus.textContent = error.message; }
-    return;
-  }
+  // Owner 2026-11-23: after a dropped call the phone reported itself offline, so Send didn't even try and said "Turn on
+  // offline access in App and device settings first." until the app was reopened. Phones get navigator.onLine wrong after
+  // a network change, so Send always tries for real; a send that really fails for want of a connection keeps the words
+  // and goes again by itself when the connection is back (sendWhenBack).
   const version = conversationVersion;
   const pendingItem = pendingMessageItem(content, mediaFile);
   let attachment = retry?.attachment || {};
@@ -1677,15 +1675,100 @@ messageForm?.addEventListener("submit", async event => {
     if (version === conversationVersion) {
       retryMessageSend = { recipientEmail, content, mediaFile, clientMessageId, attachment };
       if (content && !messageInput.value.trim()) messageInput.value = content;
-      callStatus.textContent = messageFormat("{error}. Your message is still in the composer.", { error: error.message });
-      messageInput.focus();
+      saveChatDraft(recipientEmail, content);
+      if (error.network) {
+        callStatus.textContent = messageTranslate("No connection right now. Your message is still here and sends when you're back.");
+        sendWhenBack();
+      } else {
+        callStatus.textContent = messageFormat("{error}. Your message is still in the composer.", { error: String(error.message || "").replace(/\.$/, "") });
+        messageInput.focus();
+      }
     }
   }
   finally { pendingMessageSends.delete(version); if (version === conversationVersion) sendButton.disabled = !activeCanContact; }
 }, true);
 
+// A message that couldn't go for want of a connection goes again by itself: when the phone says it's back online, when
+// SYNC comes back to the front, and every 10 s while it's on screen (phones don't always say). Same message id, so it
+// can never arrive twice. Stops when it's sent, the words change, or another chat opens.
+let sendAgainTimer = 0;
+function sendWhenBack() {
+  clearTimeout(sendAgainTimer);
+  const pending = retryMessageSend;
+  const again = () => {
+    clearTimeout(sendAgainTimer);
+    window.removeEventListener("online", again);
+    document.removeEventListener("visibilitychange", onFront);
+    if (!pending || retryMessageSend !== pending || messageInput.value.trim() !== pending.content || contactInput.value.trim().toLowerCase() !== pending.recipientEmail) return;
+    if (document.hidden) { document.addEventListener("visibilitychange", onFront); return; }
+    messageForm.requestSubmit();
+  };
+  const onFront = () => { if (!document.hidden) again(); };
+  window.addEventListener("online", again, { once: true });
+  document.addEventListener("visibilitychange", onFront);
+  sendAgainTimer = setTimeout(again, 10000);
+}
+
 messageMedia?.addEventListener("change", () => previewSelectedMessageMedia(messageMedia.files?.[0]));
 messageCamera?.addEventListener("change", () => previewSelectedMessageMedia(messageCamera.files?.[0]));
+messageCameraVideo?.addEventListener("change", () => previewSelectedMessageMedia(messageCameraVideo.files?.[0]));
+
+// The camera button offers a choice (owner 2026-11-23: "with the camera i should be able to choose a video or the
+// camera"): a photo or a video straight from the camera, or a photo or video already on the phone. One camera input
+// holding both kinds opens the camera in photo mode on most phones, so each choice has its own input.
+// browser-checks/sync-attach.cjs taps each choice.
+const captureChoices = [
+  ["photo", "Take a photo", "camera", () => messageCamera],
+  ["video", "Record a video", "video", () => messageCameraVideo],
+  ["library", "Choose from your phone", "image", () => messageMedia]
+];
+// While the menu is open, an invisible layer covers the rest of the screen: a tap outside closes the menu and never
+// reaches what's underneath (a video's own controls would keep that tap to themselves, and a chat row would open).
+const captureBackdrop = messageCaptureMenu ? Object.assign(document.createElement("div"), { className: "message-capture-backdrop", hidden: true }) : null;
+// Both live at page level: inside the message form (its own stacking layer) the menu would sit under the layer.
+if (captureBackdrop) { document.body.append(captureBackdrop, messageCaptureMenu); captureBackdrop.addEventListener("click", () => closeCaptureMenu()); }
+function closeCaptureMenu() {
+  if (!messageCaptureMenu || messageCaptureMenu.hidden) return;
+  messageCaptureMenu.hidden = true;
+  if (captureBackdrop) captureBackdrop.hidden = true;
+  messageCameraButton?.setAttribute("aria-expanded", "false");
+}
+function openCaptureMenu() {
+  if (!messageCaptureMenu || !messageCameraButton || messageCameraButton.disabled) return;
+  messageCaptureMenu.setAttribute("aria-label", messageTranslate("Take a photo or video"));
+  for (const [kind, label, icon] of captureChoices) {
+    const item = messageCaptureMenu.querySelector(`[data-capture="${kind}"]`);
+    if (!item) continue;
+    const text = document.createElement("span");
+    text.textContent = messageTranslate(label);
+    item.replaceChildren(...[window.danzstakIcons?.create?.(icon)].filter(Boolean), text);
+  }
+  if (captureBackdrop) captureBackdrop.hidden = false;
+  messageCaptureMenu.hidden = false;
+  messageCameraButton.setAttribute("aria-expanded", "true");
+  // Just above the camera button, inside the screen (the composer's own box clips anything drawn inside it).
+  const button = messageCameraButton.getBoundingClientRect(), menu = messageCaptureMenu.getBoundingClientRect();
+  messageCaptureMenu.style.left = `${Math.round(Math.max(8, Math.min(button.left, window.innerWidth - menu.width - 8)))}px`;
+  messageCaptureMenu.style.bottom = `${Math.round(window.innerHeight - button.top + 8)}px`;
+  messageCaptureMenu.querySelector("[data-capture]")?.focus({ preventScroll: true });
+}
+messageCameraButton?.addEventListener("click", event => {
+  event.preventDefault();
+  if (messageCaptureMenu?.hidden) openCaptureMenu(); else closeCaptureMenu();
+});
+messageCaptureMenu?.addEventListener("click", event => {
+  const item = event.target.closest?.("[data-capture]");
+  if (!item) return;
+  const input = captureChoices.find(([kind]) => kind === item.dataset.capture)?.[3]();
+  closeCaptureMenu();
+  if (input && !input.disabled) input.click(); // still inside the tap, so the phone opens its camera or gallery
+});
+// Focus moves into the menu when it opens, so Escape is heard there.
+messageCaptureMenu?.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
+  closeCaptureMenu();
+  messageCameraButton?.focus();
+});
 
 deleteChat?.addEventListener("click", async () => {
   const contact = contactInput.value.trim().toLowerCase();

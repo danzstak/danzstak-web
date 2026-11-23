@@ -53,6 +53,8 @@ jobs:
             '.\test-social-origins.cjs'
             '.\test-authentication.cjs'
             '.\test-booking-workspace-design.cjs'
+            '.\test-deploy-workflow.cjs'
+            '.\test-deploy-boundary.cjs'
           )
 
   browser-call-media:
@@ -66,6 +68,10 @@ jobs:
       - name: Install browser test dependency
         shell: pwsh
         run: npm install --no-save --ignore-scripts playwright@1.55.0
+      - name: Keep browser checks off the live API
+        shell: pwsh
+        # Unmocked calls fail on the runner instead of reaching api.danzstak.com (scripts/block-live-api.ps1).
+        run: .\scripts\block-live-api.ps1
       - name: Start local review server
         shell: pwsh
         run: |
@@ -99,14 +105,20 @@ jobs:
             '.\browser-checks\ringer-loudness.cjs'
             '.\browser-checks\ringback-loudness.cjs'
             '.\browser-checks\sync-thread-style.cjs'
+            '.\browser-checks\sync-attach.cjs'
+            '.\browser-checks\sync-chat-menu.cjs'
             '.\browser-checks\message-read-receipt.cjs'
             '.\browser-checks\mix-portrait-preview.cjs'
             '.\browser-checks\original-feed-art-direction.cjs'
+            '.\browser-checks\post-photos.cjs'
+            '.\browser-checks\post-menu-fit.cjs'
+            '.\browser-checks\photo-frame.cjs'
             '.\browser-checks\profile-post-layout.cjs'
             '.\browser-checks\profile-interactions.cjs'
             '.\browser-checks\marketplace-ticketing.cjs'
             '.\browser-checks\roll-fullscreen-sound.cjs'
             '.\browser-checks\registration-short-screen.cjs'
+            '.\browser-checks\registration-reasons.cjs'
             '.\browser-checks\media-viewer.cjs'
             '.\browser-checks\dailies-strip-clean.cjs'
             '.\browser-checks\dailies-empty-clapper.cjs'
@@ -158,6 +170,10 @@ jobs:
       - name: Install browser-check dependency
         shell: pwsh
         run: npm install --no-save --ignore-scripts playwright@1.56.1
+      - name: Keep browser checks off the live API
+        shell: pwsh
+        # Unmocked calls fail on the runner instead of reaching api.danzstak.com (scripts/block-live-api.ps1).
+        run: .\scripts\block-live-api.ps1
       - name: Start static review server
         shell: pwsh
         run: |
@@ -187,6 +203,10 @@ jobs:
             '.\browser-checks\pwa-install-entry.cjs'
             '.\browser-checks\profile-onboarding-identity.cjs'
             '.\browser-checks\push-alert-prompt.cjs'
+            '.\browser-checks\call-alerts-blocked.cjs'
+            '.\browser-checks\call-push-closed.cjs'
+            '.\browser-checks\call-alerts-prompt.cjs'
+            '.\browser-checks\unregistered-ring.cjs'
             '.\browser-checks\epk-booking-connected-handoff.cjs'
             '.\browser-checks\booking-save-preview.cjs'
             '.\browser-checks\booking-contact-unlock-return.cjs'
@@ -204,10 +224,14 @@ jobs:
             '.\browser-checks\dailies-tile-no-picker.cjs'
             '.\browser-checks\load-crashes.cjs'
             '.\browser-checks\friendly-errors.cjs'
+            '.\browser-checks\session-guard.cjs'
             '.\browser-checks\menu-own-media.cjs'
             '.\browser-checks\profile-tab-panels.cjs'
             '.\browser-checks\dailies-set-call-fit.cjs'
             '.\browser-checks\dailies-tile-opens-dailies.cjs'
+            '.\browser-checks\profile-albums.cjs'
+            '.\browser-checks\epk-ai.cjs'
+            '.\browser-checks\profile-ai.cjs'
             '.\browser-checks\dailies-rotate.cjs'
             '.\browser-checks\app-tabs.cjs'
             '.\browser-checks\app-bar.cjs'
@@ -217,12 +241,14 @@ jobs:
             '.\browser-checks\mix-flows.cjs'
             '.\browser-checks\pinned-welcome.cjs'
             '.\browser-checks\media-viewer-all.cjs'
+            '.\browser-checks\photo-viewer-fit.cjs'
             '.\browser-checks\pivot-header.cjs'
             '.\browser-checks\video-rail-comments.cjs'
             '.\browser-checks\profile-pictures.cjs'
             '.\browser-checks\tour-manager-no-paywall.cjs'
             '.\browser-checks\not-found-pages.cjs'
             '.\browser-checks\epk-actions.cjs'
+            '.\browser-checks\epk-video-check.cjs'
             '.\browser-checks\roll-empty.cjs'
             '.\browser-checks\profile-picture-links.cjs'
             '.\browser-checks\profile-showcase-fit.cjs'
@@ -234,6 +260,16 @@ jobs:
             '.\browser-checks\device-reminder.cjs'
             '.\browser-checks\incoming-call-everywhere.cjs'
             '.\browser-checks\profile-facepile.cjs'
+            '.\browser-checks\profile-bell.cjs'
+            '.\browser-checks\profile-save-status.cjs'
+            '.\browser-checks\app-update.cjs'
+            '.\browser-checks\call-chrome-hide.cjs'
+            '.\browser-checks\call-ends-text-works.cjs'
+            '.\browser-checks\call-reconnect.cjs'
+            '.\browser-checks\epk-share-card.cjs'
+            '.\browser-checks\profile-share-card.cjs'
+            '.\browser-checks\public-shop.cjs'
+            '.\browser-checks\media-scale.cjs'
           )
       - name: Stop static review server
         if: always()

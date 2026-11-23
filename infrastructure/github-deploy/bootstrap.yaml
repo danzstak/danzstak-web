@@ -1,0 +1,298 @@
+AWSTemplateFormatVersion: '2010-09-09'
+# D0 (owner 2026-11-22): Code deploys without the owner's CloudShell. The owner deploys this stack ONCE from CloudShell
+# (us-west-1, docs/DEPLOY.md). After that, .github/workflows/deploy.yml assumes DanzStak-GitHub-Deploy through GitHub's
+# OIDC tokens: no AWS keys exist anywhere, only a run of main in the GitHub environment "production" can assume the role,
+# and that environment waits for the owner's Approve tap.
+#
+# Two layers:
+#   DanzStakDeployAccess    what the role may do through the DANZSTAK-Call-Signaling stack (change sets, artifacts and
+#                           the stack's own resources, most of them only when CloudFormation makes the call);
+#   DanzStakDeployAppAccess what aws-deploy-auth-api.ps1 needs: the app tables, the three Lambdas, the Auth HTTP API,
+#                           and DanzStak* managed policies on the two app roles (two policies: one would pass IAM's
+#                           6,144-character limit).
+#   DanzStakDeployBoundary the ceiling (permissions boundary), with explicit Denies that win over any Allow: no users or
+#                          keys, no other roles, no secret values, no DNS, Organizations, account or billing, no member
+#                          data, and no way to loosen this boundary or the OIDC trust.
+# Account and region always come from ${AWS::AccountId} / ${AWS::Region}; never write the account number here (public repo).
+# test-deploy-boundary.cjs checks this file. Keep it to plain block YAML, flow lists and short tags (scripts/cfn-yaml.cjs).
+Description: 'DanzStak GitHub deploy role (OIDC, environment production only, permission boundary). D0, docs/DEPLOY.md.'
+Parameters:
+  CreateOidcProvider:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+    Description: 'false when this account already has the token.actions.githubusercontent.com identity provider.'
+Conditions:
+  MakeOidcProvider: !Equals [!Ref CreateOidcProvider, 'true']
+Resources:
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: MakeOidcProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+      ThumbprintList: [6938fd4d98bab03faadb97b34396831e3780aea1, 1c58a3a8518e8759bf075b76b750d4f2df264fcd]
+
+  DeployBoundary:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: DanzStakDeployBoundary
+      Description: 'Ceiling for DanzStak-GitHub-Deploy. Explicit Denies win over every Allow.'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DeployServicesOnly
+            Effect: Allow
+            Action: ['cloudformation:*', 's3:*', 'dynamodb:*', 'lambda:*', 'apigateway:*', 'cloudfront:*', 'kms:*', 'events:*', 'iam:*', 'sns:*', 'ses:*', 'sms-voice:Describe*']
+            Resource: '*'
+          - Sid: DenyUsersAndKeys
+            Effect: Deny
+            Action: ['iam:CreateUser', 'iam:CreateAccessKey', 'iam:UpdateAccessKey', 'iam:*LoginProfile', 'iam:CreateServiceSpecificCredential', 'iam:AttachUserPolicy', 'iam:PutUserPolicy', 'iam:AddUserToGroup', 'iam:CreateGroup', 'iam:UploadSSHPublicKey', 'iam:CreateVirtualMFADevice']
+            Resource: '*'
+          - Sid: DenyOtherRoles
+            Effect: Deny
+            Action: ['iam:*Role*']
+            NotResource:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/DANZSTAK-Auth-API-role-zjknf4ur'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-SignalingRole-*'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-StoryCleanupRole-*'
+          - Sid: DenyStoryCleanupRoleOutsideTheStack
+            Effect: Deny
+            Action: ['iam:*Role*']
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-StoryCleanupRole-*'
+            Condition:
+              ForAllValues:StringNotEquals:
+                aws:CalledVia: [cloudformation.amazonaws.com]
+          - Sid: DenyRoleChaining
+            Effect: Deny
+            Action: ['sts:AssumeRole', 'sts:AssumeRoleWithWebIdentity', 'sts:AssumeRoleWithSAML', 'sts:GetFederationToken']
+            Resource: '*'
+          - Sid: DenySecretValues
+            Effect: Deny
+            Action: ['secretsmanager:GetSecretValue', 'secretsmanager:BatchGetSecretValue', 'ssm:GetParameter*']
+            Resource: '*'
+          - Sid: DenyDnsOrganizationsAccountBilling
+            Effect: Deny
+            Action: ['route53:*', 'route53domains:*', 'organizations:*', 'account:*', 'aws-portal:*', 'billing:*', 'payments:*', 'budgets:*', 'ce:*', 'tax:*', 'invoicing:*']
+            Resource: '*'
+          - Sid: DenyLooseningTheGuardrails
+            Effect: Deny
+            Action: ['iam:CreatePolicy', 'iam:CreatePolicyVersion', 'iam:DeletePolicy', 'iam:DeletePolicyVersion', 'iam:SetDefaultPolicyVersion', 'iam:TagPolicy', 'iam:UntagPolicy']
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:policy/DanzStakDeploy*'
+          - Sid: DenyBoundaryAndTrustChanges
+            Effect: Deny
+            Action: ['iam:DeleteRolePermissionsBoundary', 'iam:PutRolePermissionsBoundary', 'iam:*OpenIDConnectProvider*', 'iam:*SAMLProvider*']
+            Resource: '*'
+          - Sid: DenyForeignPolicyAttachments
+            Effect: Deny
+            Action: ['iam:AttachRolePolicy']
+            Resource: '*'
+            Condition:
+              ArnNotLike:
+                iam:PolicyARN:
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/DanzStak*'
+                  - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+          - Sid: DenyAttachingTheDeployPolicies
+            Effect: Deny
+            Action: ['iam:AttachRolePolicy']
+            Resource: '*'
+            Condition:
+              ArnLike:
+                iam:PolicyARN: !Sub 'arn:aws:iam::${AWS::AccountId}:policy/DanzStakDeploy*'
+          - Sid: DenyMemberData
+            Effect: Deny
+            Action: ['dynamodb:GetItem', 'dynamodb:BatchGetItem', 'dynamodb:Query', 'dynamodb:Scan', 'dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem', 'dynamodb:BatchWriteItem', 'dynamodb:PartiQL*', 'dynamodb:ExportTableToPointInTime', 'dynamodb:RestoreTable*', 'dynamodb:DeleteTable', 'dynamodb:DeleteBackup', 'dynamodb:GetRecords', 'dynamodb:GetShardIterator']
+            Resource: '*'
+          - Sid: DenyMemberMedia
+            Effect: Deny
+            Action: ['s3:GetObject*', 's3:PutObject*', 's3:DeleteObject*', 's3:RestoreObject', 's3:ReplicateObject']
+            NotResource: 'arn:aws:s3:::danzstak-call-signaling-mediabucket-*/deploy-artifacts/*'
+          - Sid: DenyDestructiveAndRunActions
+            Effect: Deny
+            Action: ['s3:DeleteBucket', 'lambda:InvokeFunction', 'lambda:InvokeFunctionUrl', 'lambda:DeleteFunction', 'lambda:CreateFunctionUrlConfig', 'lambda:UpdateFunctionUrlConfig', 'cloudfront:DeleteDistribution', 'cloudformation:DeleteStack']
+            Resource: '*'
+          - Sid: DenyKeyUse
+            Effect: Deny
+            Action: ['kms:Decrypt', 'kms:Encrypt', 'kms:Sign', 'kms:ReEncrypt*', 'kms:GenerateDataKey*', 'kms:ScheduleKeyDeletion', 'kms:DisableKey']
+            Resource: '*'
+
+  DeployAccess:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: DanzStakDeployAccess
+      Description: 'What DanzStak-GitHub-Deploy may do through the DANZSTAK-Call-Signaling stack (change sets, artifacts, stack resources).'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: CallSignalingStack
+            Effect: Allow
+            Action: ['cloudformation:CreateChangeSet', 'cloudformation:DescribeChangeSet', 'cloudformation:ExecuteChangeSet', 'cloudformation:DeleteChangeSet', 'cloudformation:ListChangeSets', 'cloudformation:DescribeStacks', 'cloudformation:DescribeStackEvents', 'cloudformation:DescribeStackResource', 'cloudformation:DescribeStackResources', 'cloudformation:ListStackResources', 'cloudformation:GetTemplate']
+            Resource:
+              - !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/DANZSTAK-Call-Signaling/*'
+              - !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:changeSet/github-*/*'
+          - Sid: ReadEngagementStackOutputs
+            Effect: Allow
+            Action: ['cloudformation:DescribeStacks', 'cloudformation:DescribeStackResource']
+            Resource: !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/DANZSTAK-Engagement/*'
+          - Sid: ReadTemplates
+            Effect: Allow
+            Action: ['cloudformation:ValidateTemplate', 'cloudformation:GetTemplateSummary']
+            Resource: '*'
+          - Sid: DeployArtifacts
+            Effect: Allow
+            Action: ['s3:PutObject', 's3:GetObject']
+            Resource: 'arn:aws:s3:::danzstak-call-signaling-mediabucket-*/deploy-artifacts/*'
+          - Sid: DeployArtifactListing
+            Effect: Allow
+            Action: ['s3:ListBucket']
+            Resource: 'arn:aws:s3:::danzstak-call-signaling-mediabucket-*'
+            Condition:
+              StringLike:
+                s3:prefix: ['deploy-artifacts/*']
+          - Sid: MediaBucketSettingsThroughTheStack
+            Effect: Allow
+            Action: ['s3:GetBucket*', 's3:PutBucket*', 's3:Get*Configuration', 's3:Put*Configuration', 's3:ListBucket']
+            Resource: 'arn:aws:s3:::danzstak-call-signaling-mediabucket-*'
+            Condition:
+              ForAnyValue:StringEquals:
+                aws:CalledVia: [cloudformation.amazonaws.com]
+          - Sid: StreamMappingThroughTheStack
+            Effect: Allow
+            Action: ['lambda:CreateEventSourceMapping', 'lambda:GetEventSourceMapping', 'lambda:UpdateEventSourceMapping', 'lambda:DeleteEventSourceMapping', 'lambda:ListEventSourceMappings', 'lambda:TagResource']
+            Resource: '*'
+            Condition:
+              ForAnyValue:StringEquals:
+                aws:CalledVia: [cloudformation.amazonaws.com]
+          - Sid: MediaCdnThroughTheStack
+            Effect: Allow
+            Action: ['cloudfront:Get*', 'cloudfront:List*', 'cloudfront:UpdateDistribution', 'cloudfront:CreateDistribution', 'cloudfront:TagResource', 'cloudfront:UntagResource', 'cloudfront:CreateCachePolicy', 'cloudfront:UpdateCachePolicy', 'cloudfront:CreateOriginAccessControl', 'cloudfront:UpdateOriginAccessControl', 'cloudfront:CreateResponseHeadersPolicy', 'cloudfront:UpdateResponseHeadersPolicy', 'cloudfront:CreateKeyGroup', 'cloudfront:UpdateKeyGroup']
+            Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:*'
+            Condition:
+              ForAnyValue:StringEquals:
+                aws:CalledVia: [cloudformation.amazonaws.com]
+          - Sid: PushKeyThroughTheStack
+            Effect: Allow
+            Action: ['kms:DescribeKey', 'kms:GetKeyPolicy', 'kms:PutKeyPolicy', 'kms:GetKeyRotationStatus', 'kms:ListResourceTags', 'kms:ListKeyPolicies', 'kms:TagResource', 'kms:UntagResource', 'kms:UpdateKeyDescription', 'kms:EnableKey', 'kms:CreateAlias', 'kms:UpdateAlias', 'kms:ListAliases']
+            Resource:
+              - !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*'
+              - !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/danzstak-web-push-vapid'
+            Condition:
+              ForAnyValue:StringEquals:
+                aws:CalledVia: [cloudformation.amazonaws.com]
+          - Sid: StoryCleanupScheduleThroughTheStack
+            Effect: Allow
+            Action: ['events:DescribeRule', 'events:PutRule', 'events:PutTargets', 'events:RemoveTargets', 'events:ListTargetsByRule', 'events:EnableRule', 'events:DisableRule', 'events:TagResource', 'events:ListTagsForResource']
+            Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/DANZSTAK-Call-Signaling-*'
+            Condition:
+              ForAnyValue:StringEquals:
+                aws:CalledVia: [cloudformation.amazonaws.com]
+          - Sid: StackRolesThroughTheStack
+            Effect: Allow
+            Action: ['iam:GetRole', 'iam:CreateRole', 'iam:UpdateRole', 'iam:UpdateAssumeRolePolicy', 'iam:PutRolePolicy', 'iam:DeleteRolePolicy', 'iam:GetRolePolicy', 'iam:ListRolePolicies', 'iam:ListAttachedRolePolicies', 'iam:AttachRolePolicy', 'iam:DetachRolePolicy', 'iam:TagRole', 'iam:UntagRole', 'iam:ListRoleTags']
+            Resource:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-SignalingRole-*'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-StoryCleanupRole-*'
+            Condition:
+              ForAnyValue:StringEquals:
+                aws:CalledVia: [cloudformation.amazonaws.com]
+
+  DeployAppAccess:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: DanzStakDeployAppAccess
+      Description: 'What DanzStak-GitHub-Deploy may do on the app itself: tables, the three Lambdas, the Auth HTTP API, DanzStak* policies on the app roles.'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AppTables
+            Effect: Allow
+            Action: ['dynamodb:Describe*', 'dynamodb:List*', 'dynamodb:GetResourcePolicy', 'dynamodb:CreateTable', 'dynamodb:UpdateTable', 'dynamodb:UpdateTimeToLive', 'dynamodb:UpdateContinuousBackups', 'dynamodb:UpdateContributorInsights', 'dynamodb:TagResource', 'dynamodb:UntagResource']
+            Resource:
+              - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-*'
+              - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-*'
+          - Sid: AppFunctions
+            Effect: Allow
+            Action: ['lambda:Get*', 'lambda:List*', 'lambda:CreateFunction', 'lambda:UpdateFunctionCode', 'lambda:UpdateFunctionConfiguration', 'lambda:AddPermission', 'lambda:RemovePermission', 'lambda:TagResource', 'lambda:UntagResource']
+            Resource:
+              - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:DANZSTAK-Auth-API'
+              - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:DANZSTAK-Call-Signaling'
+              - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:DANZSTAK-Expired-Story-Cleanup'
+          - Sid: AuthHttpApi
+            Effect: Allow
+            Action: ['apigateway:GET', 'apigateway:POST', 'apigateway:PATCH', 'apigateway:PUT', 'apigateway:DELETE']
+            Resource:
+              - !Sub 'arn:aws:apigateway:${AWS::Region}::/apis/0872gqal4m'
+              - !Sub 'arn:aws:apigateway:${AWS::Region}::/apis/0872gqal4m/*'
+          - Sid: AppRolesDanzStakPolicies
+            Effect: Allow
+            Action: ['iam:AttachRolePolicy', 'iam:DetachRolePolicy']
+            Resource:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/DANZSTAK-Auth-API-role-zjknf4ur'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-SignalingRole-*'
+            Condition:
+              ArnLike:
+                iam:PolicyARN: !Sub 'arn:aws:iam::${AWS::AccountId}:policy/DanzStak*'
+          - Sid: AppRolesRead
+            Effect: Allow
+            Action: ['iam:GetRole', 'iam:ListAttachedRolePolicies', 'iam:ListRolePolicies', 'iam:GetRolePolicy']
+            Resource:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/DANZSTAK-Auth-API-role-zjknf4ur'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-SignalingRole-*'
+          - Sid: AuthRoleRetireOldInlinePolicy
+            Effect: Allow
+            Action: ['iam:DeleteRolePolicy']
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/DANZSTAK-Auth-API-role-zjknf4ur'
+          - Sid: PassOnlyTheAppRoles
+            Effect: Allow
+            Action: ['iam:PassRole']
+            Resource:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/DANZSTAK-Auth-API-role-zjknf4ur'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-SignalingRole-*'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/DANZSTAK-Call-Signaling-StoryCleanupRole-*'
+            Condition:
+              StringEquals:
+                iam:PassedToService: lambda.amazonaws.com
+          - Sid: DanzStakManagedPolicies
+            Effect: Allow
+            Action: ['iam:CreatePolicy', 'iam:CreatePolicyVersion', 'iam:DeletePolicyVersion', 'iam:SetDefaultPolicyVersion', 'iam:GetPolicy', 'iam:GetPolicyVersion', 'iam:ListPolicyVersions', 'iam:TagPolicy']
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:policy/DanzStak*'
+          - Sid: TourManagerMailEvents
+            Effect: Allow
+            Action: ['sns:CreateTopic', 'sns:GetTopicAttributes', 'sns:ListSubscriptionsByTopic', 'sns:Subscribe']
+            Resource: !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:DANZSTAK-TourManager-SES-Events'
+          - Sid: TourManagerMailConfigurationSet
+            Effect: Allow
+            Action: ['ses:GetConfigurationSet', 'ses:CreateConfigurationSet', 'ses:GetConfigurationSetEventDestinations', 'ses:CreateConfigurationSetEventDestination', 'ses:UpdateConfigurationSetEventDestination']
+            Resource: !Sub 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/DanzStakTourManager'
+          - Sid: SmsProviderStatus
+            Effect: Allow
+            Action: ['sms-voice:DescribeNotifyConfigurations']
+            Resource: '*'
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: DanzStak-GitHub-Deploy
+      Description: 'GitHub Actions deploy.yml, main branch, environment production (owner approves each run). D0.'
+      MaxSessionDuration: 3600
+      PermissionsBoundary: !Ref DeployBoundary
+      ManagedPolicyArns: [!Ref DeployAccess, !Ref DeployAppAccess]
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: GitHubProductionEnvironmentOnly
+            Effect: Allow
+            Principal:
+              Federated: !If [MakeOidcProvider, !Ref GitHubOidcProvider, !Sub 'arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com']
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                # GitHub sends the subject with the owner's and the repository's permanent ids (seen 2026-11-23 in
+                # CloudTrail for deploy run 5): a renamed or re-created repository called danzstak/danzstak-web can never
+                # match. Owner danzstak = 346346934, repository danzstak-web = 1429660534.
+                token.actions.githubusercontent.com:sub: repo:danzstak@346346934/danzstak-web@1429660534:environment:production
+Outputs:
+  DeployRoleArn:
+    Description: 'GitHub deploy.yml assumes this role (the account id comes from the repository variable AWS_ACCOUNT_ID).'
+    Value: !GetAtt DeployRole.Arn

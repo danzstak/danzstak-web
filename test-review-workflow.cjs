@@ -84,4 +84,22 @@ const diagnostics = text.match(/NODE_OPTIONS: --require \.\/scripts\/check-diagn
 assert.equal(diagnostics.length, 2, "both browser-check steps load scripts/check-diagnostics.cjs");
 for (const file of ["scripts/static-server.cjs", "scripts/check-diagnostics.cjs"]) assert.ok(fs.existsSync(path.join(root, file)), `${file} is missing`);
 
+// L1 (2026-11-23): browser checks never reach the live API. A page served from 127.0.0.1 that a check didn't fully mock
+// called api.danzstak.com for real, and its 401s looked exactly like the member failure the access logs are there to
+// catch. Every job that starts a browser blocks the API host before its server and checks start.
+const jobs = text.split(/\n(?=  [\w-]+:\n)/).filter(job => /^  [\w-]+:\n/.test(job));
+const browserJobs = jobs.filter(job => /npm install[^\n]*\bplaywright@/.test(job));
+assert.equal(browserJobs.length, 2, "two review jobs start a browser");
+for (const job of browserJobs) {
+  const name = job.match(/^  ([\w-]+):/)[1];
+  const block = job.indexOf(".\\scripts\\block-live-api.ps1");
+  assert.ok(block > 0, `${name}: runs scripts/block-live-api.ps1`);
+  assert.ok(block < job.indexOf("static-server.cjs") && block < job.indexOf("run-checks.ps1"), `${name}: blocks the live API before the server and the checks start`);
+}
+const blocker = fs.readFileSync(path.join(root, "scripts", "block-live-api.ps1"), "utf8");
+assert.match(blocker, /\$names = @\('api\.danzstak\.com'\)/, "block-live-api.ps1 blocks api.danzstak.com");
+assert.match(blocker, /"0\.0\.0\.0 \$name"; ":: \$name"/, "both IPv4 and IPv6 point at a dead address");
+assert.match(blocker, /if \(\$LASTEXITCODE -ne 0\) \{ throw /, "the step fails when the API still resolves");
+assert.doesNotMatch(fs.readFileSync(path.join(root, ".github", "workflows", "live-check.yml"), "utf8"), /block-live-api/, "the live check keeps its real network");
+
 console.log(`Review workflow checks passed: ${listed.length} checks in ${blocks.filter(block => block.lines.some(line => /run-checks\.ps1/.test(line))).length} steps run through scripts/run-checks.ps1, and no step runs several checks directly.`);

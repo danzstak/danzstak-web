@@ -78,6 +78,32 @@
     amp.connect(out);
     source.start(begin); source.stop(end + 0.02);
   }
+  // Owner 2026-11-19: "real quiet, turn it up at least 10 dB". Phone speakers barely play below ~400 Hz, where most ring
+  // notes sit, so: cut the lows, saturate (tanh) to put harmonics in the 1–5 kHz band the speaker and ear hear best,
+  // compress, lift, and hard-limit just under full scale so nothing clips at the output. Used by play() (Web Audio) and
+  // render() (the call ringer's <audio> loop), so both ring paths are exactly as loud.
+  function ringChain(out, master) {
+    if (!out.createDynamicsCompressor) return null;
+    try {
+      const hp = out.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = RING_HIGHPASS_HZ;
+      const drive = out.createGain(); drive.gain.value = RING_DRIVE;
+      const shaper = out.createWaveShaper(); shaper.curve = ringCurve("tanh"); shaper.oversample = "4x";
+      const comp = out.createDynamicsCompressor(); comp.threshold.value = -24; comp.knee.value = 4; comp.ratio.value = 12; comp.attack.value = 0.002; comp.release.value = 0.1;
+      const makeup = out.createGain(); makeup.gain.value = RING_MAKEUP_GAIN;
+      const limiter = out.createWaveShaper(); limiter.curve = ringCurve("limit");
+      master.connect(hp); hp.connect(drive); drive.connect(shaper); shaper.connect(comp); comp.connect(makeup); makeup.connect(limiter); limiter.connect(out.destination);
+      return [hp, drive, shaper, comp, makeup, limiter];
+    } catch { return null; }
+  }
+  // 5a00: whole loops of a tone, through the same notes and ring chain as play(), into an OfflineAudioContext. The call
+  // ringer (call-ringer.js) turns the result into the looping ringtone of its <audio> element.
+  function render(id, audio, { volume = 0.4, loops = 1 } = {}) {
+    const tone = TONES[id]; if (!tone || !audio) return 0;
+    const master = audio.createGain(); master.gain.value = Math.max(0, Math.min(1, volume));
+    if (!(tone.kind === "ring" && ringChain(audio, master))) master.connect(audio.destination);
+    for (let loop = 0; loop < loops; loop++) for (const n of tone.notes) note(audio, master, loop * tone.period, n);
+    return tone.period * loops;
+  }
   function setSession(type) { try { if (navigator.audioSession) { const before = navigator.audioSession.type; navigator.audioSession.type = type; return before; } } catch {} return null; }
 
   // Plays one tone, looping until stop() or maxMs. Only one tone ever sounds: a new one stops the previous one.
@@ -90,24 +116,9 @@
     // "ambient" makes iOS/Safari respect the silent switch while a tone plays (where the browser exposes it).
     const previousSession = setSession("ambient");
     const master = out.createGain(); master.gain.value = Math.max(0, Math.min(1, volume));
-    // Owner 2026-11-18: "the ring tones are quiet". Rings go through a compressor and make-up gain so a phone speaker
+    // Owner 2026-11-18: "the ring tones are quiet". Rings go through the loud ring chain (ringChain) so a phone speaker
     // plays them loud without clipping (message tones stay gentle).
-    let loudChain = null;
-    if (tone.kind === "ring" && out.createDynamicsCompressor) {
-      try {
-        // Owner 2026-11-19: "real quiet, turn it up at least 10 dB". Phone speakers barely play below ~400 Hz, where most
-        // ring notes sit, so: cut the lows, saturate (tanh) to put harmonics in the 1–5 kHz band the speaker and ear hear
-        // best, compress, lift, and hard-limit just under full scale so nothing clips at the output.
-        const hp = out.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = RING_HIGHPASS_HZ;
-        const drive = out.createGain(); drive.gain.value = RING_DRIVE;
-        const shaper = out.createWaveShaper(); shaper.curve = ringCurve("tanh"); shaper.oversample = "4x";
-        const comp = out.createDynamicsCompressor(); comp.threshold.value = -24; comp.knee.value = 4; comp.ratio.value = 12; comp.attack.value = 0.002; comp.release.value = 0.1;
-        const makeup = out.createGain(); makeup.gain.value = RING_MAKEUP_GAIN;
-        const limiter = out.createWaveShaper(); limiter.curve = ringCurve("limit");
-        master.connect(hp); hp.connect(drive); drive.connect(shaper); shaper.connect(comp); comp.connect(makeup); makeup.connect(limiter); limiter.connect(out.destination);
-        loudChain = [hp, drive, shaper, comp, makeup, limiter];
-      } catch { loudChain = null; }
-    }
+    const loudChain = tone.kind === "ring" ? ringChain(out, master) : null;
     if (!loudChain) master.connect(out.destination);
     const until = Date.now() + Math.min(maxMs, MAX_RING_MS);
     let next = out.currentTime + 0.03, timer = null, vibeTimer = null, stopped = false;
@@ -141,6 +152,7 @@
   // A new message while the app is open: once, quietly, and never on top of a ringing call.
   function messageArrived(contact) {
     if (active || document.hidden) return false;
+    if (ringerBusy()) return false; // 5a00: the call ringer may be playing through <audio>
     const out = context(); if (!out || out.state !== "running") { if (vibrates("message", contact)) try { navigator.vibrate?.(120); } catch {} return false; }
     play(toneFor("message", contact), { audio: out, volume: 0.35, loop: false, maxMs: 1500, quiet: true, vibrate: vibrates("message", contact) && (!window.danzstakSyncPrefs || window.danzstakSyncPrefs.vibration()) ? [120] : null });
     return true;
@@ -237,5 +249,8 @@
   }
   window.danzstakSyncSettings?.add({ id: "tones", label: "Ringtones", hint: "Ringtone, message tone and vibration", icon: "bell", order: 20, run: () => open("") });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addChatMenuItem); else addChatMenuItem();
-  window.danzstakSyncTones = { list, toneFor, vibrates, choose, setVibrate, reset, play, stop, startRing, messageArrived, preview, open, isPlaying: () => !!active, contactKey };
+  // 5a00: the call ringer (call-ringer.js) may be ringing through its <audio> element instead of play().
+  const ringerBusy = () => ["audio", "webaudio"].includes(window.danzstakCallRinger?.state?.());
+  const period = id => TONES[id]?.period || 0;
+  window.danzstakSyncTones = { list, toneFor, vibrates, choose, setVibrate, reset, play, stop, startRing, messageArrived, preview, open, render, period, isPlaying: () => !!active || ringerBusy(), contactKey };
 })();

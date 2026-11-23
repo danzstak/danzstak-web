@@ -133,13 +133,34 @@
     const visible = control.textContent.replace(/\s+/g, " ").trim();
     const requested = control.dataset.icon || labels.get(visible.toLocaleLowerCase("en-US")) || iconFromAccessibleName(control, visible);
     if (!requested || !paths[requested]) return;
+    if (control.matches("[role='menuitem']")) return upgradeMenuRow(control, requested, visible);
     const label = readableLabel(control, visible);
     if (!control.hasAttribute("aria-label")) control.setAttribute("aria-label", label);
     if (!control.hasAttribute("title")) control.setAttribute("title", label);
     control.dataset.icon = requested;
     control.classList.add("ds-icon-button");
     const currentIcon = control.firstElementChild;
-    if (control.childElementCount !== 1 || !currentIcon?.classList.contains("ds-action-icon") || currentIcon.getAttribute("data-ds-icon") !== requested) control.replaceChildren(svg(requested));
+    // A label keeps its own form control: SYNC's paperclip and camera are labels around their file inputs, and dropping
+    // the input left both buttons dead (owner 2026-11-19 and 2026-11-23: "Photo or attach does not work", "the buttons
+    // dont work"). Only the rest is replaced by the icon. browser-checks/sync-attach.cjs taps them.
+    const keep = [...control.children].filter(node => node.matches("input, select, textarea"));
+    const iconReady = currentIcon?.classList.contains("ds-action-icon") && currentIcon.getAttribute("data-ds-icon") === requested;
+    if (!iconReady || control.childElementCount !== 1 + keep.length) control.replaceChildren(svg(requested), ...keep);
+  }
+
+  // A menu row keeps its words: icon on the left, label beside it. SYNC's chat ⋮ menu showed four bare icons in a row
+  // because every item went through the icon-only path (owner 2026-11-23: "Images are funky").
+  // browser-checks/sync-chat-menu.cjs opens the menu and reads each row's label.
+  function upgradeMenuRow(control, requested, visible) {
+    const [icon, text] = control.children;
+    if (control.childElementCount === 2 && icon?.getAttribute("data-ds-icon") === requested && text?.classList.contains("ds-menu-label")) return;
+    const words = /\p{L}/u.test(visible) ? visible : readableLabel(control, "");
+    const label = document.createElement("span");
+    label.className = "ds-menu-label";
+    label.textContent = words;
+    control.dataset.icon = requested;
+    control.classList.add("ds-menu-row");
+    control.replaceChildren(svg(requested), label);
   }
 
   function upgradeMenuIcon(container) {

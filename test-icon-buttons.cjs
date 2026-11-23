@@ -19,7 +19,11 @@ assert.match(source, /expand: \["M8 3H3v5", "M3 3l6 6", "M16 3h5v5", "M21 3l-6 6
 assert.match(source, /minimize: \["M4 14h6v6", "M10 14l-6 6", "M14 10l6-6", "M14 10h6V4"\]/, "the minimize icon must render complete inward corners");
 assert.match(source, /download: \["M12 3v12", "M7 10l5 5 5-5", "M5 21h14"\]/, "the download icon arrow must be self-contained");
 assert.doesNotMatch(source, /"m6-12 12 12"|"m16 6-6-6"|"m7-5 5 5 5-5"/, "shared icons must not depend on a previous SVG path's cursor position");
-assert.match(source, /getAttribute\("data-ds-icon"\) !== requested/, "changing an action must replace its previous SVG instead of leaving the wrong icon visible");
+assert.match(source, /getAttribute\("data-ds-icon"\) === requested[\s\S]{0,120}if \(!iconReady/, "changing an action must replace its previous SVG instead of leaving the wrong icon visible");
+// SYNC's paperclip is a label around its file input; drawing the icon must keep the input (owner 2026-11-23: "the
+// buttons dont work"). browser-checks/sync-attach.cjs taps it.
+assert.match(source, /const keep = \[\.\.\.control\.children\]\.filter\(node => node\.matches\("input, select, textarea"\)\)/, "a label keeps its own form control when its icon is drawn");
+assert.match(source, /control\.replaceChildren\(svg\(requested\), \.\.\.keep\)/, "the kept control goes back next to the icon");
 assert.match(source, /querySelectorAll\?\.\("\[data-menu-icon\]"\)/, "drawer icons must use the shared SVG enhancer");
 assert.doesNotMatch(source, /lucide|unpkg|cdnjs|jsdelivr/i, "icons must not add a remote dependency");
 assert.match(css, /focus-visible/, "keyboard focus must be visible");
@@ -29,7 +33,7 @@ assert.match(css, /disabled[^{]*\{[^}]*opacity/, "disabled state must remain vis
 for (const page of pages) {
   const html = fs.readFileSync(page, "utf8");
   assert.match(html, /assets\/icon-buttons\.css\?v=5/, `${page} must load the current shared icon styles`);
-  assert.match(html, /assets\/icon-buttons\.js\?v=17/, `${page} must load the current shared icon behavior`);
+  assert.match(html, /assets\/icon-buttons\.js\?v=19/, `${page} must load the current shared icon behavior`);
 }
 
 const feedPage = fs.readFileSync("feed.html", "utf8");

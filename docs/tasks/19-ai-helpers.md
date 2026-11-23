@@ -35,6 +35,17 @@ Record shops pivot their online shop to DanzStak the same way members pivot thei
 - Prices are USD; the page tells shops with euro or pound exports to use the % change. Multi-currency listings are a later task.
 - Seller-side pitch: the buyer pays DanzStak's 6% (+$1 under $30), so the shop keeps its full price and shipping. Compare with marketplaces that take a selling fee from the shop, without naming rates as guaranteed (they change).
 
+## Moving Day also brings the shop's bio and description (owner 2026-11-18, Discogs seller-profile screenshot)
+A seller's old shop page holds more than stock: location, "joined" year, links, a story ("Grand re-opening June 2024", "New stock every week", "Okki Nokki cleaning and poly sleeve with every record"), and shipping and packaging notes. Moving Day brings that over too, so the DanzStak shop opens with the seller's own voice.
+- [ ] A **Shop story** step after the item preview, with fields for **Bio** (who they are), **Shop description** (what they sell, how they grade, what's included), **Location**, **Links** and **Shipping & packing notes**, each prefilled when the source has it:
+  - **From an export** (Facebook Page / Instagram export "about"/bio fields, a Shopify/eBay/web-store export with a store description): read from the member's own file, like the rest of Pivot.
+  - **Discogs**: the inventory CSV has no profile text, so the step shows **"Paste your Discogs profile text"**, with a one-line hint on where to copy it ("Discogs → your profile → Edit profile"). We don't use a platform API and don't scrape their page.
+  - Anything pasted is cleaned as plain text: links kept, no HTML, length limits as for the shop description.
+- [ ] The member reviews and edits every field before it's saved. The bio goes to the profile About, and the description, location, links and shipping notes go to the shop. Nothing is published by this step. If the shop is new it stays in draft or Opening soon (task 27).
+- [ ] Optional: **AI shop** ($6.30) can tidy the pasted text into the bio and description. The member approves every word.
+- [ ] Old-platform specifics are dropped or flagged for the member to rewrite (other sites' feedback scores, "Add friend", wantlist counts). Links to the old platform are kept only if the member keeps them.
+- [ ] Tests: a pasted Discogs profile fills Bio, Description, Location and Links, and drops HTML; nothing is saved without the member's confirm; there are no network calls to discogs.com.
+
 ## Where the AI profile lives (owner 2026-11-18, phone screenshot of Edit profile)
 - On **Edit your profile**, right under the title: a single **"Write it with AI"** row (sparkle icon, "$6.30" shown only until bought). Tapping it asks 3–4 quick questions (what you do, scene/genres, city, one line about you, links) and drafts the bio, the "More profile details" fields and an @username suggestion; the member reviews every word, edits, then saves. Nothing is saved or published unseen.
 - Price follows the paywall rule: the price shows only when the member chooses AI and hasn't bought it; once bought, the row just says "Write it with AI" (rewrites included for that profile).

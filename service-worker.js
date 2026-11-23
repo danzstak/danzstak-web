@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v1008";
+const CACHE = "danzstak-shell-v1035";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/time-label.js", "/assets/page-missing.js", "/assets/scramble-by-seller.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -14,12 +14,13 @@ const SHELL = [
   "/assets/languages.js", "/assets/brand-language-aliases.js", "/assets/i18n-music.js", "/assets/i18n.js",
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html", "/support.html", "/booking.html", "/booking-selections.html", "/booking-opt-out.html", "/booking-reply.html", "/answer.html", "/record-stores.html", "/epk.html", "/store.html", "/bazaar.html", "/moving-day.html", "/product.html", "/event.html",
   "/manifest.webmanifest", "/assets/danzstak-d-icon.png", "/assets/danzstak-score-pattern.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-apps-v3.png",
-  "/assets/media-visibility.js", "/assets/text-emojis.js", "/assets/story-book.svg", "/assets/device-settings.js", "/assets/home.js", "/assets/app-feedback.js", "/assets/app-feedback.css", "/assets/pwa.js", "/assets/app-downloads.js", "/assets/logout.js", "/assets/session-cleanup.js", "/assets/session-activity.js", "/assets/profile.js", "/assets/profile-editor.js", "/assets/profile-dailies.js", "/assets/profile-nav.js",
-  "/assets/profile-collections.js", "/assets/activity-history-core.js", "/assets/account-export-core.js", "/assets/account-export.js",
-  "/assets/booking-workspace.css", "/assets/store.css", "/assets/store.js", "/assets/friendly-error.js", "/assets/bazaar.css", "/assets/bazaar.js", "/assets/product.js", "/assets/event.css", "/assets/event.js",
-  "/assets/link-preview-cards.css", "/assets/roll-reels.css", "/assets/tribes-polish.css", "/assets/tribes-home.css", "/assets/tribes-art.js", "/assets/tribe-create.js", "/assets/tribe-create.css", "/assets/profile-friend.js", "/assets/link-preview-cards.js", "/assets/support.css", "/assets/support.js", "/assets/booking-agent.css", "/assets/booking-agent-driver.css", "/assets/booking-discovery.css", "/assets/booking-agent.js", "/assets/booking-legs.js", "/assets/booking-identity.js", "/assets/booking-conversation.js", "/assets/booking-discovery.js", "/assets/booking-map.js", "/assets/booking-selections.css", "/assets/booking-selections.js", "/assets/booking-pipeline.js", "/assets/booking-freshness.js", "/assets/booking-billing.js", "/assets/purchase-terms.js", "/assets/media-fit.js", "/assets/media-scale.js", "/assets/media-fit.css", "/assets/media-viewer.js", "/assets/media-viewer.css", "/assets/image-position.js", "/assets/image-position.css", "/assets/media-actions.js", "/assets/media-actions.css", "/assets/mix-polish.css", "/assets/profile-polish.css", "/assets/profile-shop.css", "/assets/signup-onboarding.js", "/assets/signup-onboarding.css", "/assets/purchase-terms.css", "/assets/booking-opt-out.css", "/assets/booking-opt-out.js", "/assets/booking-reply.css", "/assets/booking-reply.js", "/assets/booking-sync.js", "/assets/record-stores.css", "/assets/record-placement.css", "/assets/record-stores-pagination.css", "/assets/record-stores.js", "/assets/epk.css", "/assets/epk-looks.css", "/assets/epk-production.css", "/assets/epk-reviews.css", "/assets/epk-media.css", "/assets/epk-production.js", "/assets/epk-reviews.js", "/assets/epk.js", "/assets/epk-skin.css", "/assets/epk-laminate.js", "/assets/profile-editor.css", "/assets/profile-interactions.css", "/assets/profile-interactions.js", "/assets/profile-onboarding.css", "/assets/profile-onboarding.js", "/assets/display-preferences.js", "/assets/feed-enhancements.js", "/assets/device-reminder.js", "/assets/push-notifications.js", "/assets/call-devices.js", "/assets/call-setup.js", "/assets/call-setup.css", "/assets/phone-setup.js", "/assets/sync-tones.js", "/assets/sync-privacy.js", "/assets/sync-reply.js", "/assets/sync-make-it-yours.js", "/sync.html", "/sync.webmanifest", "/assets/sync-standalone.js", "/assets/sync-standalone.css", "/assets/sync-icon-192.png", "/assets/sync-icon-512.png", "/assets/sync-apple-touch-icon.png", "/assets/sync-make-it-yours.css", "/assets/sync-reply.css", "/assets/sync-tones.css", "/assets/sync-settings.js", "/assets/call-ringer.js", "/assets/call-ringer.css", "/assets/call-note.js", "/assets/call-note.css", "/assets/sync-wallpaper.js", "/assets/sync-wallpaper.css", "/assets/phone-verification.js", "/assets/i18n-sync.js", "/assets/phone-verification.css", "/assets/sync-network-number.js", "/assets/sync-network-number.css", "/assets/direct-messages.js", "/assets/make-plans.js", "/assets/make-plans.css", "/assets/incoming-calls.js", "/assets/incoming-calls.css", "/assets/call-screen.js", "/assets/sync-call-ui.js", "/assets/sync-call-ui.css", "/assets/call-screen.css", "/assets/sync-list-polish.js", "/assets/sync-list-polish.css", "/assets/call-invite.js", "/assets/call-invite.css", "/assets/answer.js", "/assets/answer.css", "/sync/", "/assets/sync-app.js", "/assets/sync-app.css",
+  "/assets/media-visibility.js", "/assets/text-emojis.js", "/assets/story-book.svg", "/assets/device-settings.js", "/assets/home.js", "/assets/app-feedback.js", "/assets/app-feedback.css", "/assets/pwa.js", "/assets/app-downloads.js", "/assets/logout.js", "/assets/session-cleanup.js", "/assets/session-activity.js", "/assets/session-guard.js", "/assets/profile.js", "/assets/profile-editor.js", "/assets/profile-dailies.js", "/assets/profile-nav.js",
+  "/assets/share-card-tools.js", "/assets/epk-share-card.js", "/assets/profile-share-card.js", "/assets/signed-out.js", "/assets/profile-collections.js", "/assets/activity-history-core.js", "/assets/account-export-core.js", "/assets/account-export.js",
+  "/assets/profile-albums.js", "/assets/profile-albums.css",
+  "/assets/call-alerts.js", "/assets/booking-workspace.css", "/assets/store.css", "/assets/store.js", "/assets/friendly-error.js", "/assets/bazaar.css", "/assets/bazaar.js", "/assets/product.js", "/assets/event.css", "/assets/event.js",
+  "/assets/link-preview-cards.css", "/assets/roll-reels.css", "/assets/tribes-polish.css", "/assets/tribes-home.css", "/assets/tribes-art.js", "/assets/tribe-create.js", "/assets/tribe-create.css", "/assets/profile-friend.js", "/assets/link-preview-cards.js", "/assets/support.css", "/assets/support.js", "/assets/booking-agent.css", "/assets/booking-agent-driver.css", "/assets/booking-discovery.css", "/assets/booking-agent.js", "/assets/booking-legs.js", "/assets/booking-identity.js", "/assets/booking-conversation.js", "/assets/booking-discovery.js", "/assets/booking-map.js", "/assets/booking-selections.css", "/assets/booking-selections.js", "/assets/booking-pipeline.js", "/assets/booking-freshness.js", "/assets/booking-billing.js", "/assets/purchase-terms.js", "/assets/media-fit.js", "/assets/media-scale.js", "/assets/media-fit.css", "/assets/media-viewer.js", "/assets/media-viewer.css", "/assets/image-position.js", "/assets/image-position.css", "/assets/media-actions.js", "/assets/media-actions.css", "/assets/post-photos.js", "/assets/post-photos.css", "/assets/mix-polish.css", "/assets/profile-polish.css", "/assets/profile-shop.css", "/assets/signup-onboarding.js", "/assets/signup-onboarding.css", "/assets/purchase-terms.css", "/assets/booking-opt-out.css", "/assets/booking-opt-out.js", "/assets/booking-reply.css", "/assets/booking-reply.js", "/assets/booking-sync.js", "/assets/record-stores.css", "/assets/record-placement.css", "/assets/record-stores-pagination.css", "/assets/record-stores.js", "/assets/epk.css", "/assets/epk-looks.css", "/assets/epk-production.css", "/assets/epk-reviews.css", "/assets/epk-media.css", "/assets/epk-production.js", "/assets/epk-reviews.js", "/assets/epk.js", "/assets/epk-video-check.js", "/assets/epk-ai.js", "/assets/epk-ai.css", "/assets/profile-ai.js", "/assets/epk-skin.css", "/assets/epk-laminate.js", "/assets/profile-editor.css", "/assets/profile-interactions.css", "/assets/profile-interactions.js", "/assets/profile-onboarding.css", "/assets/profile-onboarding.js", "/assets/display-preferences.js", "/assets/feed-enhancements.js", "/assets/device-reminder.js", "/assets/push-notifications.js", "/assets/call-devices.js", "/assets/call-setup.js", "/assets/call-setup.css", "/assets/phone-setup.js", "/assets/sync-tones.js", "/assets/sync-privacy.js", "/assets/sync-reply.js", "/assets/sync-make-it-yours.js", "/sync.html", "/sync.webmanifest", "/assets/sync-standalone.js", "/assets/sync-standalone.css", "/assets/sync-icon-192.png", "/assets/sync-icon-512.png", "/assets/sync-apple-touch-icon.png", "/assets/sync-make-it-yours.css", "/assets/sync-reply.css", "/assets/sync-tones.css", "/assets/sync-settings.js", "/assets/call-ringer.js", "/assets/call-ringer.css", "/assets/call-note.js", "/assets/call-note.css", "/assets/sync-wallpaper.js", "/assets/sync-wallpaper.css", "/assets/phone-verification.js", "/assets/i18n-sync.js", "/assets/phone-verification.css", "/assets/sync-network-number.js", "/assets/sync-network-number.css", "/assets/direct-messages.js", "/assets/make-plans.js", "/assets/make-plans.css", "/assets/incoming-calls.js", "/assets/incoming-calls.css", "/assets/call-screen.js", "/assets/sync-call-ui.js", "/assets/sync-call-ui.css", "/assets/call-screen.css", "/assets/sync-list-polish.js", "/assets/sync-list-polish.css", "/assets/call-invite.js", "/assets/call-invite.css", "/assets/answer.js", "/assets/answer.css", "/sync/", "/assets/sync-app.js", "/assets/sync-app.css",
   "/assets/feed-enhancements.css", "/assets/artist-hq.js", "/assets/artist-hq.css", "/assets/chat.js", "/assets/chat.css", "/assets/sync.css", "/assets/legal.css", "/assets/soft-ui.css", "/assets/accessibility.css", "/assets/events-page.css", "/assets/events-page.js", "/assets/i18n-events.js",
-  "/assets/sync-shell.css", "/assets/sync-shell.js", 
+  "/assets/sync-shell.css", "/assets/sync-shell.js",
   "/assets/bazaar-examples.js",
   "/assets/profile-videos.css", "/assets/profile-videos.js",
   "/assets/notification-badge.png"
@@ -28,7 +29,8 @@ const SHELL = [
 self.addEventListener("install", event => {
   // Cache.addAll() rejects the whole install when a URL is listed twice, which left new phones without a working
   // service worker (no offline shell, no push, so "Call alerts" never finished). De-duplicate before caching.
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll([...new Set(SHELL)])));
+  // A fresh install is a fresh copy: the hourly refresh (refreshAppShell) starts counting from here.
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll([...new Set(SHELL)]).then(() => cache.put(SHELL_REFRESHED, new Response(String(Date.now()))))));
 });
 
 self.addEventListener("activate", event => {
@@ -86,21 +88,38 @@ self.addEventListener("fetch", event => {
   })));
 });
 
-let lastShellRefresh = 0;
+// Keeps the offline copy fresh between updates. Owner 2026-11-23 ("Update is hanging"): this used to re-download every
+// shell file (7 MB, no-store) each time the app came back to the front, because the once-an-hour guard lived in memory and
+// the browser restarts the worker after half a minute idle. While it ran, an update had to wait for it. Now:
+// - at most once an hour, remembered in the cache itself;
+// - "no-cache" asks the server whether each file changed, so an unchanged file costs a 304, not the file;
+// - never while a newer version is installing or waiting, and it stops as soon as one turns up or the page asks
+//   (STOP_SHELL_REFRESH, sent when the member updates).
+const SHELL_REFRESHED = "/__danzstak-shell-refreshed";
+let shellRefresh = null;
+function stopShellRefresh() { shellRefresh?.abort(); shellRefresh = null; }
+self.registration?.addEventListener?.("updatefound", stopShellRefresh);
 async function refreshAppShell() {
-  if (Date.now() - lastShellRefresh < 60 * 60 * 1000) return;
-  lastShellRefresh = Date.now();
-  const cache = await caches.open(CACHE);
-  await Promise.allSettled(SHELL.map(async path => {
-    const response = await fetch(path, { cache: "no-store" });
-    if (response.ok) await cache.put(path, response.clone());
-  }));
+  if (shellRefresh || self.registration?.installing || self.registration?.waiting) return;
+  const controller = shellRefresh = new AbortController();
+  try {
+    const cache = await caches.open(CACHE);
+    const last = Number(await (await cache.match(SHELL_REFRESHED))?.text() || 0);
+    if (Date.now() - last < 60 * 60 * 1000 || controller.signal.aborted) return;
+    await cache.put(SHELL_REFRESHED, new Response(String(Date.now())));
+    await Promise.allSettled(SHELL.map(async path => {
+      const response = await fetch(path, { cache: "no-cache", signal: controller.signal });
+      if (response.ok && !controller.signal.aborted) await cache.put(path, response.clone());
+    }));
+  } finally { if (shellRefresh === controller) shellRefresh = null; }
 }
 
 self.addEventListener("message", event => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data?.type === "STOP_SHELL_REFRESH") stopShellRefresh(); // the member is updating: don't hold the update up
   if (event.data?.type === "REFRESH_SHELL" && event.data?.allow !== false) event.waitUntil(refreshAppShell());
   if (event.data?.type === "CLEAR_MEDIA_CACHE") event.waitUntil(caches.delete(MEDIA_CACHE)); // log out / account switch
+  if (event.data?.type === "DANZSTAK_CALL_HANDLED") callHandled(event); // 5a00: answered or declined in an open window
 });
 
 self.addEventListener("push", event => {
@@ -110,11 +129,12 @@ self.addEventListener("push", event => {
   if (payload.type === "call-resolved") {
     const callId = String(payload.callId || "");
     if (!/^[a-f0-9-]{36}$/.test(callId)) return;
+    const reason = ["answered", "declined", "cancelled"].includes(payload.reason) ? payload.reason : "";
     event.waitUntil(Promise.all([
       self.registration.getNotifications({ tag: `call-${callId}` })
         .then(notifications => notifications.forEach(notification => notification.close())),
       self.clients.matchAll({ type: "window", includeUncontrolled: true })
-        .then(clients => clients.forEach(client => client.postMessage({ type: "DANZSTAK_CALL_RESOLVED", callId })))
+        .then(clients => clients.forEach(client => client.postMessage(reason ? { type: "DANZSTAK_CALL_RESOLVED", callId, reason } : { type: "DANZSTAK_CALL_RESOLVED", callId })))
     ]));
     return;
   }
@@ -125,7 +145,7 @@ self.addEventListener("push", event => {
     const candidate = new URL(String(payload.url || url), self.location.origin);
     if (candidate.origin === self.location.origin && /^\/(?:feed|messages|profile)\.html$/.test(candidate.pathname)) url = candidate.pathname + candidate.search + candidate.hash;
   } catch { /* Keep the safe feed destination. */ }
-  const call = payload.type === "call";
+  const call = payload.type === "call", test = call && payload.test === true; // SYNC ⋮ → Test ringer rings once
   const options = {
     body,
     icon: "/assets/favicon-192.png",
@@ -137,9 +157,9 @@ self.addEventListener("push", event => {
     requireInteraction: call,
     // 16-F: the lock-screen ring has Accept and Decline. Decline refuses the call without opening the app.
     actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Accept").slice(0, 40) }, { action: "decline", title: String(payload.declineTitle || payload.dismissTitle || "Decline").slice(0, 40) }] : [],
-    data: { url, type: call ? "call" : payload.type === "booking" ? "booking" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
+    data: { url, type: call ? "call" : payload.type === "booking" ? "booking" : "notification", callId: call && !test && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
   };
-  event.waitUntil(call && payload.silent !== true ? ringCallNotification(title, options) : self.registration.showNotification(title, options));
+  event.waitUntil(call && !test && payload.silent !== true ? ringCallNotification(title, options) : self.registration.showNotification(title, options));
 });
 
 // Owner 2026-11-19 (screenshot): the call notification arrived but "still not ringing". A web push plays the phone's
@@ -155,6 +175,14 @@ async function ringCallNotification(title, options) {
     if (!open.length) return; // answered, declined, dismissed or the call ended (call-resolved push)
     await self.registration.showNotification(title, { ...options, renotify: true });
   }
+}
+
+// A call answered or declined in an open DanzStak window: close its notification, which also ends the re-ring above.
+// (Called from the single "message" listener above.)
+function callHandled(event) {
+  const callId = String(event.data.callId || "");
+  if (!/^[a-f0-9-]{36}$/.test(callId)) return;
+  event.waitUntil?.(self.registration.getNotifications({ tag: `call-${callId}` }).then(list => list.forEach(notification => notification.close())));
 }
 
 // 16-F: Decline from the lock screen. The server refuses the offer (cookie session, no camera or microphone) and tells the

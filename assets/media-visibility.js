@@ -166,8 +166,11 @@
  function playCandidate(candidate){
   if(!candidate||document.hidden)return;
   if(isYouTubeFrame(candidate)){controlYouTube(candidate,'playVideo');return;}
-  if(candidate.tagName==='VIDEO')candidate.play().catch(()=>{
-   if(audibleMedia===candidate){audibleMedia=null;soundChoice=false;applySoundPreference();candidate.play().catch(()=>{});globalThis.dispatchEvent?.(new CustomEvent('danzstak:media-sound-blocked',{detail:{media:candidate}}));}
+  if(candidate.tagName==='VIDEO')candidate.play().catch(error=>{
+   // Only the browser refusing sound without a tap (NotAllowedError) turns the member's sound off. A play() cut short by a
+   // quick swipe or a new source (AbortError) is not a refusal (owner 2026-11-20: "sound still goes off on the Roll
+   // videos after a couple of videos"): it keeps the sound and retries below.
+   if(audibleMedia===candidate&&error?.name==='NotAllowedError'){audibleMedia=null;soundChoice=false;applySoundPreference();candidate.play().catch(()=>{});globalThis.dispatchEvent?.(new CustomEvent('danzstak:media-sound-blocked',{detail:{media:candidate}}));}
    // Fix-it 18: a play() interrupted by a reload/pause (AbortError) used to leave the chosen video stuck paused. Retry once while it is still the visible choice.
    else setTimeout(()=>{if(activeMedia===candidate&&candidate.paused&&!document.hidden&&(ratios.get(candidate)||0)>=0.5)candidate.play().catch(()=>{});},250);
   });

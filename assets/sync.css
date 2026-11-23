@@ -104,7 +104,7 @@ body.is-booking-thread #callStatus,body.is-booking-thread .conversation-status,b
 
 @media(max-width:560px){
   body.is-conversation-open:not([data-call-mode]) .conversation-header-actions #makePlans{display:none!important}
-  .conversation-menu #headerMakePlansMenu{display:block}
+  .conversation-menu #headerMakePlansMenu{display:flex}
 }
 
 @media(min-width:561px){

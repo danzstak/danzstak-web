@@ -76,6 +76,13 @@ function signInMessage(params) {
   return "";
 }
 
+// L1: "Sign in again to keep going" (session-guard.js) brings the member back to the page they were on.
+function returnPage() {
+  let path = "";
+  try { path = sessionStorage.getItem("danzstak_return_to") || ""; sessionStorage.removeItem("danzstak_return_to"); } catch { return ""; }
+  return /^\/(?:[a-z0-9-]+\.html|sync\/(?:index\.html)?)(?:\?[\w=&%.\-]*)?$/.test(path) && !/^\/index\.html/.test(path) ? "." + path : "";
+}
+
 async function checkSession() {
   const params = new URLSearchParams(location.search);
   const issue = signInMessage(params);
@@ -96,7 +103,7 @@ async function checkSession() {
           return;
         }
         showSession(true, "");
-        window.location.replace("feed.html");
+        window.location.replace(returnPage() || "feed.html");
         return;
       }
     }

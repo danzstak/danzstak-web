@@ -29,7 +29,9 @@ assert.match(originalFeedCss, /\.post-content\s*\{[\s\S]*?font-size:15px;[\s\S]*
 assert.match(originalFeedCss, /\.post\.is-short-text \.post-content\s*\{[\s\S]*?font-size:17px;[\s\S]*?line-height:22px;/, "short text posts must receive the familiar modest size boost");
 assert.match(originalFeedCss, /\.post-content\.is-collapsed\s*\{[\s\S]*?-webkit-line-clamp:7;/, "long post previews must clamp to seven lines");
 assert.match(html, /normalizedPostContent\.length > 0 && normalizedPostContent\.length <= 35[\s\S]*?normalizedPostContent\.length > 280[\s\S]*?className = "post-text-toggle"/, "the Feed must apply short-copy and See more thresholds consistently");
-assert.match(originalFeedCss, /#feed \.post > img\.post-media\s*\{[\s\S]*?width:100vw!important;[\s\S]*?height:125vw!important;[\s\S]*?aspect-ratio:4\/5;[\s\S]*?object-fit:cover!important;/, "phone image previews must use a full-bleed 4:5 frame");
+// F22 (owner 2026-11-22): full-bleed, but the photo's own shape (media-fit), never a fixed 4:5 frame.
+assert.match(originalFeedCss, /#feed \.post > img\.post-media\s*\{[\s\S]*?width:100vw!important;[\s\S]*?height:auto!important;[\s\S]*?object-fit:cover!important;/, "phone image previews must be full-bleed with their own height");
+assert.doesNotMatch(originalFeedCss, /img\.post-media\s*\{[^}]*(?:height:125vw|aspect-ratio:4\/5)/, "phone image previews must never be forced into a 4:5 frame");
 assert.match(originalFeedCss, /grid-template-columns:minmax\(184px,222px\) minmax\(470px,500px\) minmax\(190px,244px\)/, "desktop Mix content must stay within the requested 470–500px center column");
 assert.match(source, /rollClose\.hidden = true;/, "the fullscreen close control must not appear in the inline Roll");
 assert.match(source, /reelForm\.hidden = true;/, "the external-link form must start collapsed");
@@ -37,9 +39,9 @@ assert.match(source, /function setReelFormOpen\(open\)/, "The Roll must expose o
 assert.match(source, /reelsRail\.classList\.toggle\("has-reels", reels\.length > 0\)/, "empty and populated Roll layouts must have explicit state");
 assert.match(css, /\.reels-rail:not\(\.has-reels\):not\(\.is-adding\)[^{]*\{padding:10px 12px!important\}/, "the empty Roll must remain compact");
 assert.match(css, /\.reel-import-form\[hidden\],\.roll-close\[hidden\],\.roll-open\[hidden\]\{display:none!important\}/, "hidden Roll controls must not be revived by shared icon styles");
-assert.match(html, /assets\/feed-enhancements\.css\?v=532/);
-assert.match(html, /assets\/feed-enhancements\.js\?v=597/);
-assert.match(html, /assets\/danzstak-original-feed\.css\?v=34/);
-assert.match(worker, /danzstak-shell-v1008/);
+assert.match(html, /assets\/feed-enhancements\.css\?v=533/);
+assert.match(html, /assets\/feed-enhancements\.js\?v=599/);
+assert.match(html, /assets\/danzstak-original-feed\.css\?v=35/);
+assert.match(worker, /danzstak-shell-v1034/);
 
 console.log("Feed density checks passed: Dailies-first order, compact recovery, collapsed Roll authoring, and PWA refresh.");

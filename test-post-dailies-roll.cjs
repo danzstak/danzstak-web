@@ -58,7 +58,10 @@ function sandbox({ storiesFail = false } = {}) {
   assert.equal(Number(daily.expiresAt.N) - Math.floor(Date.parse(daily.createdAt.S) / 1000), 86400, "Dailies last 24 hours");
   assert.equal(result.body.dailyCreated, true);
   assert.equal(result.body.daily.storyId, daily.storyId.S);
-  assert.equal(box.writes("DanzStak-UserSettings").length, 0, "photos do not change the video take count");
+  // Owner 2026-11-22: TAKE N counts every Daily, photos too.
+  const take = box.writes("DanzStak-UserSettings");
+  assert.equal(take.length, 1, "a photo adds to the clapper's take count");
+  assert.equal(take[0].input.ExpressionAttributeValues[":count"].N, "1");
 
   // A video post from ANY composer (no reel flag sent): The Roll and Dailies, and the clapper's take count goes up.
   box = sandbox();
@@ -67,7 +70,7 @@ function sandbox({ storiesFail = false } = {}) {
   assert.equal(box.writes("DANZSTAK-Posts")[0].input.Item.reel.BOOL, true, "every posted video goes into The Roll");
   assert.equal(result.body.reel, true);
   assert.equal(box.writes("DANZSTAK-Stories").length, 1, "the video also goes into Dailies");
-  assert.match(box.writes("DanzStak-UserSettings")[0].input.UpdateExpression, /ADD dailyTakeCount :one/);
+  assert.match(box.writes("DanzStak-UserSettings")[0].input.UpdateExpression, /ADD dailyTakeCount :count/);
 
   // A Tribe post keeps Tribe privacy: its Daily is visible only to the poster.
   box = sandbox();
@@ -101,9 +104,8 @@ function sandbox({ storiesFail = false } = {}) {
   assert.match(feed, /reel: mediaType === "video", originalContentCertified: true/);
   assert.match(feed, /if \(selectedMedia\?\.file && savedPost\?\.dailyCreated !== true\) \{/, "Mix only uploads a Daily itself when the server did not add one");
   assert.match(enhancements, /groupId: group\.id, mediaKey, mediaType, reel: mediaType === "video"/, "Tribe composer");
-  // Task 14-D: the event composer moved to events-page.js.
-  assert.match(fs.readFileSync("assets/events-page.js", "utf8"), /reel: media\.mediaType === "video"/, "event composer");
-  assert.match(profileEditor, /mediaKey, mediaType, reel: mediaType === "video" \};/, "profile composer");
+  assert.match(enhancements, /reel: mediaFields\.mediaType === "video"/, "event composer");
+  assert.match(profileEditor, /mediaKey, mediaType, reel: mediaType === "video", \.\.\.\(mediaKey \? \{ uploadSource:/, "profile composer (also says phone or computer for the automatic albums)");
   assert.doesNotMatch(enhancements, /toggle = document\.getElementById\("shareToReels"\)/, "linked videos go to The Roll without a checkbox");
 
   // Deploy: the Stories write is part of the Auth API's managed access policy (2026-11-20: the separate DanzStakPostDailies

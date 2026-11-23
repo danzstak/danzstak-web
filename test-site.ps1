@@ -64,7 +64,7 @@ $bookingClientCompact = $bookingClient -replace '\s+', ''
 foreach ($bookingControl in @('DanzStak Booking Agent', 'Where do you want to play?', 'id="venueSearchMap"', 'Search where you want to play', 'id="searchVisibleVenueArea"', 'Search this area', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public contacts for clubs', 'Find a show near home', 'id="performerType"', '<option value="dj">DJ</option>', 'id="musicGenre"', '<option>DJ / Electronic</option>')) {
   if (-not $bookingMarkup.Contains($bookingControl)) { Add-Failure "Booking Agent: required planning control is missing: $bookingControl" }
 }
-if (-not $bookingMarkup.Contains('assets/session-activity.js?v=270')) {
+if ($bookingMarkup -notmatch 'assets/session-activity\.js\?v=\d+') {
   Add-Failure 'Booking Agent: signed-in users do not publish site-wide online presence'
 }
 foreach ($bookingClientControl in @('Send me out and bring me home', 'First show / leave home', 'Back home', 'route-map', 'My upcoming and past gigs', 'Upcoming gigs', 'Past gigs')) {
@@ -598,7 +598,7 @@ if (-not $feedEnhancementsJs.Contains('postActionFetch("/settings/posts"') -or
     -not $feedEnhancementsJs.Contains('option("Move to archive", "Hide this post from your account."')) {
   Add-Failure 'Post menu: archived and hidden posts are not persisted to the account'
 }
-foreach ($postMenuAccessibility in @('menu.setAttribute("role", "menu")', 'button.setAttribute("role", "menuitem")', 'toggle.setAttribute("aria-controls", menu.id)', 'toggle.setAttribute("aria-haspopup", "menu")', 'event.key === "Escape"', '"ArrowDown", "ArrowUp", "Home", "End"', '.post-options-menu:not([hidden])')) {
+foreach ($postMenuAccessibility in @('menu.setAttribute("role", "menu")', 'button.setAttribute("role", "menuitem")', 'toggle.setAttribute("aria-controls", menu.id)', 'toggle.setAttribute("aria-haspopup", "menu")', 'event.key === "Escape"', '"ArrowDown", "ArrowUp", "Home", "End"', 'if (event.target.closest(".post-menu-toggle, .post-options-menu")) return;', 'history.state?.danzstakPostMenu !== true')) {
   if (-not $feedEnhancementsJs.Contains($postMenuAccessibility)) { Add-Failure "Post menu: keyboard or assistive-technology behavior is missing: $postMenuAccessibility" }
 }
 if (-not $feedEnhancementsJs.Contains('const remoteNames = { pinned: "pinned", saved: "saved", notificationsOff: "muted" }') -or

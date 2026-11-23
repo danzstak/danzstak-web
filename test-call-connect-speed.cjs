@@ -29,6 +29,6 @@ const near = (ms, want, label) => assert.ok(ms >= want - 30 && ms <= want + 150,
   assert.match(source, /async function accept\(\)\{[^]*?await waitIce\(\);[^]*?await signal\("answer"/, "the answer goes out after the short wait");
   assert.match(source, /prefetchIce\(\);registrationRetryAt=0;/, "relay servers are fetched as soon as SYNC is ready");
   assert.match(source, /if\(iceServers\.length\)iceServerCache=\{iceServers,/, "a prefetch keeps only real relay servers, never the fallback");
-  assert.match(source, /setInterval\(\(\)=>\{if\(peer&&!pending&&!peer\.remoteDescription&&mode!=="text"\)poll\(\);\},500\);/, "the caller checks for the answer every half second");
+  assert.match(source, /setInterval\(\(\)=>\{if\(peer&&!pending&&\(!peer\.remoteDescription\|\|restartPending\)&&mode!=="text"\)poll\(\);\},500\);/, "the caller checks for the answer every half second (and for a restart's answer while a call reconnects)");
   console.log("Call connect speed checks passed: ICE wait 250 ms after a relay, 1 s after a public candidate, 2 s at most (was 5 s on each side); relay servers fetched before the call; the caller checks for the answer every 0.5 s.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

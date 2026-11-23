@@ -17,7 +17,8 @@ const posts = ["a", "b", "c"].map((name, index) => ({ // three: the owner's rule
   postId: `roll-sound-${name}`, userId: me, authorName: "Roll Sound Test", content: `Roll video ${name}`,
   createdAt: `2026-11-1${8 - index}T18:00:00.000Z`, audience: "public", isOwner: true, mediaType: "video",
   mediaKey: `uploads/roll-sound-${name}.webm`, mediaUrl: `https://media.example.invalid/roll-sound-${name}.webm`,
-  reel: true, viewCount: 3, commentPolicy: "everyone"
+  reel: true, viewCount: 3, commentPolicy: "everyone",
+  mediaRatio: 0.5625 // every post the app saves carries its shape (F22), so nothing above The Roll jumps when videos load
 }));
 function fixture(pathname) {
   if (pathname === "/auth/session") return { authenticated: true, user: { sub: me, email: "roll-sound@danzstak.invalid" } };

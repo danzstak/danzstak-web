@@ -23,8 +23,9 @@ assert.match(polish, /\.profile-daily-full\{[^}]*object-fit:contain\}/, "the vie
 // Mute toggle in the corner; shell bleeds edge to edge.
 assert.match(polish, /\.profile-post-card \.danzstak-native-video-shell>\.danzstak-audio-toggle\{right:12px!important;bottom:12px!important\}/);
 assert.match(polish, /\.profile-post-card \.danzstak-media-shell\{width:calc\(100% \+ 32px\)!important;max-width:none!important;margin:0 -16px!important\}/);
-// Frames stay 4:5 .. 1.91:1 (owner 2026-11-16), covered, never stretched.
-assert.match(fit, /const MIN = 0\.8, MAX = 1\.91;/);
+// Frames take the media's own shape, 9:20 .. 3:1 (owner 2026-11-22: "Make the container the size of the image or the
+// video"), covered, never stretched.
+assert.match(fit, /const MIN = 0\.45, MAX = 3;/);
 assert.match(fit, /video\.profile-post-media/);
 // Race (found by the 4x repeat run): media-fit's metadata reload aborted a starting autoplay and left it stuck paused.
 assert.match(fit, /const ask = \(\) => \{ if \(video\.readyState === 0 && video\.paused && !dataSaver\(\)\)/, "never reload a video that is starting to play");

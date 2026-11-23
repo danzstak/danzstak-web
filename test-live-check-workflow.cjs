@@ -18,6 +18,7 @@ assert.match(workflow, /if: always\(\)\n\s+uses: actions\/upload-artifact@v4/, "
 assert.match(workflow, /if: failure\(\)\n\s+uses: actions\/github-script@v7/, "a failure opens or updates the issue");
 assert.match(workflow, /const title = "Live check failing";[\s\S]*issue\.title === title && !issue\.pull_request[\s\S]*createComment[\s\S]*issues\.create/, "one issue: updated, not duplicated");
 assert.doesNotMatch(workflow, /secrets\./, "no secrets: the live checks are public and mock the API");
+assert.match(workflow, /- name: Link previews read like a crawler\n\s+shell: pwsh\n\s+run: node \.\\scripts\\verify-share-preview\.cjs/, "shared links are read the way Facebook's crawler reads them");
 
 const checks = [...workflow.matchAll(/'\.\\browser-checks\\([\w-]+\.cjs)'/g)].map(match => match[1]);
 assert.ok(checks.length >= 8, `a real set of public checks (${checks.length})`);

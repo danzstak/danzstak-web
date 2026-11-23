@@ -49,6 +49,10 @@ jobs:
             if ($attempt -lt $attempts) { Write-Host "Not published yet (attempt $attempt of $attempts); waiting 60 s."; Start-Sleep -Seconds 60 }
           }
           throw 'The live service worker does not match main.'
+      # SHARE (owner 2026-11-21: shared profile links showed a grey box): read the live site like Facebook's crawler does.
+      - name: Link previews read like a crawler
+        shell: pwsh
+        run: node .\scripts\verify-share-preview.cjs
       - name: Public browser checks against the live site
         shell: pwsh
         env:
