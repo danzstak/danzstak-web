@@ -76,6 +76,13 @@ function signInMessage(params) {
   return "";
 }
 
+// L1: "Sign in again to keep going" (session-guard.js) brings the member back to the page they were on.
+function returnPage() {
+  let path = "";
+  try { path = sessionStorage.getItem("danzstak_return_to") || ""; sessionStorage.removeItem("danzstak_return_to"); } catch { return ""; }
+  return /^\/(?:[a-z0-9-]+\.html|sync\/(?:index\.html)?)(?:\?[\w=&%.\-]*)?$/.test(path) && !/^\/index\.html/.test(path) ? "." + path : "";
+}
+
 async function checkSession() {
   const params = new URLSearchParams(location.search);
   const issue = signInMessage(params);
@@ -96,13 +103,13 @@ async function checkSession() {
           return;
         }
         showSession(true, "");
-        window.location.replace("feed.html");
+        window.location.replace(returnPage() || "feed.html");
         return;
       }
     }
 
     if (response.status === 401) {
-      showSession(false, issue || "Not signed in. Click Log In or Sign Up.");
+      showSession(false, issue || ""); // signed out: the landing page opens at the top, no status box (owner 2026-11-18)
       return;
     }
 

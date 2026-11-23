@@ -382,6 +382,43 @@
   id:["Anggota DanzStak","{name} menelepon melalui {mode}.","Tidak dapat menolak panggilan. Coba lagi."]
  };
  for(const [language,values] of Object.entries(globalCallGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(globalCallKeys.map((key,index)=>[key,values[index]])));
+ // L1 (owner 2026-11-19): a call to a device that isn't registered says so instead of staying silent.
+ const registerToAnswerKeys=["Register this device to answer","{name} is calling. Register this device to answer."];
+ const registerToAnswer={
+  es:["Registra este dispositivo para responder","{name} te está llamando. Registra este dispositivo para responder."],
+  fr:["Enregistrez cet appareil pour répondre","{name} vous appelle. Enregistrez cet appareil pour répondre."],
+  de:["Registriere dieses Gerät, um anzunehmen","{name} ruft an. Registriere dieses Gerät, um anzunehmen."],
+  pt:["Registre este dispositivo para atender","{name} está ligando. Registre este dispositivo para atender."],
+  it:["Registra questo dispositivo per rispondere","{name} ti sta chiamando. Registra questo dispositivo per rispondere."],
+  ko:["이 기기를 등록하고 받기","{name}님이 전화하고 있습니다. 받으려면 이 기기를 등록하세요."],
+  ja:["この端末を登録して応答","{name}から着信中です。応答するにはこの端末を登録してください。"],
+  "zh-Hans":["注册此设备以接听","{name}正在来电。注册此设备即可接听。"],
+  "zh-Hant":["註冊此裝置以接聽","{name}正在來電。註冊此裝置即可接聽。"],
+  fil:["I-register ang device na ito para sumagot","Tumatawag si {name}. I-register ang device na ito para sumagot."],
+  hi:["जवाब देने के लिए यह डिवाइस रजिस्टर करें","{name} कॉल कर रहे हैं। जवाब देने के लिए यह डिवाइस रजिस्टर करें।"],
+  vi:["Đăng ký thiết bị này để trả lời","{name} đang gọi. Đăng ký thiết bị này để trả lời."],
+  th:["ลงทะเบียนอุปกรณ์นี้เพื่อรับสาย","{name} กำลังโทรมา ลงทะเบียนอุปกรณ์นี้เพื่อรับสาย"],
+  id:["Daftarkan perangkat ini untuk menjawab","{name} sedang menelepon. Daftarkan perangkat ini untuk menjawab."]
+ };
+ for(const [language,values] of Object.entries(registerToAnswer))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(registerToAnswerKeys.map((key,index)=>[key,values[index]])));
+ const sendWhenBackKeys=["No connection right now. Your message is still here and sends when you're back.","The call dropped. Call again to keep talking."];
+ const sendWhenBack={
+  es:["Ahora no hay conexión. Tu mensaje sigue aquí y se enviará cuando vuelvas a tenerla.","Se cortó la llamada. Vuelve a llamar para seguir hablando."],
+  fr:["Pas de connexion pour le moment. Votre message reste ici et partira dès que la connexion reviendra.","L’appel a été coupé. Rappelez pour continuer à parler."],
+  de:["Gerade keine Verbindung. Deine Nachricht bleibt hier und wird gesendet, sobald du wieder online bist.","Der Anruf ist abgebrochen. Ruf erneut an, um weiterzusprechen."],
+  pt:["Sem conexão agora. Sua mensagem continua aqui e será enviada quando a conexão voltar.","A chamada caiu. Ligue de novo para continuar conversando."],
+  it:["Nessuna connessione al momento. Il tuo messaggio resta qui e partirà quando torna la connessione.","La chiamata è caduta. Richiama per continuare a parlare."],
+  ko:["지금은 연결이 없습니다. 메시지는 그대로 있고 연결되면 전송됩니다.","통화가 끊겼습니다. 계속 이야기하려면 다시 전화하세요."],
+  ja:["現在接続がありません。メッセージはここに残り、接続が戻ると送信されます。","通話が切れました。続けて話すにはもう一度かけてください。"],
+  "zh-Hans":["现在没有网络连接。你的消息还在这里，恢复连接后会自动发送。","通话已中断。请重新拨打以继续通话。"],
+  "zh-Hant":["目前沒有網路連線。你的訊息還在這裡，恢復連線後會自動傳送。","通話已中斷。請重新撥打以繼續通話。"],
+  fil:["Walang koneksyon ngayon. Nandito pa rin ang mensahe mo at maipapadala ito pagbalik ng koneksyon.","Naputol ang tawag. Tumawag ulit para ituloy ang usapan."],
+  hi:["अभी कनेक्शन नहीं है। आपका संदेश यहीं है और कनेक्शन लौटते ही भेज दिया जाएगा।","कॉल कट गई। बात जारी रखने के लिए फिर से कॉल करें।"],
+  vi:["Hiện không có kết nối. Tin nhắn của bạn vẫn ở đây và sẽ được gửi khi có kết nối trở lại.","Cuộc gọi đã bị ngắt. Hãy gọi lại để tiếp tục trò chuyện."],
+  th:["ตอนนี้ไม่มีการเชื่อมต่อ ข้อความของคุณยังอยู่ที่นี่และจะส่งเมื่อกลับมาเชื่อมต่อได้","สายหลุด โทรอีกครั้งเพื่อคุยต่อ"],
+  id:["Tidak ada koneksi sekarang. Pesanmu masih di sini dan akan terkirim saat koneksi kembali.","Panggilan terputus. Telepon lagi untuk lanjut bicara."]
+ };
+ for(const [language,values] of Object.entries(sendWhenBack))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(sendWhenBackKeys.map((key,index)=>[key,values[index]])));
  const callNetworkKeys=["DanzStak is taking too long to respond. Retrying automatically.","DanzStak cannot connect to calls right now. Check your connection and try again.","Session expired","Request failed"];
  const callNetworkGuidance={
   es:["DanzStak está tardando demasiado en responder. Reintentando automáticamente.","DanzStak no puede conectarse a las llamadas ahora. Comprueba tu conexión y vuelve a intentarlo.","La sesión caducó","La solicitud falló"],
@@ -475,6 +512,17 @@
   id:["Notifikasi","Tutup notifikasi","Memuat notifikasi…","Tidak ada notifikasi baru.","{count} notifikasi baru.","{count} notifikasi baru.","{label}, {count} notifikasi baru","{label}, {count} notifikasi baru","Notifikasi tidak dapat dimuat.","Coba lagi","Buka Suku"]
  };
  for(const [language,values] of Object.entries(notificationGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(notificationKeys.map((key,index)=>[key,values[index]])));
+
+ // Booking reply notifications (owner 2026-11-16).
+ const bookingNoticeKeys=["Open booking thread","A venue","answered your pitch","is interested in your gig","offered you a date","confirmed a date","passed on your pitch","opened your EPK"];
+ const bookingNoticeGuidance={
+  it:["Apri la conversazione di booking","Un locale","ha risposto alla tua proposta","è interessato al tuo concerto","ti ha proposto una data","ha confermato una data","ha rifiutato la tua proposta","ha aperto il tuo EPK"],
+  fr:["Ouvrir la conversation booking","Une salle","a répondu à ton pitch","est intéressée par ton concert","t'a proposé une date","a confirmé une date","a décliné ton pitch","a ouvert ton EPK"],
+  es:["Abrir conversación de contratación","Una sala","respondió a tu propuesta","está interesada en tu concierto","te ofreció una fecha","confirmó una fecha","rechazó tu propuesta","abrió tu EPK"],
+  de:["Booking-Unterhaltung öffnen","Eine Location","hat auf deinen Pitch geantwortet","interessiert sich für deinen Gig","hat dir ein Datum angeboten","hat ein Datum bestätigt","hat deinen Pitch abgelehnt","hat dein EPK geöffnet"],
+  pt:["Abrir conversa de booking","Uma casa","respondeu ao seu pitch","tem interesse no seu show","ofereceu uma data","confirmou uma data","recusou o seu pitch","abriu o seu EPK"]
+ };
+ for(const [language,values] of Object.entries(bookingNoticeGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(bookingNoticeKeys.map((key,index)=>[key,values[index]])));
  const activityNotificationKeys=["New message","your Tribe","New announcement","{name} notified @everyone in {group}: {preview}","{name} liked your post.","{name} disliked your post.","{name} loved your post.","{name} laughed at your post.","{name} reacted Wow to your post.","{name} reacted Sad to your post.","{name} reacted Fire to your post.","{name} reacted to your post.","{name} tagged you in a post.","New reply","{name} replied to you: {preview}","New comment","{name} commented: {preview}","{name} sent you a friend request.","Open {name} profile"];
  const activityNotifications={
   es:["Nuevo mensaje","tu Tribu","Nuevo anuncio","{name} avisó a @everyone en {group}: {preview}","A {name} le gustó tu publicación.","A {name} no le gustó tu publicación.","A {name} le encantó tu publicación.","{name} se rio de tu publicación.","{name} reaccionó con Guau a tu publicación.","{name} reaccionó con Triste a tu publicación.","{name} reaccionó con Fuego a tu publicación.","{name} reaccionó a tu publicación.","{name} te etiquetó en una publicación.","Nueva respuesta","{name} te respondió: {preview}","Nuevo comentario","{name} comentó: {preview}","{name} te envió una solicitud de amistad.","Abrir el perfil de {name}"],
@@ -511,6 +559,48 @@
   id:["Bagikan profil","Undang orang","Tautan yang dapat dibagikan","Salin tautan","Tautan disalin.","Pilih dan salin tautan di atas.","Gunakan Salin tautan untuk membagikan tautan ini.","Bagikan profil ini dengan teman dan orang-orang di Suku Anda di DanzStak.","Bergabunglah dengan saya di DanzStak. Buat akun untuk terhubung dan membagikan konten asli Anda.","Bagikan","Tutup"]
  };
  for(const [language,values] of Object.entries(profileShareGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(profileShareKeys.map((key,index)=>[key,values[index]])));
+ // SHARE (spec 44): the link-preview switch on your own profile's share sheet.
+ const shareCardKeys=["Show my photo and name in link previews","Anyone you send this link to sees your name, photo and cover.","Your link preview","Preparing your link preview…","The link preview couldn't be saved. Your link still works."];
+ const shareCardGuidance={
+  es:["Mostrar mi foto y mi nombre en las vistas previas de enlaces","Quien reciba este enlace verá tu nombre, tu foto y tu portada.","Vista previa de tu enlace","Preparando la vista previa de tu enlace…","No se pudo guardar la vista previa. Tu enlace sigue funcionando."],
+  fr:["Afficher ma photo et mon nom dans les aperçus de lien","Toute personne à qui vous envoyez ce lien voit votre nom, votre photo et votre couverture.","Aperçu de votre lien","Préparation de l’aperçu de votre lien…","L’aperçu n’a pas pu être enregistré. Votre lien fonctionne toujours."],
+  de:["Mein Foto und meinen Namen in Linkvorschauen zeigen","Alle, denen du diesen Link schickst, sehen deinen Namen, dein Foto und dein Titelbild.","Deine Linkvorschau","Deine Linkvorschau wird vorbereitet…","Die Linkvorschau konnte nicht gespeichert werden. Dein Link funktioniert trotzdem."],
+  pt:["Mostrar minha foto e meu nome nas prévias de links","Quem receber este link verá seu nome, sua foto e sua capa.","Prévia do seu link","Preparando a prévia do seu link…","Não foi possível salvar a prévia. Seu link continua funcionando."],
+  it:["Mostra la mia foto e il mio nome nelle anteprime dei link","Chi riceve questo link vede il tuo nome, la tua foto e la tua copertina.","Anteprima del tuo link","Preparo l’anteprima del tuo link…","Non è stato possibile salvare l’anteprima. Il tuo link funziona comunque."],
+  ko:["링크 미리보기에 내 사진과 이름 표시","이 링크를 받는 사람은 누구나 내 이름, 사진, 커버를 볼 수 있습니다.","내 링크 미리보기","링크 미리보기를 준비하는 중…","링크 미리보기를 저장하지 못했습니다. 링크는 그대로 작동합니다."],
+  ja:["リンクのプレビューに写真と名前を表示する","このリンクを受け取った人は誰でも、あなたの名前、写真、カバーを見られます。","リンクのプレビュー","リンクのプレビューを準備しています…","プレビューを保存できませんでした。リンクはそのまま使えます。"],
+  "zh-Hans":["在链接预览中显示我的照片和名字","收到此链接的任何人都能看到你的名字、照片和封面。","你的链接预览","正在准备你的链接预览…","无法保存链接预览。你的链接仍然可用。"],
+  "zh-Hant":["在連結預覽中顯示我的照片和名字","收到此連結的任何人都能看到你的名字、照片和封面。","你的連結預覽","正在準備你的連結預覽…","無法儲存連結預覽。你的連結仍可使用。"],
+  fil:["Ipakita ang aking larawan at pangalan sa mga preview ng link","Makikita ng sinumang padalhan mo ng link na ito ang iyong pangalan, larawan at cover.","Preview ng iyong link","Inihahanda ang preview ng iyong link…","Hindi ma-save ang preview ng link. Gumagana pa rin ang iyong link."],
+  hi:["लिंक प्रीव्यू में मेरी फ़ोटो और नाम दिखाएँ","जिसे भी आप यह लिंक भेजेंगे, वह आपका नाम, फ़ोटो और कवर देखेगा।","आपका लिंक प्रीव्यू","आपका लिंक प्रीव्यू तैयार हो रहा है…","लिंक प्रीव्यू सेव नहीं हो सका। आपका लिंक फिर भी काम करता है।"],
+  vi:["Hiện ảnh và tên của tôi trong bản xem trước liên kết","Bất kỳ ai bạn gửi liên kết này đều thấy tên, ảnh và ảnh bìa của bạn.","Bản xem trước liên kết của bạn","Đang chuẩn bị bản xem trước liên kết…","Không lưu được bản xem trước. Liên kết của bạn vẫn hoạt động."],
+  th:["แสดงรูปและชื่อของฉันในตัวอย่างลิงก์","ทุกคนที่คุณส่งลิงก์นี้ให้จะเห็นชื่อ รูป และภาพหน้าปกของคุณ","ตัวอย่างลิงก์ของคุณ","กำลังเตรียมตัวอย่างลิงก์ของคุณ…","บันทึกตัวอย่างลิงก์ไม่ได้ ลิงก์ของคุณยังใช้ได้"],
+  id:["Tampilkan foto dan nama saya di pratinjau tautan","Siapa pun yang Anda kirimi tautan ini akan melihat nama, foto, dan sampul Anda.","Pratinjau tautan Anda","Menyiapkan pratinjau tautan Anda…","Pratinjau tautan tidak dapat disimpan. Tautan Anda tetap berfungsi."]
+ };
+ for(const [language,values] of Object.entries(shareCardGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(shareCardKeys.map((key,index)=>[key,values[index]])));
+ // Owner 2026-11-22: a shared profile link opened signed out shows only that member's shop (shop.html).
+ const publicShopKeys=["Nothing for sale right now.","shipping","SOLD OUT","Loading shop…","Leave the shop","Checkout opens soon","The shop couldn't be loaded. Try again."];
+ const publicShopGuidance={
+  es:["No hay nada a la venta ahora mismo.","de envío","AGOTADO","Cargando la tienda…","Salir de la tienda","El pago se abre pronto","No se pudo cargar la tienda. Inténtalo de nuevo."],
+  fr:["Rien à vendre pour le moment.","de livraison","ÉPUISÉ","Chargement de la boutique…","Quitter la boutique","Le paiement ouvre bientôt","La boutique n’a pas pu être chargée. Réessayez."],
+  de:["Gerade gibt es nichts zu kaufen.","Versand","AUSVERKAUFT","Shop wird geladen…","Shop verlassen","Der Checkout öffnet bald","Der Shop konnte nicht geladen werden. Versuche es noch einmal."],
+  pt:["Nada à venda no momento.","de frete","ESGOTADO","Carregando a loja…","Sair da loja","O pagamento abre em breve","Não foi possível carregar a loja. Tente novamente."],
+  it:["Niente in vendita al momento.","di spedizione","ESAURITO","Caricamento del negozio…","Esci dal negozio","Il pagamento apre a breve","Impossibile caricare il negozio. Riprova."],
+  ko:["지금은 판매 중인 상품이 없어요.","배송비","품절","숍을 불러오는 중…","숍에서 나가기","결제는 곧 열려요","숍을 불러오지 못했어요. 다시 시도해 주세요."],
+  ja:["現在、販売中の商品はありません。","送料","売り切れ","ショップを読み込み中…","ショップを出る","購入手続きはまもなく開始します","ショップを読み込めませんでした。もう一度お試しください。"],
+  "zh-Hans":["目前没有在售商品。","运费","已售罄","正在加载店铺…","离开店铺","结账即将开放","无法加载店铺。请重试。"],
+  "zh-Hant":["目前沒有在售商品。","運費","已售罄","正在載入商店…","離開商店","結帳即將開放","無法載入商店。請再試一次。"],
+  fil:["Walang ibinebenta sa ngayon.","pagpapadala","UBOS NA","Nilo-load ang shop…","Umalis sa shop","Malapit nang magbukas ang checkout","Hindi ma-load ang shop. Subukan ulit."],
+  hi:["अभी बिक्री के लिए कुछ नहीं है।","शिपिंग","बिक गया","दुकान लोड हो रही है…","दुकान से बाहर निकलें","चेकआउट जल्द खुलेगा","दुकान लोड नहीं हो सकी। फिर से कोशिश करें।"],
+  vi:["Hiện chưa có gì để bán.","phí vận chuyển","HẾT HÀNG","Đang tải cửa hàng…","Rời cửa hàng","Thanh toán sắp mở","Không thể tải cửa hàng. Hãy thử lại."],
+  th:["ตอนนี้ยังไม่มีสินค้าขาย","ค่าส่ง","ขายหมดแล้ว","กำลังโหลดร้านค้า…","ออกจากร้านค้า","การชำระเงินจะเปิดเร็ว ๆ นี้","โหลดร้านค้าไม่ได้ ลองอีกครั้ง"],
+  id:["Belum ada yang dijual saat ini.","ongkos kirim","HABIS","Memuat toko…","Keluar dari toko","Pembayaran segera dibuka","Toko tidak dapat dimuat. Coba lagi."]
+ };
+ for(const [language,values] of Object.entries(publicShopGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(publicShopKeys.map((key,index)=>[key,values[index]])));
+ // Owner 2026-11-22: a photo that didn't finish loading on the phone is stopped before upload (media-scale.js).
+ const brokenPhoto="This photo didn't finish loading on your phone. Open it in your gallery, then pick it again.";
+ const brokenPhotoGuidance={es:"Esta foto no terminó de cargarse en tu teléfono. Ábrela en tu galería y vuelve a elegirla.",fr:"Cette photo n’a pas fini de se charger sur votre téléphone. Ouvrez-la dans votre galerie, puis choisissez-la à nouveau.",de:"Dieses Foto wurde auf deinem Handy nicht vollständig geladen. Öffne es in deiner Galerie und wähle es dann noch einmal aus.",pt:"Esta foto não terminou de carregar no seu telefone. Abra-a na sua galeria e escolha-a novamente.",it:"Questa foto non si è caricata del tutto sul telefono. Aprila nella galleria, poi sceglila di nuovo.",ko:"이 사진이 휴대폰에 완전히 불러와지지 않았어요. 갤러리에서 사진을 연 다음 다시 선택해 주세요.",ja:"この写真はスマートフォンへの読み込みが完了していません。ギャラリーで開いてから、もう一度選んでください。","zh-Hans":"这张照片尚未在手机上完整加载。请先在相册中打开它，然后重新选择。","zh-Hant":"這張照片尚未在手機上完整載入。請先在相簿中開啟它，然後重新選擇。",fil:"Hindi pa tapos mag-load ang larawang ito sa iyong telepono. Buksan ito sa iyong gallery, saka piliin ulit.",hi:"यह फ़ोटो आपके फ़ोन पर पूरी तरह लोड नहीं हुई। इसे अपनी गैलरी में खोलें, फिर दोबारा चुनें।",vi:"Ảnh này chưa tải xong trên điện thoại của bạn. Hãy mở ảnh trong thư viện, rồi chọn lại.",th:"รูปนี้ยังโหลดบนโทรศัพท์ไม่เสร็จ เปิดรูปในแกลเลอรีก่อน แล้วเลือกใหม่อีกครั้ง",id:"Foto ini belum selesai dimuat di ponselmu. Buka di galeri, lalu pilih lagi."};
+ for(const [language,value] of Object.entries(brokenPhotoGuidance))(dictionaries[language]||(dictionaries[language]={}))[brokenPhoto]=value;
  const inviteKeys=["Invite a friend","Bring someone you know to DanzStak. You choose who receives it and you press Send in your own app.","Invitation message","Text message","Share via apps","Copy invitation link","Invitation link copied.","Select and copy the invitation above.","Your device could not open the share sheet. Copy the invitation link instead.","Hey! Come join me on DanzStak. It’s an independent social network where we can chat, call, share things, and make plans together."];
  const inviteGuidance={
   es:["Invitar a un amigo","Trae a DanzStak a alguien que conoces. Tú eliges quién lo recibe y pulsas Enviar en tu propia aplicación.","Mensaje de invitación","Mensaje de texto","Compartir mediante aplicaciones","Copiar enlace de invitación","Enlace de invitación copiado.","Selecciona y copia la invitación de arriba.","Tu dispositivo no pudo abrir el menú para compartir. Copia el enlace de invitación.","¡Hola! Únete a mí en DanzStak. Es una red social independiente donde podemos chatear, llamar, compartir cosas y hacer planes."],
@@ -529,6 +619,44 @@
   id:["Undang teman","Ajak seseorang yang Anda kenal ke DanzStak. Anda memilih penerima dan menekan Kirim di aplikasi Anda sendiri.","Pesan undangan","Pesan teks","Bagikan lewat aplikasi","Salin tautan undangan","Tautan undangan disalin.","Pilih dan salin undangan di atas.","Perangkat tidak dapat membuka menu berbagi. Salin tautan undangan sebagai gantinya.","Hai! Bergabunglah dengan saya di DanzStak. Ini jejaring sosial independen tempat kita dapat mengobrol, menelepon, berbagi, dan membuat rencana bersama."]
  };
  for(const [language,values] of Object.entries(inviteGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(inviteKeys.map((key,index)=>[key,values[index]])));
+ // Owner 2026-11-22: several photos in one post, up to 20 (post-photos.js).
+ const postPhotosKeys=["{count} photos","A post holds up to 20 photos. The first 20 are attached."];
+ const postPhotosGuidance={
+  es:["{count} fotos","Una publicación admite hasta 20 fotos. Se adjuntan las 20 primeras."],
+  fr:["{count} photos","Une publication contient jusqu’à 20 photos. Les 20 premières sont jointes."],
+  de:["{count} Fotos","Ein Beitrag fasst bis zu 20 Fotos. Die ersten 20 sind angehängt."],
+  pt:["{count} fotos","Uma publicação comporta até 20 fotos. As 20 primeiras foram anexadas."],
+  it:["{count} foto","Un post può contenere fino a 20 foto. Sono allegate le prime 20."],
+  ko:["사진 {count}장","게시물에는 사진을 20장까지 올릴 수 있어요. 처음 20장이 첨부됐어요."],
+  ja:["写真{count}枚","1つの投稿に写真は20枚までです。最初の20枚を添付しました。"],
+  "zh-Hans":["{count} 张照片","一条帖子最多可放 20 张照片。已附上前 20 张。"],
+  "zh-Hant":["{count} 張相片","一則貼文最多可放 20 張相片。已附上前 20 張。"],
+  fil:["{count} larawan","Hanggang 20 larawan ang kasya sa isang post. Nakalakip ang unang 20."],
+  hi:["{count} फ़ोटो","एक पोस्ट में 20 फ़ोटो तक आ सकती हैं। पहली 20 जोड़ दी गई हैं।"],
+  vi:["{count} ảnh","Mỗi bài đăng chứa tối đa 20 ảnh. Đã đính kèm 20 ảnh đầu tiên."],
+  th:["{count} รูป","หนึ่งโพสต์ใส่รูปได้สูงสุด 20 รูป แนบ 20 รูปแรกแล้ว"],
+  id:["{count} foto","Satu postingan memuat hingga 20 foto. 20 foto pertama sudah dilampirkan."]
+ };
+ for(const [language,values] of Object.entries(postPhotosGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(postPhotosKeys.map((key,index)=>[key,values[index]])));
+ // Albums and the composer's album choice (owner 2026-11-22: "User should get to choose what album the images go into").
+ const albumKeys=["Album", "Choose an album", "Albums", "Loading your albums…", "Album name", "New album name", "+ New album", "Give the album a name.", "The album couldn't be made. Try again.", "Your albums couldn't load. You can still make a new one.", "Mobile uploads", "Computer uploads", "+ Create album", "All photos", "All videos", "← Albums", "Select", "Move to album", "Rename album"];
+ const albumGuidance={
+  es:["Álbum", "Elige un álbum", "Álbumes", "Cargando tus álbumes…", "Nombre del álbum", "Nombre del nuevo álbum", "+ Álbum nuevo", "Ponle un nombre al álbum.", "No se pudo crear el álbum. Inténtalo de nuevo.", "No se pudieron cargar tus álbumes. Igual puedes crear uno nuevo.", "Subidas desde el móvil", "Subidas desde el ordenador", "+ Crear álbum", "Todas las fotos", "Todos los videos", "← Álbumes", "Seleccionar", "Mover a un álbum", "Cambiar el nombre del álbum"],
+  fr:["Album", "Choisir un album", "Albums", "Chargement de vos albums…", "Nom de l’album", "Nom du nouvel album", "+ Nouvel album", "Donnez un nom à l’album.", "L’album n’a pas pu être créé. Réessayez.", "Vos albums n’ont pas pu se charger. Vous pouvez quand même en créer un.", "Envois depuis le mobile", "Envois depuis l’ordinateur", "+ Créer un album", "Toutes les photos", "Toutes les vidéos", "← Albums", "Sélectionner", "Déplacer vers un album", "Renommer l’album"],
+  de:["Album", "Album wählen", "Alben", "Deine Alben werden geladen …", "Albumname", "Name des neuen Albums", "+ Neues Album", "Gib dem Album einen Namen.", "Das Album konnte nicht erstellt werden. Versuch es noch einmal.", "Deine Alben konnten nicht geladen werden. Du kannst trotzdem ein neues anlegen.", "Handy-Uploads", "Computer-Uploads", "+ Album erstellen", "Alle Fotos", "Alle Videos", "← Alben", "Auswählen", "In Album verschieben", "Album umbenennen"],
+  pt:["Álbum", "Escolha um álbum", "Álbuns", "Carregando seus álbuns…", "Nome do álbum", "Nome do novo álbum", "+ Novo álbum", "Dê um nome ao álbum.", "Não foi possível criar o álbum. Tente de novo.", "Não foi possível carregar seus álbuns. Você ainda pode criar um novo.", "Envios do celular", "Envios do computador", "+ Criar álbum", "Todas as fotos", "Todos os vídeos", "← Álbuns", "Selecionar", "Mover para álbum", "Renomear álbum"],
+  it:["Album", "Scegli un album", "Album", "Caricamento dei tuoi album…", "Nome dell’album", "Nome del nuovo album", "+ Nuovo album", "Dai un nome all’album.", "Impossibile creare l’album. Riprova.", "Impossibile caricare i tuoi album. Puoi comunque crearne uno nuovo.", "Caricamenti da cellulare", "Caricamenti da computer", "+ Crea album", "Tutte le foto", "Tutti i video", "← Album", "Seleziona", "Sposta in un album", "Rinomina album"],
+  ko:["앨범", "앨범 선택", "앨범", "앨범 불러오는 중…", "앨범 이름", "새 앨범 이름", "+ 새 앨범", "앨범 이름을 입력하세요.", "앨범을 만들지 못했어요. 다시 시도하세요.", "앨범을 불러오지 못했어요. 새 앨범은 만들 수 있어요.", "모바일 업로드", "컴퓨터 업로드", "+ 앨범 만들기", "모든 사진", "모든 동영상", "← 앨범", "선택", "앨범으로 이동", "앨범 이름 바꾸기"],
+  ja:["アルバム", "アルバムを選択", "アルバム", "アルバムを読み込み中…", "アルバム名", "新しいアルバムの名前", "+ 新しいアルバム", "アルバムに名前を付けてください。", "アルバムを作成できませんでした。もう一度お試しください。", "アルバムを読み込めませんでした。新しいアルバムは作成できます。", "モバイルからのアップロード", "パソコンからのアップロード", "+ アルバムを作成", "すべての写真", "すべての動画", "← アルバム", "選択", "アルバムに移動", "アルバム名を変更"],
+  "zh-Hans":["相册", "选择相册", "相册", "正在加载你的相册…", "相册名称", "新相册名称", "+ 新相册", "请给相册起个名字。", "无法创建相册，请重试。", "无法加载你的相册，你仍可以新建一个。", "手机上传", "电脑上传", "+ 创建相册", "所有照片", "所有视频", "← 相册", "选择", "移到相册", "重命名相册"],
+  "zh-Hant":["相簿", "選擇相簿", "相簿", "正在載入你的相簿…", "相簿名稱", "新相簿名稱", "+ 新相簿", "請替相簿取個名字。", "無法建立相簿，請再試一次。", "無法載入你的相簿，你仍可以新增一個。", "手機上傳", "電腦上傳", "+ 建立相簿", "所有相片", "所有影片", "← 相簿", "選取", "移到相簿", "重新命名相簿"],
+  fil:["Album", "Pumili ng album", "Mga album", "Nilo-load ang mga album mo…", "Pangalan ng album", "Pangalan ng bagong album", "+ Bagong album", "Bigyan ng pangalan ang album.", "Hindi nagawa ang album. Subukan ulit.", "Hindi ma-load ang mga album mo. Puwede ka pa ring gumawa ng bago.", "Mga mobile upload", "Mga upload mula sa computer", "+ Gumawa ng album", "Lahat ng larawan", "Lahat ng video", "← Mga album", "Pumili", "Ilipat sa album", "Palitan ang pangalan ng album"],
+  hi:["एल्बम", "एल्बम चुनें", "एल्बम", "आपके एल्बम लोड हो रहे हैं…", "एल्बम का नाम", "नए एल्बम का नाम", "+ नया एल्बम", "एल्बम को नाम दें।", "एल्बम नहीं बन सका। फिर से कोशिश करें।", "आपके एल्बम लोड नहीं हो सके। आप फिर भी नया बना सकते हैं।", "मोबाइल अपलोड", "कंप्यूटर अपलोड", "+ एल्बम बनाएँ", "सभी फ़ोटो", "सभी वीडियो", "← एल्बम", "चुनें", "एल्बम में ले जाएँ", "एल्बम का नाम बदलें"],
+  vi:["Album", "Chọn album", "Album", "Đang tải album của bạn…", "Tên album", "Tên album mới", "+ Album mới", "Hãy đặt tên cho album.", "Không tạo được album. Hãy thử lại.", "Không tải được album của bạn. Bạn vẫn có thể tạo album mới.", "Tải lên từ điện thoại", "Tải lên từ máy tính", "+ Tạo album", "Tất cả ảnh", "Tất cả video", "← Album", "Chọn", "Chuyển vào album", "Đổi tên album"],
+  th:["อัลบั้ม", "เลือกอัลบั้ม", "อัลบั้ม", "กำลังโหลดอัลบั้มของคุณ…", "ชื่ออัลบั้ม", "ชื่ออัลบั้มใหม่", "+ อัลบั้มใหม่", "ตั้งชื่ออัลบั้ม", "สร้างอัลบั้มไม่ได้ ลองอีกครั้ง", "โหลดอัลบั้มของคุณไม่ได้ แต่ยังสร้างอัลบั้มใหม่ได้", "อัปโหลดจากมือถือ", "อัปโหลดจากคอมพิวเตอร์", "+ สร้างอัลบั้ม", "รูปทั้งหมด", "วิดีโอทั้งหมด", "← อัลบั้ม", "เลือก", "ย้ายไปอัลบั้ม", "เปลี่ยนชื่ออัลบั้ม"],
+  id:["Album", "Pilih album", "Album", "Memuat album kamu…", "Nama album", "Nama album baru", "+ Album baru", "Beri nama album ini.", "Album tidak bisa dibuat. Coba lagi.", "Album kamu tidak bisa dimuat. Kamu tetap bisa membuat album baru.", "Unggahan seluler", "Unggahan komputer", "+ Buat album", "Semua foto", "Semua video", "← Album", "Pilih", "Pindahkan ke album", "Ganti nama album"]
+ };
+ for(const [language,values] of Object.entries(albumGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(albumKeys.map((key,index)=>[key,values[index]])));
  const callMediaKeys=["Camera and microphone access is blocked. Allow both in your browser or device settings, then try again.","Microphone access is blocked. Allow it in your browser or device settings, then try again.","No camera or microphone was found on this device.","No microphone was found on this device.","The camera or microphone is being used by another app. Close it and try again.","The microphone is being used by another app. Close it and try again.","The camera or microphone could not start. Check device permissions and try again.","The microphone could not start. Check device permissions and try again."];
  const callMediaGuidance={
   es:["El acceso a la cámara y al micrófono está bloqueado. Permite ambos en la configuración del navegador o del dispositivo y vuelve a intentarlo.","El acceso al micrófono está bloqueado. Permítelo en la configuración del navegador o del dispositivo y vuelve a intentarlo.","No se encontró ninguna cámara ni micrófono en este dispositivo.","No se encontró ningún micrófono en este dispositivo.","Otra aplicación está usando la cámara o el micrófono. Ciérrala y vuelve a intentarlo.","Otra aplicación está usando el micrófono. Ciérrala y vuelve a intentarlo.","No se pudo iniciar la cámara o el micrófono. Comprueba los permisos del dispositivo y vuelve a intentarlo.","No se pudo iniciar el micrófono. Comprueba los permisos del dispositivo y vuelve a intentarlo."],
@@ -693,6 +821,25 @@
   id:["Hapus lampiran","Edit teks pesan","Simpan","Pesan dihapus untuk semua orang.","Pesan dihapus untuk Anda.","Hapus untuk saya","Hapus untuk semua orang","Edit pesan","Hapus pesan","Muat pesan sebelumnya","Disimpan offline — akan dikirim saat Anda tersambung kembali.","Mengunggah lampiran…","Obrolan dihapus dari akun Anda.","Buka obrolan","Mulai percakapan","Anggota Suku yang sama","Tidak ada teman atau obrolan yang cocok dengan pencarian Anda.","Belum ada teman atau obrolan tersimpan.","Kontak sementara tidak tersedia. Mencoba lagi secara otomatis…"]
  };
  for(const [language,values] of Object.entries(messageActions)){const dictionary=dictionaries[language]||(dictionaries[language]={});messageActionKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ // SYNC camera choices (owner 2026-11-23: "with the camera i should be able to choose a video or the camera").
+ const captureKeys=["Take a photo","Record a video","Choose from your phone"];
+ const captureChoices={
+  es:["Hacer una foto","Grabar un video","Elegir del teléfono"],
+  fr:["Prendre une photo","Filmer une vidéo","Choisir dans le téléphone"],
+  de:["Foto aufnehmen","Video aufnehmen","Vom Handy auswählen"],
+  pt:["Tirar uma foto","Gravar um vídeo","Escolher do celular"],
+  it:["Scatta una foto","Registra un video","Scegli dal telefono"],
+  ko:["사진 찍기","동영상 촬영","휴대폰에서 선택"],
+  ja:["写真を撮る","動画を撮影","スマホから選ぶ"],
+  "zh-Hans":["拍照","录制视频","从手机中选择"],
+  "zh-Hant":["拍照","錄製影片","從手機中選擇"],
+  fil:["Kumuha ng litrato","Mag-record ng video","Pumili mula sa phone"],
+  hi:["फ़ोटो लें","वीडियो रिकॉर्ड करें","फ़ोन से चुनें"],
+  vi:["Chụp ảnh","Quay video","Chọn từ điện thoại"],
+  th:["ถ่ายรูป","อัดวิดีโอ","เลือกจากโทรศัพท์"],
+  id:["Ambil foto","Rekam video","Pilih dari ponsel"]
+ };
+ for(const [language,values] of Object.entries(captureChoices)){const dictionary=dictionaries[language]||(dictionaries[language]={});captureKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const partialMessageKeys=["Some chats or online statuses are temporarily unavailable.","Retry contacts"];
  const partialMessageGuidance={
   es:["Algunos chats o estados en línea no están disponibles temporalmente.","Reintentar contactos"],
@@ -842,22 +989,22 @@
   id:["Sukai komentar","Tidak suka postingan","Tidak suka komentar","Hapus reaksi tidak suka","Simpan postingan","Hapus postingan dari Tersimpan","Hapus dari Tersimpan","Opsi postingan","Lihat postingan","Buka di sumber","Putar di sumber","Anda sedang online. Tidak ada pengguna terhubung lain yang aktif saat ini.","Tidak ada pengguna terhubung lain yang aktif saat ini.","Buka profil Anda","Tampilkan postingan lainnya"]
  };
  for(const [language,values] of Object.entries(socialActions)){const dictionary=dictionaries[language]||(dictionaries[language]={});socialActionKeys.forEach((key,index)=>dictionary[key]=values[index]);}
- const commentActionKeys=["Write a comment…","Cancel","Add emoji to comment","Post comment","Most relevant ▾","Newest ▾","Comment order: most relevant. Activate for newest first.","Comment order: newest first. Activate for most relevant.","Reply","this comment","now","Friend"];
+ const commentActionKeys=["Write a comment…","Cancel","Add emoji to comment","Post comment","Oldest ▾","Newest ▾","Comment order: oldest first. Activate for newest first.","Comment order: newest first. Activate for oldest first.","Reply","this comment","now","Friend"];
  const commentActions={
-  es:["Escribe un comentario…","Cancelar","Añadir emoji al comentario","Publicar comentario","Más relevantes ▾","Más recientes ▾","Orden de comentarios: más relevantes. Activa para mostrar primero los más recientes.","Orden de comentarios: más recientes primero. Activa para mostrar los más relevantes.","Responder","este comentario","ahora","Amigo"],
-  fr:["Écrire un commentaire…","Annuler","Ajouter un emoji au commentaire","Publier le commentaire","Les plus pertinents ▾","Les plus récents ▾","Ordre des commentaires : les plus pertinents. Activez pour afficher les plus récents.","Ordre des commentaires : les plus récents. Activez pour afficher les plus pertinents.","Répondre","ce commentaire","maintenant","Ami"],
-  de:["Kommentar schreiben…","Abbrechen","Emoji zum Kommentar hinzufügen","Kommentar posten","Relevanteste ▾","Neueste ▾","Kommentarreihenfolge: relevanteste zuerst. Aktivieren, um neueste zuerst anzuzeigen.","Kommentarreihenfolge: neueste zuerst. Aktivieren, um relevanteste zuerst anzuzeigen.","Antworten","diesen Kommentar","jetzt","Freund"],
-  pt:["Escreva um comentário…","Cancelar","Adicionar emoji ao comentário","Publicar comentário","Mais relevantes ▾","Mais recentes ▾","Ordem dos comentários: mais relevantes. Ative para mostrar os mais recentes primeiro.","Ordem dos comentários: mais recentes primeiro. Ative para mostrar os mais relevantes.","Responder","este comentário","agora","Amigo"],
-  it:["Scrivi un commento…","Annulla","Aggiungi emoji al commento","Pubblica commento","Più pertinenti ▾","Più recenti ▾","Ordine dei commenti: più pertinenti. Attiva per mostrare prima i più recenti.","Ordine dei commenti: prima i più recenti. Attiva per mostrare i più pertinenti.","Rispondi","questo commento","ora","Amico"],
-  ko:["댓글을 입력하세요…","취소","댓글에 이모지 추가","댓글 게시","관련성 순 ▾","최신 순 ▾","댓글 순서: 관련성 순. 최신 순으로 보려면 누르세요.","댓글 순서: 최신 순. 관련성 순으로 보려면 누르세요.","답글","이 댓글","지금","친구"],
-  ja:["コメントを入力…","キャンセル","コメントに絵文字を追加","コメントを投稿","関連度順 ▾","新着順 ▾","コメントの並び順：関連度順。新着順にするには選択します。","コメントの並び順：新着順。関連度順にするには選択します。","返信","このコメント","今","友達"],
-  "zh-Hans":["写评论…","取消","向评论添加表情","发布评论","最相关 ▾","最新 ▾","评论顺序：最相关。点按以优先显示最新评论。","评论顺序：最新优先。点按以显示最相关评论。","回复","此评论","刚刚","好友"],
-  "zh-Hant":["寫留言…","取消","向留言加入表情符號","發佈留言","最相關 ▾","最新 ▾","留言順序：最相關。點按以優先顯示最新留言。","留言順序：最新優先。點按以顯示最相關留言。","回覆","此留言","剛剛","好友"],
-  fil:["Magsulat ng komento…","Kanselahin","Magdagdag ng emoji sa komento","I-post ang komento","Pinakanauugnay ▾","Pinakabago ▾","Ayos ng komento: pinakanauugnay. I-activate para mauna ang pinakabago.","Ayos ng komento: pinakabago muna. I-activate para makita ang pinakanauugnay.","Tumugon","komentong ito","ngayon","Kaibigan"],
-  hi:["टिप्पणी लिखें…","रद्द करें","टिप्पणी में इमोजी जोड़ें","टिप्पणी पोस्ट करें","सबसे प्रासंगिक ▾","सबसे नए ▾","टिप्पणी क्रम: सबसे प्रासंगिक। सबसे नए पहले दिखाने के लिए सक्रिय करें।","टिप्पणी क्रम: सबसे नए पहले। सबसे प्रासंगिक दिखाने के लिए सक्रिय करें।","जवाब दें","इस टिप्पणी","अभी","दोस्त"],
-  vi:["Viết bình luận…","Hủy","Thêm biểu tượng cảm xúc vào bình luận","Đăng bình luận","Phù hợp nhất ▾","Mới nhất ▾","Thứ tự bình luận: phù hợp nhất. Kích hoạt để hiện bình luận mới nhất trước.","Thứ tự bình luận: mới nhất trước. Kích hoạt để hiện bình luận phù hợp nhất.","Trả lời","bình luận này","bây giờ","Bạn bè"],
-  th:["เขียนความคิดเห็น…","ยกเลิก","เพิ่มอีโมจิในความคิดเห็น","โพสต์ความคิดเห็น","เกี่ยวข้องที่สุด ▾","ล่าสุด ▾","ลำดับความคิดเห็น: เกี่ยวข้องที่สุด เปิดใช้เพื่อแสดงล่าสุดก่อน","ลำดับความคิดเห็น: ล่าสุดก่อน เปิดใช้เพื่อแสดงที่เกี่ยวข้องที่สุด","ตอบกลับ","ความคิดเห็นนี้","ตอนนี้","เพื่อน"],
-  id:["Tulis komentar…","Batal","Tambahkan emoji ke komentar","Kirim komentar","Paling relevan ▾","Terbaru ▾","Urutan komentar: paling relevan. Aktifkan untuk menampilkan yang terbaru lebih dahulu.","Urutan komentar: terbaru lebih dahulu. Aktifkan untuk menampilkan yang paling relevan.","Balas","komentar ini","sekarang","Teman"]
+  es:["Escribe un comentario…","Cancelar","Añadir emoji al comentario","Publicar comentario","Más antiguos ▾","Más recientes ▾","Orden de comentarios: primero los más antiguos. Activa para ver primero los más recientes.","Orden de comentarios: primero los más recientes. Activa para ver primero los más antiguos.","Responder","este comentario","ahora","Amigo"],
+  fr:["Écrire un commentaire…","Annuler","Ajouter un emoji au commentaire","Publier le commentaire","Les plus anciens ▾","Les plus récents ▾","Ordre des commentaires : les plus anciens d'abord. Activez pour afficher les plus récents d'abord.","Ordre des commentaires : les plus récents d'abord. Activez pour afficher les plus anciens d'abord.","Répondre","ce commentaire","maintenant","Ami"],
+  de:["Kommentar schreiben…","Abbrechen","Emoji zum Kommentar hinzufügen","Kommentar posten","Älteste ▾","Neueste ▾","Kommentarreihenfolge: älteste zuerst. Aktivieren, um neueste zuerst anzuzeigen.","Kommentarreihenfolge: neueste zuerst. Aktivieren, um älteste zuerst anzuzeigen.","Antworten","diesen Kommentar","jetzt","Freund"],
+  pt:["Escreva um comentário…","Cancelar","Adicionar emoji ao comentário","Publicar comentário","Mais antigos ▾","Mais recentes ▾","Ordem dos comentários: mais antigos primeiro. Ative para mostrar os mais recentes primeiro.","Ordem dos comentários: mais recentes primeiro. Ative para mostrar os mais antigos primeiro.","Responder","este comentário","agora","Amigo"],
+  it:["Scrivi un commento…","Annulla","Aggiungi emoji al commento","Pubblica commento","Meno recenti ▾","Più recenti ▾","Ordine dei commenti: prima i meno recenti. Attiva per vedere prima i più recenti.","Ordine dei commenti: prima i più recenti. Attiva per vedere prima i meno recenti.","Rispondi","questo commento","ora","Amico"],
+  ko:["댓글을 입력하세요…","취소","댓글에 이모지 추가","댓글 게시","오래된 순 ▾","최신 순 ▾","댓글 순서: 오래된 순. 최신 순으로 보려면 누르세요.","댓글 순서: 최신 순. 오래된 순으로 보려면 누르세요.","답글","이 댓글","지금","친구"],
+  ja:["コメントを入力…","キャンセル","コメントに絵文字を追加","コメントを投稿","古い順 ▾","新着順 ▾","コメントの並び順：古い順。新着順にするには選択します。","コメントの並び順：新着順。古い順にするには選択します。","返信","このコメント","今","友達"],
+  "zh-Hans":["写评论…","取消","向评论添加表情","发布评论","最早 ▾","最新 ▾","评论顺序：最早优先。点按以优先显示最新评论。","评论顺序：最新优先。点按以优先显示最早评论。","回复","此评论","刚刚","好友"],
+  "zh-Hant":["寫留言…","取消","向留言加入表情符號","發佈留言","最早 ▾","最新 ▾","留言順序：最早優先。點按以優先顯示最新留言。","留言順序：最新優先。點按以優先顯示最早留言。","回覆","此留言","剛剛","好友"],
+  fil:["Magsulat ng komento…","Kanselahin","Magdagdag ng emoji sa komento","I-post ang komento","Pinakaluma ▾","Pinakabago ▾","Ayos ng komento: pinakaluma muna. I-activate para mauna ang pinakabago.","Ayos ng komento: pinakabago muna. I-activate para mauna ang pinakaluma.","Tumugon","komentong ito","ngayon","Kaibigan"],
+  hi:["टिप्पणी लिखें…","रद्द करें","टिप्पणी में इमोजी जोड़ें","टिप्पणी पोस्ट करें","सबसे पुराने ▾","सबसे नए ▾","टिप्पणी क्रम: सबसे पुराने पहले। सबसे नए पहले दिखाने के लिए सक्रिय करें।","टिप्पणी क्रम: सबसे नए पहले। सबसे पुराने पहले दिखाने के लिए सक्रिय करें।","जवाब दें","इस टिप्पणी","अभी","दोस्त"],
+  vi:["Viết bình luận…","Hủy","Thêm biểu tượng cảm xúc vào bình luận","Đăng bình luận","Cũ nhất ▾","Mới nhất ▾","Thứ tự bình luận: cũ nhất trước. Kích hoạt để hiện bình luận mới nhất trước.","Thứ tự bình luận: mới nhất trước. Kích hoạt để hiện bình luận cũ nhất trước.","Trả lời","bình luận này","bây giờ","Bạn bè"],
+  th:["เขียนความคิดเห็น…","ยกเลิก","เพิ่มอีโมจิในความคิดเห็น","โพสต์ความคิดเห็น","เก่าที่สุด ▾","ล่าสุด ▾","ลำดับความคิดเห็น: เก่าที่สุดก่อน เปิดใช้เพื่อแสดงล่าสุดก่อน","ลำดับความคิดเห็น: ล่าสุดก่อน เปิดใช้เพื่อแสดงเก่าที่สุดก่อน","ตอบกลับ","ความคิดเห็นนี้","ตอนนี้","เพื่อน"],
+  id:["Tulis komentar…","Batal","Tambahkan emoji ke komentar","Kirim komentar","Terlama ▾","Terbaru ▾","Urutan komentar: terlama lebih dahulu. Aktifkan untuk menampilkan yang terbaru lebih dahulu.","Urutan komentar: terbaru lebih dahulu. Aktifkan untuk menampilkan yang terlama lebih dahulu.","Balas","komentar ini","sekarang","Teman"]
  };
  for(const [language,values] of Object.entries(commentActions)){const dictionary=dictionaries[language]||(dictionaries[language]={});commentActionKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const socialTemplates={
@@ -982,9 +1129,12 @@
  const attributeExcluded='script,style,[data-no-translate],.post-content,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.value,#profileName,#profileHandle,.facebook-import-items';
  let queued=false;
  function normalize(code){const raw=String(code||'');if(supported.has(raw))return raw;const lower=raw.toLowerCase();if(/^zh-(?:tw|hk|mo|hant)/.test(lower)&&supported.has('zh-Hant'))return'zh-Hant';if(/^zh/.test(lower)&&supported.has('zh-Hans'))return'zh-Hans';const exact=[...supported].find(value=>value.toLowerCase()===lower);if(exact)return exact;const base=lower.split('-')[0];return supported.has(base)?base:'en';}
+ const patternCache={};
  function translate(raw){
-  const source=String(raw),trimmed=source.trim(),language=normalize(document.documentElement.lang),dictionary=dictionaries[language]||{};
-  let result=dictionary[trimmed];
+  const source=String(raw),original=source.trim(),language=normalize(document.documentElement.lang),dictionary=dictionaries[language]||{};
+  let result=dictionary[original];
+  const trimmed=result||!/\s{2,}|\n/.test(original)?original:original.replace(/\s+/g,' ');
+  if(!result&&trimmed!==original)result=dictionary[trimmed];
   if(!result){
    const fill=(template,values)=>template?.replace(/\{(\w+)\}/g,(_,key)=>values[key]??"");
    let match=trimmed.match(/^(\d+) signed-in device\.$/);if(match)result=fill(dictionary["{count} signed-in device."],{count:match[1]});
@@ -1026,8 +1176,10 @@
   if(!result){const members=trimmed.match(/^(\d+) matching members?\.$/);if(members&&memberCountLabels[language])result=memberCountLabels[language](members[1]);}
   if(!result){const views=trimmed.match(/^(\d[\d,.]*) views?$/);if(views&&viewCountLabels[language])result=viewCountLabels[language](views[1]);}
   if(!result){const count=trimmed.match(/^(Notifications|Friends|Messages) \((\d+)\)$/);if(count)result=(dictionary[count[1]]||count[1])+' ('+count[2]+')';}
+  if(!result){const list=(window.danzstakPatterns||{})[language];if(list){const cache=patternCache[language]||(patternCache[language]=list.map(([en,out])=>[new RegExp('^'+en.split('{}').map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('(.*?)')+'$'),out]));for(const [pattern,out] of cache){const match=trimmed.match(pattern);if(match){result=out.replace(/\{(\d+)\}/g,(_,index)=>{const value=match[Number(index)+1]??'';return dictionary[value]||value;});break;}}}}
+  if(!result&&language!=='en'){for(const separator of [' — ',' · ']){if(!trimmed.includes(separator))continue;const parts=trimmed.split(separator),translated=parts.map(part=>translate(part));if(translated.some((part,index)=>part!==parts[index])){result=translated.join(separator);break;}}}
   if(!result)return source;
-  return source.slice(0,source.indexOf(trimmed))+result+source.slice(source.indexOf(trimmed)+trimmed.length);
+  return source.slice(0,source.indexOf(original))+result+source.slice(source.indexOf(original)+original.length);
  }
  function apply(){
   queued=false;if(!document.body)return;
@@ -1049,7 +1201,7 @@
  function start(){
   let language=document.documentElement.lang||'en';
   let saved='';try{saved=localStorage.getItem('danzstak_language')||'';}catch{}
-  let regional='';try{regional=(navigator.languages||[navigator.language]).map(normalize).find(code=>code!=='en')||normalize(navigator.language);}catch{}
+  let regional='';try{regional=normalize((navigator.languages&&navigator.languages[0])||navigator.language||'en');}catch{}
   language=saved||regional||language;
   document.documentElement.lang=normalize(language);apply();
   new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});

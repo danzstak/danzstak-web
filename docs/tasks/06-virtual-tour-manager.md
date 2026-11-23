@@ -31,3 +31,6 @@ Cost math (fuel, per diem, per member); stops ordered and late-for-soundcheck wa
 
 ## Done when
 On a phone, a 3-city sandbox tour shows a full cost, a day schedule that gets the band to soundcheck on time, a shareable tour book, a downloadable PDF, and working Google Maps links per leg.
+
+## Pricing (owner, 2026-11-16)
+The printed tour book is the **Tour Itinerary**, a one-off $5 product per tour ($6.30 with fees; free for 20+ confirmed shows). Everything else in the Tour Manager is free. See task 12.

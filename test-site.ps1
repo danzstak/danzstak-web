@@ -64,7 +64,7 @@ $bookingClientCompact = $bookingClient -replace '\s+', ''
 foreach ($bookingControl in @('DanzStak Booking Agent', 'Where do you want to play?', 'id="venueSearchMap"', 'Search where you want to play', 'id="searchVisibleVenueArea"', 'Search this area', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public contacts for clubs', 'Find a show near home', 'id="performerType"', '<option value="dj">DJ</option>', 'id="musicGenre"', '<option>DJ / Electronic</option>')) {
   if (-not $bookingMarkup.Contains($bookingControl)) { Add-Failure "Booking Agent: required planning control is missing: $bookingControl" }
 }
-if (-not $bookingMarkup.Contains('assets/session-activity.js?v=270')) {
+if ($bookingMarkup -notmatch 'assets/session-activity\.js\?v=\d+') {
   Add-Failure 'Booking Agent: signed-in users do not publish site-wide online presence'
 }
 foreach ($bookingClientControl in @('Send me out and bring me home', 'First show / leave home', 'Back home', 'route-map', 'My upcoming and past gigs', 'Upcoming gigs', 'Past gigs')) {
@@ -114,21 +114,23 @@ if (-not $feed.Contains("frame-src 'self' https://www.youtube-nocookie.com")) {
 foreach ($uploadCleanupControl in @('async function discardUploadedMedia(mediaKey)', 'await discardUploadedMedia(uploadedStoryKey)', 'await discardUploadedMedia(uploadedPostKey)')) {
   if (-not $feed.Contains($uploadCleanupControl)) { Add-Failure "Media: failed publication leaves an orphaned upload: $uploadCleanupControl" }
 }
-foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Daily from "', 'open.addEventListener("click", () => openStoryViewer(story))')) {
+foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Daily from "', 'open.addEventListener("click", () => openStoryViewer(story, { sequence: visibleStories }))')) {
   if (-not $feed.Contains($storyAccessibilityControl)) { Add-Failure "Stories: open and delete controls are not separately accessible: $storyAccessibilityControl" }
 }
 $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
 foreach ($storyPreviewControl in @('storyCopy.className = "story-card-copy"', 'item.classList.add("story-video")', 'caption.textContent = storyDisplayCaption(story)')) {
   if (-not $feed.Contains($storyPreviewControl)) { Add-Failure "Stories: photo and video cards lack an identifiable preview: $storyPreviewControl" }
 }
-if (-not $feedEnhancementCss.Contains('.story.story-video::after{content:')) {
-  Add-Failure 'Stories: video cards lack a branded play fallback when no poster frame is available'
+# Directive F15a (owner 2026-11-19): no play icon on Dailies tiles ("just click on the video and it plays"); a video with no
+# poster frame shows the DanzStak gradient instead of a black box.
+if ($feedEnhancementCss.Contains('.story.story-video::after{content:') -or -not $feedEnhancementCss.Contains('.story.story-video video{background:linear-gradient(')) {
+  Add-Failure 'Stories: video tiles must show no play icon and keep the branded gradient when no poster frame is available'
 }
 if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
   if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }
 }
-foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()', 'Confirm that you created this Daily')) {
+foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()')) {
   if (-not $feed.Contains($preUploadCertification)) { Add-Failure "Copyright: upload can begin before explicit certification: $preUploadCertification" }
 }
 foreach ($drawerAccessibility in @('aria-controls="messageDrawer"', 'aria-expanded="false"', 'drawer.setAttribute("role", "dialog")', 'event.key === "Escape"', 'launcher.setAttribute("aria-expanded", "true")')) {
@@ -140,9 +142,12 @@ foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
   if (-not $markup.Contains($mediaOrigin)) { Add-Failure "${page}: signed AWS media origin is blocked by CSP" }
 }
 if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
-foreach ($dedicatedStoryControl in @('aria-label="Add a photo or video to Dailies"', 'createStoryInput.accept = "image/jpeg', 'dedicatedMedia: true', 'originalContentCertified: true', 'await loadStories()')) {
-  if (-not $feed.Contains($dedicatedStoryControl)) { Add-Failure "Stories: dedicated Your Story upload is incomplete: $dedicatedStoryControl" }
+# Audit A2 (owner 2026-11-19): Dailies come from posts. The own tile opens your Dailies (swipe through them, #605) or
+# the post box, never a file picker.
+foreach ($dailiesTileControl in @('aria-label="Post a photo or video to your Dailies"', 'if (ownDailies.length) { void openStoryViewer(ownDailies[0], { sequence: ownDailies }); return; }', 'ownDailies = allStories.filter(story => story.isOwner === true);')) {
+  if (-not $feed.Contains($dailiesTileControl)) { Add-Failure "Dailies tile: viewer/composer behaviour is incomplete: $dailiesTileControl" }
 }
+if ($feed.Contains('createStoryInput')) { Add-Failure 'Dailies tile: still opens a separate photo picker' }
 $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
 $mediaVisibility = Get-Content -LiteralPath (Join-Path $root 'assets\media-visibility.js') -Raw -Encoding utf8
 if ($feedEnhancements.Contains('Reel saved on this device until cloud sync is available.') -or
@@ -151,7 +156,7 @@ if ($feedEnhancements.Contains('Reel saved on this device until cloud sync is av
 }
 if (-not $feedEnhancements.Contains('rightsCertified: true')) { Add-Failure 'External Reel submissions omit rights attestation' }
 $pushClient = Get-Content -LiteralPath (Join-Path $root 'assets\push-notifications.js') -Raw -Encoding utf8
-foreach ($pushRenewalBehavior in @('async function renewExistingSubscription()', 'Notification.permission !== "granted"', 'registration.pushManager.getSubscription()', 'sessionStorage.getItem("danzstak_push_synced")', 'await api("/push/subscribe"', 'setTimeout(renewExistingSubscription, 2000)')) {
+foreach ($pushRenewalBehavior in @('async function renewExistingSubscription(', 'Notification.permission !== "granted"', 'registration.pushManager.getSubscription()', 'const SYNC_KEY = "danzstak_push_synced"', 'sessionStorage.getItem(SYNC_KEY)', 'await api("/push/subscribe"', 'setTimeout(renewExistingSubscription, 2000)', 'addEventListener("danzstak:call-device-ready"')) {
   if (-not $pushClient.Contains($pushRenewalBehavior)) { Add-Failure "Push alerts: an approved browser subscription can expire server-side without renewal: $pushRenewalBehavior" }
 }
 foreach ($notificationRecoveryBehavior in @('const notificationController = new AbortController()', 'setTimeout(() => notificationController.abort(), 10000)', 'signal: notificationController.signal', 'error.textContent = feedTranslate("Notifications could not be loaded.")', 'retry.addEventListener("click", () => renderWorkspace("Notifications"))', 'clearTimeout(notificationTimeout)')) {
@@ -208,8 +213,12 @@ if ($feedEnhancements.Contains('Event saved locally:') -or $feedEnhancements.Con
 foreach ($required in @('/engagement?postId=', '/reactions', '/comments', 'loadEngagement(post)', 'saveComment(post, event.target)', '/engagement-notifications/read')) {
   if (-not $feedEnhancements.Contains($required)) { Add-Failure "Durable feed engagement is missing: $required" }
 }
-foreach ($reelRequirement in @('id="shareToReels"', 'reel: mediaType === "video" && publishToReels', 'danzstak:posts-loaded')) {
+# T0-A1 (owner 2026-11-18): every posted video goes into The Roll automatically; no opt-in checkbox.
+foreach ($reelRequirement in @('reel: mediaType === "video", originalContentCertified: true', 'danzstak:posts-loaded')) {
   if (-not $feed.Contains($reelRequirement)) { Add-Failure "Uploaded-video Reels workflow is missing: $reelRequirement" }
+}
+foreach ($retiredOptIn in @('id="shareToReels"', 'id="shareToStory"')) {
+  if ($feed.Contains($retiredOptIn)) { Add-Failure "Mix composer still asks to opt in to Dailies / The Roll: $retiredOptIn" }
 }
 foreach ($reelRequirement in @('post.reel === true', 'loadInternalReels', 'reel.internal')) {
   if (-not $feedEnhancements.Contains($reelRequirement)) { Add-Failure "Internal Reels rendering is missing: $reelRequirement" }
@@ -232,7 +241,9 @@ foreach ($backgroundCallControl in @('window.openMessageDrawer(event.senderEmail
 foreach ($callBehavior in @('setCallMode(kind)', 'showCallConversation()', 'setCallMode("")')) {
   if (-not $chatScript.Contains($callBehavior)) { Add-Failure "Calls: missing call layout state behavior: $callBehavior" }
 }
-foreach ($callLayout in @('body[data-call-mode="phone"] .video-grid', 'body[data-call-mode="phone"] #toggleCamera', 'body[data-call-mode="video"] .video-grid', '.receiver-hangup[hidden]')) {
+# F15k: the camera button stays in the call panel (disabled on voice calls), so the panel keeps its 2x3 grid; checked by
+# browser-checks/sync-call-screen-ui.cjs.
+foreach ($callLayout in @('body[data-call-mode="phone"] .video-grid', 'body[data-call-mode="video"] .video-grid', '.receiver-hangup[hidden]')) {
   if (-not $chatStyles.Contains($callLayout)) { Add-Failure "Calls: missing phone/video layout rule: $callLayout" }
 }
 foreach ($relationshipStatus in @('relationship=document.createElement("span")', 'relationship.className="connection-status"', 'relationship.setAttribute("role","status")')) {
@@ -315,7 +326,7 @@ foreach ($offlineInstallAsset in @('/assets/app-downloads.js', '/assets/danzstak
 }
 if ($serviceWorker.Contains('/assets/danzstak-share-fb-v2.jpg')) { Add-Failure 'Offline app shell still pins the retired social-share artwork' }
 $serviceWorkerJs = Get-Content -LiteralPath (Join-Path $root 'service-worker.js') -Raw -Encoding utf8
-foreach ($callNotificationBehavior in @('payload.type === "call"', 'action: "answer"', 'action: "dismiss"', 'event.action === "dismiss"', 'event.action === "answer" && event.notification.data?.type === "call"', 'destinationUrl.searchParams.set("answer", "1")')) {
+foreach ($callNotificationBehavior in @('payload.type === "call"', 'action: "answer"', 'action: "decline"', 'event.action === "decline"', 'event.action === "dismiss"', 'event.action === "answer" && event.notification.data?.type === "call"', 'destinationUrl.searchParams.set("answer", "1")')) {
   if (-not $serviceWorkerJs.Contains($callNotificationBehavior)) { Add-Failure "PWA: call notification behavior is missing: $callNotificationBehavior" }
 }
 if (-not $serviceWorkerJs.Contains('candidate.pathname + candidate.search + candidate.hash')) { Add-Failure 'PWA: same-origin notification destinations lose their workspace route' }
@@ -345,14 +356,14 @@ foreach ($messagePollingBehavior in @('distanceFromBottom', 'followNewest', 'doc
 foreach ($messageHistoryBehavior in @('let nextMessageCursor = ""', 'function renderEarlierMessagesButton()', 'async function loadEarlierMessages()', '"&before=" + encodeURIComponent(cursor)', 'messageList.prepend(fragment)', 'messageTranslate("Load earlier messages")')) {
   if (-not $directMessagesJs.Contains($messageHistoryBehavior)) { Add-Failure "Messages: saved history cannot load beyond the newest page: $messageHistoryBehavior" }
 }
-foreach ($messageIdentityBehavior in @('let activeContactName = messageTranslate("Contact")', 'activeContactName = conversation.name || messageTranslate("Contact")', '(mine ? messageTranslate("You") : activeContactName)')) {
+foreach ($messageIdentityBehavior in @('let activeContactName = messageTranslate("Contact")', 'activeContactName = conversation.name || messageTranslate("Contact")', 'const actor = mine ? messageTranslate("You") : activeContactName;')) {
   if (-not $directMessagesJs.Contains($messageIdentityBehavior)) { Add-Failure "Messages: visible message metadata can expose contact email instead of the profile name: $messageIdentityBehavior" }
 }
 foreach ($chatPresenceBehavior in @('conversation-avatar-wrap', 'conversation.online === true', 'conversation-online-dot', 'aria-label", messageTranslate("Online")')) {
   if (-not ($directMessagesJs + $chatStyles).Contains($chatPresenceBehavior)) { Add-Failure "Messages: online friends lack a visible accessible presence marker: $chatPresenceBehavior" }
 }
 $messagesMarkupForPresence = Get-Content -LiteralPath (Join-Path $root 'messages.html') -Raw -Encoding utf8
-foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'function updateConversationPresence(conversation)', 'conversationPresence.hidden = false', 'conversationPresence.textContent = translatedPresence', 'updateConversationPresence(activeConversation)', 'conversationPresence.hidden = true', '.conversation-presence[hidden]{display:none}', '.conversation-presence.is-offline')) {
+foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'function updateConversationPresence(conversation)', 'conversationPresence.hidden = !translatedPresence', 'conversationPresence.textContent = translatedPresence', 'updateConversationPresence(activeConversation)', 'conversationPresence.hidden = true', '.conversation-presence[hidden]{display:none}', '.conversation-presence.is-offline')) {
   if (-not ($messagesMarkupForPresence + $directMessagesJs + $chatStyles).Contains($activeChatPresenceControl)) { Add-Failure "Messages: active conversation does not accurately expose online presence: $activeChatPresenceControl" }
 }
 foreach ($activeChatActionLabel in @('function labelConversationHeaderActions(name = "")', '`${translated}: ${name}`', 'labelConversationHeaderActions(conversationName.textContent)', 'labelConversationHeaderActions()')) {
@@ -428,7 +439,7 @@ foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey &&
 foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Sessions expire 30 days after sign-in', '"Account", logout', 'Settings saved to your DanzStak account.', 'darkMode: false', 'language: language.value')) {
   if (-not $feedEnhancements.Contains($settingsBehavior)) { Add-Failure "Settings: persistent control is missing: $settingsBehavior" }
 }
-foreach ($legalSettingsBehavior in @('"Legal and privacy"', 'privacyLink.href = "privacy.html"', 'termsLink.href = "terms.html"', 'legalLinks.append(privacyLink, termsLink)')) {
+foreach ($legalSettingsBehavior in @('"Legal and privacy"', 'privacyLink.href = "privacy.html"', 'termsLink.href = "terms.html"', 'legalLinks.append(privacyLink, termsLink, ownership)')) {
   if (-not $feedEnhancements.Contains($legalSettingsBehavior)) { Add-Failure "Settings: legal navigation is incomplete: $legalSettingsBehavior" }
 }
 foreach ($dataSaverBehavior in @('function applyDataSaver(enabled)', 'video.autoplay = false', 'load.textContent = "Load " + reel.platform + " video"', 'load.replaceWith(createFrame())')) {
@@ -453,7 +464,7 @@ foreach ($accessibilityFeature in @('tabs.setAttribute("role", "tablist")', 'but
   if (-not $profileEditorJs.Contains($accessibilityFeature)) { Add-Failure "Profile tab keyboard accessibility is missing: $accessibilityFeature" }
 }
 foreach ($profilePresenceFeature in @(
-  'const [friendsResult, directoryResult] = await Promise.allSettled([',
+  'const [friendsResult, directoryResult, everyoneResult] = await Promise.allSettled([',
   'user.online === true',
   'profile-friend-presence online',
   'status.setAttribute("aria-hidden", "true")'
@@ -536,9 +547,10 @@ if ($incomingCallsJs.Contains('if (drawer && !drawer.hidden) return;') -or
     -not $chatJs.Contains('if(!embeddedMode||autoAnswer||peer||pending)poll()')) {
   Add-Failure 'Calls: an open embedded conversation can hide incoming calls or compete with the parent call watcher'
 }
-$correctPublishingStatus = 'Publishing' + [char]0x2026
-if (-not $feed.Contains($correctPublishingStatus)) {
-  Add-Failure 'Stories: publishing status contains corrupted text encoding'
+# The Dailies "Publishing…" label went with the separate Daily upload (audit A2); keep guarding against mojibake.
+$corruptedEllipsis = [string][char]0x00E2 + [char]0x20AC + [char]0x00A6
+if ($feed.Contains($corruptedEllipsis)) {
+  Add-Failure 'Stories: feed text contains corrupted text encoding'
 }
 $directMessagesJs = Get-Content -LiteralPath (Join-Path $root 'assets\direct-messages.js') -Raw -Encoding utf8
 $feedEnhancementsJs = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
@@ -582,7 +594,7 @@ if (-not $feedEnhancementsJs.Contains('postActionFetch("/settings/posts"') -or
     -not $feedEnhancementsJs.Contains('option("Move to archive", "Hide this post from your account."')) {
   Add-Failure 'Post menu: archived and hidden posts are not persisted to the account'
 }
-foreach ($postMenuAccessibility in @('menu.setAttribute("role", "menu")', 'button.setAttribute("role", "menuitem")', 'toggle.setAttribute("aria-controls", menu.id)', 'toggle.setAttribute("aria-haspopup", "menu")', 'event.key === "Escape"', '"ArrowDown", "ArrowUp", "Home", "End"', '.post-options-menu:not([hidden])')) {
+foreach ($postMenuAccessibility in @('menu.setAttribute("role", "menu")', 'button.setAttribute("role", "menuitem")', 'toggle.setAttribute("aria-controls", menu.id)', 'toggle.setAttribute("aria-haspopup", "menu")', 'event.key === "Escape"', '"ArrowDown", "ArrowUp", "Home", "End"', 'if (event.target.closest(".post-menu-toggle, .post-options-menu")) return;', 'history.state?.danzstakPostMenu !== true')) {
   if (-not $feedEnhancementsJs.Contains($postMenuAccessibility)) { Add-Failure "Post menu: keyboard or assistive-technology behavior is missing: $postMenuAccessibility" }
 }
 if (-not $feedEnhancementsJs.Contains('const remoteNames = { pinned: "pinned", saved: "saved", notificationsOff: "muted" }') -or
@@ -675,15 +687,14 @@ foreach ($workspaceRouting in @('const workspaceRoutes = new Map(', 'history.pus
 foreach ($workspaceAccessibility in @('control.setAttribute("aria-current", "page")', 'featureHeading.tabIndex = -1', 'featureHeading.focus({ preventScroll: true })')) {
   if (-not $feedEnhancements.Contains($workspaceAccessibility)) { Add-Failure "Feed workspaces do not announce navigation accessibly: $workspaceAccessibility" }
 }
-foreach ($workspaceDestination in @('href="#friends"', 'href="#photos"', 'href="#videos"', 'href="#events"', 'href="#settings"')) {
+# Owner 2026-11-18: Photos and Videos live on the profile tabs, not in the main menu.
+if ($feed.Contains('data-feature="Photos"') -or $feed.Contains('data-feature="Videos"')) { Add-Failure "Photos and Videos must not be in the main menu" }
+foreach ($workspaceDestination in @('href="#friends"', 'href="#events"', 'href="#settings"')) {
   if (-not $feed.Contains($workspaceDestination)) { Add-Failure "Feed workspace has no durable navigation destination: $workspaceDestination" }
 }
-$termsMenuIndex = $feed.IndexOf('<a href="terms.html"><span class="menu-icon"')
-$androidMenuIndex = $feed.IndexOf('data-app-platform="android"')
-$appleMenuIndex = $feed.IndexOf('data-app-platform="apple"')
-$logoutMenuIndex = $feed.IndexOf('<button type="button" class="menu-action logout-menu-link" data-logout><span class="menu-icon"')
-if ($termsMenuIndex -lt 0 -or $androidMenuIndex -lt $termsMenuIndex -or $appleMenuIndex -lt $androidMenuIndex -or $logoutMenuIndex -lt $appleMenuIndex) {
-  Add-Failure 'Feed navigation: Android and Apple app links are not stacked beneath Terms of Service and above Logout'
+# Owner 2026-11-18: one Menu → Install DanzStak item (app-bar.js); no separate Android/Apple menu links.
+if ($feed.Contains('data-app-platform="android"') -or $feed.Contains('data-app-platform="apple"')) {
+  Add-Failure 'Feed navigation: separate Android/Apple install links are back in the menu'
 }
 if ($feed.Contains('This DanzStak section is being prepared.') -or $feed.Contains('const featureCopy =')) {
   Add-Failure 'Feed workspaces still run the retired placeholder click handler before the functional router'

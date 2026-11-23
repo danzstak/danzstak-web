@@ -10,10 +10,10 @@ const css = fs.readFileSync("assets/chat.css", "utf8");
 assert.match(template, /contactReadAt=state\.Item\?\.contactReadAt\?\.S\|\|''/);
 assert.match(template, /read:x\.senderEmail\.S===user\.email&&Boolean\(contactReadAt\)&&x\.createdAt\.S<=contactReadAt/);
 assert.match(template, /Key:\{userEmail:\{S:contact\},contactEmail:\{S:user\.email\}\}/);
-assert.match(template, /UpdateExpression:'SET contactReadAt = :r'/);
-assert.match(client, /message\.read \? "✓✓" : "✓"/);
-assert.match(client, /messageTranslate\(message\.read \? "Read" : "Sent"\)/);
-assert.match(client, /function updateDirectMessageReceipt\(item, message\)/, "visible receipts need an in-place state updater");
+assert.match(template, /UpdateExpression:readReceipts\?'SET contactReadAt = :r':'SET contactDeliveredAt = :r'/, "16-D: a reader with receipts off sends delivered, never read");
+assert.match(client, /receipt\.textContent = delivered \? "✓✓" : "✓";/, "16-D: ✓ sent, ✓✓ delivered or read");
+assert.match(client, /messageTranslate\(read \? "Read" : delivered \? "Delivered" : "Sent"\)/);
+assert.match(client, /function updateDirectMessageReceipt\(item, message, given\)/, "visible receipts need an in-place state updater");
 assert.match(client, /updateDirectMessageReceipt\(existing, message\)/, "background refresh must apply the server read state to an existing bubble");
 assert.match(css, /\.message-receipt\.is-read\{color:#1687d9\}/);
 

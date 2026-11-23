@@ -17,8 +17,15 @@ assert.match(syncCss, /\.message\{[^}]*max-width:min\(75%,540px\)[^}]*background
 assert.match(syncCss, /\.message\.mine\{[^}]*background:var\(--sync-outgoing\)[^}]*color:var\(--sync-ink\)/, "outgoing messages need a quiet DanzStak blue bubble");
 assert.match(syncCss, /\.message\.mine\+\.message\.mine,\.message:not\(\.mine\)\+\.message:not\(\.mine\)\{margin-top:2px\}/, "adjacent messages from one speaker need a compact rhythm");
 assert.match(syncCss, /\.message\.mine\+\.message:not\(\.mine\),\.message:not\(\.mine\)\+\.message\.mine\{margin-top:8px\}/, "speaker changes need a clear conversation gap");
-assert.match(html, /assets\/sync\.css\?v=12/, "messages must request the new SYNC styling");
-assert.match(worker, /danzstak-shell-v848/, "the PWA shell must advance for the updated conversation CSS");
+assert.match(html, /assets\/sync\.css\?v=14/, "messages must request the new SYNC styling");
+assert.match(worker, /danzstak-shell-v1033/, "the PWA shell must advance for the updated conversation CSS");
 assert.match(worker, /\/assets\/danzstak-score-pattern\.svg/, "the installed PWA must cache the musical-score surface artwork");
 
 console.log("SYNC thread-style checks passed: branded music canvas, readable paired bubbles, speaker grouping, phone fit, and PWA refresh.");
+// Owner 2026-11-18 "icons behind text": reactions hang below the bubble (never over the time); the jump button is compact.
+{
+  const shell = require("node:fs").readFileSync("assets/sync-shell.css", "utf8");
+  require("node:assert/strict").match(shell, /\.message:has\(> \.message-reaction\)\{margin-bottom:20px!important\}/, "a reacted message leaves room for its reaction");
+  require("node:assert/strict").match(shell, /\.message-reaction\{bottom:-18px!important/, "reaction sits below the bubble, clear of the time");
+  require("node:assert/strict").match(shell, /\.sync-jump-latest\{width:38px!important;height:38px!important/, "compact jump button");
+}

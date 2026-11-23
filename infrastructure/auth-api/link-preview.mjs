@@ -66,14 +66,20 @@ export async function linkPreview(raw, { fetcher = fetch, resolver = lookup, now
   if (hit && now() - hit.at < CACHE_MS) return hit.value;
   const host = url.hostname.replace(/^www\./, "");
   const ytId = youTubeId(url);
+  // DanzStak's own EPK links (epk.html?id=… or ?share=…#token=…) read their card from danzstak.com/e/<id>
+  // (epk-share-preview.mjs): the EPK page itself only carries the builder's general title. The post keeps its own link.
+  const ownEpk = host === "danzstak.com" && url.pathname === "/epk.html" ? url.searchParams.get("id") || url.searchParams.get("share") || "" : "";
+  let target = /^[a-z0-9-]{3,64}$/.test(ownEpk) ? new URL(`https://danzstak.com/e/${ownEpk}`) : url;
   let found = { title: "", description: "", site: "", image: "" };
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-      const response = await fetcher(url.href, { redirect: "manual", signal: controller.signal, headers: { "user-agent": "DanzStakLinkPreview/1.0 (+https://danzstak.com)", accept: "text/html,application/xhtml+xml" } });
+      const response = await fetcher(target.href, { redirect: "manual", signal: controller.signal, headers: { "user-agent": "DanzStakLinkPreview/1.0 (+https://danzstak.com)", accept: "text/html,application/xhtml+xml" } });
       if ([301, 302, 303, 307, 308].includes(response.status)) {
-        const next = await safePublicUrl(new URL(response.headers.get("location") || "", url).href, resolver);
-        if (!next) break; url = next; continue;
+        const next = await safePublicUrl(new URL(response.headers.get("location") || "", target).href, resolver);
+        if (!next) break;
+        if (target === url) url = next;
+        target = next; continue;
       }
       if (!response.ok || !String(response.headers.get("content-type") || "").includes("html")) break;
       const reader = response.body?.getReader?.();
@@ -83,19 +89,34 @@ export async function linkPreview(raw, { fetcher = fetch, resolver = lookup, now
         while (received < MAX_BYTES) { const { done, value } = await reader.read(); if (done) break; received += value.length; html += decoder.decode(value, { stream: true }); if (/<\/head>/i.test(html)) break; }
         try { await reader.cancel(); } catch {}
       } else html = (await response.text()).slice(0, MAX_BYTES);
-      found = parseHead(html, url.href);
+      found = parseHead(html, target.href);
       break;
     } catch { break; } finally { clearTimeout(timer); }
   }
-  if (ytId && (!found.title || /^(youtube(\.com)?|- YouTube)$/i.test(found.title))) {
+  // Can the video play inside another site (an EPK)? YouTube's and Vimeo's oEmbed answer that: 200 = it can, 401/403 =
+  // the owner turned embedding off, 400/404 = removed, private or never there. A network failure says nothing (null).
+  // Owner 2026-11-23: "Before adding to the epk need to make sure the video is there and playable."
+  let playable = null, reason = "";
+  const vimeo = /(^|\.)vimeo\.com$/.test(host) && /\/\d+/.test(url.pathname);
+  const oembed = ytId ? "https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + ytId)
+    : vimeo ? "https://vimeo.com/api/oembed.json?url=" + encodeURIComponent(url.href) : "";
+  if (oembed) {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-      const o = await fetcher("https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + ytId), { headers: { accept: "application/json" } });
-      if (o.ok) { const j = await o.json(); found.title = String(j.title || "").slice(0, 200); found.site = "YouTube"; if (!found.image && /^https:\/\//.test(j.thumbnail_url || "")) found.image = j.thumbnail_url; }
-    } catch {}
+      const o = await fetcher(oembed, { headers: { accept: "application/json" }, signal: controller.signal });
+      if (o.ok) {
+        playable = true;
+        const j = await o.json();
+        if (!found.title || /^(youtube(\.com)?|- YouTube|vimeo)$/i.test(found.title)) found.title = String(j.title || "").slice(0, 200);
+        found.site = ytId ? "YouTube" : "Vimeo";
+        if (!found.image && /^https:\/\//.test(j.thumbnail_url || "")) found.image = j.thumbnail_url;
+      } else if ([401, 403].includes(o.status)) { playable = false; reason = "embed_off"; }
+      else if ([400, 404].includes(o.status)) { playable = false; reason = "unavailable"; }
+    } catch {} finally { clearTimeout(timer); }
   }
-  if (ytId && /^[\w-]{6,20}$/.test(ytId) && !found.image) found.image = `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
-  const value = { url: url.href, host, title: found.title || host, description: found.description, site: found.site || host, image: found.image, video: Boolean(ytId) };
-  cache.set(key, { at: now(), value });
+  if (ytId && /^[\w-]{6,20}$/.test(ytId) && !found.image && playable !== false) found.image = `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
+  const value = { url: url.href, host, title: found.title || host, description: found.description, site: found.site || host, image: found.image, video: Boolean(ytId || vimeo), playable, ...(reason ? { reason } : {}) };
+  if (!(oembed && playable === null)) cache.set(key, { at: now(), value }); // a check that couldn't run is asked again next time
   if (cache.size > 500) cache.delete(cache.keys().next().value);
   return value;
 }

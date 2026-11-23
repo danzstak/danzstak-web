@@ -78,7 +78,7 @@ const vm = require("node:vm");
     }
     throw new Error(`Unexpected ${command.constructor.name}`);
   } };
-  const context = vm.createContext({ Buffer, console, randomUUID: () => "rev", toursTable: "Tours", corsHeaders: () => ({}), allowedOrigins: new Set(["https://danzstak.com"]), getAuthenticatedUser: async () => authenticated, parseJsonBody: event => event.body, GetItemCommand, PutItemCommand, QueryCommand, BatchGetItemCommand, UpdateItemCommand, TransactWriteItemsCommand, createHash: require("node:crypto").createHash, db });
+  const context = vm.createContext({ clubRecords: async () => new Map(), clubLabel: () => "", Buffer, console, randomUUID: () => "rev", toursTable: "Tours", corsHeaders: () => ({}), allowedOrigins: new Set(["https://danzstak.com"]), getAuthenticatedUser: async () => authenticated, parseJsonBody: event => event.body, GetItemCommand, PutItemCommand, QueryCommand, BatchGetItemCommand, UpdateItemCommand, TransactWriteItemsCommand, createHash: require("node:crypto").createHash, db });
   Object.assign(context, await import("./infrastructure/auth-api/booking-pipeline.mjs"), server);
   vm.runInContext(helper, context);
   const report = async body => { const result = await context.bookingWorkspace({ headers: { origin: "https://danzstak.com" }, body: { action: "venue_report", ...body } }, "POST"); return { status: result.statusCode, body: JSON.parse(result.body) }; };

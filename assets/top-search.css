@@ -1,0 +1,32 @@
+/* People search in the top bar (owner 2026-11-17) and the familiar person row it shares with Mix. */
+.ds-top-search-button{display:inline-grid;place-items:center;width:44px;min-width:44px;height:44px;padding:0;border:0;border-radius:999px;background:#eef1f5;color:#121418;cursor:pointer;flex:none}
+.ds-top-search-button:hover{background:#e2e7ee}
+.ds-top-search-button:focus-visible,.ds-top-search-close:focus-visible,.person-row-message:focus-visible,.person-row .user-search-action:focus-visible{outline:3px solid #ff5a1f;outline-offset:2px}
+.ds-top-search{width:min(560px,calc(100vw - 32px));max-height:min(80dvh,720px);margin:64px auto auto;padding:0;border:1px solid #d8e0eb;border-radius:14px;background:#fff;color:#121418;box-shadow:0 24px 70px #10182840;overflow:auto}
+.ds-top-search::backdrop{background:#10182866}
+.ds-top-search-bar{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #e4e8ee;background:#fff}
+.ds-top-search-close{display:inline-grid;place-items:center;width:44px;min-width:44px;height:44px;padding:0;border:0;border-radius:999px;background:transparent;color:#121418;cursor:pointer}
+.ds-top-search-bar input{flex:1;min-width:0;min-height:44px;padding:0 16px;border:1px solid transparent;border-radius:999px;background:#eef1f5;color:#121418;font:inherit;font-size:1rem}
+.ds-top-search-bar input:focus{outline:none;border-color:#ff5a1f;background:#fff}
+.ds-top-search-status{margin:0;padding:10px 16px 0;color:#4b5565;font-size:.92rem}
+.ds-top-search-status:empty{display:none}
+.ds-top-search-results{padding:4px 0 12px}
+@media (max-width:640px){.ds-top-search{width:100%;max-width:none;height:100dvh;max-height:none;margin:0;border:0;border-radius:0}}
+
+.person-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:12px;min-height:60px;padding:8px 16px;border:0;background:transparent}
+.person-row+.person-row{border-top:1px solid #eef1f5}
+.person-row .user-search-avatar{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;overflow:hidden;background:#121418;color:#ededea;font-weight:800;text-decoration:none}
+.person-row .user-search-avatar img{width:100%;height:100%;object-fit:cover}
+.person-row .user-search-identity{display:grid;min-width:0;line-height:1.25}
+.person-row .user-search-identity a,.person-row .user-search-identity strong{overflow:hidden;color:#121418;font-weight:800;text-decoration:none;text-overflow:ellipsis;white-space:nowrap}
+.person-row .user-search-identity small{overflow:hidden;color:#4b5565;font-size:.86rem;text-overflow:ellipsis;white-space:nowrap}
+.person-row-actions{display:flex;align-items:center;gap:6px}
+.person-row .user-search-action{min-height:44px;padding:0 14px;border:0;border-radius:8px;background:var(--ds-btn-go,#15803d);color:#fff;font:inherit;font-size:.9rem;font-weight:800;white-space:nowrap;cursor:pointer}
+.person-row .user-search-action[data-state="friends"],.person-row .user-search-action[data-state="outgoing"],.person-row .user-search-action[data-state="visible-author"]{background:#eef1f5;color:#121418}
+.person-row .user-search-action:disabled{cursor:default;opacity:1}
+.person-row-message{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:999px;background:#eef1f5;color:#121418}
+/* Phones: name on its own line, buttons underneath (the familiar mobile friend-suggestion row). */
+@media (max-width:430px){.person-row{grid-template-columns:48px minmax(0,1fr);grid-template-areas:"avatar identity" "avatar actions";column-gap:12px;row-gap:6px;align-items:start;padding:10px 16px}.person-row .user-search-avatar{grid-area:avatar;width:48px;height:48px}.person-row .user-search-identity{grid-area:identity;padding-top:2px}.person-row-actions{grid-area:actions}.person-row .user-search-action{flex:1 1 auto;max-width:200px}.sync-people-results .person-row{padding:10px 12px}}
+.sync-people-results{margin:4px 0 10px;border-radius:12px;background:#fff}
+.sync-people-results h2{margin:0;padding:10px 16px 2px;color:#4b5565;font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.sync-people-results .person-row{padding:8px 12px}

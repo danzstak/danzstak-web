@@ -42,8 +42,8 @@ const { pathToFileURL } = require("node:url");
   await assert.rejects(disabled.send({userId:"member-2",countryCode:"+1",localNumber:"4155550123"}),error=>error.code==="provider_unavailable");
 
   const html=fs.readFileSync(path.join(root,"messages.html"),"utf8"), client=fs.readFileSync(path.join(root,"assets/phone-verification.js"),"utf8"), devices=fs.readFileSync(path.join(root,"assets/call-devices.js"),"utf8"), messages=fs.readFileSync(path.join(root,"assets/direct-messages.js"),"utf8"), api=fs.readFileSync(path.join(root,"infrastructure/auth-api/index.mjs"),"utf8"), callTemplate=fs.readFileSync(path.join(root,"infrastructure/call-signaling/template.yaml"),"utf8"), template=fs.readFileSync(path.join(root,"infrastructure/engagement/template.yaml"),"utf8");
-  for (const marker of ["syncPhoneCountryCode","syncPhoneNumber","syncPhoneCode","Verify this device by SMS","stays private, unsearchable","cannot receive this carrier SMS code"]) assert.ok(html.includes(marker),`missing phone UI: ${marker}`);
-  assert.ok(client.includes("AWS has not approved SYNC verification texts yet"));
+  for (const marker of ["syncPhoneCountryCode","syncPhoneNumber","syncPhoneCode","Verify this device by SMS","stays private, unsearchable"] /* the DS-number note left the panel until DS numbers launch (owner SYNC call test 2026-11-17) */) assert.ok(html.includes(marker),`missing phone UI: ${marker}`);
+  assert.ok(client.includes("SYNC verification texts aren't available yet"), "provider-neutral fail-closed message (Twilio or AWS)");
   assert.ok(client.includes('purpose:"sync_device"') && client.includes("deviceChallengeId") && client.includes("danzstak:device-otp-confirmed"),"device OTP must be bound in memory to the exact registration challenge");
   assert.ok(devices.includes("state.pendingName=state.accountName||defaultName()"),"device label must default to the account name");
   assert.ok(devices.includes("danzstakBeginCallingDeviceEnrollment") && client.includes("danzstakBeginCallingDeviceEnrollment"),"Text me a code must start the bound device enrollment challenge");
@@ -61,3 +61,36 @@ const { pathToFileURL } = require("node:url");
   for(const italian of ["Verifica privata del telefono","Prefisso internazionale","Numero di cellulare","AWS non ha ancora approvato gli SMS di verifica SYNC"])assert.ok(translations.includes(italian),`missing Italian phone verification copy: ${italian}`);
   console.log("SYNC private phone verification regression checks passed.");
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+// Owner 2026-11-19: the Italian tester's reply from "Send a test notification" came back in English,
+// and Resend left a Send button that did nothing.
+{
+  const fs = require("node:fs"), assert = require("node:assert/strict");
+  const push = fs.readFileSync("assets/push-notifications.js", "utf8"), sync = fs.readFileSync("assets/i18n-sync.js", "utf8"), phone = fs.readFileSync("assets/phone-verification.js", "utf8");
+  assert.doesNotMatch(push, /status\.textContent = "|status\.textContent = error\.message|: "No device has|`Sent to \$\{/, "test-notification replies go through t()");
+  for (const key of ["Send a test notification", "Sending…", "No device has notifications on yet. Allow notifications and try again.", "Sent to 1 device.", "Sent to {count} devices.", "This device will ring for calls when SYNC is closed.", "This device gets messages; register it to ring for calls when SYNC is closed.", "Notifications must be allowed for background alerts."])
+    for (const lang of ["it", "fr", "es", "de", "pt"]) assert.ok(sync.split(`"${lang}": {`)[1].includes(JSON.stringify(key) + ":"), `"${key}" missing in ${lang}`);
+  assert.match(phone, /resend\.addEventListener\("click", \(\) => \{[^}]*send\.disabled = current\?\.providerAvailable !== true/, "Resend brings back a Send button that works");
+  console.log("SYNC test-notification localization + Resend checks passed.");
+}
+
+// Directive L2 short screen: one line, a live countdown, "Wrong number? Change it", the country from the phone, autosubmit.
+{
+  const fs = require("node:fs"), assert = require("node:assert/strict");
+  const client = fs.readFileSync("assets/phone-verification.js", "utf8"), devices = fs.readFileSync("assets/call-devices.js", "utf8"), sync = fs.readFileSync("assets/i18n-sync.js", "utf8");
+  for (const page of ["messages.html", "sync/index.html"]) {
+    const html = fs.readFileSync(page, "utf8");
+    assert.match(html, /<p class="calling-device-account" hidden>/, `${page}: no account-name box on the short screen`);
+    assert.match(html, /<p class="push-test-row" hidden>/, `${page}: the test-notification button waits until the device is registered`);
+    assert.match(html, /id="syncPhoneChangeNumber"[^>]*>Wrong number\? Change it</, `${page}: Wrong number? Change it`);
+    assert.match(html, /autocomplete="one-time-code"/, `${page}: the code field offers the SMS code`);
+  }
+  assert.match(devices, /pushRow\.hidden=!registered/, "the test button shows only once registered");
+  assert.match(client, /t\("Resend in"\)[^\n]*padStart\(2, "0"\)/, "Resend shows a m:ss countdown");
+  assert.match(client, /digits\.length === 6[^\n]*codeForm\.requestSubmit\(\)/, "the 6th digit submits the code");
+  assert.match(client, /OTPCredential/, "WebOTP fills the code on Android when the text allows it");
+  assert.match(client, /new Intl\.DisplayNames/, "country names in the visitor's language");
+  for (const key of ["Calls and voice messages need this phone verified. Texting already works.", "Resend in", "Wrong number? Change it"])
+    for (const lang of ["it", "fr", "es", "de", "pt"]) assert.ok(sync.split(`"${lang}": {`)[1].includes(JSON.stringify(key) + ":"), `"${key}" missing in ${lang}`);
+  console.log("Directive L2 short registration screen checks passed.");
+}

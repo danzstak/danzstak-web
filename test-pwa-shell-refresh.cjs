@@ -27,55 +27,65 @@ assert.match(serviceWorker, /"\/assets\/user-content-links\.js"/, "the offline s
 assert.match(serviceWorker, /"\/assets\/user-content-links\.css"/, "the offline shell must keep user links visibly styled");
 assert.match(serviceWorker, /async function refreshAppShell\(\)/, "service worker must refresh its app shell");
 assert.match(serviceWorker, /Promise\.allSettled\(SHELL\.map/, "one failed shell request must not cancel the refresh");
-assert.match(serviceWorker, /fetch\(path, \{ cache: "no-store" \}\)/, "shell refresh must bypass stale browser cache");
+// Owner 2026-11-23 ("Update is hanging"): the refresh asks the server about every file ("no-cache": a 304 when unchanged)
+// instead of re-downloading the whole app, remembers its last run in the cache (the worker restarts after idle), never runs
+// while an update is on its way, and stops when the member updates. browser-checks/app-update.cjs runs it for real.
+assert.match(serviceWorker, /fetch\(path, \{ cache: "no-cache", signal: controller\.signal \}\)/, "shell refresh must revalidate instead of using a stale browser cache");
+assert.doesNotMatch(serviceWorker.match(/async function refreshAppShell\(\) \{[\s\S]*?\n\}/)[0], /no-store/, "shell refresh must not re-download unchanged files");
 assert.match(serviceWorker, /60 \* 60 \* 1000/, "background shell refresh must be throttled");
+assert.match(serviceWorker, /cache\.match\(SHELL_REFRESHED\)/, "the throttle survives the worker restarting");
+assert.match(serviceWorker, /if \(shellRefresh \|\| self\.registration\?\.installing \|\| self\.registration\?\.waiting\) return;/, "no refresh while an update is on its way");
+assert.match(serviceWorker, /addEventListener\?\.\("updatefound", stopShellRefresh\)/, "a refresh stops when an update turns up");
+assert.match(serviceWorker, /type === "STOP_SHELL_REFRESH"\) stopShellRefresh\(\)/, "a refresh stops when the member updates");
 assert.match(serviceWorker, /type === "REFRESH_SHELL"/, "service worker must accept refresh requests");
 
 assert.match(pwa, /type: "REFRESH_SHELL"/, "PWA controller must request a shell refresh");
 assert.match(pwa, /serviceWorker\.register\("\/service-worker\.js\?pwa=431", \{ updateViaCache: "none" \}\)/, "installed phones must request the current worker URL instead of reusing a retired registration response");
 assert.match(pwa, /navigator\.connection\?\.saveData !== true/, "PWA must respect data-saver mode");
-assert.ok((pwa.match(/refreshOfflineShell\(\)/g) || []).length >= 2, "PWA must refresh after registration and when visible again");
+assert.ok((pwa.match(/checkThenRefresh\(\)/g) || []).length >= 2, "PWA must refresh after registration and when visible again");
+assert.match(pwa, /if \(registration\.installing \|\| registration\.waiting \|\| waitingWorker\) return;/, "PWA never asks the old worker to refresh while an update is on its way");
+assert.match(pwa, /postMessage\(\{ type: "STOP_SHELL_REFRESH" \}\)/, "updating stops the old worker's refresh");
 assert.match(hostingHeaders, /Cache-Control'[\s\S]*public, max-age=300, must-revalidate/, "Amplify must not cache app-shell files at the edge for a year");
 assert.doesNotMatch(hostingHeaders, /s-maxage\s*=\s*31536000/i, "the app shell must not receive a one-year shared-cache lifetime");
 
 for (const [file, expected] of [
-  ["index.html", "assets/home.js?v=312"],
+  ["index.html", "assets/home.js?v=314"],
   ["feed.html", "assets/soft-ui.css?v=428"],
   ["messages.html", "assets/soft-ui.css?v=428"],
   ["profile.html", "assets/soft-ui.css?v=428"],
-  ["feed.html", "assets/mobile-design-system.css?v=21"],
-  ["feed.html", "assets/danzstak-original-feed.css?v=32"],
-  ["messages.html", "assets/mobile-design-system.css?v=21"],
-  ["booking.html", "assets/mobile-design-system.css?v=21"],
-  ["epk.html", "assets/mobile-design-system.css?v=21"],
-  ["profile.html", "assets/mobile-design-system.css?v=21"],
-  ["record-stores.html", "assets/mobile-design-system.css?v=21"],
-  ["feed.html", "assets/feed-enhancements.css?v=518"],
-  ["feed.html", "assets/pwa.js?v=431"],
-  ["messages.html", "assets/pwa.js?v=431"],
-  ["profile.html", "assets/pwa.js?v=431"],
+  ["feed.html", "assets/mobile-design-system.css?v=22"],
+  ["feed.html", "assets/danzstak-original-feed.css?v=35"],
+  ["messages.html", "assets/mobile-design-system.css?v=22"],
+  ["booking.html", "assets/mobile-design-system.css?v=22"],
+  ["epk.html", "assets/mobile-design-system.css?v=22"],
+  ["profile.html", "assets/mobile-design-system.css?v=22"],
+  ["record-stores.html", "assets/mobile-design-system.css?v=22"],
+  ["feed.html", "assets/feed-enhancements.css?v=533"],
+  ["feed.html", "assets/pwa.js?v=436"],
+  ["messages.html", "assets/pwa.js?v=436"],
+  ["profile.html", "assets/pwa.js?v=436"],
   ["record-stores.html", "assets/record-stores-pagination.css?v=3"],
-  ["record-stores.html", "assets/record-stores.js?v=6"],
+  ["record-stores.html", "assets/record-stores.js?v=8"],
   ["feed.html", "assets/identity-media.js?v=2"],
   ["messages.html", "assets/identity-media.js?v=2"],
   ["profile.html", "assets/identity-media.js?v=2"],
-  ["feed.html", "assets/feed-enhancements.js?v=559"],
+  ["feed.html", "assets/feed-enhancements.js?v=598"],
   ["feed.html", "assets/profile-onboarding.js?v=12"],
   ["feed.html", "assets/post-sharing.js?v=422"],
-  ["feed.html", "assets/people-search.js?v=423"],
-  ["feed.html", "assets/media-visibility.js?v=393"],
-  ["messages.html", "assets/media-visibility.js?v=393"],
-  ["profile.html", "assets/media-visibility.js?v=393"],
-  ["messages.html", "assets/chat.js?v=458"],
-  ["messages.html", "assets/chat.css?v=465"],
-  ["messages.html", "assets/direct-messages.js?v=499"],
-  ["profile.html", "assets/profile-sharing.js?v=417"],
+  ["feed.html", "assets/people-search.js?v=424"],
+  ["feed.html", "assets/media-visibility.js?v=404"],
+  ["messages.html", "assets/media-visibility.js?v=404"],
+  ["profile.html", "assets/media-visibility.js?v=404"],
+  ["messages.html", "assets/chat.js?v=480"],
+  ["messages.html", "assets/chat.css?v=473"],
+  ["messages.html", "assets/direct-messages.js?v=520"],
+  ["profile.html", "assets/profile-sharing.js?v=419"],
   ["profile.html", "assets/profile-interactions.css?v=2"],
-  ["profile.html", "assets/profile-interactions.js?v=1"],
-  ["profile.html", "assets/profile-editor.js?v=488"],
-  ["booking.html", "assets/booking-agent.js?v=489"],
+  ["profile.html", "assets/profile-interactions.js?v=2"],
+  ["profile.html", "assets/profile-editor.js?v=520"],
+  ["booking.html", "assets/booking-agent.js?v=505"],
   ["profile.html", "assets/post-sharing.js?v=422"],
-  ["profile.html", "assets/profile.js?v=421"]
+  ["profile.html", "assets/profile.js?v=423"]
 ]) {
   assert.ok(read(file).includes(expected), `${file} must reference ${expected}`);
 }

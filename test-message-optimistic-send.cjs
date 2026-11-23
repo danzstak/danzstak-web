@@ -10,8 +10,11 @@ assert.match(client, /meta\.textContent = messageTranslate\("Sending…"\)/, "pe
 assert.match(client, /pendingItem\.replaceWith\(directMessageItem\(data\.message\)\)/, "the server-confirmed message must replace the pending bubble");
 assert.match(client, /shownMessages\.add\(data\.message\.messageId\)/, "background polling must not duplicate a confirmed optimistic message");
 assert.match(client, /clientMessageId = retry\?\.clientMessageId \|\| `\$\{String\(Date\.now\(\)\)\.padStart\(13, "0"\)\}#\$\{crypto\.randomUUID\(\)\}`/, "one user action must keep one stable client message ID across retries");
-assert.match(client, /JSON\.stringify\(\{ recipientEmail, content, clientMessageId, \.\.\.attachment \}\)/, "online sends must carry the stable client message ID");
-assert.match(client, /danzstakQueueOffline\("\/messages", \{ recipientEmail, content, clientMessageId \}\)/, "offline sends must preserve the same client message ID");
+assert.match(client, /JSON\.stringify\(\{ recipientEmail, content, clientMessageId, \.\.\.attachment, \.\.\.\(replyToId \? \{ replyToId \} : \{\}\) \}\)/, "online sends must carry the stable client message ID (and the 16-E reply id when replying)");
+// Owner 2026-11-23: a send that fails for want of a connection goes again by itself with the same message (and its
+// client message ID, through retryMessageSend), so it can never arrive twice (browser-checks/call-ends-text-works.cjs).
+assert.match(client, /if \(error\.network\) \{[\s\S]*?sendWhenBack\(\);/, "a send that fails for want of a connection goes again by itself");
+assert.match(client, /retryMessageSend !== pending \|\| messageInput\.value\.trim\(\) !== pending\.content/, "the automatic resend is the same message, and stops if the words change");
 assert.match(client, /retryMessageSend = \{ recipientEmail, content, mediaFile, clientMessageId, attachment \}/, "ambiguous failures must retain the ID and any completed media upload");
 assert.doesNotMatch(client, /if \(retryMessageSend && !retry\) \{\s*await discardMessageMedia/, "changing an uncertain send must not delete media the server may already have accepted");
 assert.doesNotMatch(client, /if \(!response\.ok\) \{\s*await discardMessageMedia/, "a failed or lost response must not delete media from a possibly committed message");

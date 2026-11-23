@@ -15,6 +15,6 @@ assert.match(message("NotAllowedError", "phone"), /Microphone access is blocked/
 assert.match(message("NotFoundError", "video"), /No camera or microphone/);
 assert.match(message("NotReadableError", "phone"), /used by another app/);
 assert.match(message("UnknownError", "video"), /Check device permissions/);
-assert.match(source, /catch\(error\)\{throw new Error\(callMediaError\(error,kind\)\);\}/, "media startup must use the friendly permission guidance");
+assert.match(source, /catch\(error\)\{const failure=new Error\(callMediaError\(error,kind\)\);failure\.mediaBlocked=/, "media startup must use the friendly permission guidance (and flag blocked permission for the explainer)");
 
 console.log("Call media checks passed: denied, missing, busy, and unknown camera or microphone failures give clear recovery steps.");

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#121418">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; style-src 'self'; script-src 'self'; img-src 'self' data: https:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <title>Moving Day | DanzStak</title>
+  <meta name="description" content="Move your record shop's inventory to DanzStak from your own export. Free.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
+  <link rel="stylesheet" href="assets/mobile-design-system.css?v=22">
+  <link rel="stylesheet" href="assets/icon-buttons.css?v=5">
+  <link rel="stylesheet" href="assets/store.css?v=8">
+  <link rel="stylesheet" href="assets/pivot.css?v=3">
+  <link rel="stylesheet" href="assets/moving-day.css?v=1">
+<link rel="stylesheet" href="assets/top-search.css?v=2">
+<link rel="stylesheet" href="assets/app-bar.css?v=10">
+<link rel="stylesheet" href="assets/app-tabs.css?v=1">
+<script src="assets/session-guard.js?v=1"></script>
+<script src="assets/app-tabs.js?v=1" defer></script>
+<link rel="stylesheet" href="assets/incoming-calls.css?v=238">
+<link rel="stylesheet" href="assets/call-ringer.css?v=4">
+</head>
+<body>
+  <a class="skip-link" href="#movingMain">Skip to Moving Day</a>
+  <header class="store-header">
+    <a class="store-brand" href="feed.html?view=feed" aria-label="DanzStak home"><img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span></a>
+    <nav aria-label="Store navigation"><a href="bazaar.html">Bazaar</a><a href="store.html?manage=1">My Shop</a></nav>
+  </header>
+  <main id="movingMain" class="store-main moving-main" tabindex="-1">
+    <section class="moving-hero" aria-labelledby="movingTitle">
+      <p class="store-eyebrow">Pivot</p>
+      <h1 id="movingTitle">Moving Day</h1>
+      <p class="moving-sub">Clean house before you move your shop.</p>
+      <p><strong>Pivot away from billionaire platforms.</strong> Choose what to move to DanzStak. <strong>You own the data you choose to move.</strong> Preview your export and select only what belongs here. DanzStak never asks for your password or logs in to another platform. Moving Day is free, and buyers pay DanzStak's fee, so you keep your full price and shipping.</p>
+    </section>
+
+    <p id="movingStatus" class="store-status" role="status" aria-live="polite"></p>
+
+    <section id="stepGuide" class="moving-step" aria-labelledby="guideTitle">
+      <h2 id="guideTitle"><span class="step-number">1</span>Download your export</h2>
+      <div class="pivot-platforms moving-platforms" role="tablist" aria-label="Where your shop lives now"></div>
+      <div id="movingGuide" class="pivot-guide moving-guide" aria-live="polite"></div>
+    </section>
+
+    <section id="stepFile" class="moving-step" aria-labelledby="fileTitle">
+      <h2 id="fileTitle"><span class="step-number">2</span>Choose your export</h2>
+      <label class="moving-drop" for="movingFile">
+        <span class="moving-drop-icon" aria-hidden="true">⇪</span>
+        <strong id="movingDropLabel">Choose your Discogs export</strong>
+        <small>.csv or .tsv</small>
+        <input id="movingFile" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values">
+      </label>
+      <p class="moving-note"><strong>Nothing moves automatically.</strong> Your export stays on your device until you review it and choose what to bring. Release photos aren't in these exports: add your own photos later. DanzStak never copies pictures or text from another site's database.</p>
+    </section>
+
+    <section id="stepPick" class="moving-step" aria-labelledby="pickTitle" hidden>
+      <h2 id="pickTitle"><span class="step-number">3</span>Preview and choose what to bring</h2>
+      <p id="pickSummary" class="moving-summary"></p>
+      <p id="pickUnused" class="moving-note" hidden></p>
+      <div class="moving-tools">
+        <label class="moving-search"><span class="visually-hidden">Filter items</span><input id="pickFilter" type="search" placeholder="Filter by artist, title, label"></label>
+        <button id="pickAll" type="button" class="moving-chip">All</button>
+        <button id="pickNone" type="button" class="moving-chip">None</button>
+      </div>
+      <ul id="pickList" class="moving-list" aria-label="Items to move"></ul>
+      <button id="pickMore" type="button" class="moving-more" hidden>Show more</button>
+    </section>
+
+    <section id="stepPrice" class="moving-step" aria-labelledby="priceTitle" hidden>
+      <h2 id="priceTitle"><span class="step-number">4</span>Prices and shipping</h2>
+      <div class="moving-grid">
+        <label>Change every price by (%)<input id="priceAdjust" type="number" inputmode="decimal" step="1" min="-90" max="500" value="0"></label>
+        <label>Shipping per item (USD)<input id="shippingAll" inputmode="decimal" placeholder="Keep from file"></label>
+        <label>Status<select id="moveStatus"><option value="draft">Drafts (check them, then publish)</option><option value="published">Publish straight away</option></select></label>
+      </div>
+      <p class="moving-note">Prices on DanzStak are in US dollars. If your export is in euros or pounds, use the % change to convert. Shipping can't be more than the item price.</p>
+    </section>
+
+    <section id="stepMove" class="moving-step" aria-labelledby="moveTitle" hidden>
+      <h2 id="moveTitle"><span class="step-number">5</span>Move</h2>
+      <button id="moveButton" type="button" class="moving-primary">Move items</button>
+      <div class="moving-progress" hidden><progress id="moveProgress" max="100" value="0"></progress><span id="moveCount"></span></div>
+      <ul id="moveErrors" class="moving-errors" hidden></ul>
+      <p id="moveDone" class="moving-done" hidden><a href="store.html?manage=1">Open my shop</a></p>
+    </section>
+  </main>
+  <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"></nav>
+  <script src="assets/icon-buttons.js?v=19" defer></script>
+  <script src="assets/moving-day-parse.js?v=1" defer></script>
+  <script src="assets/moving-day.js?v=2" defer></script>
+<script src="assets/people-search.js?v=424" defer></script>
+<script src="assets/top-search.js?v=3" defer></script>
+<script src="assets/app-bar.js?v=8" defer></script>
+<!-- Calls ring and can be answered on every member page (owner 2026-11-19: "it only rings when I am on SYNC"). -->
+<script src="assets/call-devices.js?v=19" defer></script>
+<script src="assets/sync-tones.js?v=7" defer></script>
+<script src="assets/call-ringer.js?v=4" defer></script>
+<script src="assets/incoming-calls.js?v=314" defer></script>
+</body>
+</html>

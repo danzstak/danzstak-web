@@ -98,7 +98,15 @@ async function inspect(page, width, label) {
         });
         await page.goto(`${baseUrl}/${screen.url}`, { waitUntil: "domcontentloaded" });
         await page.getByText(screen.ready, { exact: true }).first().waitFor({ state: "visible" });
-        if (screen.label !== "published-event") await page.waitForFunction(() => [...document.querySelectorAll(".product-image,.bazaar-image-frame img,.product-gallery img")].every(image => image.complete && image.naturalWidth > 0));
+        if (screen.label !== "published-event") {
+          // Grid images load lazily as they near the screen; since F15f mixes the labelled examples into the Bazaar grid many
+          // sit far below the fold, and Edge never fetches those. Bring each into view once, then every image must load.
+          await page.evaluate(async () => {
+            for (const image of document.querySelectorAll(".product-image,.bazaar-image-frame img,.product-gallery img")) { image.scrollIntoView({ block: "center" }); await new Promise(resolve => requestAnimationFrame(resolve)); }
+            scrollTo(0, 0);
+          });
+          await page.waitForFunction(() => [...document.querySelectorAll(".product-image,.bazaar-image-frame img,.product-gallery img")].every(image => image.complete && image.naturalWidth > 0));
+        }
         await page.waitForTimeout(100);
         assert.equal(errors.length, 0, `${width}px ${screen.label} page errors: ${errors.join(" | ")}`);
         await inspect(page, width, screen.label);

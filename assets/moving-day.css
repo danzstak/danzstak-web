@@ -1,0 +1,38 @@
+/* Moving Day for shops: one fluid page, numbered steps, no stacked boxes. */
+.moving-main{max-width:760px}
+.moving-hero{padding:24px 0 12px}
+.moving-hero h1{margin:0;font-size:clamp(32px,8vw,52px);line-height:1;letter-spacing:-.01em}
+.moving-hero>p:last-child{max-width:62ch;margin:10px 0 0;color:var(--ds-ink-soft,#344054);line-height:1.5}
+.moving-sub{margin:8px 0 0!important;font-size:18px;font-weight:800;color:var(--ds-ink,#172033)!important}
+.moving-platforms{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:12px}.moving-platforms .pivot-platform{text-align:center;white-space:nowrap}
+.moving-step{padding:20px 0;border-top:1px solid var(--ds-border,#d9e1eb)}
+.moving-step h2{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:20px;white-space:nowrap}
+.step-number{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--ds-brand,#121418);color:#fff;font-size:14px;font-weight:900}
+.moving-drop{position:relative;display:grid;justify-items:center;gap:6px;padding:28px 16px;border:2px dashed var(--ds-border-strong,#c5cfdd);border-radius:14px;text-align:center;cursor:pointer}
+.moving-drop:focus-within,.moving-drop:hover{border-color:var(--ds-accent,#ef6c20)}
+.moving-drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.moving-drop-icon{font-size:28px;color:var(--ds-accent,#ef6c20)}
+.moving-drop small,.moving-note{color:var(--ds-muted,#667085);font-size:13px;line-height:1.45}
+.moving-help{margin-top:12px;font-size:14px}.moving-help summary{min-height:44px;display:flex;align-items:center;font-weight:800;cursor:pointer}.moving-help p{margin:6px 0;line-height:1.45}
+.moving-summary{margin:0 0 8px;font-weight:800}
+.moving-tools{position:sticky;top:64px;z-index:5;display:flex;gap:8px;align-items:center;padding:8px 0;background:var(--ds-canvas,#f6f6f4)}
+.moving-search{flex:1}.moving-search input,.moving-grid input,.moving-grid select{width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--ds-border-strong,#c5cfdd);border-radius:999px;background:#fff;font:inherit}
+.moving-grid select,.moving-grid input{border-radius:10px}
+.moving-chip{min-height:44px;padding:0 16px;border:1px solid var(--ds-border-strong,#c5cfdd);border-radius:999px;background:#fff;font:inherit;font-weight:800;cursor:pointer}
+.moving-list{margin:0;padding:0;list-style:none}
+.moving-item{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:6px;min-height:56px;border-bottom:1px solid var(--ds-border,#d9e1eb)}
+.moving-item input{width:22px;height:22px;margin:0 auto;accent-color:var(--ds-accent,#ef6c20)}
+.moving-item-text{display:grid;min-width:0;padding:8px 0;cursor:pointer}
+.moving-item-text strong{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:15px}
+.moving-item-meta{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--ds-muted,#667085);font-size:13px}
+.moving-item-price{font-weight:900;white-space:nowrap}.moving-item-issue{color:#b42318;font-size:13px;font-weight:800;white-space:nowrap}
+.moving-more{width:100%;min-height:48px;margin-top:8px;border:0;background:transparent;font:inherit;font-weight:900;color:var(--ds-brand,#121418);cursor:pointer}
+.moving-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.moving-grid label{display:grid;gap:6px;font-size:13px;font-weight:800;color:var(--ds-ink-soft,#344054)}
+.moving-primary{width:100%;min-height:52px;border:0;border-radius:999px;background:var(--ds-accent,#ef6c20);color:#fff;font:inherit;font-size:17px;font-weight:900;cursor:pointer}
+.moving-primary:disabled{background:var(--ds-border-strong,#c5cfdd);cursor:default}
+.moving-progress{display:flex;align-items:center;gap:10px;margin-top:14px}.moving-progress progress{flex:1;height:10px;accent-color:var(--ds-accent,#ef6c20)}
+.moving-errors{margin:12px 0 0;padding-left:18px;color:#b42318;font-size:14px;line-height:1.5}
+.moving-done a{display:inline-flex;align-items:center;min-height:44px;font-weight:900}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:700px){.moving-platforms{grid-template-columns:repeat(2,minmax(0,1fr))}.moving-main{padding:0 12px}.moving-grid{grid-template-columns:1fr}.moving-tools{top:58px}}

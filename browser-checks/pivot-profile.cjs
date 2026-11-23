@@ -8,7 +8,7 @@ const { chromium } = require("playwright");
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8023").replace(/\/$/, "");
 const widths = [320, 360, 390, 414, 430, 1366];
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
-const profile = { memberId: "11111111-1111-4111-8111-111111111111", name: "Pivot Artist", username: "pivotartist", bio: "Independent artist.", picture: "", cover: "", website: "", isOwner: true };
+const profile = { memberId: "11111111-1111-4111-8111-111111111111", name: "Pivot Artist", username: "pivotartist", handle: "pivotartist", bio: "Independent artist.", picture: "", cover: "", website: "", isOwner: true };
 
 function fixture(pathname) {
   if (pathname === "/auth/session") return { authenticated: true, user: { sub: profile.memberId, email: "pivot@example.test" } };

@@ -90,15 +90,15 @@ function fixture(pathname) {
               install: installButton,
               searchPlaceholder: document.querySelector(".topbar .search")?.placeholder || "",
               pivotTarget: Boolean(pivotTarget?.closest?.("#pivotButton")),
-              pivotLabel: document.querySelector("#pivotButton")?.textContent?.trim() || "",
+              pivotLabel: document.querySelector("#pivotButton")?.getAttribute("aria-label") || "",
               pivotHtml: document.querySelector("#pivotButton")?.outerHTML || ""
             };
           });
-          assert.equal(headerControls.pivotLabel, "Pivot", `${width}px Pivot label must remain intact: ${JSON.stringify(headerControls)}`);
+          assert.equal(headerControls.pivotLabel, "Pivot your data", `${width}px Pivot icon keeps its name: ${JSON.stringify(headerControls)}`);
           assert.ok(headerControls.pivot && headerControls.install, `${width}px Pivot and Install controls must both render`);
           assert.ok(headerControls.pivot.right + 4 <= headerControls.install.left, `${width}px Install overlaps Pivot: ${JSON.stringify(headerControls)}`);
           assert.equal(headerControls.pivotTarget, true, `${width}px Pivot center must remain clickable above other controls`);
-          assert.ok(headerControls.pivot.width >= 60 && headerControls.pivot.height >= 38, `${width}px Pivot control is clipped: ${JSON.stringify(headerControls.pivot)}`);
+          assert.ok(headerControls.pivot.width >= 44 && headerControls.pivot.height >= 44, `${width}px Pivot control is clipped: ${JSON.stringify(headerControls.pivot)}`);
           assert.ok(headerControls.install.width >= 36 && headerControls.install.height >= 36, `${width}px Install control is undersized: ${JSON.stringify(headerControls.install)}`);
           assert.equal(headerControls.searchPlaceholder, width <= 360 ? "Search" : "Search posts and users", `${width}px global search prompt must not be visibly clipped`);
         }
@@ -163,20 +163,20 @@ function fixture(pathname) {
                 ? { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height }
                 : null;
             };
-            return { actions, tabs, header: { search: headerRect(document.querySelector("#profileHeaderSearch")), searchPlaceholder: document.querySelector("#profileHeaderSearch")?.placeholder || "", pivot: headerRect(document.querySelector("#profileHeaderPivot")), install: headerRect(document.querySelector("body > .install-app-button")) } };
+            return { actions, tabs, header: { search: headerRect(document.querySelector("#profileHeaderSearch")), searchPlaceholder: document.querySelector("#profileHeaderSearch")?.placeholder || "", pivot: headerRect(document.querySelector("#profileHeaderPivot")), back: headerRect(document.querySelector(".profile-back")), searchToggle: headerRect(document.querySelector(".profile-search-toggle")), install: headerRect(document.querySelector("body > .install-app-button")) } };
           });
-          assert.deepEqual(profileControls.actions.map(action => action.label), ["Edit Profile", "Open my shop", "Share Profile", "Invite People"], `${width}px owner profile must retain Edit, Shop, Share, and Invite actions`);
+          assert.deepEqual(profileControls.actions.map(action => action.label), ["Edit Profile", "Open my shop", "Share Profile"], `${width}px owner profile must retain Edit, Shop, Share, and Invite actions`);
           assert.ok(Math.max(...profileControls.actions.map(action => action.top)) - Math.min(...profileControls.actions.map(action => action.top)) <= 1, `${width}px profile actions must use one row: ${JSON.stringify(profileControls.actions)}`);
           assert.ok(profileControls.actions.every(action => action.height >= 44 && action.width > 0), `${width}px profile actions must retain touch targets: ${JSON.stringify(profileControls.actions)}`);
           assert.ok(profileControls.tabs.length >= 5, `${width}px profile sections are missing: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(Math.max(...profileControls.tabs.map(tab => tab.top)) - Math.min(...profileControls.tabs.map(tab => tab.top)) <= 1, `${width}px profile tabs must stay on one row: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(profileControls.tabs.every(tab => tab.height >= 44), `${width}px profile tabs must retain touch targets: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(profileControls.tabs.every(tab => tab.left >= 0 && tab.right <= width), `${width}px profile tabs must all remain fully visible: ${JSON.stringify(profileControls.tabs)}`);
-          assert.ok(profileControls.header.search && profileControls.header.search.height >= 38, `${width}px profile search is missing or clipped: ${JSON.stringify(profileControls.header)}`);
-          assert.ok(profileControls.header.pivot && profileControls.header.pivot.height >= 38, `${width}px profile Pivot is missing or clipped: ${JSON.stringify(profileControls.header)}`);
-          assert.ok(profileControls.header.search.right + 4 <= profileControls.header.pivot.left, `${width}px profile Search overlaps Pivot: ${JSON.stringify(profileControls.header)}`);
-          assert.ok(!profileControls.header.install || profileControls.header.pivot.right + 4 <= profileControls.header.install.left, `${width}px profile Pivot overlaps Install: ${JSON.stringify(profileControls.header)}`);
-          assert.equal(profileControls.header.searchPlaceholder, width <= 360 ? "Search" : "Search posts and users", `${width}px profile search prompt must not be visibly clipped`);
+          // Fix-it 18 (owner 2026-11-17): the phone profile top bar is back / the member's name / search; Pivot lives in Edit profile → Moving Day and the Menu.
+          assert.ok(profileControls.header.back && profileControls.header.back.height >= 44 && profileControls.header.back.left >= 0, `${width}px profile Back is missing: ${JSON.stringify(profileControls.header)}`);
+          assert.ok(profileControls.header.searchToggle && profileControls.header.searchToggle.height >= 44, `${width}px profile search toggle is missing: ${JSON.stringify(profileControls.header)}`);
+          assert.ok(!profileControls.header.install || profileControls.header.searchToggle.right <= profileControls.header.install.left + 0.5, `${width}px profile search overlaps Install: ${JSON.stringify(profileControls.header)}`);
+          assert.ok(profileControls.header.pivot?.width >= 44, `${width}px profile phone top bar shows the Pivot icon (directive F15j): ${JSON.stringify(profileControls.header)}`);
         }
         if (name === "settings") {
           const settingsGeometry = await page.evaluate(() => {

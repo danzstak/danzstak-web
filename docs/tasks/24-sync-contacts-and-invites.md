@@ -1,0 +1,44 @@
+# 24 — SYNC contacts and "SYNC up" invites (owner 2026-11-18)
+
+Owner: "Phones also need to go through contacts like a phone and be able to be invited to SYNC conversations, like WhatsApp. So-and-so is inviting you to SYNC up."
+
+## Find people from your phone's contacts
+- **Android (Chrome / installed PWA):** a "From your contacts" button in SYNC → New chat opens the phone's own contact picker (Contact Picker API). The member picks the people; DanzStak never reads the whole address book and never uploads it.
+- The picked numbers are normalised to E.164 on the device, sent once over HTTPS, compared on the server as keyed hashes against SYNC-verified numbers, and **discarded** — never stored, never logged (hashes only, as today).
+- A match shows the person's DanzStak name, @username and avatar with **Message** / **Call**. It never shows or returns their number, masked or not.
+- **Who can be found:** members with **"People who have my number can find me on SYNC"** switched on (Settings → SYNC → Privacy). **On by default, like WhatsApp** (owner 2026-11-18). The switch is shown, already on, on the SYNC registration screen with one plain line ("People who have your number can find you on SYNC. Your number is never shown.") so the member sees it before finishing, and can turn it off there or any time later. Numbers stay private, hashed and never displayed. A member who turned it off returns "not on SYNC" exactly like an unknown number (no way to tell the difference).
+- Rate limits: 50 numbers per pick, 200 per day per account; no repeat-lookup enumeration.
+- **iPhone / computers:** no contact picker in the browser. Show **Invite** (below) and search by name/@username instead; never a dead button.
+
+## "SYNC up" invites
+- Every picked contact who is not found gets **Invite**. It opens the member's **own** SMS / WhatsApp / share sheet (sms: link or native share), pre-filled: **"<Name> is inviting you to SYNC up on DanzStak"** + a personal invite link. DanzStak does not send the text itself (no A2P, no spam).
+- The same invite is in SYNC → New chat → **Invite to SYNC** (link, QR, share) for any phone.
+- The invite link is personal to the inviter (short link, tracked as counts only — task 17). Opening it shows "<Name> is inviting you to SYNC up" with the inviter's avatar, then sign-up (name + @username first, as today).
+- **After sign-up the new member lands straight in a SYNC chat with the inviter**, and the two are friends (the inviter sent the request by inviting; the new member accepted by joining). The inviter gets a push: "<Name> joined — say hi".
+- **Group invites:** a group chat admin can make an invite link for that chat ("<Name> is inviting you to SYNC up in <Group>"); joining adds the member to the group. Admin can reset or turn off the link.
+- Invite links expire after 30 days or when revoked; one-person links work once.
+
+## Not allowed
+- No reading or uploading the full address book, no "people you may know" from contacts, no texting non-members from DanzStak, no showing anyone's number. Phone verification rules for calls stay as they are.
+
+## Tests
+Contact matching only finds opted-in members; non-opted-in and unknown look identical; numbers never in responses/logs/storage; limits; iPhone/desktop fallbacks; invite link → sign-up → lands in chat with inviter + friendship + push; group link join/reset; expiry. Visual check at phone widths.
+
+## Join from SYNC alone (owner 2026-11-18)
+Owner: "They could register their device without being a member of DanzStak — the standalone part. I would make the sign-up page there as well so they auto-become members of DanzStak."
+- The standalone SYNC app (16-G) gets its own short sign-up, so someone who only wants to chat never has to visit the main site: **mobile number → Text me a code (Twilio Verify, the existing flow) → name + @username → email + password → done.** That one flow verifies the number, registers this device for calls, and **creates their full DanzStak account** at the same time (one account, not a separate SYNC account).
+- **Email and password are required (owner 2026-11-18, supersedes "optional")**: everyone who joins through a SYNC invite is a full member with an email and password like any other member. Password rules match the main signup (Cognito policy). An email already on DanzStak gets "This email already has an account — sign in" and signing in links the device instead of making a second account.
+- **Fast (owner 2026-11-18: "users that come from SYNC invites should register very fast").** Aim for **under 60 seconds and two screens**, measured in a test:
+  - **Screen 1, the phone:** the country code is prefilled from the phone's locale. The number field uses `autocomplete="tel"` (one-tap fill on Android/iPhone). **Text me a code**, then the code field appears on the same screen with `autocomplete="one-time-code"` and the WebOTP API on Android, so the code fills itself and submits without typing.
+  - **Screen 2, you:** one screen with name, @username, email and password.
+    - The @username is **suggested from the name as they type** and checked live. They can keep it.
+    - Email uses `autocomplete="email"`. Password uses `autocomplete="new-password"` with a show/hide eye, so the phone's password manager can suggest and save one.
+    - The Terms/Privacy tick sits on the same screen.
+    - One big **Join** button.
+  - No other steps before the chat: no avatar, no bio, no tour, no "set up this phone" (that comes later and is skippable).
+  - **Join** creates the account, registers the device and opens the chat with the inviter (or connects the call) at once. The welcome email goes out in the background.
+  - Errors are inline on the field (taken @username → next free suggestion, weak password → one plain line), never a page reload, and nothing typed is lost.
+- **Welcome email confirming membership (owner 2026-11-18):** right after the account is created, DanzStak emails "Welcome to DanzStak — you're a member" from the DanzStak sending service (SES us-east-1, the verified danzstak.com sending identity; never touch the Zoho MX). It contains their name and @username, a **Confirm your email** link (the account's email-verification step; the link expires and is single-use), how to sign in on another device, a link to Mix and SYNC, and links to the Terms and Privacy they accepted. It never contains the phone number, the password or any code. Until the email is confirmed, SYNC text and calls still work; selling, EPK sends and payouts wait for a confirmed email.
+- An invite link opened on a phone goes to this SYNC sign-up (not the full site sign-up) and lands in the chat with the inviter.
+- Their DanzStak profile starts minimal (name, @username, avatar if they add one), private by default; Mix, shop and EPK are there when they open DanzStak, with no extra sign-up.
+- All existing SYNC rules hold: the number stays private and hashed, never shown; terms and privacy are accepted on this screen; one number may be linked to up to 10 accounts as today.

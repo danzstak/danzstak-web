@@ -26,10 +26,13 @@ import {
   CognitoIdentityProviderClient,
   ListUsersCommand
 } from "@aws-sdk/client-cognito-identity-provider";
-import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { EPK_CARD_PARTITION, CARD_MAX_BYTES, validEpkId, validCardKey, epkShareLink, epkSharePage } from "./epk-share-preview.mjs";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { PinpointSMSVoiceV2Client, SendNotifyTextMessageCommand } from "@aws-sdk/client-pinpoint-sms-voice-v2";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import { createMediaCdn, createMediaInvalidator } from "./media-cdn.mjs";
+import { createRequire } from "node:module";
 import {
   GeoPlacesClient,
   GeocodeCommand,
@@ -49,12 +52,38 @@ import { createTicketing } from "./ticketing.mjs";
 import { createPayouts } from "./payouts.mjs";
 import { createTicketOrders } from "./ticket-orders.mjs";
 import { createPersonalPhoneService } from "./personal-phone-service.mjs";
+import { createTwilioVerifyClient, twilioCredentialsFromEnv, twilioCredentialsFromSecret, verifyLocale } from "./personal-phone-twilio.mjs";
 import { createPersonalPhoneDynamoAdapter } from "./personal-phone-dynamodb.mjs";
 import { publicPhoneStatus } from "./personal-phone-verification.mjs";
 import QRCode from "qrcode";
+import { promoterQueries, promoterLeads } from "./promoter-research.mjs";
+import { enrichPromoter } from "./promoter-contact.mjs";
+import { bookingReplyNotice, bookingNoticeWrites } from "./booking-reply-notice.mjs";
+import { unopenedRefunds, unopenedRefundTransaction } from "./unopened-credit.mjs";
+import { isDirectoryEditor, parseTrustedContact, trustedContactItems, trustedContactUpdate, trustedPromotersNear, contactId as trustedContactId } from "./trusted-contacts.mjs";
+import { publicError, sanitizeErrorResponse } from "./public-errors.mjs";
+import { createAlbums } from "./albums.mjs";
+import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
+// Task 38: every media delete also drops CloudFront's cached copy. The CloudFront SDK ships with the Lambda Node.js
+// runtime (loaded through createRequire, so no new package); without MEDIA_CDN_DISTRIBUTION_ID this does nothing.
+const mediaCdnInvalidate = (() => {
+  try {
+    const { CloudFrontClient, CreateInvalidationCommand } = createRequire(import.meta.url)("@aws-sdk/client-cloudfront");
+    const client = new CloudFrontClient({ region: "us-east-1", maxAttempts: 3 });
+    return createMediaInvalidator({ distributionId: process.env.MEDIA_CDN_DISTRIBUTION_ID, send: command => client.send(command), CreateInvalidationCommand });
+  } catch { return async () => false; }
+})();
+{
+  const send = s3.send.bind(s3);
+  s3.send = async (command, ...rest) => {
+    const result = await send(command, ...rest);
+    if (command instanceof DeleteObjectCommand && command.input?.Key) mediaCdnInvalidate([command.input.Key]).catch(() => {});
+    return result;
+  };
+}
 // SES us-east-1 has production access (us-west-1 is still in the SES sandbox and can only mail verified addresses).
 const ses = new SESv2Client({ region: "us-east-1" });
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
@@ -66,6 +95,8 @@ const sms = new PinpointSMSVoiceV2Client({ region: "us-west-1", maxAttempts: 2 }
 const tableName = process.env.SESSIONS_TABLE;
 const sessionDevicesTable = process.env.SESSION_DEVICES_TABLE || "DANZSTAK-SessionDevices";
 const postsTable = "DANZSTAK-Posts";
+// A photo post holds up to 20 photos: its first (mediaKey) and up to 19 more, moreMedia (owner 2026-11-22).
+const postMoreMedia = item => (item?.moreMedia?.L || []).map(entry => entry?.S).filter(key => typeof key === "string" && key);
 const friendsTable = "DANZSTAK-Friends";
 const reactionsTable = "DANZSTAK-Reactions";
 const commentsTable = "DANZSTAK-Comments";
@@ -85,7 +116,28 @@ const phoneVerificationTable = process.env.PHONE_VERIFICATION_TABLE || "DANZSTAK
 const phoneVerificationSecretName = process.env.PHONE_VERIFICATION_SECRET_NAME || "danzstak/phone-verification-secret";
 const phoneNotifyConfigurationId = String(process.env.PHONE_NOTIFY_CONFIGURATION_ID || "");
 const phoneNotifyTemplateId = String(process.env.PHONE_NOTIFY_TEMPLATE_ID || "");
-const phoneVerificationEnabled = process.env.PHONE_VERIFICATION_ENABLED === "true" && /^notify-[a-z0-9]+$/i.test(phoneNotifyConfigurationId);
+// SYNC verification texts (owner 2026-11-17): OTP_PROVIDER=twilio (default) or aws. Twilio credentials come only from
+// environment variables; with any missing, texts stay off (fail-closed). AWS Notify stays available behind the switch.
+const otpProvider = String(process.env.OTP_PROVIDER || "twilio").toLowerCase() === "aws" ? "aws" : "twilio";
+// Twilio credentials come from Secrets Manager (TWILIO_VERIFY_SECRET_NAME, default danzstak/twilio/verify); environment
+// variables are only a fallback. Missing or unreadable → texts stay off (fail-closed); only setting names are logged.
+const twilioSecretName = process.env.TWILIO_VERIFY_SECRET_NAME || "danzstak/twilio/verify";
+let twilioCredentials = twilioCredentialsFromEnv(process.env), twilioCredentialsPromise = null;
+async function loadTwilioCredentials() {
+  if (otpProvider !== "twilio" || twilioCredentials.ok) return twilioCredentials;
+  if (!twilioCredentialsPromise) twilioCredentialsPromise = secretsManager.send(new GetSecretValueCommand({ SecretId: twilioSecretName }))
+    .then(result => {
+      const loaded = twilioCredentialsFromSecret(typeof result?.SecretString === "string" ? result.SecretString : "");
+      if (loaded.ok) twilioCredentials = loaded; else console.warn("SYNC texts are off: Twilio secret is missing", loaded.missing.join(", "));
+      return twilioCredentials;
+    })
+    .catch(error => { console.warn("SYNC texts are off: Twilio secret unavailable", error.name); twilioCredentialsPromise = null; return twilioCredentials; });
+  return twilioCredentialsPromise;
+}
+async function phoneTextsAvailable() { return otpProvider === "twilio" ? (await loadTwilioCredentials()).ok : phoneVerificationEnabled; }
+const phoneVerificationEnabled = otpProvider === "twilio"
+  ? false
+  : process.env.PHONE_VERIFICATION_ENABLED === "true" && /^notify-[a-z0-9]+$/i.test(phoneNotifyConfigurationId);
 // Registration policy must never depend on provider health. If AWS cannot send
 // an OTP, the device stays unregistered instead of silently falling back to an
 // unverified credential.
@@ -96,6 +148,11 @@ const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
 const siteUrl = process.env.SITE_URL;
 const mediaBucket = process.env.MEDIA_BUCKET;
+// Task 38: media through CloudFront with cacheable signed URLs once MEDIA_CDN_DOMAIN and the signing key exist; S3 until then.
+const mediaCdn = createMediaCdn({
+  domain: process.env.MEDIA_CDN_DOMAIN,
+  loadSecret: async () => (await secretsManager.send(new GetSecretValueCommand({ SecretId: process.env.MEDIA_CDN_SECRET_NAME || "danzstak/cloudfront/media-signing-key" }))).SecretString
+});
 
 const callbackUrl = "https://api.danzstak.com/auth/callback";
 const allowedOrigin = "https://danzstak.com";
@@ -191,8 +248,17 @@ async function phoneVerificationSecret() {
   return phoneVerificationSecretPromise;
 }
 
+const phoneLog = (event, fields) => console.warn(event, JSON.stringify(fields)); // fields are already masked
+let twilioVerifyClient = null;
 async function personalPhoneService() {
   const secret = await phoneVerificationSecret();
+  if (otpProvider === "twilio") {
+    await loadTwilioCredentials();
+    if (twilioCredentials.ok && !twilioVerifyClient) twilioVerifyClient = createTwilioVerifyClient({ credentials: twilioCredentials, log: phoneLog });
+    // Without credentials the service still loads (status, remove) but every send is refused.
+    const verifier = twilioVerifyClient || { async start() { throw Object.assign(new Error("off"), { name: "TwilioVerifyError", statusCode: 503, code: "provider_unavailable", message: "SYNC verification texts aren't available yet. No text was sent." }); }, async check() { return { approved: false }; } };
+    return createPersonalPhoneService({ adapter: personalPhoneAdapter, secret, enabled: twilioCredentials.ok, verifier, log: phoneLog });
+  }
   return createPersonalPhoneService({
     adapter: personalPhoneAdapter,
     secret,
@@ -215,6 +281,14 @@ const tourManagerBilling = createTourManagerBilling({
   tableName: toursTable,
   env: stripeEnvironment,
   validateOutreachEpkLink: validateBookingOutreachEpkLink,
+  accountEmail: userId => accountForSub(userId),
+  // Bell notification when a venue answers through the reply page (owner 2026-11-16).
+  notifyBookingReply: async ({ artistId, outreachId, dedupe, action, preview, proposedDate, at }) => {
+    const send = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${outreachId}` } }, ConsistentRead: true }))).Item;
+    const artistEmail = send?.artistEmail?.S || await accountForSub(artistId);
+    const notice = bookingReplyNotice({ tableName: engagementNotificationsTable, artistEmail, outreachId, dedupe, venueName: send?.venueName?.S, action, preview, proposedDate, at });
+    if (notice) await db.send(new TransactWriteItemsCommand({ TransactItems: bookingNoticeWrites(notice, activityPushOutboxTable) })); // 16-F: bell + lock-screen push
+  },
   sendBookingEmail: async ({ userId, sendId, artistName, venueName, to, subject, message, replyToken }) => {
     if (!/^[a-f0-9]{64}$/.test(replyToken || "")) throw new Error("Booking reply route is invalid");
     const safeArtistName = String(artistName || "Artist").replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) || "Artist";
@@ -260,7 +334,9 @@ const marketplace = createMarketplace({
   authenticate: getAuthenticatedUser,
   corsHeaders,
   tableName: marketplaceTable,
-  env: process.env
+  env: process.env,
+  mediaOwnerPrefix: userId => mediaOwnerPrefixForUser(userId),
+  signMedia: key => signedMediaUrl(key, 3600)
 });
 const ticketing = createTicketing({
   db,
@@ -276,8 +352,11 @@ const now = () => Math.floor(Date.now() / 1000);
 
 // Marketplace payouts read the same Stripe secret but never depend on the tour-manager webhook setup.
 let payoutKeyPromise = null;
+// Marketplace (Stripe Connect payouts and ticket sales) tests in the Stripe sandbox "DanzStak Test",
+// separate from the main account's test mode used by DanzStak's own products (owner 2026-11-17).
+const marketplaceStripeSecretName = process.env.MARKETPLACE_STRIPE_SECRET_NAME || "danzstak/stripe/sandbox-secret-key";
 async function payoutStripeKey() {
-  if (!payoutKeyPromise) payoutKeyPromise = secretsManager.send(new GetSecretValueCommand({ SecretId: stripeSecretName })).then(result => secretText(result, ["STRIPE_SECRET_KEY", "secretKey", "key", "value"])).catch(error => { payoutKeyPromise = null; throw error; });
+  if (!payoutKeyPromise) payoutKeyPromise = secretsManager.send(new GetSecretValueCommand({ SecretId: marketplaceStripeSecretName })).then(result => secretText(result, ["STRIPE_SECRET_KEY", "secretKey", "key", "value"])).catch(error => { payoutKeyPromise = null; throw error; });
   return payoutKeyPromise;
 }
 const marketplaceWebhookSecretName = process.env.MARKETPLACE_WEBHOOK_SECRET_NAME || "danzstak/stripe/marketplace-webhook-secret";
@@ -426,6 +505,8 @@ const encodeAws = value => encodeURIComponent(value).replace(/[!'()*]/g, charact
 const hmac = (key, value, encoding) => createHmac("sha256", key).update(value).digest(encoding);
 function signedMediaUrl(key, expires = 900, responseHeaders = {}) {
   if (!mediaBucket || !key) return "";
+  // Viewing media goes through the CDN (same URL for hours, so it caches); downloads with a filename stay on S3.
+  if (!Object.keys(responseHeaders).length) { const cdn = mediaCdn.url(key); if (cdn) return cdn; }
   const region = process.env.AWS_REGION, access = process.env.AWS_ACCESS_KEY_ID, secret = process.env.AWS_SECRET_ACCESS_KEY, token = process.env.AWS_SESSION_TOKEN;
   const date = new Date(), stamp = date.toISOString().replace(/[:-]|\.\d{3}/g, ""), day = stamp.slice(0, 8), scope = `${day}/${region}/s3/aws4_request`;
   const host = `${mediaBucket}.s3.${region}.amazonaws.com`, uri = "/" + key.split("/").map(encodeAws).join("/");
@@ -679,7 +760,15 @@ async function verifyIdToken(token, expectedNonce, expectedSub) {
 }
 
 // START SECURE COGNITO LOGIN OR SIGNUP
-async function startLogin(mode = "login", legalAcceptanceId = "") {
+// Answer to join (owner 2026-11-18): after signup or login, a call invitee returns to the
+// SYNC screen that redeems their invite. Only this exact path shape is accepted, never an
+// arbitrary URL, so the parameter cannot be used as an open redirect.
+function safeReturnPath(value) {
+  const path = String(value || "");
+  return /^\/messages\.html\?invite=[A-Za-z0-9_-]{43}$/.test(path) ? path : "";
+}
+
+async function startLogin(mode = "login", legalAcceptanceId = "", returnPath = "") {
   const state = randomValue();
   const verifier = randomValue();
   const nonce = randomValue();
@@ -696,6 +785,7 @@ async function startLogin(mode = "login", legalAcceptanceId = "") {
       expiresAt: { N: String(now() + loginHandoffSeconds) }
   };
   if (legalAcceptanceId) pendingItem.legalAcceptanceId = { S: legalAcceptanceId };
+  if (safeReturnPath(returnPath)) pendingItem.returnPath = { S: safeReturnPath(returnPath) };
   if (mode === "reauth") pendingItem.reauthentication = { BOOL: true };
 
   await db.send(new PutItemCommand({
@@ -773,7 +863,7 @@ async function startSignup(event) {
   if (acceptance?.type?.S !== "legal_pending" || acceptance.legalVersion?.S !== legalVersion || Number(acceptance.expiresAt?.N || 0) <= now()) {
     return redirect(siteUrl + "/?legal=required", [clearCookie(legalCookieName)]);
   }
-  return startLogin("signup", acceptanceId);
+  return startLogin("signup", acceptanceId, event.queryStringParameters?.next);
 }
 
 // COMPLETE SECURE LOGIN
@@ -1033,7 +1123,8 @@ async function completeLogin(event) {
     responseCookies.push(clearCookie(legalCookieName));
   }
 
-  return redirect(pending.reauthentication?.BOOL ? siteUrl + "/feed.html?view=settings&security=1" : siteUrl + "/", responseCookies);
+  const returnPath = safeReturnPath(pending.returnPath?.S);
+  return redirect(pending.reauthentication?.BOOL ? siteUrl + "/feed.html?view=settings&security=1" : siteUrl + (returnPath || "/"), responseCookies);
 }
 
 // VALIDATE SERVER-SIDE SESSION
@@ -1196,7 +1287,7 @@ async function listGroups(event) {
     const id = item.userEmail.S.slice(6), isOwner = item.ownerId?.S === userId, membership = viewerMemberships.get(id);
     const storedDescription = item.description?.S || "";
     const description = storedDescription === "A new DanzStak community group." ? "A new DanzStak Tribe." : storedDescription || "A DanzStak Tribe.";
-    return { id, name: item.name?.S || "Tribe", category: item.category?.S || "Creators", description, coverUrl: item.coverKey?.S ? signedMediaUrl(item.coverKey.S, 3600) : "", createdAt: item.createdAt?.S || "", memberCount: counts.get(id) || 0, joined: Boolean(membership), isOwner, isElder: isOwner || membership?.role?.S === "elder" };
+    return { id, name: item.name?.S || "Tribe", category: item.category?.S || "Creators", description, coverUrl: item.coverKey?.S ? signedMediaUrl(item.coverKey.S, 3600) : "", coverPosition: groupCoverPosition(item), createdAt: item.createdAt?.S || "", memberCount: counts.get(id) || 0, joined: Boolean(membership), isOwner, isElder: isOwner || membership?.role?.S === "elder" };
   }).sort((a, b) => a.name.localeCompare(b.name));
   return { statusCode: 200, headers, body: JSON.stringify({ groups }) };
 }
@@ -1352,6 +1443,18 @@ async function cleanupGroupCoverObjects(id, keys, { allowActive = false } = {}) 
   return { cleaned: candidates.length - pending.length, pending: pending.length };
 }
 
+// Directive F12: where the Tribe cover sits in its box (the wide cover and the square Tribe picture use the same point).
+function groupCoverPosition(item) {
+  const read = (field, low, high, start) => { const value = Number(item?.[field]?.N); return Number.isFinite(value) ? Math.max(low, Math.min(high, value)) : start; };
+  return { x: read("coverX", 0, 100, 50), y: read("coverY", 0, 100, 50), zoom: read("coverZoom", 1, 3, 1) };
+}
+function requestedCoverPosition(data) {
+  const position = data?.position;
+  if (!position || typeof position !== "object") return null;
+  const read = (value, low, high, start) => { const number = Number(value); return Math.round(Math.max(low, Math.min(high, Number.isFinite(number) ? number : start)) * 100) / 100; };
+  return { x: read(position.x, 0, 100, 50), y: read(position.y, 0, 100, 50), zoom: read(position.zoom, 1, 3, 1) };
+}
+
 async function updateGroupCover(event) {
   const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -1360,21 +1463,38 @@ async function updateGroupCover(event) {
   if (!meta) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
   const callerEmail = await accountForSub(userId), membership = await groupMembership(id, callerEmail);
   if (meta.ownerId?.S !== userId && membership?.role?.S !== "elder") return { statusCode: 403, headers, body: JSON.stringify({ error: "Only an Elder can change the Tribe cover." }) };
-  const data = parseJsonBody(event), mediaKey = String(data?.mediaKey || ""), ownerPrefix = sha256(callerEmail).slice(0, 24);
+  const data = parseJsonBody(event), mediaKey = String(data?.mediaKey || ""), ownerPrefix = sha256(callerEmail).slice(0, 24), position = requestedCoverPosition(data);
+  if (!mediaKey && position) {
+    if (!meta.coverKey?.S) return { statusCode: 400, headers, body: JSON.stringify({ error: "Add a cover photo first." }) };
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: groupsTable,
+        Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+        UpdateExpression: "SET coverX = :x, coverY = :y, coverZoom = :zoom, updatedAt = :updated",
+        ConditionExpression: "attribute_exists(userEmail) AND attribute_not_exists(deletionState) AND coverKey = :cover",
+        ExpressionAttributeValues: { ":x": { N: String(position.x) }, ":y": { N: String(position.y) }, ":zoom": { N: String(position.zoom) }, ":updated": { S: new Date().toISOString() }, ":cover": { S: meta.coverKey.S } }
+      }));
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "The Tribe cover changed on another device. Try again." }) };
+      throw error;
+    }
+    return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(meta.coverKey.S, 3600), coverPosition: position }) };
+  }
   if (!new RegExp(`^users/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|gif)$`).test(mediaKey)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Choose a photo you uploaded." }) };
   try { await s3.send(new HeadObjectCommand({ Bucket: mediaBucket, Key: mediaKey })); }
   catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded cover photo was not found." }) }; }
   const oldKey = meta.coverKey?.S || "";
   const replacedKey = oldKey && oldKey !== mediaKey && groupCoverKeyPattern.test(oldKey) ? oldKey : "";
   const pendingCoverCleanup = [...new Set([...(meta.coverCleanup?.SS || []), replacedKey].filter(key => key && key !== mediaKey))];
-  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
+  const placed = position || { x: 50, y: 50, zoom: 1 };
+  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) }, ":x": { N: String(placed.x) }, ":y": { N: String(placed.y) }, ":zoom": { N: String(placed.zoom) } };
   if (pendingCoverCleanup.length) expressionValues[":coverCleanup"] = { SS: pendingCoverCleanup };
   if (oldKey) expressionValues[":oldCover"] = { S: oldKey };
   try {
     await db.send(new UpdateItemCommand({
       TableName: groupsTable,
       Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
-      UpdateExpression: "SET coverKey = :cover, updatedAt = :updated" + (pendingCoverCleanup.length ? ", coverCleanup = :coverCleanup REMOVE " : " REMOVE coverCleanup, ") + "coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
+      UpdateExpression: "SET coverKey = :cover, coverX = :x, coverY = :y, coverZoom = :zoom, updatedAt = :updated" + (pendingCoverCleanup.length ? ", coverCleanup = :coverCleanup REMOVE " : " REMOVE coverCleanup, ") + "coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
       ExpressionAttributeValues: expressionValues,
       ConditionExpression: "attribute_exists(userEmail) AND attribute_not_exists(deletionState) AND (attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now) AND " + (oldKey ? "coverKey = :oldCover" : "attribute_not_exists(coverKey)")
     }));
@@ -1383,7 +1503,7 @@ async function updateGroupCover(event) {
     throw error;
   }
   const cleanup = await cleanupGroupCoverObjects(id, pendingCoverCleanup);
-  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600), cleanupPending: cleanup.pending }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600), coverPosition: placed, cleanupPending: cleanup.pending }) };
 }
 
 async function deleteGroup(event) {
@@ -1525,15 +1645,15 @@ async function cleanupProfileMediaObjects(accountEmail, keys) {
         TableName: settingsTable,
         Key: { userEmail: { S: accountEmail } },
         UpdateExpression: "SET profileMediaCleanupClaim = :claim, profileMediaCleanupClaimKey = :candidate, profileMediaCleanupClaimExpiresAt = :expires",
-        ConditionExpression: "contains(profileMediaCleanup, :candidate) AND (attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now) AND (attribute_not_exists(profileAvatarKey) OR profileAvatarKey <> :candidate) AND (attribute_not_exists(profileCoverKey) OR profileCoverKey <> :candidate) AND (attribute_not_exists(profileVideoKey) OR profileVideoKey <> :candidate)",
+        ConditionExpression: "contains(profileMediaCleanup, :candidate) AND (attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now) AND (attribute_not_exists(profileAvatarKey) OR profileAvatarKey <> :candidate) AND (attribute_not_exists(profileCoverKey) OR profileCoverKey <> :candidate) AND (attribute_not_exists(profileVideoKey) OR profileVideoKey <> :candidate) AND (attribute_not_exists(profileShowcaseKey) OR profileShowcaseKey <> :candidate)",
         ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key }, ":expires": { N: String(claimExpiresAt) }, ":now": { N: String(now()) } }
       }));
     } catch (error) {
       if (error.name === "ConditionalCheckFailedException") {
-        const current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: accountEmail } }, ConsistentRead: true, ProjectionExpression: "profileAvatarKey, profileCoverKey, profileVideoKey, profileMediaCleanup" }));
-        const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileVideoKey?.S].filter(Boolean));
+        const current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: accountEmail } }, ConsistentRead: true, ProjectionExpression: "profileAvatarKey, profileCoverKey, profileVideoKey, profileShowcaseKey, profileMediaCleanup" }));
+        const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileVideoKey?.S, current.Item?.profileShowcaseKey?.S].filter(Boolean));
         if (active.has(key)) {
-          const activeConditions = ["profileAvatarKey = :candidate", "profileCoverKey = :candidate", "profileVideoKey = :candidate"].join(" OR ");
+          const activeConditions = ["profileAvatarKey = :candidate", "profileCoverKey = :candidate", "profileVideoKey = :candidate", "profileShowcaseKey = :candidate"].join(" OR ");
           try {
             await db.send(new UpdateItemCommand({
               TableName: settingsTable,
@@ -1623,11 +1743,11 @@ async function setProfileVideo(event) {
     try { await s3.send(new HeadObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey })); }
     catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded profile video was not found." }) }; }
   }
-  const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, mediaKey].filter(Boolean));
+  const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileShowcaseKey?.S, mediaKey].filter(Boolean));
   const pendingProfileMedia = [...new Set([...(current.Item?.profileMediaCleanup?.SS || []), replacedKey].filter(candidate => candidate && !active.has(candidate)))];
   const expressionValues = { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
   const conditions = ["attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now"];
-  for (const [field, token] of [["profileAvatarKey", "avatar"], ["profileCoverKey", "cover"], ["profileVideoKey", "oldVideo"]]) {
+  for (const [field, token] of [["profileAvatarKey", "avatar"], ["profileCoverKey", "cover"], ["profileVideoKey", "oldVideo"], ["profileShowcaseKey", "showcase"]]) {
     const value = current.Item?.[field]?.S || "";
     if (value) { expressionValues[`:${token}`] = { S: value }; conditions.push(`${field} = :${token}`); }
     else conditions.push(`attribute_not_exists(${field})`);
@@ -1781,7 +1901,7 @@ async function getSecurePosts(event) {
   const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames], authorProfiles);
   const authorName = email => authorNames.get(String(email || "").trim().toLowerCase()) || "DanzStak member";
   const authorPicture = email => authorProfiles.get(String(email || "").trim().toLowerCase())?.picture || "";
-  const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
+  const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : "",moreMediaUrls:postMoreMedia(item).map(key => signedMediaUrl(key,3600))}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
@@ -1804,15 +1924,30 @@ async function getSecurePosts(event) {
       mediaKey: item.mediaKey?.S ?? "",
       mediaUrl: item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S, 3600) : "",
       mediaType: item.mediaType?.S ?? "",
+      moreMediaUrls: postMoreMedia(item).map(key => signedMediaUrl(key, 3600)),
+      uploadSource: item.uploadSource?.S || "",
+      albumId: item.albumId?.S || "",
+      mediaRatio: Number(item.mediaRatio?.N || 0),
       reel: item.reel?.BOOL === true,
       commentPolicy: item.commentPolicy?.S ?? "everyone",
       editHistory: postEditHistory(item),
       updatedAt: item.updatedAt?.S ?? "",
+      pinnedUntil: activePinUntil(item),
       createdAt: item.createdAt.S
-    }))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }));
 
-  return { statusCode: 200, headers, body: JSON.stringify({ posts }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ posts: orderMixPosts(posts) }) };
+}
+
+// F15b (owner 2026-11-19): the DanzStak welcome post stays first in Mix until its pinnedUntil date, then falls back into
+// its chronological place. Only the owner's CloudShell script (set-welcome-post.mjs) writes pinnedUntil; no API route
+// accepts it (updateSecurePost takes content, audience and comment policy only), so members can't pin.
+function activePinUntil(item, now = Date.now()) {
+  const until = Date.parse(item?.pinnedUntil?.S || "");
+  return Number.isFinite(until) && until > now ? new Date(until).toISOString() : "";
+}
+function orderMixPosts(posts) {
+  return [...posts].sort((a, b) => Number(Boolean(b.pinnedUntil)) - Number(Boolean(a.pinnedUntil)) || b.createdAt.localeCompare(a.createdAt));
 }
 
 async function postForEngagement(postId, userId) {
@@ -1953,8 +2088,9 @@ async function getEngagement(event) {
     const list = children.get(comment.parentCommentId) || []; list.push(comment); children.set(comment.parentCommentId, list);
   }
   const comments = [], appendThread = comment => { comments.push(comment); for (const reply of (children.get(comment.commentId) || []).sort((a,b) => a.createdAt.localeCompare(b.createdAt))) appendThread(reply); };
+  // Directive F1a (owner 2026-11-19): comments by time only (the app shows Newest or Oldest), never ranked by reactions.
   commentRecords.filter(comment => !comment.parentCommentId || !commentById.has(comment.parentCommentId))
-    .sort((a,b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
+    .sort((a,b) => a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
   return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments }) };
 }
 
@@ -2165,7 +2301,7 @@ async function getEngagementNotifications(event) {
   const actorMembers = new Map(actorMemberEntries);
   const notifications = items.map(item => {
     const profile = actorProfiles.get(item.actorEmail?.S || "") || {};
-    return { type: item.type.S, memberId: actorMembers.get(item.actorEmail?.S || "") || "", name: profile.name || "DanzStak member", picture: profile.picture || "", ...(item.postId?.S ? { postId: item.postId.S } : {}), ...(item.groupId?.S ? { groupId: item.groupId.S, groupName: item.groupName?.S || "Tribe" } : {}), preview: item.preview?.S || "", createdAt: item.createdAt.S, unread: item.read?.BOOL !== true };
+    return { type: item.type.S, memberId: actorMembers.get(item.actorEmail?.S || "") || "", name: profile.name || "DanzStak member", picture: profile.picture || "", ...(item.postId?.S ? { postId: item.postId.S } : {}), ...(item.groupId?.S ? { groupId: item.groupId.S, groupName: item.groupName?.S || "Tribe" } : {}), ...(item.type.S === "booking_reply" ? { name: item.venueName?.S || "A venue", outreachId: item.outreachId?.S || "", venueName: item.venueName?.S || "A venue", verb: item.verb?.S || "answered your pitch", proposedDate: item.proposedDate?.S || "" } : {}), preview: item.preview?.S || "", createdAt: item.createdAt.S, unread: item.read?.BOOL !== true };
   })
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 100);
@@ -2295,7 +2431,9 @@ async function createSecurePost(event) {
   const audience = requestedGroupId ? "group" : requestedAudience;
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
-  const reel = mediaType === "video" && data.reel === true;
+  // T0-A1 (owner 2026-11-18): every posted video goes into The Roll and stays there, from ANY composer — not only when a
+  // client ticked a box. Facebook imports keep their history out of The Roll unless the member asks.
+  const reel = mediaType === "video" && (!facebookImport || data.reel === true);
   if (sharedSource && (mediaKey || mediaType || reel)) return {statusCode:400,headers,body:JSON.stringify({error:"Shared posts reference the original media."})};
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
@@ -2332,6 +2470,29 @@ async function createSecurePost(event) {
   if ((mediaKey && (!/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/.test(mediaKey) || !mediaKey.startsWith(`users/${ownerPrefix}/`))) || Boolean(mediaKey) !== Boolean(mediaType)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid media reference." }) };
   }
+  // Owner 2026-11-22: "should be able to upload multiple photos at once", "set a limit of 20 photos". A photo post carries
+  // up to 19 more photos after its first (mediaKey), each the member's own upload; members swipe through them on the post.
+  const morePhotosAllowed = 19, moreMediaKeys = data.moreMediaKeys === undefined ? [] : data.moreMediaKeys;
+  if (!Array.isArray(moreMediaKeys) || moreMediaKeys.length > morePhotosAllowed || (moreMediaKeys.length && (mediaType !== "image" || sharedSource || facebookImport))
+    || new Set([mediaKey, ...moreMediaKeys]).size !== moreMediaKeys.length + 1
+    || moreMediaKeys.some(key => typeof key !== "string" || !/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif)$/.test(key) || !key.startsWith(`users/${ownerPrefix}/`))) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: `A post can hold up to ${morePhotosAllowed + 1} photos.` }) };
+  }
+  // Owner 2026-11-22: "User should get to choose what album that the images go into or what album the videos go into".
+  // A photo or video post may name one of the poster's own albums; its photos then show in that album instead of
+  // "Mobile uploads" / "Computer uploads". Albums live in the tours table under ALBUMS#<member> (albums.mjs).
+  const albumId = data.albumId === undefined || data.albumId === "" ? "" : data.albumId;
+  if (albumId && (typeof albumId !== "string" || !/^[a-f0-9]{32}$/.test(albumId) || !mediaKey || facebookImport || sharedSource)) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose one of your albums." }) };
+  }
+  if (albumId && !(await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: `ALBUMS#${userId}` }, tourId: { S: `ALBUM#${albumId}` } }, ProjectionExpression: "albumId", ConsistentRead: true }))).Item) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "That album is gone. Choose another one." }) };
+  }
+  // Owner 2026-11-22: "photo should automatically go to mobile uploads", "If they're uploaded from a computer should be a
+  // computer uploads". Which automatic album a post's photos and videos belong to: the browser says ("mobile" or
+  // "computer"; it can tell an iPad that reports itself as a Mac); an older app that doesn't is judged by its browser name.
+  const agent = String(event.headers?.["user-agent"] || event.headers?.["User-Agent"] || "");
+  const uploadSource = data.uploadSource === "mobile" || data.uploadSource === "computer" ? data.uploadSource : /Android|iPhone|iPad|iPod|Mobile/i.test(agent) ? "mobile" : "computer";
   const postId = facebookImport ? importPostId : randomUUID();
   const importedAt = new Date().toISOString();
   const createdAt = facebookImport ? importedDate.toISOString() : importedAt;
@@ -2350,7 +2511,13 @@ async function createSecurePost(event) {
       createdAt: { S: createdAt },
       audience: { S: audience },
       ...(facebookImport ? { importSource: { S: "facebook" }, importKey: { S: data.importKey }, importedAt: { S: importedAt } } : {}),
-      ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {})
+      ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {}),
+      ...(mediaKey && !facebookImport ? { uploadSource: { S: uploadSource } } : {}),
+      ...(albumId ? { albumId: { S: albumId } } : {}),
+      // The media's own shape (width / height) as the phone read it, so its frame is right before it loads (F22). A
+      // value that isn't a sane shape is left out (the frame then takes the shape when the media loads).
+      ...(mediaKey && Number.isFinite(Number(data.mediaRatio)) && Number(data.mediaRatio) >= 0.1 && Number(data.mediaRatio) <= 10 ? { mediaRatio: { N: String(Math.round(Number(data.mediaRatio) * 10000) / 10000) } } : {}),
+      ...(moreMediaKeys.length ? { moreMedia: { L: moreMediaKeys.map(key => ({ S: key })) } } : {})
     },
     ConditionExpression: "attribute_not_exists(postId)"
   };
@@ -2365,6 +2532,34 @@ async function createSecurePost(event) {
     return { statusCode: 200, headers, body: JSON.stringify({ postId, deduplicated: true, createdAt: existing.Item.createdAt.S }) };
   }
 
+  // T0-A1: every posted photo or video also goes into the member's Dailies for 24 hours, automatically. The Daily points at
+  // the post's own media (no second upload); the Stories cleanup only deletes files under stories/, so the post's photo is
+  // never removed with it, and deleting the post removes this Daily (linked by mediaKey). Tribe posts keep their Tribe
+  // privacy: their Daily is visible only to the poster. A Daily that cannot be written never fails the post itself.
+  let daily = null;
+  if (mediaKey && !facebookImport && !sharedSource) {
+    const expiresAt = Math.floor(Date.parse(createdAt) / 1000) + 86400;
+    // Every photo of a multi-photo post is its own Daily (owner 2026-11-22), in the post's order.
+    let dailies = 0;
+    for (const [index, key] of [mediaKey, ...moreMediaKeys].entries()) {
+      const storyId = randomUUID(), at = new Date(Date.parse(createdAt) + index).toISOString();
+      try {
+        await db.send(new PutItemCommand({
+          TableName: storiesTable,
+          Item: { storyId: { S: storyId }, userEmail: { S: userEmail }, content: { S: content.slice(0, 5000) || "Story" }, audience: { S: audience === "group" ? "private" : audience }, mediaKey: { S: key }, mediaType: { S: mediaType }, postId: { S: postId }, fromPost: { BOOL: true }, createdAt: { S: at }, expiresAt: { N: String(expiresAt) } },
+          ConditionExpression: "attribute_not_exists(storyId)"
+        }));
+        if (!daily) daily = { storyId, expiresAt };
+        dailies += 1;
+      } catch (error) {
+        console.error("Post Daily could not be created", { postId, error: error.name });
+      }
+    }
+    // The clapper's TAKE N counts every Daily the member has ever posted, photos and videos (owner 2026-11-22: "I had 15
+    // before and now I just uploaded four more so it should be … take 19"). It never goes down.
+    if (dailies) await db.send(new UpdateItemCommand({ TableName: settingsTable, Key: { userEmail: { S: userEmail } }, UpdateExpression: "SET dailyTakeUpdatedAt = :updated ADD dailyTakeCount :count", ExpressionAttributeValues: { ":count": { N: String(dailies) }, ":updated": { S: createdAt } } })).catch(error => console.error("Daily take count could not be updated", { postId, error: error.name }));
+  }
+
   return {
     statusCode: 201,
     headers,
@@ -2372,6 +2567,8 @@ async function createSecurePost(event) {
       postId,
       userId,
       userEmail,
+      dailyCreated: Boolean(daily),
+      ...(daily ? { daily } : {}),
       profileOwnerMemberId: profileOwnerId,
       content,
       audience,
@@ -2379,6 +2576,7 @@ async function createSecurePost(event) {
       location,
       mediaKey,
       mediaType,
+      moreMediaKeys,
       reel,
       createdAt
     })
@@ -2429,23 +2627,24 @@ async function deleteSecurePost(event) {
   const deletionRecords = mode === "delete_everywhere" && !isShare ? [...shares, found.Item] : [found.Item];
   let linkedStories = [];
   let mediaKey = "";
-  if (found.Item.mediaKey?.S) {
+  // Every photo of the post (its first and up to 19 more), the files and their Dailies.
+  const postMedia = found.Item.mediaKey?.S ? [found.Item.mediaKey.S, ...postMoreMedia(found.Item)] : [];
+  if (postMedia.length) {
     const ownerPrefix = sha256(found.Item.userEmail?.S || "").slice(0, 24);
-    if (!found.Item.mediaKey.S.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
+    if (postMedia.some(key => !key.startsWith(`users/${ownerPrefix}/`))) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
     mediaKey = found.Item.mediaKey.S;
+    const mediaValues = Object.fromEntries(postMedia.map((key, index) => [`:media${index}`, { S: key }]));
     linkedStories = await scanAll({
       TableName: storiesTable,
-      FilterExpression: "mediaKey = :media AND userEmail = :owner",
-      ExpressionAttributeValues: { ":media": { S: found.Item.mediaKey.S }, ":owner": { S: found.Item.userEmail?.S || "" } },
+      FilterExpression: `mediaKey IN (${Object.keys(mediaValues).join(", ")}) AND userEmail = :owner`,
+      ExpressionAttributeValues: { ...mediaValues, ":owner": { S: found.Item.userEmail?.S || "" } },
       ProjectionExpression: "storyId"
     }, Number.MAX_SAFE_INTEGER);
   }
-  if (mediaKey) {
-    const mediaCleanupPending = await runCleanup([
-      () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey }))
-    ]);
+  if (postMedia.length) {
+    const mediaCleanupPending = await runCleanup(postMedia.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: key }))));
     if (mediaCleanupPending) {
-      console.error("Post media deletion remains pending", { postId, mediaKey });
+      console.error("Post media deletion remains pending", { postId, mediaKey, photos: postMedia.length });
       return { statusCode: 503, headers, body: JSON.stringify({ error: "Post media could not be removed yet. Try again.", deleted: false }) };
     }
   }
@@ -2595,6 +2794,14 @@ async function updateSecurePost(event) {
     const audience = String(data.audience || "");
     if (!["public", "friends", "private"].includes(audience)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid audience." }) };
     updates.push("audience = :audience"); values[":audience"] = { S: audience };
+  }
+  // Owner 2026-11-22: "they could go back through it and move those images to the specific album that they should be in".
+  // A photo or video post moves to one of its owner's albums, or back ("") to Mobile uploads / Computer uploads.
+  if (Object.prototype.hasOwnProperty.call(data, "albumId")) {
+    const albumId = data.albumId;
+    if (typeof albumId !== "string" || (albumId && !/^[a-f0-9]{32}$/.test(albumId)) || !["image", "video"].includes(found.Item.mediaType?.S) || found.Item.importSource?.S) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose one of your albums." }) };
+    if (albumId && !(await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: `ALBUMS#${userId}` }, tourId: { S: `ALBUM#${albumId}` } }, ProjectionExpression: "albumId", ConsistentRead: true }))).Item) return { statusCode: 400, headers, body: JSON.stringify({ error: "That album is gone. Choose another one." }) };
+    updates.push("albumId = :albumId"); values[":albumId"] = { S: albumId };
   }
   if (Object.prototype.hasOwnProperty.call(data, "commentPolicy")) {
     const commentPolicy = String(data.commentPolicy || "");
@@ -2806,8 +3013,10 @@ function isRecordStore(place) {
   // It regularly includes audio installers, video production, instrument shops,
   // bookstores and unrelated retailers. Prefer a shorter list with explicit
   // record/vinyl evidence in the public name over wasting an artist's outreach.
-  const clearlyWrongName = /\b(dental|dentist|medical|county records?|public records?|records? office|real estate|realtor|video transfer|video production|audio visual|audio|best buy|dvd|airport video|grocery|instrument|guitar|piano|music school|music lessons?|recording studio|books?|press|productions?|music company|music center)\b/.test(name);
-  return !clearlyWrongName
+  const clearlyWrongName = /\b(police|sheriff|department records?|archives?|court|clerk|vital records?|government|dental|dentist|medical|county records?|public records?|records? office|real estate|realtor|video transfer|video production|audio visual|audio|best buy|dvd|airport video|grocery|instrument|guitar|piano|music school|music lessons?|recording studio|books?|press|productions?|music company|music center)\b/.test(name);
+  // Owner live run 2026-11-16: "Portland Police Department Records" showed up as a record store.
+  const governmentPlace = /government|community facility|police/.test(description);
+  return !clearlyWrongName && !governmentPlace
     && (descriptiveSignal || strongNameSignal || recordCategorySignal);
 }
 
@@ -3039,6 +3248,39 @@ async function googlePlacesSearch(point, queries, radiusMiles = 30) {
   return { skipped: false, places };
 }
 
+// Promoters and party crews (owner 2026-11-16): web search in English and the city's language.
+const promoterCache = new Map();
+async function webPromoterResearch(point, genre = "") {
+  const apiKey = String(globalThis.process?.env?.BRAVE_SEARCH_API_KEY || "").trim();
+  if (!apiKey) return { skipped: true, promoters: [] };
+  const queries = promoterQueries(point, genre), cacheKey = `${queries.map(item => item.query).join("|")}`.toLowerCase();
+  const cached = promoterCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return { skipped: false, promoters: cached.promoters };
+  const results = [];
+  await mapLimit(queries, 2, async ({ query, language, kind }) => {
+    const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 6000);
+    try {
+      const search = new URLSearchParams({ q: query, count: "10", search_lang: language, safesearch: "moderate" });
+      if (/^[A-Z]{2}$/.test(point.countryCode || "")) search.set("country", point.countryCode);
+      const response = await fetch(`https://api.search.brave.com/res/v1/web/search?${search}`, { signal: controller.signal, headers: { accept: "application/json", "X-Subscription-Token": apiKey } });
+      if (!response.ok) throw new Error(`Brave Search returned ${response.status}`);
+      const data = await response.json();
+      for (const result of data.web?.results || []) results.push({ result, query, kind });
+    } catch (error) { console.error("Promoter search failed:", error.name); }
+    finally { clearTimeout(timeout); }
+  });
+  // Open each promoter's own page (and its contact page) for the booking email and phone. 7 s budget.
+  const leads = promoterLeads(results, point), enriched = leads.slice();
+  await Promise.race([
+    mapLimit(leads.slice(0, 8), 4, async (lead, index) => { try { enriched[index] = await enrichPromoter(lead); } catch {} }),
+    new Promise(resolve => setTimeout(resolve, 7000))
+  ]);
+  const promoters = enriched.map(lead => ({ ...lead })).sort((a, b) => Number(Boolean(b.emails?.length || b.phones?.length)) - Number(Boolean(a.emails?.length || a.phones?.length)));
+  promoterCache.set(cacheKey, { promoters, expiresAt: Date.now() + 6 * 3600000 });
+  if (promoterCache.size > 200) promoterCache.delete(promoterCache.keys().next().value);
+  return { skipped: false, promoters };
+}
+
 async function webVenueResearch(point, genre = "") {
   const apiKey = String(globalThis.process?.env?.BRAVE_SEARCH_API_KEY || "").trim();
   if (!apiKey) return { skipped: true, leads: [] };
@@ -3223,15 +3465,76 @@ async function reviewedVenueDirectoryRecords() {
   if (reviewedVenueLoad) return reviewedVenueLoad;
   reviewedVenueLoad = scanAll({
     TableName: venueDirectoryTable,
-    FilterExpression: "#status = :approved",
+    // Owner-approved listings plus clubs proven by DanzStak bands (replied or booked).
+    FilterExpression: "(#status = :approved OR tier IN (:verified, :replied)) AND #status <> :rejected",
     ExpressionAttributeNames: { "#status": "status" },
-    ExpressionAttributeValues: { ":approved": { S: "approved" } },
-    Limit: 500
-  }, 500).then(records => {
+    ExpressionAttributeValues: { ":approved": { S: "approved" }, ":verified": { S: "verified" }, ":replied": { S: "replied" }, ":rejected": { S: "rejected" } },
+    Limit: 1000
+  }, 5000).then(records => {
     reviewedVenueCache = { records, expiresAt: Date.now() + 300000 };
     return records;
   }).finally(() => { reviewedVenueLoad = null; });
   return reviewedVenueLoad;
+}
+
+// Club database (owner 2026-11-16): keep every club a search finds, and rank it only by what really
+// happened with DanzStak bands. See club-directory.mjs for the rules.
+let clubRecordCache = { records: new Map(), expiresAt: 0 }, clubStatsRun = 0, clubWritesBlocked = false;
+// Until the club-database permission is granted, searches keep working and skip the writes quietly.
+const clubWriteDenied = error => { if (error?.name === "AccessDeniedException") { if (!clubWritesBlocked) console.error("Club database writes need dynamodb:UpdateItem permission."); clubWritesBlocked = true; return true; } return false; };
+const CLUB_STATS_META = "meta-club-stats", CLUB_STATS_EVERY_MS = 30 * 60 * 1000;
+async function clubRecords() {
+  if (clubRecordCache.expiresAt > Date.now()) return clubRecordCache.records;
+  try {
+    const items = await scanAll({ TableName: venueDirectoryTable, FilterExpression: "attribute_exists(tier)", ProjectionExpression: "venueKey, tier, pitches, replies, bookings, medianReplyHours, payToPlayTickets, payToPlayFee" }, 20000);
+    clubRecordCache = { records: new Map(items.map(clubRecordFromItem).filter(Boolean).map(record => [record.venueKey, record])), expiresAt: Date.now() + 300000 };
+  } catch (error) {
+    console.error("Club records unavailable:", error.name);
+    clubRecordCache = { records: clubRecordCache.records, expiresAt: Date.now() + 60000 };
+  }
+  return clubRecordCache.records;
+}
+// Proven clubs move up; clubs whose contact bounced or asked to stop are left out (owner: no bounces or unsubscribes).
+function withClubRecords(venues, records) {
+  const annotated = venues.map(venue => {
+    const club = records.get(venue.venueKey) || { venueKey: venue.venueKey, tier: "found", pitches: 0, replies: 0, bookings: 0, medianReplyHours: null, payToPlay: { tickets: 0, fee: 0 } };
+    return { ...venue, club: { ...club, label: clubLabel(club) } };
+  }).filter(venue => venue.club.tier !== "removed");
+  return sortByClubTier(annotated);
+}
+async function saveFoundClubs(venues) {
+  if (clubWritesBlocked) return;
+  const at = new Date().toISOString(), clubs = venues.map(clubFromPlace).filter(Boolean);
+  if (!clubs.length) return;
+  const work = mapLimit(clubs, 8, async club => {
+    try { await db.send(new UpdateItemCommand(clubUpsert(venueDirectoryTable, club, at))); }
+    catch (error) { if (error.name !== "ConditionalCheckFailedException" && !clubWriteDenied(error)) console.error("Club not saved:", error.name); }
+  });
+  await Promise.race([work, new Promise(resolve => setTimeout(resolve, 2500))]);
+}
+// Recount every club from the stored pitches and booking lists, at most every 30 minutes.
+async function refreshClubStatsIfDue() {
+  if (clubWritesBlocked || Date.now() - clubStatsRun < CLUB_STATS_EVERY_MS) return;
+  clubStatsRun = Date.now();
+  const at = new Date().toISOString(), cutoff = new Date(Date.now() - CLUB_STATS_EVERY_MS).toISOString();
+  try {
+    await db.send(new UpdateItemCommand({ TableName: venueDirectoryTable, Key: { venueKey: { S: CLUB_STATS_META } }, UpdateExpression: "SET statsAt = :at", ConditionExpression: "attribute_not_exists(statsAt) OR statsAt < :cutoff", ExpressionAttributeValues: { ":at": { S: at }, ":cutoff": { S: cutoff } } }));
+  } catch (error) { if (error.name !== "ConditionalCheckFailedException" && !clubWriteDenied(error)) console.error("Club stats claim failed:", error.name); return; }
+  try {
+    const items = await scanAll({ TableName: toursTable, FilterExpression: "begins_with(tourId, :send) OR begins_with(tourId, :outreach) OR tourId = :workspace", ExpressionAttributeValues: { ":send": { S: "TOUR_MANAGER#EMAIL_SEND#" }, ":outreach": { S: epkOutreachPrefix }, ":workspace": { S: BOOKING_WORKSPACE_ID } } }, 100000);
+    // Owner 2026-11-17: a pitch unopened after 30 days gives the band its credit back (DanzStak credits, not Stripe).
+    // Each refund is its own conditional transaction, so a late open, reply or second run never doubles it.
+    for (const entry of unopenedRefunds(items).slice(0, 200)) {
+      try { await db.send(new TransactWriteItemsCommand({ TransactItems: unopenedRefundTransaction(toursTable, entry, new Date().toISOString()) })); }
+      catch (error) { if (error.name !== "TransactionCanceledException") console.error("Unopened credit not returned:", error.name); }
+    }
+    const stats = clubStats(items);
+    await mapLimit([...stats], 8, async ([venueKey, club]) => {
+      try { await db.send(new UpdateItemCommand(clubStatsUpdate(venueDirectoryTable, venueKey, club, at))); }
+      catch (error) { console.error("Club stats not saved:", error.name); }
+    });
+    clubRecordCache.expiresAt = 0;
+  } catch (error) { console.error("Club stats refresh failed:", error.name); }
 }
 
 function approximateMilesBetween(left, right) {
@@ -3248,21 +3551,21 @@ async function approvedMemberVenueLeads(point, searchBounds = null) {
   try {
     const records = await reviewedVenueDirectoryRecords();
     return records.map(item => {
-      const position = [Number(item.longitude?.N), Number(item.latitude?.N)];
+      const position = [Number(item.longitude?.N ?? item.lon?.N), Number(item.latitude?.N ?? item.lat?.N)];
       const websites = item.website?.S ? [item.website.S] : [];
       const emails = item.email?.S ? [item.email.S] : [];
       const phones = item.phone?.S ? [item.phone.S] : [];
       return {
         venueKey: item.venueKey?.S || "", name: item.name?.S || "Public venue", address: item.address?.S || "",
         locality: item.locality?.S || "", position, websites, emails, phones,
-        categories: (item.categories?.SS || ["Member-verified public live music venue"]).slice(0, 8),
+        categories: (item.categories?.SS || (item.categories?.S ? item.categories.S.split(" · ") : ["Member-verified public live music venue"])).slice(0, 8),
         distanceMiles: Math.round(approximateMilesBetween(point.position, position) * 10) / 10,
         contactVerificationRequired: true, sourceName: "DanzStak reviewed venue directory",
         sourceUrl: websites[0] || "", sources: [{ name: "DanzStak reviewed venue directory", url: websites[0] || "" }],
         discoveredAt: item.approvedAt?.S || item.createdAt?.S || "",
-        activityEvidence: "A moderator reviewed this member-supplied public venue lead. Confirm its current calendar before pitching."
+        activityEvidence: item.status?.S === "approved" ? "A moderator reviewed this member-supplied public venue lead. Confirm its current calendar before pitching." : "DanzStak bands have heard back from this club. Confirm its current calendar before pitching."
       };
-    }).filter(place => place.venueKey && place.position.every(Number.isFinite))
+    }).filter(place => place.venueKey && place.position.every(Number.isFinite) && !place.venueKey.startsWith("promoter-"))
       .filter(place => !searchBounds || (place.position[1] <= searchBounds.north && place.position[1] >= searchBounds.south && place.position[0] <= searchBounds.east && place.position[0] >= searchBounds.west));
   } catch (error) {
     console.error("Reviewed venue directory unavailable:", error.name);
@@ -3352,7 +3655,44 @@ async function geocodeTourPlace(query, { requireDisambiguation = false } = {}) {
   return resolved;
 }
 
+// Music cities a touring band actually plays (owner 2026-11-16: Salt Lake → Detroit picked Wauneta, NE and Urbandale, IA).
+// A sampled road point snaps to the nearest one within ~75 miles before falling back to reverse geocoding.
+const usMusicCities = [
+  ["Seattle, WA", -122.33, 47.61], ["Tacoma, WA", -122.44, 47.25], ["Spokane, WA", -117.43, 47.66], ["Bellingham, WA", -122.48, 48.75], ["Olympia, WA", -122.90, 47.04],
+  ["Portland, OR", -122.68, 45.52], ["Eugene, OR", -123.09, 44.05], ["Boise, ID", -116.20, 43.62], ["Missoula, MT", -114.00, 46.87], ["Bozeman, MT", -111.04, 45.68], ["Billings, MT", -108.50, 45.78],
+  ["Sacramento, CA", -121.49, 38.58], ["Oakland, CA", -122.27, 37.80], ["San Francisco, CA", -122.42, 37.77], ["San Jose, CA", -121.89, 37.34], ["Fresno, CA", -119.79, 36.74], ["Bakersfield, CA", -119.02, 35.37],
+  ["Los Angeles, CA", -118.24, 34.05], ["Santa Ana, CA", -117.87, 33.75], ["San Diego, CA", -117.16, 32.72], ["Reno, NV", -119.81, 39.53], ["Las Vegas, NV", -115.14, 36.17],
+  ["Salt Lake City, UT", -111.89, 40.76], ["Provo, UT", -111.66, 40.23], ["Ogden, UT", -111.97, 41.22], ["Phoenix, AZ", -112.07, 33.45], ["Tucson, AZ", -110.97, 32.22], ["Flagstaff, AZ", -111.65, 35.20],
+  ["Albuquerque, NM", -106.65, 35.08], ["Santa Fe, NM", -105.94, 35.69], ["El Paso, TX", -106.49, 31.76], ["Denver, CO", -104.99, 39.74], ["Fort Collins, CO", -105.08, 40.59], ["Colorado Springs, CO", -104.82, 38.83], ["Boulder, CO", -105.27, 40.01],
+  ["Cheyenne, WY", -104.82, 41.14], ["Laramie, WY", -105.59, 41.31], ["Casper, WY", -106.31, 42.85], ["Rapid City, SD", -103.23, 44.08], ["Sioux Falls, SD", -96.73, 43.55], ["Fargo, ND", -96.79, 46.88],
+  ["Lincoln, NE", -96.70, 40.81], ["Omaha, NE", -95.93, 41.26], ["North Platte, NE", -100.77, 41.12], ["Kearney, NE", -99.08, 40.70], ["Lawrence, KS", -95.24, 38.97], ["Wichita, KS", -97.34, 37.69], ["Kansas City, MO", -94.58, 39.10],
+  ["Des Moines, IA", -93.61, 41.59], ["Iowa City, IA", -91.53, 41.66], ["Davenport, IA", -90.58, 41.52], ["Cedar Rapids, IA", -91.67, 41.98], ["Minneapolis, MN", -93.27, 44.98], ["Duluth, MN", -92.10, 46.79],
+  ["Madison, WI", -89.40, 43.07], ["Milwaukee, WI", -87.91, 43.04], ["Chicago, IL", -87.63, 41.88], ["Champaign, IL", -88.24, 40.12], ["Peoria, IL", -89.59, 40.69], ["St. Louis, MO", -90.20, 38.63], ["Columbia, MO", -92.33, 38.95],
+  ["Indianapolis, IN", -86.16, 39.77], ["Bloomington, IN", -86.53, 39.17], ["Fort Wayne, IN", -85.14, 41.08], ["South Bend, IN", -86.25, 41.68], ["Kalamazoo, MI", -85.59, 42.29], ["Grand Rapids, MI", -85.67, 42.96], ["Lansing, MI", -84.56, 42.73], ["Ann Arbor, MI", -83.74, 42.28], ["Detroit, MI", -83.05, 42.33],
+  ["Toledo, OH", -83.56, 41.65], ["Cleveland, OH", -81.69, 41.50], ["Columbus, OH", -83.00, 39.96], ["Cincinnati, OH", -84.51, 39.10], ["Dayton, OH", -84.19, 39.76], ["Pittsburgh, PA", -79.99, 40.44], ["Philadelphia, PA", -75.17, 39.95], ["Harrisburg, PA", -76.88, 40.27],
+  ["Buffalo, NY", -78.88, 42.89], ["Rochester, NY", -77.61, 43.16], ["Syracuse, NY", -76.15, 43.05], ["Albany, NY", -73.76, 42.65], ["New York, NY", -74.00, 40.71], ["Boston, MA", -71.06, 42.36], ["Providence, RI", -71.41, 41.82], ["New Haven, CT", -72.93, 41.31], ["Portland, ME", -70.26, 43.66], ["Burlington, VT", -73.21, 44.48],
+  ["Baltimore, MD", -76.61, 39.29], ["Washington, DC", -77.04, 38.91], ["Richmond, VA", -77.44, 37.54], ["Norfolk, VA", -76.29, 36.85], ["Raleigh, NC", -78.64, 35.78], ["Durham, NC", -78.90, 35.99], ["Greensboro, NC", -79.79, 36.07], ["Asheville, NC", -82.55, 35.60], ["Charlotte, NC", -80.84, 35.23],
+  ["Columbia, SC", -81.03, 34.00], ["Charleston, SC", -79.93, 32.78], ["Atlanta, GA", -84.39, 33.75], ["Athens, GA", -83.38, 33.96], ["Savannah, GA", -81.10, 32.08], ["Jacksonville, FL", -81.66, 30.33], ["Gainesville, FL", -82.32, 29.65], ["Orlando, FL", -81.38, 28.54], ["Tampa, FL", -82.46, 27.95], ["Miami, FL", -80.19, 25.76],
+  ["Birmingham, AL", -86.80, 33.52], ["Nashville, TN", -86.78, 36.16], ["Memphis, TN", -90.05, 35.15], ["Knoxville, TN", -83.92, 35.96], ["Chattanooga, TN", -85.31, 35.05], ["Louisville, KY", -85.76, 38.25], ["Lexington, KY", -84.50, 38.04],
+  ["New Orleans, LA", -90.07, 29.95], ["Baton Rouge, LA", -91.15, 30.45], ["Jackson, MS", -90.18, 32.30], ["Little Rock, AR", -92.29, 34.75], ["Fayetteville, AR", -94.16, 36.06], ["Tulsa, OK", -95.99, 36.15], ["Oklahoma City, OK", -97.52, 35.47],
+  ["Dallas, TX", -96.80, 32.78], ["Denton, TX", -97.13, 33.21], ["Fort Worth, TX", -97.33, 32.76], ["Austin, TX", -97.74, 30.27], ["San Antonio, TX", -98.49, 29.42], ["Houston, TX", -95.37, 29.76], ["Amarillo, TX", -101.83, 35.22], ["Lubbock, TX", -101.86, 33.58]
+];
+function nearestMusicCity(position, maxMiles = 75) {
+  if (!Array.isArray(position) || position.length < 2) return null;
+  let best = null, bestMiles = Infinity;
+  for (const [label, lng, lat] of usMusicCities) {
+    const miles = approximateMilesBetween(position.slice(0, 2).map(Number), [lng, lat]);
+    if (miles < bestMiles) { best = { label: `${label}, United States`, position: [lng, lat] }; bestMiles = miles; }
+  }
+  return bestMiles <= maxMiles ? best : null;
+}
 async function reverseGeocodeTourMarket(position) {
+  const musicCity = nearestMusicCity(position, 100);
+  if (musicCity) return musicCity;
+  // Inside the continental US with no music city within 100 miles: that stretch is a drive day, not a
+  // booking market (owner 2026-11-16: "Wauneta" was proposed on Salt Lake → Detroit).
+  const [lng, lat] = position.map(Number);
+  if (lng > -125 && lng < -66 && lat > 24 && lat < 49.5) return null;
   try {
     const result = await geoPlaces.send(new ReverseGeocodeCommand({
       QueryPosition: position,
@@ -3380,7 +3720,9 @@ async function discoverRouteMarkets(route, allRoutePoints, requestedDays, reques
   const explicitMarkets = allRoutePoints.slice(1, -1);
   const legs = (route?.Routes?.[0]?.Legs || []).map(leg => leg.Geometry?.LineString || []).filter(line => line.length >= 3);
   const line = legs.flat();
-  const desired = Math.max(4, Math.min(10, Math.max(Math.ceil(Math.max(1, requestedDays) / 3), Math.ceil(Math.max(1, requestedShows) / 2))));
+  // Roughly one market every ~2 hours of driving (owner 2026-11-16), at least enough for the requested shows.
+  const routeMiles = Number(route?.Routes?.[0]?.Summary?.Distance || 0) / 1609.344;
+  const desired = Math.max(4, Math.min(16, Math.max(Math.ceil(routeMiles / 120), Math.ceil(Math.max(1, requestedDays) / 3), Math.ceil(Math.max(1, requestedShows) / 2))));
   const sampleDescriptors = line.length >= 3
     ? Array.from({ length: desired }, (_, index) => {
         const pointIndex = Math.round(((index + 1) * (line.length - 1)) / (desired + 1));
@@ -3410,12 +3752,46 @@ async function discoverRouteMarkets(route, allRoutePoints, requestedDays, reques
     }
     unique.push(market);
   }
-  return unique.slice(0, 8);
+  // Spread the kept markets across the WHOLE route (owner 2026-11-16: Salt Lake → Detroit stopped at Iowa City
+  // because the first 8 markets near the start were kept). Always keep the requested stops and the far end.
+  const keep = Math.max(8, desired);
+  if (unique.length <= keep) return unique;
+  const explicitKeys = new Set(explicitMarkets.map(market => market.label.split(",")[0].trim().toLowerCase()));
+  const picked = new Set([0, unique.length - 1]);
+  unique.forEach((market, index) => { if (explicitKeys.has(market.label.split(",")[0].trim().toLowerCase())) picked.add(index); });
+  for (let slot = 1; picked.size < keep && slot < keep; slot += 1) picked.add(Math.round((slot * (unique.length - 1)) / (keep - 1)));
+  return [...picked].sort((left, right) => left - right).map(index => unique[index]);
 }
 
+// Any north–south West Coast run (e.g. Bellingham → San Diego, owner test 2026-11-16) uses the
+// I-5 / coast circuit: a club market roughly every 1–2 hours of driving, sliced to the requested ends.
+const westCoastCircuit = [
+  ["Bellingham, Washington", 48.75], ["Mount Vernon, Washington", 48.42], ["Everett, Washington", 47.98],
+  ["Seattle, Washington", 47.61], ["Tacoma, Washington", 47.25], ["Olympia, Washington", 47.04],
+  ["Centralia, Washington", 46.72], ["Longview, Washington", 46.14], ["Vancouver, Washington", 45.64],
+  ["Portland, Oregon", 45.52], ["Salem, Oregon", 44.94], ["Corvallis, Oregon", 44.56], ["Eugene, Oregon", 44.05],
+  ["Roseburg, Oregon", 43.22], ["Grants Pass, Oregon", 42.44], ["Medford, Oregon", 42.33], ["Ashland, Oregon", 42.19],
+  ["Weed, California", 41.42], ["Redding, California", 40.59], ["Chico, California", 39.73],
+  ["Sacramento, California", 38.58], ["Oakland, California", 37.80], ["San Francisco, California", 37.77],
+  ["San Jose, California", 37.34], ["Santa Cruz, California", 36.97], ["San Luis Obispo, California", 35.28],
+  ["Santa Barbara, California", 34.42], ["Ventura, California", 34.27], ["Los Angeles, California", 34.05],
+  ["Long Beach, California", 33.77], ["Santa Ana, California", 33.75], ["Oceanside, California", 33.20],
+  ["San Diego, California", 32.72]
+];
+function genericWestCoastCorridor(points) {
+  const positions = points.map(point => point?.position).filter(position => Array.isArray(position) && position.length === 2);
+  if (positions.length < 2 || !positions.every(([lng, lat]) => lng >= -125 && lng <= -114 && lat >= 32 && lat <= 49.5)) return null;
+  const startLat = positions[0][1];
+  const far = positions.reduce((best, position) => Math.abs(position[1] - startLat) > Math.abs(best[1] - startLat) ? position : best, positions[0]);
+  if (Math.abs(far[1] - startLat) < 3) return null;
+  const nearest = lat => westCoastCircuit.reduce((best, [, marketLat], index) => Math.abs(marketLat - lat) < Math.abs(westCoastCircuit[best][1] - lat) ? index : best, 0);
+  const from = nearest(startLat), to = nearest(far[1]);
+  const slice = westCoastCircuit.slice(Math.min(from, to), Math.max(from, to) + 1).map(([name]) => name);
+  return from <= to ? slice : slice.reverse();
+}
 function westCoastTourCorridor(points) {
   const labels = points.map(point => point.label.toLowerCase()).join(" | ");
-  if (!labels.includes("san francisco") || !labels.includes("seattle")) return null;
+  if (!labels.includes("san francisco") || !labels.includes("seattle")) return genericWestCoastCorridor(points);
   if (!labels.includes("los angeles")) {
     const i5Markets = [
       "Seattle, Washington", "Tacoma, Washington", "Olympia, Washington",
@@ -3463,7 +3839,7 @@ function sampleTourCorridorMarkets(corridor, requestedDays = 1, requestedShows =
   const limit = Math.min(corridor.length, Math.max(8, Math.min(12, requestedShows + 2, Math.ceil(requestedDays / 2) + 5)));
   if (corridor.length <= limit) return [...corridor];
 
-  const anchorPattern = /^(seattle|tacoma|portland|eugene|medford|redding|sacramento|san francisco),/i;
+  const anchorPattern = /^(seattle|tacoma|portland|eugene|medford|redding|sacramento|san francisco|oakland|los angeles|san diego),/i;
   const selectedIndexes = new Set([0, corridor.length - 1]);
   corridor.forEach((market, index) => {
     if (selectedIndexes.size < limit && anchorPattern.test(String(market))) selectedIndexes.add(index);
@@ -3766,6 +4142,7 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
 }
 
 async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), variation = 0, searchBounds = null, venueType = "any") {
+  const statsRefresh = refreshClubStatsIfDue().catch(() => {});
   const search = async query => {
     const locationConstraint = searchBounds
       ? { Filter: { BoundingBox: [searchBounds.west, searchBounds.south, searchBounds.east, searchBounds.north] } }
@@ -3798,6 +4175,7 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     "truck stop rest area campground",
     ...new Set([...venueQueries, ...localizedVenueQueries])
   ];
+  const promoterSearch = webPromoterResearch(point, genre).catch(() => ({ skipped: true, promoters: [] }));
   const [searchResults, reviewedDirectory, recordDiscovery, osmVenueDiscovery] = await Promise.all([
     mapLimit(discoveryQueries, 3, async query => {
       try {
@@ -3846,10 +4224,15 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre)
       || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
   const offset = venuePool.length ? variation % venuePool.length : 0;
-  const venues = await withVenueFreshness([...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60));
+  const venues = withClubRecords(await withVenueFreshness([...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60)), await clubRecords());
+  // Trusted contacts first (people the DanzStak team knows), then promoters found on the web.
+  const trusted = trustedPromotersNear(await reviewedVenueDirectoryRecords().catch(() => []), point, genre, searchBounds ? 75 : 60);
+  const webPromoters = ((await promoterSearch).promoters || []).filter(lead => !trusted.some(known => known.name.toLowerCase() === String(lead.name || "").toLowerCase()));
+  const promoters = [...trusted.map(lead => ({ ...lead, club: { venueKey: lead.venueKey, tier: "found", trusted: true, label: "Known to DanzStak" } })), ...withClubRecords(webPromoters, await clubRecords())];
+  await Promise.all([saveFoundClubs([...venues, ...webPromoters]), statsRefresh]);
   const hotels = hotelResults.filter(place => nearby(place, 35)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
   const vanStops = vanRestResults.filter(place => nearby(place, 25)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
-  return { stop: point.label, position: point.position, venues, hotels, vanStops, recordStores: recordDiscovery.stores || [], researchLeads: osmVenueDiscovery.researchLeads || [], providerStatus: [...(osmVenueDiscovery.providers || []), ...(recordDiscovery.providers || [])] };
+  return { stop: point.label, position: point.position, venues, promoters, hotels, vanStops, recordStores: recordDiscovery.stores || [], researchLeads: osmVenueDiscovery.researchLeads || [], providerStatus: [...(osmVenueDiscovery.providers || []), ...(recordDiscovery.providers || [])] };
 }
 
 function parseVenueDiscoveryRequest(data) {
@@ -3893,6 +4276,8 @@ async function searchVenues(event) {
       return { ...place, distanceMiles: Math.round(approximateMilesBetween(point.position, place.position) * 10) / 10, bookingSuitability: assessment.suitability, suitabilityReasons: assessment.reasons, genreMatch: assessment.genreMatch, venueTypeMatch: assessment.typeMatch };
     }).sort((left, right) => venueSuitability(right, parsed.genre) - venueSuitability(left, parsed.genre) || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
     const offset = page * 20, venues = await withVenueFreshness(ranked.slice(offset, offset + 20));
+    // Club database (owner 2026-11-17, city sweeps): every venue a search finds is kept, not only tour-planner finds.
+    await saveFoundClubs(venues).catch(() => {});
     const providerFailures = discovery.providers.filter(provider => !provider.ok && !provider.skipped);
     return reply(200, { query: parsed.raw, location: point, genre: parsed.genre, venues, researchLeads: discovery.researchLeads || [], providers: discovery.providers, coverage: providerFailures.length ? "partial" : "provider-complete", coverageNotice: providerFailures.length ? "Some discovery providers were unavailable; these results are incomplete." : ranked.length ? "Results are current public leads, not guaranteed booking availability." : "No relevant public venue leads were found in the searched radius. This does not prove that no venues exist.", page, hasMore: ranked.length > offset + venues.length, canExpand: radiusMiles < 150, radiusMiles, expandedFromMiles });
   } catch (error) {
@@ -3901,6 +4286,60 @@ async function searchVenues(event) {
     console.error("Venue discovery failed", { name: error.name, provider: error.provider });
     return reply(502, { error: "Venue discovery is temporarily unavailable.", providers: error.providerStatuses || [] });
   }
+}
+
+// Booking contacts (email, phone) reach artists only (owner 2026-11-17: "none of these should be public").
+// A member without an EPK still sees who books a town, but not how to reach them.
+async function memberHasEpk(userId) {
+  if (!userId) return false;
+  try { return Boolean((await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: epkWorkspaceId } }, ProjectionExpression: "userId" }))).Item); }
+  catch (error) { console.error("EPK check failed:", error.name); return false; }
+}
+function stripBookingContacts(value) {
+  if (Array.isArray(value)) return value.map(stripBookingContacts);
+  if (!value || typeof value !== "object") return value;
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    if ((key === "venues" || key === "promoters") && Array.isArray(item)) out[key] = item.map(place => place && typeof place === "object" ? { ...stripBookingContacts(place), emails: [], phones: [], contactsHidden: Boolean(place.emails?.length || place.phones?.length) } : place);
+    else out[key] = stripBookingContacts(item);
+  }
+  return out;
+}
+async function withArtistContacts(event, response) {
+  if (response?.statusCode !== 200 || typeof response.body !== "string") return response;
+  if (await memberHasEpk(await getAuthenticatedUser(event))) return response;
+  try { return { ...response, body: JSON.stringify(stripBookingContacts(JSON.parse(response.body))) }; } catch { return response; }
+}
+
+// Trusted contacts: only directory editors (DIRECTORY_EDITOR_EMAILS env) add them; each one agreed to hear from artists.
+async function trustedContacts(event, method) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const email = await accountForSub(userId).catch(() => "");
+  if (!isDirectoryEditor(email, globalThis.process?.env?.DIRECTORY_EDITOR_EMAILS)) return reply(403, { error: "Only the DanzStak team can add trusted contacts." });
+  if (method === "GET") {
+    const items = await scanAll({ TableName: venueDirectoryTable, FilterExpression: "trusted = :yes", ExpressionAttributeValues: { ":yes": { BOOL: true } } }, 5000);
+    const people = new Map();
+    for (const item of items) {
+      const id = item.contactId?.S || item.venueKey.S;
+      if (!people.has(id)) people.set(id, { contactId: id, kind: item.kind?.S || "promoter", name: item.name?.S || "", towns: String(item.towns?.S || "").split(" · ").filter(Boolean), venues: String(item.venuesBooked?.S || "").split(" · ").filter(Boolean), categories: item.categories?.S || "", phone: item.phone?.S || "", email: item.email?.S || "", website: item.website?.S || "", notes: item.notes?.S || "", addedAt: item.approvedAt?.S || "" });
+    }
+    return reply(200, { contacts: [...people.values()].sort((a, b) => a.name.localeCompare(b.name)) });
+  }
+  const parsed = parseTrustedContact(parseJsonBody(event) || {});
+  if (parsed.error) return reply(400, { error: parsed.error });
+  const placed = [], missing = [];
+  for (const town of parsed.contact.towns) {
+    try { const point = await geocodeTourPlace(town); if (point?.position) { placed.push({ label: point.label || town, position: point.position }); continue; } } catch {}
+    missing.push(town);
+  }
+  if (!placed.length) return reply(422, { error: "None of those towns could be placed on the map. Add the state or country, e.g. \"Tacoma, WA\"." });
+  const at = new Date().toISOString(), items = trustedContactItems(parsed.contact, placed, sha256(email).slice(0, 16), at);
+  await mapLimit(items, 4, item => db.send(new UpdateItemCommand(trustedContactUpdate(venueDirectoryTable, item))));
+  reviewedVenueCache.expiresAt = 0;
+  return reply(201, { contactId: trustedContactId(parsed.contact), towns: placed.map(item => item.label), unplaced: missing });
 }
 
 async function planTourRoute(event) {
@@ -3952,8 +4391,12 @@ async function planTourRoute(event) {
     }
     const home = await geocodeTourPlace(start);
     const suggestedMarkets = directional ? await suggestDirectionalMarkets(home, direction, requestedDays, genre) : [];
-    let points = directional ? [home, ...suggestedMarkets, home] : await Promise.all([start, ...stops, end, start].map(value => geocodeTourPlace(value)));
+    // One-way tours (owner 2026-11-16) end at the destination instead of looping home.
+    const oneWay = data.oneWay === true && !directional;
+    let points = directional ? [home, ...suggestedMarkets, home] : await Promise.all((oneWay ? [start, ...stops, end] : [start, ...stops, end, start]).map(value => geocodeTourPlace(value)));
     let route;
+    // A one-way tour with no stops has only two points; route it directly (the loop below shortens generated loops).
+    if (points.length === 2) route = await geoRoutes.send(new CalculateRoutesCommand({ Origin: points[0].position, Destination: points[1].position, TravelMode: "Car", LegGeometryFormat: "Simple" }));
     while (points.length >= 3) {
       try {
         route = await geoRoutes.send(new CalculateRoutesCommand({ Origin: points[0].position, Destination: points.at(-1).position, Waypoints: points.slice(1, -1).map(point => ({ Position: point.position })), TravelMode: "Car", LegGeometryFormat: "Simple" }));
@@ -3983,7 +4426,7 @@ async function planTourRoute(event) {
               return null;
             }
           })).filter(Boolean)
-        : await discoverRouteMarkets(route, points, requestedDays, requestedShows),
+        : await discoverRouteMarkets(route, oneWay ? [...points, points.at(-1)] : points, requestedDays, requestedShows),
       candidates = await mapLimit(selected, 4, async point => {
         try {
           return await tourCandidates(point, genre, excludedVenueKeys, variation, null, venueType);
@@ -4016,7 +4459,7 @@ async function planTourRoute(event) {
       const departureDate = new Date(returnDate); departureDate.setUTCDate(departureDate.getUTCDate() - requestedDays + 1); departOn = departureDate.toISOString().slice(0, 10);
     }
     if (departOn) candidates.forEach((market, index) => { const date = new Date(`${departOn}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + Math.min(Math.max(0, requestedDays - 1), index + (local ? 0 : 1))); market.proposedDate = date.toISOString().slice(0, 10); market.bookingStatus = "proposed"; });
-    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), turnaround: points.at(-2), stops: points.slice(1, -1), itineraryMarkets: itineraryMarkets || candidates.map(candidate => candidate.stop), distanceMiles, durationHours, minimumDrivingDays, requestedDays, requestedShows, direction: directional ? direction : undefined, departOn, returnBy, bookingStatus: "proposed", roundTrip: true, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), oneWay, turnaround: oneWay ? points.at(-1) : points.at(-2), stops: points.slice(1, -1), itineraryMarkets: itineraryMarkets || candidates.map(candidate => candidate.stop), distanceMiles, durationHours, minimumDrivingDays, requestedDays, requestedShows, direction: directional ? direction : undefined, departOn, returnBy, bookingStatus: "proposed", roundTrip: !oneWay, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
   } catch (error) {
     if (error.statusCode === 422) return { statusCode: 422, headers, body: JSON.stringify({ error: error.message }) };
     console.error("Tour route planning failed", { name: error.name });
@@ -4044,6 +4487,21 @@ const epkPublicPartition = "epk-public";
 const epkSharePartition = "epk-private-share";
 const epkOutreachPartition = "epk-outreach-share";
 const epkOutreachPrefix = "EPK#OUTREACH#";
+// Queue 5a2: photo and video albums on the profile (own partition in the tours table). Built on first use.
+let albumsInstance = null;
+const albumsService = () => albumsInstance ||= createAlbums({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, UpdateItemCommand, DeleteItemCommand, TransactWriteItemsCommand },
+  tableName: toursTable,
+  authenticate: getAuthenticatedUser,
+  accountEmail: userId => accountForSub(userId),
+  mediaPrefix: userId => mediaOwnerPrefixForUser(userId),
+  signedUrl: (key, expires) => signedMediaUrl(key, expires),
+  deleteMedia: async keys => (await runCleanup(keys.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }))))) === 0,
+  relationship: async (viewerEmail, ownerEmail) => (await db.send(new GetItemCommand({ TableName: friendsTable, Key: { userEmail: { S: viewerEmail }, friendEmail: { S: ownerEmail } }, ConsistentRead: true, ProjectionExpression: "#status", ExpressionAttributeNames: { "#status": "status" } }))).Item?.status?.S || "",
+  corsHeaders,
+  originAllowed: origin => allowedOrigins.has(origin)
+});
 
 const epkMediaRoles = new Set(["press-photo", "logo", "artwork", "press-clipping", "biography", "technical-rider", "hospitality-rider", "stage-plot", "other"]);
 const epkMediaPattern = ownerPrefix => new RegExp(`^epk/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`);
@@ -4094,7 +4552,9 @@ function cleanEpk(data, ownerPrefix = "") {
   const links = value => list(value, 12, item => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return null;
     const label = text(item.label, 100), url = https(item.url);
-    return label && url ? { label, url } : null;
+    // embed:false = the builder found the video won't play inside other sites (removed, private or embedding off):
+    // the public EPK shows it as a link, never a broken player (owner 2026-11-23).
+    return label && url ? { label, url, ...(item.embed === false ? { embed: false } : {}) } : null;
   });
   const quotes = list(data.pressQuotes, 8, item => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return null;
@@ -4151,12 +4611,13 @@ async function validatedEpkMedia(media) {
     catch { throw Object.assign(new Error(`Uploaded file not found: ${item.name}`), { statusCode: 422 }); }
     const size = Number(head.ContentLength || 0), contentType = String(head.ContentType || "").toLowerCase();
     const image = /\.(jpg|png|webp)$/.test(item.key), allowedType = image ? /^image\/(jpeg|png|webp)$/.test(contentType) : contentType === "application/pdf";
-    const maximum = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
+    // Owner 2026-11-16: some riders and press kits are huge; PDFs up to 50 MB.
+    const maximum = image ? 12 * 1024 * 1024 : 50 * 1024 * 1024;
     if (!allowedType || size <= 0 || size > maximum) throw Object.assign(new Error(`${item.name} has an unsupported type or size.`), { statusCode: 422 });
     total += size;
     item.contentType = contentType; item.size = size;
   }
-  if (total > 100 * 1024 * 1024) throw Object.assign(new Error("EPK media exceeds the 100 MB account quota."), { statusCode: 413 });
+  if (total > 250 * 1024 * 1024) throw Object.assign(new Error("EPK media exceeds the 250 MB account quota."), { statusCode: 413 });
   return media;
 }
 
@@ -4292,6 +4753,15 @@ async function epkWorkspace(event, method) {
     const existing = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
     if (!existing.Item) return reply(200, { deleted: false, cleanupPending: false });
     const { transaction, mediaKeys } = epkDeletionPlan(existing.Item, ownerPrefix, ownerKey);
+    // The link-preview card goes with the EPK (epk-share-preview.mjs).
+    const deletedId = validEpkId(existing.Item.publicId?.S) ? existing.Item.publicId.S : "";
+    if (deletedId) {
+      const card = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: EPK_CARD_PARTITION }, tourId: { S: deletedId } }, ConsistentRead: true }))).Item;
+      if (card?.ownerId?.S === userId) {
+        transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: EPK_CARD_PARTITION }, tourId: { S: deletedId } } } });
+        if (validCardKey(card.cardKey?.S, ownerPrefix)) mediaKeys.push(card.cardKey.S);
+      }
+    }
     const cleanupPending = mediaKeys.length
       ? await runCleanup(mediaKeys.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }))))
       : 0;
@@ -4306,7 +4776,10 @@ async function epkWorkspace(event, method) {
   if (method === "GET") {
     const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
     if (!result.Item) return reply(200, { kit: null, publicId: "", published: false, updatedAt: "" });
-    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}")), publicId: result.Item.publicId?.S || "", published: result.Item.published?.BOOL === true, privateShared: Boolean(result.Item.shareHash?.S), updatedAt: result.Item.updatedAt?.S || "" });
+    const sharedId = validEpkId(result.Item.publicId?.S) ? result.Item.publicId.S : "";
+    const card = sharedId ? (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: EPK_CARD_PARTITION }, tourId: { S: sharedId } }, ConsistentRead: true }))).Item : null;
+    const cardOn = card?.ownerId?.S === userId && Boolean(card?.cardKey?.S), cardOff = card?.ownerId?.S === userId && card?.off?.BOOL === true;
+    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}")), publicId: result.Item.publicId?.S || "", published: result.Item.published?.BOOL === true, privateShared: Boolean(result.Item.shareHash?.S), updatedAt: result.Item.updatedAt?.S || "", shareUrl: sharedId ? epkShareLink(sharedId) : "", shareCard: cardOn, shareCardOff: cardOff, shareCardSig: cardOn ? card.sig?.S || "" : "" });
   }
   const data = parseJsonBody(event), kit = cleanEpk(data?.kit, ownerPrefix), publish = data?.publish === true;
   if (!kit) return reply(400, { error: "Add an artist name and valid EPK details." });
@@ -4345,7 +4818,64 @@ async function epkWorkspace(event, method) {
     ...(shareHash ? [{ Put: { TableName: toursTable, Item: { userId: { S: epkSharePartition }, tourId: { S: publicId }, name: { S: `${kit.artistName} private EPK` }, plan: { S: plan }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }] : [])
   ] }));
   const cleanup = await cleanupEpkMediaObjects(ownerKey, ownerPrefix, pendingMediaCleanup, [...retained]);
-  return reply(200, { publicId, published: publish, updatedAt: nowIso, cleanupPending: cleanup.pending });
+  return reply(200, { publicId, published: publish, updatedAt: nowIso, cleanupPending: cleanup.pending, shareUrl: epkShareLink(publicId) });
+}
+
+// EPK link previews (epk-share-preview.mjs). POST /epk/share-card: the artist's browser uploads the card it drew from the
+// laminate (a users/<own prefix>/<uuid>.jpg upload, at most 300 KB) and turns the card on, or sends { off: true }.
+async function epkShareCard(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const ownerPrefix = await mediaOwnerPrefixForUser(userId);
+  if (!ownerPrefix) return reply(409, { error: "Account email could not be verified." });
+  const workspace = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: epkWorkspaceId } }, ConsistentRead: true }))).Item;
+  const publicId = validEpkId(workspace?.publicId?.S) ? workspace.publicId.S : "";
+  if (!publicId) return reply(409, { error: "Save the EPK before sharing it." });
+  const cardRecordKey = { userId: { S: EPK_CARD_PARTITION }, tourId: { S: publicId } };
+  const current = (await db.send(new GetItemCommand({ TableName: toursTable, Key: cardRecordKey, ConsistentRead: true }))).Item;
+  if (current && current.ownerId?.S !== userId) return reply(409, { error: "This EPK link belongs to another account." });
+  const previousKey = validCardKey(current?.cardKey?.S, ownerPrefix) ? current.cardKey.S : "";
+  const data = parseJsonBody(event) || {};
+  if (data.off === true) {
+    // Kept as "off" (not deleted), so the builder remembers the artist's choice and doesn't draw a new card.
+    await db.send(new PutItemCommand({ TableName: toursTable, Item: { ...cardRecordKey, ownerId: { S: userId }, off: { BOOL: true }, updatedAt: { S: new Date().toISOString() } } }));
+    if (previousKey) await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: previousKey })).catch(() => {});
+    return reply(200, { shareCard: false, shareCardOff: true, shareCardSig: "", shareUrl: epkShareLink(publicId) });
+  }
+  const mediaKey = String(data.mediaKey || ""), sig = String(data.sig || "").toLowerCase();
+  if (!validCardKey(mediaKey, ownerPrefix) || !/^[a-f0-9]{16,64}$/.test(sig)) return reply(400, { error: "The link preview couldn't be saved." });
+  let head;
+  try { head = await s3.send(new HeadObjectCommand({ Bucket: mediaBucket, Key: mediaKey })); }
+  catch { return reply(400, { error: "The link preview couldn't be saved." }); }
+  const size = Number(head.ContentLength || 0);
+  if (size < 1000 || size > CARD_MAX_BYTES || (head.ContentType && !/^image\/jpeg$/i.test(head.ContentType))) return reply(400, { error: "The link preview couldn't be saved." });
+  await db.send(new PutItemCommand({ TableName: toursTable, Item: { ...cardRecordKey, ownerId: { S: userId }, cardKey: { S: mediaKey }, sig: { S: sig }, updatedAt: { S: new Date().toISOString() } } }));
+  if (previousKey && previousKey !== mediaKey) await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: previousKey })).catch(() => {});
+  return reply(200, { shareCard: true, shareCardSig: sig, shareUrl: epkShareLink(publicId) });
+}
+
+// GET /share/epk/<id> (the page link crawlers read) and GET /share/epk/<id>/card (the card picture). No Origin: crawlers
+// send none.
+async function epkSharePreview(event, publicId, wantsCard) {
+  const notFound = { statusCode: 404, headers: { ...securityHeaders, "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" }, body: "Not found" };
+  if (!validEpkId(publicId)) return notFound;
+  const get = partition => db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: partition }, tourId: { S: publicId } } })).then(result => result.Item || null);
+  const [card, published, shared] = await Promise.all([get(EPK_CARD_PARTITION), get(epkPublicPartition), get(epkSharePartition)]);
+  const owner = published?.ownerId?.S || shared?.ownerId?.S || "";
+  const cardOn = Boolean(owner) && card?.ownerId?.S === owner && Boolean(card?.cardKey?.S);
+  if (wantsCard) {
+    if (!cardOn) return notFound;
+    const object = await s3.send(new GetObjectCommand({ Bucket: mediaBucket, Key: card.cardKey.S }));
+    const bytes = Buffer.from(await object.Body.transformToByteArray());
+    return { statusCode: 200, isBase64Encoded: true, headers: { ...securityHeaders, "content-type": "image/jpeg", "cache-control": "public, max-age=86400" }, body: bytes.toString("base64") };
+  }
+  const plan = published?.plan?.S || (cardOn ? shared?.plan?.S : "") || "";
+  let kit = null;
+  try { kit = plan ? JSON.parse(plan) : null; } catch { kit = null; }
+  return epkSharePage({ id: publicId, kit, cardSig: cardOn ? card.sig?.S || "" : "" });
 }
 
 async function publicEpk(event, publicId) {
@@ -4354,7 +4884,7 @@ async function publicEpk(event, publicId) {
   if (!allowedOrigins.has(event.headers?.origin) || !/^[a-z0-9-]{3,64}$/i.test(publicId)) return reply(404, { error: "EPK not found." });
   const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } } }));
   if (!result.Item) return reply(404, { error: "EPK not found." });
-  return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), true), updatedAt: result.Item.updatedAt?.S || "" });
+  return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), true), updatedAt: result.Item.updatedAt?.S || "", shareUrl: epkShareLink(publicId) });
 }
 
 async function privateEpkShare(event, method, publicId = "") {
@@ -4367,7 +4897,7 @@ async function privateEpkShare(event, method, publicId = "") {
     const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkSharePartition }, tourId: { S: publicId } }, ConsistentRead: true }));
     const storedHash = result.Item?.shareHash?.S || "";
     if (!epkShareTokenMatches(token, storedHash)) return reply(404, { error: "Private EPK link is invalid or has been revoked." });
-    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), false, false), private: true, updatedAt: result.Item.updatedAt?.S || "" });
+    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), false, false), private: true, updatedAt: result.Item.updatedAt?.S || "", shareUrl: epkShareLink(publicId) });
   }
   const userId = await getAuthenticatedUser(event);
   if (!userId) return reply(401, { error: "Authentication required." });
@@ -4391,7 +4921,7 @@ async function privateEpkShare(event, method, publicId = "") {
     { Update: { TableName: toursTable, Key: ownerKey, UpdateExpression: "SET shareHash = :hash, updatedAt = :updated", ConditionExpression: "attribute_exists(userId)", ExpressionAttributeValues: { ":hash": { S: shareHash }, ":updated": { S: nowIso } } } },
     { Put: { TableName: toursTable, Item: { ...shareKey, name: { S: `${existing.Item.name?.S || "Private EPK"} review` }, plan: { S: existing.Item.plan?.S || "{}" }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }
   ] }));
-  return reply(200, { privateShared: true, publicId: id, token });
+  return reply(200, { privateShared: true, publicId: id, token, shareUrl: epkShareLink(id) });
 }
 
 async function outreachEpkShare(event, method, shareId = "") {
@@ -4415,6 +4945,13 @@ async function outreachEpkShare(event, method, shareId = "") {
     } catch (error) {
       if (error.name !== "TransactionCanceledException" && error.name !== "ConditionalCheckFailedException") throw error;
     }
+    // Bell notice (owner 2026-11-17): "Club X opened your EPK", at most once per venue link per day, never for the artist's own opens.
+    try {
+      if (await getAuthenticatedUser(event).catch(() => "") !== ownerId) {
+        const notice = bookingReplyNotice({ tableName: engagementNotificationsTable, artistEmail: await accountForSub(ownerId), outreachId, dedupe: `open-${openedAt.slice(0, 10).replace(/-/g, "")}`, venueName: item.venueName?.S, action: "opened", at: openedAt });
+        if (notice) await db.send(new TransactWriteItemsCommand({ TransactItems: bookingNoticeWrites(notice, activityPushOutboxTable) })).catch(error => { if (error.name !== "ConditionalCheckFailedException" && error.name !== "TransactionCanceledException") throw error; }); // 16-F: bell + lock-screen push
+      }
+    } catch (error) { console.error("EPK open notice not saved:", error.name); }
     result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: shareId } }, ConsistentRead: true }));
     item = result.Item;
     if (!item || Number(item.expiresAt?.N || 0) <= now() || !epkOutreachTokenMatches(token, item.shareHash?.S || "")) return reply(404, { error: "This booking EPK link is invalid or has expired." });
@@ -4433,7 +4970,7 @@ async function outreachEpkShare(event, method, shareId = "") {
   if (!userId) return reply(401, { error: "Authentication required." });
   if (method === "GET") {
     const items = await queryAll({ TableName: toursTable, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: userId }, ":prefix": { S: epkOutreachPrefix } }, ConsistentRead: true }, 500);
-    return reply(200, { shares: items.map(item => ({ outreachId: String(item.outreachId?.S || item.tourId?.S?.slice(epkOutreachPrefix.length) || ""), venueKey: item.venueKey?.S || "", venueName: item.venueName?.S || "Venue", shareId: item.shareId?.S || "", openCount: Number(item.openCount?.N || 0), firstOpenedAt: item.firstOpenedAt?.S || "", lastOpenedAt: item.lastOpenedAt?.S || "", expiresAt: item.expiresAt?.N ? new Date(Number(item.expiresAt.N) * 1000).toISOString() : "", revoked: item.revoked?.BOOL === true })) });
+    return reply(200, { shares: items.map(item => ({ outreachId: String(item.outreachId?.S || item.tourId?.S?.slice(epkOutreachPrefix.length) || ""), venueKey: item.venueKey?.S || "", venueName: item.venueName?.S || "Venue", shareId: item.shareId?.S || "", openCount: Number(item.openCount?.N || 0), firstOpenedAt: item.firstOpenedAt?.S || "", lastOpenedAt: item.lastOpenedAt?.S || "", expiresAt: item.expiresAt?.N ? new Date(Number(item.expiresAt.N) * 1000).toISOString() : "", revoked: item.revoked?.BOOL === true, creditReturnedAt: item.creditReturnedAt?.S || "" })) });
   }
   const data = parseJsonBody(event), action = String(data?.action || "create"), venueKey = String(data?.venueKey || "").trim(), outreachId = String(data?.outreachId || "").trim();
   if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !venueKey || venueKey.length > 240) return reply(400, { error: "Choose a saved venue and a valid outreach draft." });
@@ -4819,7 +5356,8 @@ async function bookingWorkspace(event, method) {
     ]);
     const [sends, opened] = await Promise.all([bookingSendItems(userId), openedOutreachIds(userId)]), bookingEmailCount = sentEmailCount(sends), epk = epkGate(epkRecord?.Item);
     if (!result.Item) return reply(200, { venues: [], artist: {}, tour: cleanTourBudget({}), estimate: tourBudgetEstimate(cleanTourBudget({}), bookingEmailCount), revision: "", epk, stats: withOpens(pitchStats(sends, opened || new Set(), []), opened) });
-    const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour), venues = await withVenueFreshness(withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(sends)), { sort: false });
+    const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour), venues = await withVenueFreshness(withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(sends)), { sort: false }), clubs = await clubRecords();
+    for (const venue of venues) { const club = clubs.get(venue.venueKey); if (club) venue.club = { ...club, label: clubLabel(club) }; }
     return reply(200, { ...saved, venues, tour, estimate: tourBudgetEstimate(tour, bookingEmailCount, venues), revision: result.Item.revision?.S || "", epk, stats: withOpens(pitchStats(sends, opened || new Set(), venues), opened) });
   }
   const data = parseJsonBody(event);
@@ -4840,7 +5378,7 @@ async function bookingWorkspace(event, method) {
     const status = bookingPipelineStatuses.has(requestedStatus) ? requestedStatus : "Not contacted";
     const showDate = date(b.showDate), confirmationEvidence = text(b.confirmationEvidence, 3000);
     if (status === "Confirmed" && (!showDate || !confirmationEvidence)) invalidConfirmation = true;
-    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateOptions: cleanDateOptions(b.dateOptions), dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000) } };
+    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateOptions: cleanDateOptions(b.dateOptions), dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000), payToPlay: ["tickets", "fee"].includes(String(b.payToPlay)) ? String(b.payToPlay) : "" } };
   });
   if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
   if (invalidConfirmation) return reply(400, { error: "A confirmed performance requires a show date and written confirmation evidence." });
@@ -5179,7 +5717,7 @@ async function getPersonalPhoneStatus(event) {
   const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const record = await personalPhoneAdapter.getByUser(userId);
-  return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(record), providerAvailable: phoneVerificationEnabled, deviceOtpRequired: phoneDeviceOtpRequired }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(record), providerAvailable: await phoneTextsAvailable(), deviceOtpRequired: phoneDeviceOtpRequired }) };
 }
 
 async function sendPersonalPhoneCode(event) {
@@ -5193,10 +5731,13 @@ async function sendPersonalPhoneCode(event) {
     const requestKey = createHmac("sha256", secret).update(`request:${String(event.requestContext?.http?.sourceIp || "unknown")}`).digest("hex");
     const service = await personalPhoneService();
     const purpose = body.purpose === "sync_device" ? "sync_device" : "account_trust";
-    const result = await service.send({ userId, countryCode: String(body.countryCode || "").slice(0, 8), localNumber: String(body.localNumber || "").slice(0, 40), requestKey, purpose, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
+    const locale = verifyLocale(Array.isArray(body.languages) ? body.languages.slice(0, 8).map(value => String(value).slice(0, 35)) : String(body.locale || "").slice(0, 35));
+    const result = await service.send({ userId, countryCode: String(body.countryCode || "").slice(0, 8), localNumber: String(body.localNumber || "").slice(0, 40), requestKey, purpose, locale, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 202, headers, body: JSON.stringify(result) };
   } catch (error) {
-    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
+    if (Number(error?.statusCode || 0) >= 500 || !error?.statusCode) console.error("Phone send failed", { errorName: error?.name || "Error", errorMessage: error?.message || "" });
+    const mapped = publicError(error, { fallback: "Couldn't send the code right now. Try again in a minute.", code: "send_try_again" });
+    return { statusCode: mapped.statusCode, headers, body: JSON.stringify({ error: mapped.error, code: mapped.code }) };
   }
 }
 
@@ -5209,10 +5750,13 @@ async function confirmPersonalPhoneCode(event) {
   try {
     const service = await personalPhoneService();
     const purpose = body.purpose === "sync_device" ? "sync_device" : "account_trust";
-    const result = await service.confirm({ userId, code: String(body.code || "").slice(0, 12), purpose, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
+    const requestKey = createHmac("sha256", await phoneVerificationSecret()).update(`request:${String(event.requestContext?.http?.sourceIp || "unknown")}`).digest("hex");
+    const result = await service.confirm({ userId, code: String(body.code || "").slice(0, 12), purpose, requestKey, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (error) {
-    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
+    if (Number(error?.statusCode || 0) >= 500 || !error?.statusCode) console.error("Phone confirm failed", { errorName: error?.name || "Error", errorMessage: error?.message || "" });
+    const mapped = publicError(error, { fallback: "Couldn't check the code right now. Try again in a minute.", code: "confirm_try_again" });
+    return { statusCode: mapped.statusCode, headers, body: JSON.stringify({ error: mapped.error, code: mapped.code }) };
   }
 }
 
@@ -5222,16 +5766,20 @@ async function removePersonalPhone(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   try {
     await personalPhoneAdapter.remove(userId);
-    return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(null), providerAvailable: phoneVerificationEnabled }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(null), providerAvailable: await phoneTextsAvailable() }) };
   } catch {
     return { statusCode: 503, headers, body: JSON.stringify({ error: "Phone verification is unavailable." }) };
   }
 }
 
 // API GATEWAY ROUTES
-export const handler = async event => {
+// Every reply passes the error mapper: no AWS, Stripe or stack details ever reach a member (directive L1).
+export const handler = async event => sanitizeErrorResponse(await routeRequest(event), { route: `${event?.requestContext?.http?.method || ""} ${event?.requestContext?.routeKey || event?.rawPath || ""}`.trim() });
+
+async function routeRequest(event) {
   const method = event?.requestContext?.http?.method;
   const path = event?.rawPath;
+  await mediaCdn.ready().catch(() => false);
 
   try {
     if (Array.isArray(event?.Records) && event.Records.some(record => record?.EventSource === "aws:sns")) {
@@ -5254,7 +5802,7 @@ export const handler = async event => {
     }
 
     if (method === "GET" && path === "/auth/login") {
-      return await startLogin("login");
+      return await startLogin("login", "", event.queryStringParameters?.next);
     }
 
     if (method === "GET" && path === "/auth/signup") {
@@ -5394,10 +5942,11 @@ export const handler = async event => {
     }
 
     if (method === "POST" && path === "/tour/route") {
-      return await planTourRoute(event);
+      return await withArtistContacts(event, await planTourRoute(event));
     }
 
-    if (method === "POST" && path === "/venues/search") return await searchVenues(event);
+    if (method === "POST" && path === "/venues/search") return await withArtistContacts(event, await searchVenues(event));
+    if ((method === "GET" || method === "POST") && path === "/club-directory/contacts") return await trustedContacts(event, method);
 
     if (method === "POST" && path === "/record-stores/search") return await searchRecordStores(event);
     if ((method === "GET" || method === "POST") && path === "/record-store-workspace") return await recordStoreWorkspace(event, method);
@@ -5409,6 +5958,9 @@ export const handler = async event => {
     if ((method === "GET" || method === "POST" || method === "DELETE") && path === "/epk") return await epkWorkspace(event, method);
     if (method === "POST" && path === "/epk/qr") return await epkQr(event);
     if (method === "POST" && path === "/epk/share") return await privateEpkShare(event, method);
+    if (method === "POST" && path === "/epk/share-card") return await epkShareCard(event);
+    const epkPreviewMatch = path.match(/^\/share\/epk\/([a-z0-9-]{3,64})(\/card)?\/?$/);
+    if (method === "GET" && epkPreviewMatch) return await epkSharePreview(event, epkPreviewMatch[1], Boolean(epkPreviewMatch[2]));
     if ((method === "GET" || method === "POST") && path === "/epk/outreach-share") return await outreachEpkShare(event, method);
     const epkOutreachMatch = path.match(/^\/epk\/outreach\/([a-f0-9]{32})$/i);
     if (method === "POST" && epkOutreachMatch) return await outreachEpkShare(event, method, epkOutreachMatch[1].toLowerCase());
@@ -5422,6 +5974,7 @@ export const handler = async event => {
     const reviewMatch = path.match(/^\/reviews\/([a-f0-9]{32})$/i);
     if (method === "PATCH" && reviewMatch) return await updateReview(event, reviewMatch[1].toLowerCase());
     if (method === "DELETE" && reviewMatch) return await deleteReview(event, reviewMatch[1].toLowerCase());
+    if (path === "/albums" || path.startsWith("/albums/")) { const albums = await albumsService().handle(event, method, path); if (albums) return albums; }
     if (method === "GET" && path === "/tours") return await listTourPlans(event);
     if (method === "POST" && path === "/tours") return await saveTourPlan(event);
     if (method === "DELETE" && path.startsWith("/tours/")) return await deleteTourPlan(event, decodeURIComponent(path.slice(7)));
@@ -5450,8 +6003,8 @@ export const handler = async event => {
 
     return errorResponse(500, "Authentication service error");
   }
-};
+}
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };
+export { activePinUntil, orderMixPosts, geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };

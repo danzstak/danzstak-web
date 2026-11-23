@@ -58,6 +58,7 @@ function fixture(url) {
         await new Promise((resolve, reject) => { const image = new Image(); image.onload = resolve; image.onerror = reject; image.src = source; });
       });
       const result = await page.evaluate(() => {
+        const rail = document.querySelector("#storiesRail");
         const tile = document.querySelector(".story-create");
         const slate = document.querySelector(".daily-clapper");
         const photo = document.querySelector(".story-create-avatar");
@@ -78,8 +79,6 @@ function fixture(url) {
           photoSize: photo.tagName === "IMG" ? getComputedStyle(photo).objectFit : getComputedStyle(photo).backgroundSize,
           photoPosition: photo.tagName === "IMG" ? getComputedStyle(photo).objectPosition : getComputedStyle(photo).backgroundPosition,
           photoRadius: getComputedStyle(photo).borderRadius,
-          photoWidth: photoRect.width,
-          photoHeight: photoRect.height,
           artBackground: getComputedStyle(art).backgroundColor,
           plusPresent: Boolean(document.querySelector(".story-create-caption b")),
           tileWidth: tileRect.width,
@@ -92,7 +91,6 @@ function fixture(url) {
           slateColor: getComputedStyle(slate).color,
           slateBackground: getComputedStyle(slate).backgroundColor,
           slateWidth: slateRect.width,
-          artWidth: artRect.width,
           artHeight: artRect.height,
           artRatio: artRect.width / artRect.height,
           photoDominatesArt: photoRect.width >= artRect.width * .88 && photoRect.height >= artRect.height * .88,
@@ -102,7 +100,13 @@ function fixture(url) {
           captionOverlapsSlate: !(captionRect.right <= slateRect.left || captionRect.left >= slateRect.right || captionRect.bottom <= slateRect.top || captionRect.top >= slateRect.bottom),
           bottomInset: artRect.bottom - slateRect.bottom,
           leftInset: slateRect.left - artRect.left,
-          slateInsidePhoto: slateRect.left >= photoRect.left && slateRect.right <= photoRect.right && slateRect.top >= photoRect.top && slateRect.bottom <= photoRect.bottom
+          slateInsidePhoto: slateRect.left >= photoRect.left && slateRect.right <= photoRect.right && slateRect.top >= photoRect.top && slateRect.bottom <= photoRect.bottom,
+          tileRight: tileRect.right,
+          railOverflow: rail.scrollWidth - rail.clientWidth,
+          placeholders: [...rail.querySelectorAll(".story-placeholder")].map(node => {
+            const box = node.getBoundingClientRect();
+            return { left: box.left, right: box.right, width: box.width, height: box.height, text: node.textContent.trim() };
+          })
         };
       });
       assert.equal(errors.length, 0, `${width}px page errors: ${errors.join(" | ")}`);
@@ -124,11 +128,19 @@ function fixture(url) {
       assert.equal(result.captionOverlapsSlate, false, `${width}px Dailies label collides with the clapper`);
       assert.equal(result.plusPresent, false, `${width}px Dailies creator still shows a separate plus sign`);
       if (width <= 700) {
-        assert.ok(Math.abs(result.tileWidth - result.tileHeight) <= 1, `${width}px Dailies creator card is not square`);
+        // Owner 2026-11-18: the strip is three tiles across, each a third of the screen. With no friends' Dailies the
+        // member's own tile stays a third and two film-strip placeholders (the last one calling ACTION!) fill the rest.
+        // Strip edges and friends' tiles are covered by mix-dailies-strip.cjs.
+        const third = (width - 4) / 3;
+        assert.ok(Math.abs(result.tileWidth - third) <= 2, `${width}px Dailies creator tile is not a third of the screen (${result.tileWidth}px, expected ${third.toFixed(1)}px)`);
+        assert.equal(result.placeholders.length, 2, `${width}px empty Dailies strip should show two placeholders beside the creator tile, found ${result.placeholders.length}`);
+        const [first, last] = result.placeholders;
+        assert.ok(result.placeholders.every(slot => Math.abs(slot.width - third) <= 2 && Math.abs(slot.height - result.tileHeight) <= 1), `${width}px Dailies placeholders are not third-of-screen tiles matching the creator tile: ${JSON.stringify(result.placeholders)}`);
+        assert.ok(first.left >= result.tileRight - 0.5 && first.left - result.tileRight <= 3 && last.left >= first.right - 0.5 && last.left - first.right <= 3, `${width}px Dailies placeholders do not sit beside the creator tile: ${JSON.stringify(result.placeholders)}`);
+        assert.ok(last.right >= width - 1 && last.right <= width + 0.5, `${width}px Dailies strip leaves empty space beside the tiles (ends at ${last.right}px of ${width})`);
+        assert.match(last.text, /ACTION!/, `${width}px last Dailies placeholder does not call ACTION!: "${last.text}"`);
+        assert.ok(result.railOverflow <= 1, `${width}px empty Dailies strip scrolls sideways (${result.railOverflow}px)`);
         assert.ok(result.slateWidth <= 76, `${width}px clapper is too wide: ${result.slateWidth}px`);
-        assert.ok(result.artWidth >= 148, `${width}px Dailies photo slot is too narrow: ${result.artWidth}px`);
-        assert.ok(result.photoWidth >= 134 && result.photoHeight >= 134, `${width}px Dailies profile image is smaller than the profile treatment`);
-        assert.ok(Math.abs(result.artRatio - 1) <= .02, `${width}px Dailies photo does not fill the square tile: ${result.artRatio}`);
         assert.ok(result.bottomInset >= 6 && result.bottomInset <= 10, `${width}px clapper is not anchored over the lower-left picture: ${result.bottomInset}px bottom inset`);
         assert.ok(result.leftInset >= 6 && result.leftInset <= 10, `${width}px clapper is not anchored over the lower-left picture: ${result.leftInset}px left inset`);
       }

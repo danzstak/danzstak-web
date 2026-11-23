@@ -6,7 +6,7 @@ const path = require("node:path");
 const { chromium } = require("playwright");
 
 const origin = process.env.DANZSTAK_DESIGN_ORIGIN || "http://127.0.0.1:8022";
-const widths = [320, 390, 430, 1366];
+const widths = [320, 360, 390, 414, 430, 1366];
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const postId = "33333333-3333-4333-8333-333333333333";
 const output = path.resolve("docs/screenshots/issue-55-foundation");
@@ -75,7 +75,8 @@ function color(value) { return String(value || "").replace(/\s+/g, ""); }
         const media = post.querySelector(":scope > .feed-media-gallery, :scope > .danzstak-media-shell, :scope > .post-media");
         const postRect = post.getBoundingClientRect();
         const mediaRect = media.getBoundingClientRect();
-        const navButtons = [...document.querySelectorAll(".topnav button")];
+        // Phone targets: the shared bottom tab bar (app-tabs.js, audit 36 B2); Mix's .topnav is the desktop header nav.
+        const navButtons = innerWidth > 700 ? [...document.querySelectorAll(".topnav button")] : [...document.querySelectorAll("nav.ds-mobile-nav a")];
         return {
           documentWidth: document.documentElement.scrollWidth,
           brand: root.getPropertyValue("--ds-brand").trim(),
@@ -99,7 +100,9 @@ function color(value) { return String(value || "").replace(/\s+/g, ""); }
       assert.match(feed.bodyFont, /Segoe UI|Inter|Arial/i);
       assert.equal(color(feed.headerBorder), "rgb(239,108,32)");
       assert.equal(color(feed.postBackground), "rgb(255,255,255)");
-      assert.ok(feed.postRadius >= 10 && feed.mediaAligned && feed.mobileTargets, `${width}px Feed foundation geometry failed: ${JSON.stringify(feed)}`);
+      // Mix polish (owner directive 2026-11-16, assets/mix-polish.css): cards are square and edge to edge on phones.
+      const edgeToEdge = width > 700 || (Math.abs(feed.postEdges[0]) <= 1 && Math.abs(feed.postEdges[1] - width) <= 1);
+      assert.ok(feed.postRadius === 0 && edgeToEdge && feed.mediaAligned && feed.mobileTargets, `${width}px Feed foundation geometry failed: ${JSON.stringify(feed)}`);
       const feedCapture = path.join(output, `feed-${width}.png`);
       if (!fs.existsSync(feedCapture)) await page.screenshot({ path: feedCapture, fullPage: width >= 700 });
 
@@ -121,9 +124,11 @@ function color(value) { return String(value || "").replace(/\s+/g, ""); }
           avatarOverlapsCover: avatar.top < cover.getBoundingClientRect().bottom && avatar.bottom > cover.getBoundingClientRect().bottom,
           nameLeft: name.left,
           bioLeft: document.querySelector(".profile-bio").getBoundingClientRect().left,
-          nameAligned: Math.abs(name.left - document.querySelector(".profile-bio").getBoundingClientRect().left) <= 1,
+          // Directive F4 (owner 2026-11-19): the name sits to the right of the avatar (was: stacked under it, aligned with the bio).
+          nameAligned: name.left >= avatar.right + 4,
           detailCount: details.length,
           detailBackgrounds: details.map(item => getComputedStyle(item).backgroundColor),
+          detailRadii: details.map(item => parseFloat(getComputedStyle(item).borderRadius)),
           bottomNavVisible: innerWidth > 700 || getComputedStyle(document.querySelector(".ds-mobile-nav")).display !== "none"
         };
       });
@@ -131,7 +136,8 @@ function color(value) { return String(value || "").replace(/\s+/g, ""); }
       assert.ok(profileGeometry.documentWidth <= width && profileGeometry.cardInside, `${width}px Profile overflow: ${JSON.stringify(profileGeometry)}`);
       assert.ok(profileGeometry.coverPhoto && profileGeometry.avatarOverlapsCover, `${width}px real profile media is not integrated: ${JSON.stringify(profileGeometry)}`);
       assert.ok(profileGeometry.nameAligned && profileGeometry.detailCount >= 3 && profileGeometry.bottomNavVisible, `${width}px Profile hierarchy failed: ${JSON.stringify(profileGeometry)}`);
-      assert.ok(profileGeometry.detailBackgrounds.every(value => color(value) === "rgb(246,248,251)"), `${width}px Profile details do not use the shared surface token`);
+      // About = vanity wall (owner 2026-11-18, assets/profile-polish.css): details are plain lines, no grey boxes.
+      assert.ok(profileGeometry.detailBackgrounds.every(value => color(value) === "rgba(0,0,0,0)") && profileGeometry.detailRadii.every(value => value === 0), `${width}px Profile details must be plain lines, not grey boxes: ${JSON.stringify(profileGeometry)}`);
       const profileCapture = path.join(output, `profile-${width}.png`);
       if (!fs.existsSync(profileCapture)) await page.screenshot({ path: profileCapture, fullPage: width >= 700 });
       await context.close();

@@ -1,7 +1,7 @@
 {
  "version": 1,
- "generatedAt": "2026-11-16",
- "scope": "US West Coast seed — Sacramento/Davis, SF Bay Area, Los Angeles, Portland, Seattle/Olympia + national metal press",
+ "generatedAt": "2026-11-19",
+ "scope": "US West Coast seed — Sacramento/Davis, SF Bay Area, Los Angeles, Portland, Seattle/Olympia, San Diego + national metal press",
  "note": "Public organization info only (names, websites, public pages). No personal emails. 'status: seed' = found in public sources on checkedAt; 'unverified' = needs a check before use. Refreshed by the monthly directory job (docs/tasks/09).",
  "fields": {
   "ads": "yes | underwriting | no | unknown — college/community stations are usually non-commercial: use underwriting/announcement wording",
@@ -162,14 +162,15 @@
    ],
    "website": "https://kalx.berkeley.edu",
    "stationType": "college",
-   "ads": "unknown",
+   "ads": "underwriting",
    "rotation": true,
    "onAir": "KALX Live! local showcase (Saturday nights) — request via the FAQ contact",
    "sources": [
     "https://www.kalx.berkeley.edu/faq-page",
-    "https://kalx.berkeley.edu/about/faqs"
+    "https://kalx.berkeley.edu/about/faqs",
+    "https://kalx.berkeley.edu/faq/how-can-my-business-sponsor-underwrite-kalx-programming"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "radio-008"
   },
@@ -207,9 +208,11 @@
    "ads": "unknown",
    "rotation": true,
    "sources": [
-    "https://wiki.riteme.site/wiki/List_of_radio_stations_in_the_San_Francisco_Bay_Area"
+    "https://wiki.riteme.site/wiki/List_of_radio_stations_in_the_San_Francisco_Bay_Area",
+    "https://www.kfjc.org/about/history",
+    "https://foothill.edu/kfjc"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "radio-010"
   },
@@ -267,12 +270,13 @@
    "website": "https://thrillhouserecords.com",
    "address": "3422 Mission St, San Francisco, CA",
    "inStores": "yes",
-   "notes": "Volunteer-run non-profit punk record store; community events and shows; stocks local bands.",
+   "notes": "Volunteer-run non-profit punk record store; community events and shows; stocks local bands. 2026-11-19: open daily noon–8pm per its own site.",
    "sources": [
     "https://www.insidehook.com/music/music-lovers-guide-san-francisco/amp",
-    "https://www.axios.com/local/san-francisco/2025/08/12/record-stores-san-francisco-oakland"
+    "https://www.axios.com/local/san-francisco/2025/08/12/record-stores-san-francisco-oakland",
+    "https://thrillhouserecords.com/pages/about-us"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "record_store-013"
   },
@@ -288,9 +292,10 @@
    "address": "1855 Haight St, San Francisco, CA",
    "inStores": "yes",
    "sources": [
-    "https://www.insidehook.com/music/music-lovers-guide-san-francisco/amp"
+    "https://www.insidehook.com/music/music-lovers-guide-san-francisco/amp",
+    "https://www.axios.com/local/san-francisco/2025/08/12/record-stores-san-francisco-oakland"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "record_store-014"
   },
@@ -308,9 +313,10 @@
    "inStores": "yes",
    "notes": "Hosts in-store band shows.",
    "sources": [
-    "https://sfist.com/2014/08/20/the_9_best_record_stores_in_the_ba/"
+    "https://sfist.com/2014/08/20/the_9_best_record_stores_in_the_ba/",
+    "https://www.axios.com/local/san-francisco/2025/08/12/record-stores-san-francisco-oakland"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "record_store-015"
   },
@@ -344,13 +350,16 @@
    ],
    "website": "",
    "inStores": "unknown",
-   "status": "unverified",
-   "notes": "Listed as an all-heavy-metal store; current status not confirmed.",
+   "status": "closed?",
+   "notes": "Listed as an all-heavy-metal store. Yelp and Foursquare mark the Haight St shop CLOSED (checked 2026-11-19). Do not suggest.",
    "sources": [
-    "https://www.sfstation.com/music/business-directory/cd-vinyl-and-dvd-store"
+    "https://www.sfstation.com/music/business-directory/cd-vinyl-and-dvd-store",
+    "https://www.yelp.com/biz/shaxul-records-san-francisco",
+    "https://foursquare.com/v/shaxul-records/4c66f1ee8e9120a19767d964"
    ],
-   "checkedAt": "2026-11-16",
-   "id": "record_store-017"
+   "checkedAt": "2026-11-19",
+   "id": "record_store-017",
+   "address": "1816 Haight St, San Francisco, CA"
   },
   {
    "type": "press",
@@ -434,9 +443,11 @@
    "notes": "Punk shop on Melrose for 20+ years; live in-store performances; zines.",
    "sources": [
     "https://www.discoverlosangeles.com/things-to-do/the-best-record-stores-in-los-angeles",
-    "https://www.insidehook.com/culture/best-record-stores-in-la"
+    "https://www.insidehook.com/culture/best-record-stores-in-la",
+    "https://www.timeout.com/los-angeles/shopping/headline-records",
+    "https://www.discoverlosangeles.com/things-to-do/headline-records"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "record_store-021"
   },
@@ -456,9 +467,11 @@
    "notes": "Metal and hard rock specialist; sells zines.",
    "sources": [
     "https://www.insidehook.com/culture-los-angeles/best-record-stores-in-la",
-    "https://www.garrettleight.com/blogs/stories/la-record-stores"
+    "https://www.garrettleight.com/blogs/stories/la-record-stores",
+    "https://www.timeout.com/los-angeles/shopping/vacation-vinyl",
+    "https://lataco.com/vinyl-exam-vacation-vinyl"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "record_store-022"
   },
@@ -497,9 +510,11 @@
    "inStores": "unknown",
    "sources": [
     "https://laist.com/news/entertainment/the-10-best-record-stores-in-los-angeles",
-    "https://www.garrettleight.com/blogs/stories/la-record-stores"
+    "https://www.garrettleight.com/blogs/stories/la-record-stores",
+    "https://www.timeout.com/los-angeles/shopping/mono-records",
+    "https://lataco.com/vinyl-exam-mono-records"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "record_store-024"
   },
@@ -533,9 +548,12 @@
    "website": "https://razorcake.org",
    "format": "non-profit punk zine",
    "status": "unverified",
-   "notes": "Not checked this run; verify submission rules before use.",
-   "sources": [],
-   "checkedAt": "2026-11-16",
+   "notes": "Long-running LA non-profit punk zine with record reviews. Current submission rules not confirmed this run (2026-11-19); check razorcake.org before sending.",
+   "sources": [
+    "https://pbssocal.org/shows/artbound/last-punks-in-print-razorcake-has-been-the-platform-for-punks-of-color-for-over-two-decades",
+    "https://wikipedia.com/wiki/Razorcake"
+   ],
+   "checkedAt": "2026-11-19",
    "id": "press-026"
   },
   {
@@ -612,12 +630,13 @@
    "website": "https://www.musicmillennium.com",
    "address": "3158 E Burnside St, Portland, OR",
    "inStores": "yes",
-   "notes": "Oldest record store in the Pacific Northwest; ~150 in-store events a year; has invited EPK submissions for in-store performances.",
+   "notes": "Oldest record store in the Pacific Northwest; ~150 in-store events a year; has invited EPK submissions for in-store performances. 2026-11-19: Willamette Week (Nov 2026) says the owner was looking for a buyer earlier in 2026; store still open at 3158 E Burnside St.",
    "sources": [
     "https://www.vrtxmag.com/businesses/music-millennium",
-    "https://www.sonicbids.com/find-gigs/musicmillennium/"
+    "https://www.sonicbids.com/find-gigs/musicmillennium/",
+    "https://wweek.com/culture/2026/11/10/every-day-is-still-record-store-day-in-portland/"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "record_store-030"
   },
@@ -633,13 +652,15 @@
    ],
    "website": "",
    "inStores": "unknown",
-   "notes": "Downtown fixture; massive metal and hardcore punk selection.",
+   "notes": "Downtown fixture; massive metal and hardcore punk selection. 2026-11-19: Willamette Week (Nov 2026) still names it a destination for punk and indie rock (121 SW 2nd Ave).",
    "sources": [
-    "https://travelportland.com/attractions/vinyl-shopping-portland/%7B%7B%20data.postSocialURLs[facebook]"
+    "https://travelportland.com/attractions/vinyl-shopping-portland/%7B%7B%20data.postSocialURLs[facebook]",
+    "https://wweek.com/culture/2026/11/10/every-day-is-still-record-store-day-in-portland/"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
-   "id": "record_store-031"
+   "id": "record_store-031",
+   "address": "121 SW 2nd Ave, Portland, OR"
   },
   {
    "type": "record_store",
@@ -674,12 +695,15 @@
    "website": "",
    "inStores": "unknown",
    "status": "unverified",
-   "notes": "Small electronic/metal specialist (older listing).",
+   "notes": "Small electronic/metal specialist (older listing). Conflicting listings (2026-11-19): Yelp shows 2706 NE Sandy Blvd; Foursquare marks an older listing closed. Not named in Willamette Week's Nov 2026 store guide. Confirm before contacting.",
    "sources": [
-    "https://www.wweek.com/portland/article-24387-a-guide-to-portland-record-stores.html"
+    "https://www.wweek.com/portland/article-24387-a-guide-to-portland-record-stores.html",
+    "https://www.yelp.com/biz/anthem-records-portland-3",
+    "https://foursquare.com/v/anthem-records/4ad1110df964a5206fdc20e3"
    ],
-   "checkedAt": "2026-11-16",
-   "id": "record_store-033"
+   "checkedAt": "2026-11-19",
+   "id": "record_store-033",
+   "address": "2706 NE Sandy Blvd, Portland, OR"
   },
   {
    "type": "record_store",
@@ -747,12 +771,15 @@
    ],
    "website": "https://www.portlandmercury.com",
    "format": "alt-weekly",
-   "status": "unverified",
+   "status": "seed",
    "sources": [
-    "https://www.portlandmercury.com/?p=36494"
+    "https://www.portlandmercury.com/?p=36494",
+    "https://www.portlandmercury.com/music-issue-2026/mercury-2026-music-issue-intro/",
+    "https://www.portlandmercury.com/mercury-music-picks/mercury-music-picks-here-again-with-the-best-concerts-and-music-events-for-the-week-in-portland/"
    ],
-   "checkedAt": "2026-11-16",
-   "id": "press-037"
+   "checkedAt": "2026-11-19",
+   "id": "press-037",
+   "notes": "Active in 2026: annual music issue and weekly Mercury Music Picks concert listings."
   },
   {
    "type": "radio",
@@ -794,9 +821,11 @@
    "notes": "University of Washington student-run station; books campus shows.",
    "sources": [
     "https://careers.uw.edu/organizations/asuw-rainydawg-radio/",
-    "https://www.thestranger.com/?p=188996"
+    "https://www.thestranger.com/?p=188996",
+    "https://hub.washington.edu/spotlight-rainy-dawg-radio",
+    "https://spinitron.com/Rainy-Dawg/show/111239/earthly-delights"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "radio-039"
   },
@@ -810,13 +839,15 @@
     "alternative"
    ],
    "website": "",
-   "stationType": "college (LPFM)",
+   "stationType": "college (low-power FM)",
    "ads": "unknown",
    "rotation": true,
    "sources": [
-    "https://streema.com/radios/country/United_States/state/Washington"
+    "https://streema.com/radios/country/United_States/state/Washington",
+    "https://www.seattleu.edu/newsroom/2025/award-winning-airwaves.php",
+    "https://radiostation.info/fm/washington/KXSU-LP"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "radio-040"
   },
@@ -829,14 +860,17 @@
     "community",
     "eclectic"
    ],
-   "website": "",
+   "website": "https://www.kaosradio.org",
    "stationType": "community (Evergreen State College)",
    "ads": "unknown",
    "rotation": true,
    "sources": [
-    "https://qzvx.com/?p=37123"
+    "https://qzvx.com/?p=37123",
+    "https://www.kaosradio.org/mission",
+    "https://www.kaosradio.org/faq",
+    "https://ca.news.yahoo.com/kaos-turns-50-community-radio-130000683.html"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "radio-041"
   },
@@ -856,9 +890,11 @@
    "notes": "Hosts in-store performances by national and local acts.",
    "sources": [
     "https://Www.wikipedia.org/wiki/Easy_Street_Records",
-    "https://dailyhive.com/seattle/best-seattle-record-stores"
+    "https://dailyhive.com/seattle/best-seattle-record-stores",
+    "https://westseattleblog.com/2026/04/happening-now-record-store-day-2026-at-easy-street-records-with-one-big-event-yet-to-come/",
+    "https://en.wikipedia.org/wiki/Easy_Street_Records"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "record_store-042"
   },
@@ -878,9 +914,11 @@
    "notes": "Punk specialist in Belltown.",
    "sources": [
     "https://secretseattle.co/seattle-record-stores/",
-    "https://www.seattleweekly.com/?p=107466"
+    "https://www.seattleweekly.com/?p=107466",
+    "https://www.seattlemet.com/businesses/singles-going-steady",
+    "https://keepthemspinning.com/blogs/record-stores/best-record-stores-seattle"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "record_store-043"
   },
@@ -913,13 +951,15 @@
     "all",
     "indie"
    ],
-   "website": "",
+   "website": "https://www.sonicboomrecords.com",
    "address": "2209 NW Market St, Seattle, WA",
    "inStores": "unknown",
    "sources": [
-    "https://dailyhive.com/seattle/best-seattle-record-stores"
+    "https://dailyhive.com/seattle/best-seattle-record-stores",
+    "https://www.sonicboomrecords.com/history",
+    "https://theticket.seattletimes.com/top-picks/where-to-buy-records-in-seattle-sonic-boom-records-ballard/"
    ],
-   "checkedAt": "2026-11-16",
+   "checkedAt": "2026-11-19",
    "status": "seed",
    "id": "record_store-045"
   },
@@ -968,12 +1008,15 @@
    ],
    "website": "https://www.decibelmagazine.com",
    "format": "print + web",
-   "status": "unverified",
+   "status": "seed",
    "sources": [
-    "https://blog.sonicbids.com/start-getting-press-top-7-niche-blogs-for-rising-metal-bands"
+    "https://blog.sonicbids.com/start-getting-press-top-7-niche-blogs-for-rising-metal-bands",
+    "https://www.decibelmagazine.com",
+    "https://decibelmagazine.com/category/news/"
    ],
-   "checkedAt": "2026-11-16",
-   "id": "press-048"
+   "checkedAt": "2026-11-19",
+   "id": "press-048",
+   "notes": "Active national metal magazine (print + web); runs track premieres and full-album streams."
   },
   {
    "type": "press",
@@ -1009,6 +1052,197 @@
    "checkedAt": "2026-11-16",
    "status": "seed",
    "id": "press-050"
+  },
+  {
+   "type": "record_store",
+   "name": "I Hate Records",
+   "city": "San Francisco, CA",
+   "genres": [
+    "punk",
+    "DIY"
+   ],
+   "website": "",
+   "inStores": "sometimes",
+   "notes": "New (2025) Lower Haight shop run as a community space for DIY punk. Website not confirmed.",
+   "sources": [
+    "https://localnewsmatters.org/2025/11/20/i-hate-records-in-sfs-lower-haight-a-new-community-space-for-diy-punk/",
+    "https://www.cbsnews.com/sanfrancisco/news/haight-ashbury-i-hate-records"
+   ],
+   "status": "unverified",
+   "id": "record_store-051",
+   "region": "US-West",
+   "checkedAt": "2026-11-19"
+  },
+  {
+   "type": "record_store",
+   "name": "Landfill Rescue Unit",
+   "city": "Portland, OR",
+   "genres": [
+    "punk",
+    "noise",
+    "thrash",
+    "metal"
+   ],
+   "website": "",
+   "address": "2533 SE Belmont St, Portland, OR",
+   "inStores": "unknown",
+   "notes": "Named by Willamette Week (Nov 2026) for punk, noise, thrash, indie rock and metal.",
+   "sources": [
+    "https://wweek.com/culture/2026/11/10/every-day-is-still-record-store-day-in-portland/",
+    "https://vrtxmag.com/businesses/landfill-rescue-unit"
+   ],
+   "status": "seed",
+   "id": "record_store-052",
+   "region": "US-West",
+   "checkedAt": "2026-11-19"
+  },
+  {
+   "type": "record_store",
+   "name": "M-Theory Music",
+   "city": "San Diego (Mission Hills), CA",
+   "genres": [
+    "indie",
+    "punk",
+    "electronic"
+   ],
+   "website": "https://mtheorymusic.com",
+   "address": "827 W Washington St, San Diego, CA",
+   "inStores": "sometimes",
+   "notes": "Long-running indie shop; has hosted artist in-store appearances (San Diego Reader event listings).",
+   "sources": [
+    "https://keepthemspinning.com/blogs/record-stores/best-record-stores-san-diego",
+    "https://www.sandiegoreader.com/events/2014/apr/01/flaming-lips-frontman-wayne-coyne/",
+    "https://www.jambase.com/venue/m-theory-music"
+   ],
+   "status": "seed",
+   "id": "record_store-053",
+   "region": "US-West",
+   "checkedAt": "2026-11-19"
+  },
+  {
+   "type": "record_store",
+   "name": "Re-Animated Records",
+   "city": "La Mesa (San Diego), CA",
+   "genres": [
+    "rock",
+    "punk"
+   ],
+   "website": "https://reanimatedrecords.com",
+   "address": "8320 La Mesa Blvd, La Mesa, CA",
+   "inStores": "unknown",
+   "notes": "East County shop; genre focus and in-stores not confirmed this run.",
+   "sources": [
+    "https://keepthemspinning.com/blogs/record-stores/best-record-stores-san-diego",
+    "https://sandiegoreader.com/news/2023/oct/04/special-revivified-vinyl"
+   ],
+   "status": "unverified",
+   "id": "record_store-054",
+   "region": "US-West",
+   "checkedAt": "2026-11-19"
+  },
+  {
+   "type": "record_store",
+   "name": "Vinyl Junkies Record Shack",
+   "city": "San Diego (South Park), CA",
+   "genres": [
+    "various"
+   ],
+   "website": "https://vinyljunkies.net",
+   "address": "2235 Fern St, San Diego, CA",
+   "inStores": "unknown",
+   "sources": [
+    "https://keepthemspinning.com/blogs/record-stores/best-record-stores-san-diego",
+    "https://www.sandiegoreader.com/places/vinyl-junkies-record-shack/"
+   ],
+   "status": "seed",
+   "id": "record_store-055",
+   "region": "US-West",
+   "checkedAt": "2026-11-19"
+  },
+  {
+   "type": "record_store",
+   "name": "Folk Arts Rare Records",
+   "city": "San Diego (North Park), CA",
+   "genres": [
+    "various"
+   ],
+   "website": "https://folkartsrarerecords.com",
+   "address": "3610 University Ave, San Diego, CA",
+   "inStores": "unknown",
+   "sources": [
+    "https://keepthemspinning.com/blogs/record-stores/best-record-stores-san-diego"
+   ],
+   "status": "seed",
+   "id": "record_store-056",
+   "region": "US-West",
+   "checkedAt": "2026-11-19"
+  },
+  {
+   "type": "radio",
+   "name": "KCR College Radio",
+   "city": "San Diego, CA",
+   "genres": [
+    "college",
+    "eclectic"
+   ],
+   "website": "https://kcr.sdsu.edu",
+   "stationType": "college (online)",
+   "ads": "unknown",
+   "rotation": true,
+   "notes": "San Diego State student-run internet station (online, TuneIn, local digital cable); plays up-and-coming bands and has a public music-submissions page.",
+   "sources": [
+    "https://kcr.sdsu.edu/about/",
+    "https://en.wikipedia.org/wiki/KCR_(San_Diego_State_University)"
+   ],
+   "status": "seed",
+   "id": "radio-057",
+   "region": "US-West",
+   "checkedAt": "2026-11-19"
+  },
+  {
+   "type": "radio",
+   "name": "KSDT Radio",
+   "city": "San Diego (La Jolla), CA",
+   "genres": [
+    "college",
+    "indie"
+   ],
+   "website": "https://ksdt.ucsd.edu",
+   "stationType": "college (online)",
+   "ads": "unknown",
+   "rotation": true,
+   "notes": "UC San Diego student-run station; hosts campus concerts for student bands.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/KSDT_Radio",
+    "https://ucsdguardian.org/tag/ksdt-radio/",
+    "https://radiosurvivor.com/2019/10/radio-station-visit-162-college-radio-station-ksdt-at-uc-san-diego"
+   ],
+   "status": "seed",
+   "id": "radio-058",
+   "region": "US-West",
+   "checkedAt": "2026-11-19"
+  },
+  {
+   "type": "press",
+   "name": "San Diego Reader",
+   "city": "San Diego, CA",
+   "genres": [
+    "punk",
+    "hardcore",
+    "metal",
+    "local"
+   ],
+   "website": "https://www.sandiegoreader.com",
+   "format": "alt-weekly (web)",
+   "notes": "Covers local music incl. hardcore punk features and club listings.",
+   "sources": [
+    "https://www.sandiegoreader.com/news/2025/sep/12/featureharder-hardcore-punk-in-san-diego/",
+    "https://www.sandiegoreader.com/news/club-crawler/"
+   ],
+   "status": "seed",
+   "id": "press-059",
+   "region": "US-West",
+   "checkedAt": "2026-11-19"
   }
  ]
 }

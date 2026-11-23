@@ -20,9 +20,13 @@ assert.match(css, /font-family:"DanzStak Sans";[\s\S]*fonts\/archivo\.woff2/, "t
 assert.match(css, /background-image:radial-gradient/, "the light canvas must carry a restrained DANZSTAK brand accent");
 assert.match(css, /html\{[^}]*overflow-x:hidden;overflow-x:clip/, "horizontal containment must not create a scroll container that breaks sticky headers");
 assert.match(css, /body\{[^}]*overflow-x:hidden;overflow-x:clip/, "body containment must preserve sticky headers during hash navigation");
-assert.match(css, /\.ds-mobile-nav\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/, "the shared mobile nav must keep five equal destinations");
-assert.match(css, /\.ds-mobile-nav\{[\s\S]*background:rgba\(255,255,255,\.96\)/, "the shared mobile nav must use the light premium surface");
-assert.match(css, /\.ds-mobile-nav a\[aria-current=page\]\{background:var\(--ds-accent-soft\);color:#b74708;box-shadow:inset 0 3px 0 var\(--ds-accent\)\}/, "the current destination must carry a DanzStak orange cue");
+// One bottom tab bar on every signed-in page (audit 36 B2): its only stylesheet is app-tabs.css.
+const tabsCss = fs.readFileSync("assets/app-tabs.css", "utf8"), tabsJs = fs.readFileSync("assets/app-tabs.js", "utf8");
+assert.doesNotMatch(css, /\.ds-mobile-nav\{[^}]*position:fixed/, "the tab bar is styled in app-tabs.css only");
+assert.match(tabsCss, /\.ds-mobile-nav\{[\s\S]*grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/, "six equal destinations");
+assert.match(tabsCss, /\.ds-mobile-nav a\{display:grid;place-items:center;width:100%/, "each tab fills its column, so icons sit in the same place on every page");
+assert.match(tabsCss, /\.ds-mobile-nav\{[\s\S]*background:rgba\(255,255,255,\.96\)/, "the shared mobile nav must use the light premium surface");
+assert.match(tabsCss, /\.ds-mobile-nav a\[aria-current=page\]\{background:var\(--ds-accent-soft,#fff1e8\);color:#b74708;box-shadow:inset 0 3px 0 var\(--ds-accent,#ef6c20\)\}/, "the current destination must carry a DanzStak orange cue");
 assert.match(css, /\.post>\.post-media[\s\S]*margin-left:-10px/, "phone media must extend through the card gutters consistently");
 assert.match(css, /\.post-actions\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/, "post actions must remain one compact row");
 assert.match(css, /\.profile-actions\{[\s\S]*display:flex;[\s\S]*flex-wrap:nowrap/, "phone profile actions must share one compact row even when the Shop action is present");
@@ -39,22 +43,20 @@ assert.match(css, /body\{padding-bottom:calc\(50px \+ env\(safe-area-inset-botto
 assert.match(css, /body\.profile-page\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "Profile must clear its fixed mobile navigation");
 assert.match(css, /\.messages-page:not\(\.is-conversation-open\)\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "the SYNC inbox must clear its fixed mobile navigation");
 assert.match(feedCss, /\.notification-actions :is\(button,a\)\{[^}]*min-width:44px;min-height:44px/, "notification actions must retain 44px phone targets");
-assert.match(worker, /danzstak-shell-v848/);
+assert.match(worker, /danzstak-shell-v1033/);
 assert.match(worker, /\/assets\/mobile-design-system\.css/, "the installed PWA must cache the shared mobile system");
 
-for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=21/, `${file} must load the same mobile design system`);
+for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=22/, `${file} must load the same mobile design system`);
 for (const file of ["messages.html", "booking.html", "record-stores.html", "epk.html", "profile.html"]) {
   const html = pages.find(([name]) => name === file)[1];
-  assert.match(html, /class="ds-mobile-nav"/, `${file} must expose the consistent mobile navigation`);
-  for (const destination of ["Mix", "Music HQ", "Events", "Bazaar", "SYNC", "Menu"]) assert.match(html, new RegExp(`aria-label="${destination}"`), `${file} is missing ${destination}`);
+  assert.match(html, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"><\/nav>/, `${file} keeps only the placeholder; app-tabs.js draws the tabs`);
+  assert.match(html, /assets\/app-tabs\.js\?v=\d+/, `${file} must load the shared tab bar`);
 }
-for (const file of ["booking.html", "record-stores.html", "epk.html"]) {
-  const html = pages.find(([name]) => name === file)[1];
-  assert.match(html, /data-icon="disc"[^>]*aria-label="Music HQ"[^>]*aria-current="page"/, `${file} belongs to Music HQ`);
-}
-assert.match(pages.find(([name]) => name === "profile.html")[1], /data-icon="menu"[^>]*aria-current="page"/, "profile.html must identify its secondary Menu destination");
-assert.match(pages.find(([name]) => name === "messages.html")[1], /data-icon="chat"[^>]*aria-current="page"/, "SYNC must identify its direct mobile destination");
-assert.match(pages.find(([name]) => name === "messages.html")[1], /assets\/sync\.css\?v=12/, "Chat must request the current compact mobile layout instead of a cached stylesheet");
+for (const destination of ["Mix", "Music HQ", "Events", "Bazaar", "SYNC", "Menu"]) assert.match(tabsJs, new RegExp(`label: "${destination}"`), `the tab bar is missing ${destination}`);
+for (const file of ["booking.html", "record-stores.html", "epk.html"]) assert.match(tabsJs, new RegExp(`"${file.replace(".", "\\.")}": "hq"`), `${file} belongs to Music HQ`);
+assert.match(tabsJs, /"profile\.html": "menu"/, "profile.html must identify its secondary Menu destination");
+assert.match(tabsJs, /"messages\.html": "sync"/, "SYNC must identify its direct mobile destination");
+assert.match(pages.find(([name]) => name === "messages.html")[1], /assets\/sync\.css\?v=14/, "Chat must request the current compact mobile layout instead of a cached stylesheet");
 assert.match(fs.readFileSync("assets/feed-enhancements.js", "utf8"), /function syncMobileMenuCurrent[\s\S]*directMobileDestinations\.has\(workspaceName\)/, "Feed workspaces must synchronize the shared Menu current state");
 
 console.log("Shared mobile design-system checks passed: consistent tokens, edge media, action geometry, tool navigation, and PWA caching.");
