@@ -9,7 +9,9 @@ const css = fs.readFileSync("assets/site-chrome.css", "utf8");
 const js = fs.readFileSync("assets/site-chrome.js", "utf8");
 for (const intro of ["Posts, photos and videos you saved.", "Friend requests and account activity appear here.", "Find friends, answer requests and open SYNC", "Photos shared in Your Mix.", "Shows coming up. Promoters:", "Manage account privacy, device preferences", "Discover Tribes,"]) assert.ok(!feed.includes(intro), `no explanatory sub-line: ${intro}`);
 assert.ok(!hq.includes("Your EPK and booking work in one place."), "no HQ sub-line");
-for (const status of ["Publishing event…", "Settings saved to your DanzStak account.", "Outside ticket links must start with https://"]) assert.ok(feed.includes(status), `status messages still shown: ${status}`);
+// Status messages stay; the event composer moved to events-page.js with task 14-D ("Publishing your night…").
+const eventsPage = fs.readFileSync("assets/events-page.js", "utf8");
+for (const status of ["Publishing your night…", "Settings saved to your DanzStak account.", "Outside ticket links must start with https://"]) assert.ok(feed.includes(status) || eventsPage.includes(status), `status messages still shown: ${status}`);
 assert.match(css, /footer\.site-ownership\{display:none!important\}/);
 assert.match(css, /#featureDescription:empty\{display:none!important\}/);
 assert.match(feed, /ownership\.textContent = "© 2026 DanzStak LLC\. User content belongs to its creators\.";\s*legalLinks\.append\(privacyLink, termsLink, ownership\);/, "© moves into Settings");

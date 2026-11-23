@@ -237,6 +237,7 @@ jobs:
             '.\browser-checks\app-bar.cjs'
             '.\browser-checks\own-photo.cjs'
             '.\browser-checks\bazaar-tiles.cjs'
+            '.\browser-checks\events-page.cjs'
             '.\browser-checks\bazaar-mix.cjs'
             '.\browser-checks\mix-flows.cjs'
             '.\browser-checks\pinned-welcome.cjs'
