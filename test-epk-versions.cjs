@@ -6,6 +6,8 @@
 // - each publish keeps a version (newest 20), which the owner can list, open and bring back;
 // - files used by a kept version or by the published copy are never deleted; Unpublish (only) takes the EPK offline;
 // - deleting the EPK deletes every version and its files;
+// - task 20 (merged in): publishing and venue links need a verified act; a venue link checks the act on the published
+//   copy it carries, and a draft save never needs verification;
 // - versions live in their own partition, so the Tour list (GET /tours, which reads the member's whole partition and feeds
 //   Booking's saved tours and the account export) never shows them.
 const assert = require("node:assert/strict");
@@ -76,6 +78,13 @@ const db = { send: async command => {
   throw new Error(`unexpected command ${command.constructor.name}`);
 } };
 
+// Task 20 stand-in: which act names are verified, and every name the check was asked about.
+const verification = { verified: new Set(["Eroticon"]), asked: [] };
+const artistVerificationService = () => ({ gate: async ({ artistName, purpose }) => {
+  verification.asked.push({ artistName, purpose: purpose || "pitch" });
+  return verification.verified.has(artistName) ? { ok: true, status: "verified", verifiedAt: "2026-11-24T09:00:00.000Z", method: "page" } : { ok: false, status: "not_verified", message: "Verify your act to publish or pitch." };
+} });
+
 let clock = Date.parse("2026-11-24T10:00:00.000Z");
 class FakeDate extends Date {
   constructor(...args) { if (args.length) super(...args); else { clock += 60000; super(clock); } }
@@ -90,7 +99,8 @@ const context = vm.createContext({
   getAuthenticatedUser: async () => userId, accountForSub: async () => email, sha256,
   parseJsonBody: event => { try { return JSON.parse(event.body || "null"); } catch { return null; } },
   cleanEpk: kit => kit && kit.artistName ? { ...clone(kit), media: clone(kit.media || []) } : null,
-  epkForViewer: kit => kit, aiEpkHandler: async () => ({ publishBlock: async () => null }), validatedEpkMedia: async () => {},
+  epkForViewer: kit => kit, artistVerificationService,
+  kitArtistName: item => { try { return JSON.parse(item?.plan?.S || "{}").artistName || ""; } catch { return ""; } }, aiEpkHandler: async () => ({ publishBlock: async () => null }), validatedEpkMedia: async () => {},
   randomUUID: () => crypto.randomUUID(), randomValue: () => crypto.randomBytes(32).toString("hex"), randomBytes: crypto.randomBytes,
   epkShareLink: id => `https://danzstak.com/e/${id}`, validEpkId: id => /^[a-z0-9-]{3,64}$/.test(id || ""), validCardKey: () => false,
   EPK_CARD_PARTITION: "epk-share-card", epkMediaPattern: owner => new RegExp(`^epk/${owner}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`),
@@ -120,6 +130,14 @@ const kit = (bio, mediaNumbers) => ({ artistName: "Eroticon", bio, media: mediaN
   assert.equal(publicCopy(), undefined, "a first draft is never public");
   assert.equal(versionItems().length, 0);
 
+  // An act that isn't verified can save drafts but not publish (task 20).
+  verification.verified.delete("Eroticon");
+  result = await save("publish", kit("not yet", [1]));
+  assert.equal(result.status, 403, "publishing needs a verified act");
+  assert.equal(publicCopy(), undefined);
+  assert.equal(versionItems().length, 0, "a refused publish keeps no version");
+  verification.verified.add("Eroticon");
+
   // Publish A.
   const kitA = kit("published A", [1]);
   result = await save("publish", kitA);
@@ -127,6 +145,7 @@ const kit = (bio, mediaNumbers) => ({ artistName: "Eroticon", bio, media: mediaN
   const publishedAtA = result.data.publishedAt;
   assert.match(publishedAtA, /^2026-11-24T/);
   assert.equal(JSON.parse(publicCopy().plan.S).bio, "published A");
+  assert.equal(publicCopy().verifiedAt?.S, "2026-11-24T09:00:00.000Z", "the public copy carries when the act was verified");
   assert.equal(versionItems().length, 1, "publishing keeps a version");
   result = await call("GET");
   assert.equal(result.data.published, true);
@@ -144,8 +163,12 @@ const kit = (bio, mediaNumbers) => ({ artistName: "Eroticon", bio, media: mediaN
   assert.equal(result.data.draftChanged, true, "the builder says the changes are a draft");
   assert.equal(result.data.kit.bio, "draft B", "the builder opens the draft");
 
-  // Older pages send { publish: false } for both Save draft and Unpublish: treated as a draft save, never offline.
-  await call("POST", { body: { kit: kit("draft C", [3]), publish: false } });
+  // Older pages send { publish: false } for both Save draft and Unpublish: treated as a draft save, never offline. This
+  // draft even names another act: a draft save never needs verification.
+  const asked = verification.asked.length;
+  result = await call("POST", { body: { kit: { ...kit("draft C", [3]), artistName: "Someone Else" }, publish: false } });
+  assert.equal(result.status, 200, "a draft save needs no verification");
+  assert.equal(verification.asked.length, asked, "a draft save doesn't even ask");
   assert.equal(JSON.parse(publicCopy().plan.S).bio, "published A");
   assert.ok(deletedMedia.includes(media(2)), "a draft photo nobody uses any more is deleted");
   assert.ok(!deletedMedia.includes(media(1)));
@@ -156,6 +179,8 @@ const kit = (bio, mediaNumbers) => ({ artistName: "Eroticon", bio, media: mediaN
   assert.equal(outreach.statusCode, 200);
   const venueCopy = [...table.values()].find(item => item.userId.S === "epk-outreach-share");
   assert.equal(JSON.parse(venueCopy.plan.S).bio, "published A", "the venue gets what was published");
+  assert.equal(verification.asked.at(-1).artistName, "Eroticon", "the venue link checks the act on the published copy, not the draft's");
+  assert.equal(venueCopy.verifiedAt?.S, "2026-11-24T09:00:00.000Z");
 
   // The versions list, one version, and opening it.
   result = await call("GET", { query: { versions: "1" } });
