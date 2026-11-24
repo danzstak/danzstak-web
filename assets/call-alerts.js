@@ -102,7 +102,8 @@
   // Turning notifications on answers "off"; "unlinked" stays until the server says this phone is linked.
   addEventListener("danzstak:push-enabled", () => document.querySelector('.call-alerts-prompt[data-reason="off"]')?.remove());
   addEventListener("danzstak:call-device-ready", event => { if (event.detail?.registered === true) prompt(); });
-  addEventListener("danzstak:call-device-registered", () => prompt());
+  // A phone just registered for calls: if it still can't ring with SYNC closed, say so now, even if an earlier line was closed.
+  addEventListener("danzstak:call-device-registered", () => setTimeout(() => prompt(true), 1500));
   setTimeout(() => prompt(), 2500);
   window.danzstakCallAlerts = Object.freeze({ testRinger, prompt });
 })();

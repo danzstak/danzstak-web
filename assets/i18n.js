@@ -419,6 +419,29 @@
   id:["Tidak ada koneksi sekarang. Pesanmu masih di sini dan akan terkirim saat koneksi kembali.","Panggilan terputus. Telepon lagi untuk lanjut bicara."]
  };
  for(const [language,values] of Object.entries(sendWhenBack))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(sendWhenBackKeys.map((key,index)=>[key,values[index]])));
+ /* Owner 2026-11-24 ("if the app is close it should still ring"): what the caller sees when the other person's phone can't ring with SYNC closed. */
+ const cantRingKey="{name}'s phone can't ring while SYNC is closed.";
+ const cantRing={
+  es:"El teléfono de {name} no puede sonar mientras SYNC está cerrado.",
+  fr:"Le téléphone de {name} ne peut pas sonner tant que SYNC est fermé.",
+  de:"Das Telefon von {name} kann nicht klingeln, solange SYNC geschlossen ist.",
+  pt:"O telefone de {name} não pode tocar enquanto o SYNC estiver fechado.",
+  it:"Il telefono di {name} non può squillare mentre SYNC è chiuso.",
+  ko:"SYNC가 닫혀 있는 동안에는 {name}님의 휴대폰이 울릴 수 없습니다.",
+  ja:"SYNCが閉じている間、{name}さんの電話は鳴りません。",
+  "zh-Hans":"SYNC 关闭时，{name} 的手机无法响铃。",
+  "zh-Hant":"SYNC 關閉時，{name} 的手機無法響鈴。",
+  fil:"Hindi makakapag-ring ang phone ni {name} habang sarado ang SYNC.",
+  hi:"SYNC बंद रहने पर {name} का फ़ोन नहीं बज सकता।",
+  vi:"Điện thoại của {name} không thể đổ chuông khi SYNC đang đóng.",
+  th:"โทรศัพท์ของ {name} ดังไม่ได้ขณะที่ SYNC ปิดอยู่",
+  id:"Ponsel {name} tidak bisa berdering selama SYNC ditutup."
+ };
+ for(const [language,value] of Object.entries(cantRing))(dictionaries[language]||(dictionaries[language]={}))[cantRingKey]=value;
+ /* Owner 2026-11-24 ("when user goes to the desktop the video stops"): over the other person's picture while their camera is paused. */
+ const pausedKey="{name} paused the video";
+ const paused={es:"{name} pausó el video",fr:"{name} a mis la vidéo en pause",de:"{name} hat das Video pausiert",pt:"{name} pausou o vídeo",it:"{name} ha messo in pausa il video",ko:"{name}님이 영상을 일시정지했습니다",ja:"{name}さんがビデオを一時停止しました","zh-Hans":"{name} 暂停了视频","zh-Hant":"{name} 暫停了視訊",fil:"Ipinause ni {name} ang video",hi:"{name} ने वीडियो रोक दिया",vi:"{name} đã tạm dừng video",th:"{name} หยุดวิดีโอชั่วคราว",id:"{name} menjeda video"};
+ for(const [language,value] of Object.entries(paused))(dictionaries[language]||(dictionaries[language]={}))[pausedKey]=value;
  const callNetworkKeys=["DanzStak is taking too long to respond. Retrying automatically.","DanzStak cannot connect to calls right now. Check your connection and try again.","Session expired","Request failed"];
  const callNetworkGuidance={
   es:["DanzStak está tardando demasiado en responder. Reintentando automáticamente.","DanzStak no puede conectarse a las llamadas ahora. Comprueba tu conexión y vuelve a intentarlo.","La sesión caducó","La solicitud falló"],

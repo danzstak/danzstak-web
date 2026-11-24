@@ -39,16 +39,22 @@ async function shot(page, name) { try { await page.screenshot({ path: path.join(
         if (p === "/conversations") return route.fulfill(json({ conversations: [] }));
         return route.fulfill(json(p === "/friends" ? { friends: [] } : {}));
       });
-      await page.addInitScript(() => { window.__shared = null; Object.defineProperty(navigator, "share", { configurable: true, value: async data => { window.__shared = data; } }); window.danzstakEnablePush = async () => {}; });
+      await page.addInitScript(() => { window.__shared = null; Object.defineProperty(navigator, "share", { configurable: true, value: async data => { window.__shared = data; } }); Object.defineProperty(Notification, "permission", { configurable: true, get: () => "default" }); /* a phone never asked about notifications (headless Chromium says "denied") */ window.__pushAsks = 0; window.danzstakEnablePush = async () => { window.__pushAsks++; }; try { localStorage.setItem("danzstak_call_alerts_prompt", "2026-11-01T00:00:00.000Z"); } catch {} });
       await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
       await page.waitForFunction(() => typeof window.danzstakBeginCallingDeviceEnrollment === "function", null, { timeout: 15000 });
       await page.waitForTimeout(1200);
-      await page.evaluate(() => { window.danzstakEnablePush = async () => {}; }); // the real one waits for a browser permission prompt
+      await page.evaluate(() => { window.__pushAsks = 0; window.danzstakEnablePush = async () => { window.__pushAsks++; }; }); // the real one waits for a browser permission prompt
       // Open registration, finish it as the SMS step does (challenge -> confirmed code).
       await page.evaluate(() => window.danzstakRequireCallingDevice?.({}));
       await page.waitForTimeout(400);
       if (!(await page.evaluate(() => document.getElementById("callingDevicesDialog").open))) failures.push(`${label}: registration window did not open`);
       await page.evaluate(async () => { await window.danzstakBeginCallingDeviceEnrollment(); window.dispatchEvent(new CustomEvent("danzstak:device-otp-confirmed", { detail: { deviceGrantId: "g-1", deviceGrantToken: "t".repeat(43) } })); });
+      // Owner 2026-11-24 ("if the app is close it should still ring"): registering asks for call alerts right away (a closed
+      // SYNC only rings through them), and if this phone still can't ring with SYNC closed, the "Turn on call alerts" line
+      // shows, even though it was closed on this device before.
+      await page.waitForFunction(() => window.__pushAsks > 0, null, { timeout: 5000 }).catch(() => failures.push(`${label}: registering didn't ask for call alerts`));
+      const turnOn = await page.waitForFunction(() => document.querySelector('.call-alerts-prompt[data-reason="off"]'), null, { timeout: 6000 }).then(() => true).catch(() => false);
+      if (!turnOn) failures.push(`${label}: after registering, a phone that can't ring with SYNC closed didn't show "Turn on call alerts" (it had been closed before)`);
       // T3/F16 (#660): "Save the SYNC app to your home screen" comes first; "Set up this phone" waits for it.
       const offered = await page.locator("#syncAppOffer[open]").waitFor({ timeout: 8000 }).then(() => true).catch(() => false);
       if (!offered) failures.push(`${label}: the SYNC app offer did not show after registration`);

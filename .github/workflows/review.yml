@@ -104,6 +104,8 @@ jobs:
             '.\browser-checks\foreground-call-ringtone.cjs'
             '.\browser-checks\ringer-loudness.cjs'
             '.\browser-checks\ringback-loudness.cjs'
+            '.\browser-checks\call-reach.cjs'
+            '.\browser-checks\call-video-away.cjs'
             '.\browser-checks\sync-thread-style.cjs'
             '.\browser-checks\sync-attach.cjs'
             '.\browser-checks\sync-chat-menu.cjs'

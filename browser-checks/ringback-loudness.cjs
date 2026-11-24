@@ -39,9 +39,11 @@ const base = String(process.env.DANZSTAK_LOCAL_URL || process.env.DANZSTAK_FEED_
     console.log(`Ringback: ${result.before.bandDb.toFixed(1)} → ${result.after.bandDb.toFixed(1)} dB in the phone-speaker band (+${gain.toFixed(1)} dB), peak ${result.after.peak.toFixed(2)}`);
     assert.ok(gain >= 10, `caller's ringback is only ${gain.toFixed(1)} dB louder (needs 10 dB)`);
     // Owner 2026-11-19, later the same evening: "you can turn down … 6 dB … on the caller side the back tone … -16 to -18
-    // are usually good back tone". It measured -9.8 dB in the speaker band; it now sits at about -17 dB (peak about 0.42).
-    assert.ok(result.after.bandDb >= -18 && result.after.bandDb <= -16, `the ringback sits between -16 and -18 dB in the speaker band (${result.after.bandDb.toFixed(1)} dB)`);
-    assert.ok(result.after.peak <= 0.45, `peak ${result.after.peak.toFixed(2)} keeps headroom`);
+    // are usually good back tone". It measured -9.8 dB in the speaker band and went to -17.0 dB (peak 0.42).
+    // Owner 2026-11-24: "need change the backtone of the callers phone down 3-6db": 3 to 6 dB under that -17.0 dB, so
+    // between -20 and -23 dB (it sits at about -21.5 dB, peak about 0.25).
+    assert.ok(result.after.bandDb >= -23 && result.after.bandDb <= -20, `the ringback sits 3–6 dB under the old -17 dB, between -20 and -23 dB in the speaker band (${result.after.bandDb.toFixed(1)} dB)`);
+    assert.ok(result.after.peak <= 0.3, `peak ${result.after.peak.toFixed(2)} keeps headroom`);
     assert.ok(result.after.peak <= 0.98, `caller's ringback clips (peak ${result.after.peak.toFixed(2)})`);
     console.log("Ringback loudness check passed.");
   } finally { await browser.close(); }
