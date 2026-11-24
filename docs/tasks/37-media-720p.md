@@ -9,7 +9,7 @@ Owner: "I need all the video and images scaled to 720p for faster load time" —
 in the phone before upload (JPEG/WebP quality 0.82, PNG stays PNG). GIFs, HEIC the browser can't draw and non-images
 pass through; `data-no-scale` opts an input out. Smaller uploads, smaller downloads, same upload API.
 
-## Part 2 — videos (needs the owner's go-ahead: new AWS service + cost)
+## Part 2 — videos (owner 2026-11-24: build it with our own ffmpeg converter, not MediaConvert)
 Phones can't re-encode video reliably in the browser, so videos are scaled on the server:
 - S3 `ObjectCreated` on the uploads prefix → small Lambda → **AWS Elemental MediaConvert** job: H.264 MP4, fit inside
   1280×720 / 720×1280 (QVBR, ~2.5 Mbps cap), AAC audio kept, `+faststart` for quick start, plus a poster JPEG.
