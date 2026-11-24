@@ -366,7 +366,7 @@ foreach ($profileCleanupControl in @('for(let attempt=0;attempt<3;attempt++)', "
 $requiredDataPermissions = @(
   'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]',
   'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:DeleteItem]',
-  'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Scan, dynamodb:UpdateItem]'
+  'Action: [dynamodb:GetItem, dynamodb:BatchGetItem, dynamodb:PutItem, dynamodb:Scan, dynamodb:UpdateItem]'
 )
 foreach ($permission in $requiredDataPermissions) {
   if (-not $template.Contains($permission)) {
