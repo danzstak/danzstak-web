@@ -256,6 +256,7 @@ jobs:
             '.\browser-checks\not-found-pages.cjs'
             '.\browser-checks\epk-actions.cjs'
             '.\browser-checks\epk-video-check.cjs'
+            '.\browser-checks\epk-artist-verification.cjs'
             '.\browser-checks\hometown-swatches.cjs'
             '.\browser-checks\epk-hometown.cjs'
             '.\browser-checks\tour-hometown.cjs'
