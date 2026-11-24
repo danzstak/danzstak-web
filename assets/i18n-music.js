@@ -5763,3 +5763,172 @@
 };
  for(const [lang,list] of Object.entries(pats))(p[lang]||(p[lang]=[])).push(...list);
 })();
+
+// Spec 46: published EPK versions (owner 2026-11-24: "need a way to see my previous published epk"), the Unpublish
+// confirm and the save lines that say venues still see the published EPK, and the EPK link-preview lines.
+(() => {
+ const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
+ const add={
+"it": {
+"Published versions": "Versioni pubblicate",
+"What venues saw each time you published. The newest 20 are kept.": "Cosa hanno visto i locali ogni volta che hai pubblicato. Teniamo le 20 più recenti.",
+"Close": "Chiudi",
+"Published.": "Pubblicato.",
+"Venues see your published EPK. Your changes are a draft.": "I locali vedono il tuo EPK pubblicato. Le tue modifiche sono una bozza.",
+"Bring back this version?": "Ripristinare questa versione?",
+"The builder will show this version. Your saved draft stays as it is until you save again.": "L'editor mostrerà questa versione. La bozza salvata resta com'è finché non salvi di nuovo.",
+"Bring it back": "Ripristina",
+"Cancel": "Annulla",
+"Brought back a published version. Save the draft, or publish it to make it live again.": "Versione pubblicata ripristinata. Salva la bozza, oppure pubblicala per rimetterla online.",
+"Latest": "Ultima",
+"View": "Vedi",
+"Bring back": "Ripristina",
+"Loading your published versions...": "Caricamento delle versioni pubblicate...",
+"Nothing published yet. Each time you publish, that version is kept here.": "Ancora niente di pubblicato. Ogni volta che pubblichi, quella versione resta qui.",
+"The published versions could not be loaded.": "Non è stato possibile caricare le versioni pubblicate.",
+"That version is no longer kept.": "Quella versione non è più conservata.",
+"Take this EPK offline?": "Togliere questo EPK da internet?",
+"Venues with the link will see that it's not available. Your draft and your published versions stay.": "I locali con il link vedranno che non è disponibile. La bozza e le versioni pubblicate restano.",
+"Unpublish": "Ritira",
+"Keep it online": "Lascialo online",
+"Taking the EPK offline...": "Ritiro dell'EPK...",
+"EPK unpublished. Your draft is saved.": "EPK ritirato. La bozza è salvata.",
+"Draft saved. Venues still see your published EPK.": "Bozza salvata. I locali vedono ancora il tuo EPK pubblicato.",
+"Private draft saved.": "Bozza privata salvata.",
+"Back to my EPK": "Torna al mio EPK",
+"A version you published before. Only you can see this page.": "Una versione che hai pubblicato prima. Solo tu puoi vedere questa pagina.",
+"Links to this EPK show a plain DanzStak card.": "I link a questo EPK mostrano una semplice scheda DanzStak.",
+"Links to this EPK show this card on Facebook, WhatsApp, Messages and in Mix.": "I link a questo EPK mostrano questa scheda su Facebook, WhatsApp, Messaggi e nel Mix.",
+"Making your link preview...": "Preparazione dell'anteprima del link...",
+"Show my EPK card in link previews": "Mostra la scheda del mio EPK nelle anteprime dei link",
+"The link preview couldn't be saved.": "Non è stato possibile salvare l'anteprima del link."
+},
+"fr": {
+"Published versions": "Versions publiées",
+"What venues saw each time you published. The newest 20 are kept.": "Ce que les salles ont vu à chaque publication. Les 20 plus récentes sont gardées.",
+"Close": "Fermer",
+"Published.": "Publié.",
+"Venues see your published EPK. Your changes are a draft.": "Les salles voient ton EPK publié. Tes changements sont un brouillon.",
+"Bring back this version?": "Reprendre cette version ?",
+"The builder will show this version. Your saved draft stays as it is until you save again.": "L'éditeur affichera cette version. Ton brouillon enregistré reste tel quel jusqu'à ta prochaine sauvegarde.",
+"Bring it back": "La reprendre",
+"Cancel": "Annuler",
+"Brought back a published version. Save the draft, or publish it to make it live again.": "Version publiée reprise. Enregistre le brouillon, ou publie-la pour la remettre en ligne.",
+"Latest": "Dernière",
+"View": "Voir",
+"Bring back": "Reprendre",
+"Loading your published versions...": "Chargement de tes versions publiées...",
+"Nothing published yet. Each time you publish, that version is kept here.": "Rien de publié pour l'instant. Chaque publication est gardée ici.",
+"The published versions could not be loaded.": "Les versions publiées n'ont pas pu être chargées.",
+"That version is no longer kept.": "Cette version n'est plus gardée.",
+"Take this EPK offline?": "Retirer cet EPK d'internet ?",
+"Venues with the link will see that it's not available. Your draft and your published versions stay.": "Les salles qui ont le lien verront qu'il n'est plus disponible. Ton brouillon et tes versions publiées restent.",
+"Unpublish": "Dépublier",
+"Keep it online": "Le garder en ligne",
+"Taking the EPK offline...": "Retrait de l'EPK...",
+"EPK unpublished. Your draft is saved.": "EPK dépublié. Ton brouillon est enregistré.",
+"Draft saved. Venues still see your published EPK.": "Brouillon enregistré. Les salles voient toujours ton EPK publié.",
+"Private draft saved.": "Brouillon privé enregistré.",
+"Back to my EPK": "Retour à mon EPK",
+"A version you published before. Only you can see this page.": "Une version que tu as publiée avant. Personne d'autre ne voit cette page.",
+"Links to this EPK show a plain DanzStak card.": "Les liens vers cet EPK affichent une simple carte DanzStak.",
+"Links to this EPK show this card on Facebook, WhatsApp, Messages and in Mix.": "Les liens vers cet EPK affichent cette carte sur Facebook, WhatsApp, Messages et dans le Mix.",
+"Making your link preview...": "Création de l'aperçu du lien...",
+"Show my EPK card in link previews": "Afficher la carte de mon EPK dans les aperçus de liens",
+"The link preview couldn't be saved.": "L'aperçu du lien n'a pas pu être enregistré."
+},
+"es": {
+"Published versions": "Versiones publicadas",
+"What venues saw each time you published. The newest 20 are kept.": "Lo que vieron las salas cada vez que publicaste. Se guardan las 20 más recientes.",
+"Close": "Cerrar",
+"Published.": "Publicado.",
+"Venues see your published EPK. Your changes are a draft.": "Las salas ven tu EPK publicado. Tus cambios son un borrador.",
+"Bring back this version?": "¿Recuperar esta versión?",
+"The builder will show this version. Your saved draft stays as it is until you save again.": "El editor mostrará esta versión. Tu borrador guardado queda igual hasta que vuelvas a guardar.",
+"Bring it back": "Recuperarla",
+"Cancel": "Cancelar",
+"Brought back a published version. Save the draft, or publish it to make it live again.": "Versión publicada recuperada. Guarda el borrador o publícala para ponerla en línea otra vez.",
+"Latest": "Última",
+"View": "Ver",
+"Bring back": "Recuperar",
+"Loading your published versions...": "Cargando tus versiones publicadas...",
+"Nothing published yet. Each time you publish, that version is kept here.": "Aún no has publicado nada. Cada vez que publiques, esa versión se guarda aquí.",
+"The published versions could not be loaded.": "No se pudieron cargar las versiones publicadas.",
+"That version is no longer kept.": "Esa versión ya no se guarda.",
+"Take this EPK offline?": "¿Quitar este EPK de internet?",
+"Venues with the link will see that it's not available. Your draft and your published versions stay.": "Las salas con el enlace verán que no está disponible. Tu borrador y tus versiones publicadas se quedan.",
+"Unpublish": "Despublicar",
+"Keep it online": "Mantenerlo en línea",
+"Taking the EPK offline...": "Quitando el EPK...",
+"EPK unpublished. Your draft is saved.": "EPK despublicado. Tu borrador está guardado.",
+"Draft saved. Venues still see your published EPK.": "Borrador guardado. Las salas siguen viendo tu EPK publicado.",
+"Private draft saved.": "Borrador privado guardado.",
+"Back to my EPK": "Volver a mi EPK",
+"A version you published before. Only you can see this page.": "Una versión que publicaste antes. Solo tú puedes ver esta página.",
+"Links to this EPK show a plain DanzStak card.": "Los enlaces a este EPK muestran una tarjeta simple de DanzStak.",
+"Links to this EPK show this card on Facebook, WhatsApp, Messages and in Mix.": "Los enlaces a este EPK muestran esta tarjeta en Facebook, WhatsApp, Mensajes y en el Mix.",
+"Making your link preview...": "Creando la vista previa del enlace...",
+"Show my EPK card in link previews": "Mostrar la tarjeta de mi EPK en las vistas previas de enlaces",
+"The link preview couldn't be saved.": "No se pudo guardar la vista previa del enlace."
+}
+};
+  for(const [lang,words] of Object.entries(add))Object.assign(t[lang]||(t[lang]={}),words);
+ const p=window.danzstakPatterns||(window.danzstakPatterns={});
+ const pats={
+"it": [
+[
+"Venues see the version you published on {}. Your changes are a draft.",
+"I locali vedono la versione che hai pubblicato il {0}. Le tue modifiche sono una bozza."
+],
+[
+"Published on {}.",
+"Pubblicato il {0}."
+],
+[
+"Brought back the version you published on {}. Save the draft, or publish it to make it live again.",
+"Ripristinata la versione pubblicata il {0}. Salva la bozza, oppure pubblicala per rimetterla online."
+],
+[
+"The version you published on {}. Only you can see this page.",
+"La versione che hai pubblicato il {0}. Solo tu puoi vedere questa pagina."
+]
+],
+"fr": [
+[
+"Venues see the version you published on {}. Your changes are a draft.",
+"Les salles voient la version publiée le {0}. Tes changements sont un brouillon."
+],
+[
+"Published on {}.",
+"Publié le {0}."
+],
+[
+"Brought back the version you published on {}. Save the draft, or publish it to make it live again.",
+"Version du {0} reprise. Enregistre le brouillon, ou publie-la pour la remettre en ligne."
+],
+[
+"The version you published on {}. Only you can see this page.",
+"La version publiée le {0}. Personne d'autre ne voit cette page."
+]
+],
+"es": [
+[
+"Venues see the version you published on {}. Your changes are a draft.",
+"Las salas ven la versión que publicaste el {0}. Tus cambios son un borrador."
+],
+[
+"Published on {}.",
+"Publicado el {0}."
+],
+[
+"Brought back the version you published on {}. Save the draft, or publish it to make it live again.",
+"Recuperada la versión que publicaste el {0}. Guarda el borrador o publícala para ponerla en línea otra vez."
+],
+[
+"The version you published on {}. Only you can see this page.",
+"La versión que publicaste el {0}. Solo tú puedes ver esta página."
+]
+]
+};
+ for(const [lang,list] of Object.entries(pats))(p[lang]||(p[lang]=[])).push(...list);
+})();

@@ -4550,8 +4550,11 @@ const epkWorkspaceId = "epk-workspace-v1";
 const epkPublicPartition = "epk-public";
 const epkSharePartition = "epk-private-share";
 // Spec 46 (owner 2026-11-24: "need a way to see my previous published epk"): every publish keeps a copy of what venues
-// saw, the newest 20, under the artist's own partition. Train B adds an EPK id to this prefix for several EPKs.
-const epkVersionPrefix = "epkv#main#";
+// saw, the newest 20. They live in their own partition (epkv#<member>), not the member's: the Tour list (GET /tours) and
+// the account export read the member's whole partition and must not pick up 20 copies of the EPK. Train B swaps "main"
+// for an EPK id when an artist has several EPKs.
+const epkVersionPartition = userId => `epkv#${userId}`;
+const epkVersionPrefix = "main#";
 const epkVersionsKept = 20;
 const epkVersionIdPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const epkOutreachPartition = "epk-outreach-share";
@@ -4747,12 +4750,12 @@ async function validateBookingOutreachEpkLink({ userId, venueKey, outreachId, me
 
 function epkMediaKeysOf(kit) { return [...new Set((kit?.media || []).map(item => item?.key || "").filter(Boolean))]; }
 function epkVersionRecords(userId) {
-  return queryAll({ TableName: toursTable, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: userId }, ":prefix": { S: epkVersionPrefix } }, ProjectionExpression: "tourId, publishedAt, artistName, mediaKeys", ConsistentRead: true }, 500);
+  return queryAll({ TableName: toursTable, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: epkVersionPartition(userId) }, ":prefix": { S: epkVersionPrefix } }, ProjectionExpression: "tourId, publishedAt, artistName, mediaKeys", ConsistentRead: true }, 500);
 }
 function epkDeletionPlan(existingItem, ownerPrefix, ownerKey, versions = [], publishedKit = null) {
   const publicId = /^[a-z0-9-]{3,64}$/.test(existingItem?.publicId?.S || "") ? existingItem.publicId.S : "";
   const transaction = [{ Delete: { TableName: toursTable, Key: ownerKey } }];
-  for (const version of versions) transaction.push({ Delete: { TableName: toursTable, Key: { userId: ownerKey.userId, tourId: { S: version.tourId.S } } } });
+  for (const version of versions) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkVersionPartition(ownerKey.userId.S) }, tourId: { S: version.tourId.S } } } });
   if (publicId) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } } } });
   if (publicId) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkSharePartition }, tourId: { S: publicId } } } });
   let previousKit = {};
@@ -4869,7 +4872,7 @@ async function epkWorkspace(event, method) {
     if (params.version !== undefined) {
       const id = String(params.version || "");
       if (!epkVersionIdPattern.test(id)) return reply(400, { error: "Choose a published version." });
-      const found = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: epkVersionPrefix + id } }, ConsistentRead: true }))).Item;
+      const found = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkVersionPartition(userId) }, tourId: { S: epkVersionPrefix + id } }, ConsistentRead: true }))).Item;
       let kit = null;
       try { kit = JSON.parse(found?.plan?.S || "null"); } catch { kit = null; }
       if (!kit) return reply(404, { error: "That version is no longer kept." });
@@ -4936,13 +4939,13 @@ async function epkWorkspace(event, method) {
   if (action === "unpublish") removeParts.push("publishedAt", "publishedPlanHash");
   let ownerUpdate = `SET ${setParts.join(", ")}${removeParts.length ? ` REMOVE ${removeParts.join(", ")}` : ""}`;
   if (removedKeys.length) { ownerUpdate += " ADD mediaCleanup :mediaCleanup"; ownerValues[":mediaCleanup"] = { SS: removedKeys }; }
-  const versionItem = newVersion ? { userId: { S: userId }, tourId: newVersion.tourId, plan: { S: plan }, artistName: { S: kit.artistName }, publishedAt: { S: nowIso }, ...(newVersion.mediaKeys.SS.length ? { mediaKeys: newVersion.mediaKeys } : {}) } : null;
+  const versionItem = newVersion ? { userId: { S: epkVersionPartition(userId) }, tourId: newVersion.tourId, plan: { S: plan }, artistName: { S: kit.artistName }, publishedAt: { S: nowIso }, ...(newVersion.mediaKeys.SS.length ? { mediaKeys: newVersion.mediaKeys } : {}) } : null;
   await db.send(new TransactWriteItemsCommand({ TransactItems: [
     { Update: { TableName: toursTable, Key: ownerKey, UpdateExpression: ownerUpdate, ExpressionAttributeNames: { "#name": "name", "#plan": "plan" }, ExpressionAttributeValues: ownerValues } },
     ...(publish ? [{ Put: { TableName: toursTable, Item: { ...publicKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }] : []),
     ...(action === "unpublish" ? [{ Delete: { TableName: toursTable, Key: publicKey } }] : []),
     ...(versionItem ? [{ Put: { TableName: toursTable, Item: versionItem } }] : []),
-    ...prunedVersions.map(version => ({ Delete: { TableName: toursTable, Key: { userId: { S: userId }, tourId: version.tourId } } })),
+    ...prunedVersions.map(version => ({ Delete: { TableName: toursTable, Key: { userId: { S: epkVersionPartition(userId) }, tourId: version.tourId } } })),
     ...(shareHash ? [{ Put: { TableName: toursTable, Item: { userId: { S: epkSharePartition }, tourId: { S: publicId }, name: { S: `${kit.artistName} private EPK` }, plan: { S: plan }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }] : [])
   ] }));
   const cleanup = await cleanupEpkMediaObjects(ownerKey, ownerPrefix, pendingMediaCleanup, [...retained]);

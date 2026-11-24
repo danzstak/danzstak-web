@@ -48,6 +48,18 @@ EPKs, several of them can be for the same artist, and each keeps its published v
   a page the act controls, the website, or an editor's review).
 - Verifying a name once covers all 5 of its EPKs. A new name added later (an alias found by the AI build) starts
   unverified.
+- **A verified name is announced in Mix** (owner 2026-11-24: "when they do we should publish the artist to the mix").
+  - One scene-news card per name (F15i, the one-in-five Mix slot): the artist's picture, "{Name} is verified on
+    DanzStak", their genre and town, and the published EPK link.
+  - It shows once per member and never repeats.
+  - The artist sees "Announce on DanzStak" (on by default) when the name is verified, and can turn it off.
+  - This is built with the task 20 train: the verification records the moment, and the scene-news card reads it.
+- **How to verify** (owner 2026-11-24: "i dont know a good way to verify"). Task 20's methods, easiest first:
+  1. Put a short code DanzStak gives on a page the act already controls (Bandcamp "about", Instagram or Facebook
+     bio, SoundCloud), and DanzStak checks it once.
+  2. A line on the act's own website.
+  3. An editor's review. Well-known names always go to an editor.
+  - One check covers every EPK of that name.
 
 ### Versions
 - **Save draft never takes the published EPK offline.** Venues keep seeing the last published version until the artist
@@ -74,7 +86,7 @@ EPKs, several of them can be for the same artist, and each keeps its published v
   - The existing `epk-workspace-v1` record stays where it is and is EPK `main`. Nothing is migrated.
 - Public copy: `epk-public / <publicId>`, unchanged, plus `epkId`. It is written only on publish and deleted only on
   Unpublish or Delete.
-- Version: `tourId = epkv#<epkId>#<publishedAt>` with the published `plan`. Publishing the 21st version drops the oldest.
+- Version: partition `epkv#<member>` (not the member's own partition, which the Tour list and the account export read whole), `tourId = <epkId>#<publishedAt>` (Train A: `main#<publishedAt>`), with the published `plan`. Publishing the 21st version drops the oldest.
 - Files: a file is deleted only when no EPK draft, public copy or kept version of the account still uses it. Each save
   queries the account's EPK and version records to check.
 - Routes: the existing `/epk` route, with `?epk=<id>`, `?list=1`, `?versions=1` and `?version=<publishedAt>`. POST

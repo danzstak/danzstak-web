@@ -31,7 +31,7 @@ const fs = require("node:fs");
   assert.match(backend, /expiresAt = now\(\) \+ 45 \* 86400/);
   assert.match(frontend, /sessionStorage\.getItem\(`danzstakEpkOpen:/, "one browser session should not inflate the open count on reload");
   assert.match(frontend, /data\.permissions\?\.allowPdf !== true/);
-  assert.match(frontend, /privateView = Boolean\(privateId \|\| outreachId \|\| data\.private\)/, "private and per-venue EPK views must suppress reusable share controls");
+  assert.match(frontend, /privateView = Boolean\(privateId \|\| outreachId \|\| versionId \|\| data\.private\)/, "private, per-venue and past-version EPK views must suppress reusable share controls");
   assert.match(frontend, /byId\("copyEpkLink"\)\.hidden = privateView/);
   assert.match(frontend, /byId\("showEpkQr"\)\.hidden = privateView/);
   assert.match(frontend, /actions\.hidden = \[\.\.\.actions\.children\]\.every\(control => control\.hidden\)/, "an empty action row must collapse instead of leaving dead space");
