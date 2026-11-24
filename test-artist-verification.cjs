@@ -289,7 +289,9 @@ const commands = Object.fromEntries(["GetItemCommand", "PutItemCommand", "QueryC
   assert.ok(workspace.indexOf("artistVerificationService().gate({ userId, artistName: kit.artistName") > 0 && workspace.indexOf("artistVerificationService().gate") < workspace.indexOf("UpdateExpression: ownerUpdate"), "publish is gated before anything is written");
   assert.match(workspace, /verifiedAt: \{ S: verified\.verifiedAt \}/, "the public EPK carries the verified mark");
   const outreach = index.slice(index.indexOf("async function outreachEpkShare"), index.indexOf("function reviewTargetsFromPublishedEpk"));
-  assert.ok(outreach.includes("artistVerificationService().gate({ userId, artistName: kitArtistName(epkResult.Item)"), "venue EPK links need a verified act");
+  // Spec 47: a venue link carries the published EPK, so the act checked is the one on that published copy; the hold
+  // still comes from the EPK record.
+  assert.ok(outreach.includes("artistVerificationService().gate({ userId, artistName: kitArtistName(publishedCopy), epkItem: epkResult.Item })"), "venue EPK links need a verified act");
   assert.ok(outreach.includes("impersonationHold?.BOOL === true) return reply(404"), "venue links stop during a hold");
   assert.match(index, /path\.startsWith\("\/epk\/verify"\)/);
   assert.match(index, /Verified artist on DanzStak\./, "pitch emails carry the mark");

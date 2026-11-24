@@ -110,3 +110,37 @@
 @keyframes epk-check-pulse{to{opacity:.35}}
 @media(prefers-reduced-motion:reduce){.epk-video-check-row[data-state="checking"]::before{animation:none}}
 .epk-player-note{margin:6px 0 0;opacity:.75;font-size:.9rem}
+/* Published versions (spec 46, owner 2026-11-24: "need a way to see my previous published epk"). */
+.epk-publish-state{margin:-4px 0 8px;color:#185e2e;font-size:.92rem;font-weight:700;line-height:1.4}
+.epk-publish-state[hidden]{display:none}
+.epk-versions-row{margin:0 0 10px}
+.epk-versions-open{display:inline-flex;align-items:center;min-height:44px}
+.epk-versions-open[hidden]{display:none}
+.epk-versions-dialog{width:min(92vw,520px);max-height:min(86vh,640px);padding:18px;border:1px solid #bdc6d3;border-radius:16px;background:#fff;color:#172033;box-shadow:0 20px 60px #17203340}
+.epk-versions-dialog::backdrop{background:#17203399}
+.epk-versions-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 4px}
+.epk-versions-dialog h2{margin:0;font-size:1.25rem}
+.epk-versions-head button{flex:none;min-width:44px;min-height:44px}
+.epk-versions-dialog .hint{margin:0 0 10px}
+.epk-versions-list{margin:0;padding:0;list-style:none}
+.epk-version{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #e3e8ef}
+.epk-version:first-child{border-top:0}
+.epk-version__when{min-width:0;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.epk-version__latest{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:#f0faf3;color:#185e2e;font-size:.75rem;font-weight:800;vertical-align:1px}
+.epk-version__view,.epk-version__back{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:8px 12px;border-radius:10px;font-weight:800;white-space:nowrap}
+.epk-version__view{border:1px solid #aeb8c7;color:#0b56b3;text-decoration:none}
+.epk-version__back{border-color:#15803d;background:#15803d;color:#fff}
+.epk-version__back:disabled{opacity:.6}
+/* The builder's dark skin (epk-skin.css): the list sits on the same panel as the rest of the builder; Bring back is the
+   page's green primary button (buttons.css). */
+body.epk-skin:not(.public-mode) .epk-publish-state{color:var(--sk-ok)}
+body.epk-skin:not(.public-mode) .epk-versions-dialog{background:var(--sk-panel);color:var(--sk-ink);border-color:var(--sk-rule);box-shadow:0 20px 60px #000c}
+body.epk-skin:not(.public-mode) .epk-versions-dialog h2{font-family:var(--sk-display);font-weight:900;font-stretch:112%;text-transform:uppercase}
+body.epk-skin:not(.public-mode) .epk-versions-dialog .hint{color:var(--sk-muted)}
+body.epk-skin:not(.public-mode) .epk-version{border-top-color:var(--sk-rule)}
+body.epk-skin:not(.public-mode) .epk-version__view{border-color:var(--sk-rule);color:var(--sk-ink)}
+body.epk-skin:not(.public-mode) .epk-version__latest{background:#7ddc9a26;color:var(--sk-ok)}
+@media(max-width:380px){
+  .epk-version{grid-template-columns:1fr 1fr;row-gap:6px}
+  .epk-version__when{grid-column:1/-1}
+}
