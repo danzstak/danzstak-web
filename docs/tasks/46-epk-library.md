@@ -1,4 +1,4 @@
-# 45 — EPK library: several EPKs, several per artist, every published version kept
+# 46 — EPK library: several EPKs, several per artist, every published version kept
 
 Owner 2026-11-24: "need a way to see my previous published epk", "users may have a bunch of epk", "and also several per
 artist". Asked "several EPKs, version history, or both?": **both**.
@@ -40,6 +40,15 @@ EPKs, several of them can be for the same artist, and each keeps its published v
       and can change.
 - Each EPK has **its own link** (`danzstak.com/e/<id>`), review link, share card and publish switch.
 
+### Verified names
+- Owner, 2026-11-24: "but verify the artist names to public publish the epk". Every artist name is verified on its
+  own (task 20, #559, required since 2026-11-24) before any of its EPKs goes public, gets a venue link or is pitched.
+  Drafts and previews stay open.
+- My EPKs shows each name's state: Verified ✓, Waiting for review, or **Verify this name** (the task 20 steps: a code on
+  a page the act controls, the website, or an editor's review).
+- Verifying a name once covers all 5 of its EPKs. A new name added later (an alias found by the AI build) starts
+  unverified.
+
 ### Versions
 - **Save draft never takes the published EPK offline.** Venues keep seeing the last published version until the artist
   publishes again or taps **Unpublish**, which is confirmed first.
@@ -79,7 +88,7 @@ EPKs, several of them can be for the same artist, and each keeps its published v
    - Checks: publish → save draft → the public link still shows the published version; Unpublish → 404; 21 publishes
      keep 20; Bring back → publish → live; a venue link never carries a draft; no file used by a kept version is
      deleted.
-2. **Train B: several EPKs.** My EPKs (group by artist, new / copy / rename / delete), per-EPK link, review link and
+2. **Train B: several EPKs** (after task 20 is on main: its verification is kept per artist name, which Train B relies on). My EPKs (group by artist, new / copy / rename / delete), per-EPK link, review link and
    card; booking's "Send with" picker; AI build picks the EPK; Music HQ counts across EPKs.
    - Checks: two EPKs for one artist publish to two links; deleting one leaves the other untouched; a pitch sends the
      chosen EPK; a 6th EPK for one artist is refused (server and screen).
