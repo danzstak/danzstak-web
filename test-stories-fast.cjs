@@ -12,7 +12,8 @@ const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 
-const template = fs.readFileSync("infrastructure/call-signaling/template.yaml", "utf8");
+// Line endings normalised: the Windows CI checkout has CRLF.
+const template = fs.readFileSync("infrastructure/call-signaling/template.yaml", "utf8").replace(/\r\n/g, "\n");
 const lines = template.split(/\r?\n/);
 const start = lines.findIndex(line => line === "        ZipFile: |");
 const source = [];
@@ -158,7 +159,7 @@ const dailies = async user => { const response = await getStories(user); assert.
   // IAM and memory.
   assert.match(template, /Action: \[dynamodb:GetItem, dynamodb:BatchGetItem, dynamodb:PutItem, dynamodb:Scan, dynamodb:UpdateItem\]\n\s+Resource: !GetAtt UserSettingsTable\.Arn/, "the Lambda role may BatchGetItem the settings table");
   assert.match(template, /FunctionName: DANZSTAK-Call-Signaling\n(?:\s+\w+: .*\n){3}\s+Timeout: 10\n\s+MemorySize: 1024\n/, "call-signaling runs at 1024 MB");
-  const deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8");
+  const deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8").replace(/\r\n/g, "\n");
   assert.match(deploy, /--timeout 30 --memory-size 1024 /, "the Auth API deploy sets 1024 MB");
   assert.doesNotMatch(deploy, /memory-size 256/, "no 256 MB left in the Auth API deploy");
 
