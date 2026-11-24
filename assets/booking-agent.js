@@ -858,7 +858,7 @@
   savedPanel.className = "saved-tours";
   savedPanel.setAttribute("aria-labelledby", "savedToursTitle");
   savedTitle.id = "savedToursTitle";
-  savedTitle.textContent = "My upcoming and past gigs";
+  savedTitle.textContent = "My gigs"; savedTitle.setAttribute("aria-label", "My upcoming and past gigs");
   tourName.id = "tourName";
   tourName.placeholder = "Name this tour";
   tourName.maxLength = 100;
@@ -1244,13 +1244,13 @@
       : data.route.direction
         ? `${data.route.requestedDays}-day ${data.route.direction} loop from ${data.route.start.label}`
         : data.route.oneWay
-          ? `${data.route.start.label} → ${data.route.end?.label || turnaround} (one way)`
+          ? `${String(data.route.start.label).split(",")[0]} → ${String(data.route.end?.label || turnaround).split(",")[0]}`
           : turnaround
           ? `${data.route.start.label} → ${turnaround} → ${data.route.start.label}`
           : `${data.route.start.label} round trip`;
     details.textContent = data.route.local
       ? "Club and hotel leads near the selected home market."
-      : `${data.route.distanceMiles.toLocaleString()} road miles, about ${data.route.durationHours.toFixed(1)} wheel hours, and at least ${data.route.minimumDrivingDays} driving days.`;
+      : `${data.route.oneWay ? "One way · " : ""}${data.route.distanceMiles.toLocaleString()} road miles, about ${data.route.durationHours.toFixed(1)} wheel hours, and at least ${data.route.minimumDrivingDays} driving days.`;
     status.className = "hint";
     status.textContent = data.route.departOn && data.route.returnBy
       ? `Travel window ${data.route.departOn} through ${data.route.returnBy}. Dates stay proposed until each venue confirms.`
@@ -1295,7 +1295,9 @@
     researchMarkets.className = "route-research-markets";
     const updateResearchHeading = () => {
       const venueCount = displayedMarkets.reduce((total, market) => total + (market.venues?.length || 0), 0);
-      researchHeading.textContent = `Club research and contacts · ${venueCount} lead${venueCount === 1 ? "" : "s"} in ${displayedMarkets.length} market${displayedMarkets.length === 1 ? "" : "s"}`;
+      // 15-D: one-line title; opening it shows exactly the leads it counts.
+      researchHeading.textContent = "Club research";
+      researchHeading.setAttribute("aria-label", `Club research and contacts · ${venueCount} lead${venueCount === 1 ? "" : "s"} in ${displayedMarkets.length} market${displayedMarkets.length === 1 ? "" : "s"}`);
     };
     updateResearchHeading();
     researchWorkspace.append(researchHeading, researchIntro, researchMarkets);
@@ -1616,13 +1618,39 @@
       dayCell.textContent = String(day + 1);
       dateCell.textContent = dateLabel;
       row.append(dayCell, dateCell, cityCell, venueCell, sleepCell, planCell);
+      if (venue) row.dataset.show = "1"; // counted in "Shows": a show day with a club lead
       body.append(row);
     }
-    summary.textContent = `${days}-day target calendar · ${showIndex} proposed shows`;
+    // 15-D: a one-line title, and each number opens the matching part of the day sheet.
+    summary.textContent = "Day sheet";
     if (showIndex < shows) intro.textContent += ` ${shows} shows requested; ${shows - showIndex} still need club leads.`;
     table.append(head, body);
     tableBox.append(table);
-    details.append(summary, intro);
+    const stats = document.createElement("div");
+    stats.className = "tour-sheet-stats";
+    stats.setAttribute("role", "group");
+    stats.setAttribute("aria-label", "Day sheet totals");
+    const statButton = (label, value, say, onlyShows) => {
+      const button = document.createElement("button"), number = document.createElement("strong"), word = document.createElement("span");
+      button.type = "button"; button.className = "tour-stat"; button.dataset.metric = onlyShows ? "shows" : "days";
+      number.textContent = String(value); word.textContent = label;
+      button.append(number, word);
+      button.setAttribute("aria-label", say);
+      button.setAttribute("aria-pressed", "false");
+      button.disabled = !(Number(value) > 0);
+      button.addEventListener("click", () => {
+        const on = onlyShows ? !table.classList.contains("only-shows") : false;
+        table.classList.toggle("only-shows", on);
+        stats.querySelectorAll(".tour-stat").forEach(item => item.setAttribute("aria-pressed", String(item === button && (on || !onlyShows))));
+        details.open = true;
+        tableBox.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      return button;
+    };
+    stats.append(
+      statButton("Days", days, `${days} day${days === 1 ? "" : "s"} on the day sheet. Show every day.`, false),
+      statButton("Shows", showIndex, `${showIndex} proposed show${showIndex === 1 ? "" : "s"} with a club to pitch. Show only those days.`, true));
+    details.append(summary, stats, intro);
     if (planVenues.length) details.append(addAllToBookingList(planVenues));
     details.append(tableBox);
     return details;

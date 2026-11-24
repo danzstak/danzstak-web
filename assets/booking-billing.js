@@ -10,6 +10,9 @@
     try {
       const data = await request("/tour-manager/credits");
       balance.textContent = String(data.bookingEmailCredits || 0);
+      // 15-D: the number opens credit activity and says what it counts.
+      const credits = Number(data.bookingEmailCredits || 0);
+      balance.closest(".tour-stat")?.setAttribute("aria-label", `${credits} booking-email credit${credits === 1 ? "" : "s"} ready to send. Show credit activity.`);
       summary.textContent = `${data.purchasedCredits || 0} purchased · ${data.sentEmails || 0} sent · ${data.reservedCredits || 0} sending · ${data.bookingEmailCredits || 0} remaining`;
       activity.replaceChildren();
       for (const item of data.activity || []) { const row = document.createElement("li"), date = new Date(item.at); row.textContent = `${item.description}${Number.isNaN(date.getTime()) ? "" : ` — ${date.toLocaleString()}`}`; activity.append(row); }

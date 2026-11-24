@@ -1,0 +1,57 @@
+/* Tour Manager hometown vibe + 15-D layout (task 15-C, owner 2026-11-17).
+   The hometown shows as accents and motif only: page wrap and top stripe, eyebrows, day-sheet header, "Out of <town>"
+   and the origin badge. Forms, buttons, the map and the pipeline keep the DanzStak frame and colours.
+   15-D: one fluid page (no panels inside panels), one-line labels at 320px, every count is a button. */
+
+/* The skin wraps the whole page edge to edge: a 6px hometown stripe at the top, the motif behind every section. */
+body[data-tour-hometown]{background-color:#fff;background-image:linear-gradient(var(--tour-accent),var(--tour-accent)),var(--tour-motif,none);background-size:100% 6px,auto;background-repeat:no-repeat,repeat;background-attachment:scroll}
+/* The top bar is the shared DanzStak frame (ds-app-bar, B1): the hometown never paints it. */
+body[data-tour-hometown] .eyebrow{color:var(--tour-accent)}
+.tour-out-of-line{margin:4px 0 8px}
+.tour-out-of,.tour-origin-badge{display:inline-flex;align-items:baseline;gap:5px;font:600 .74rem/1.2 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;color:#344054}
+.tour-out-of strong,.tour-origin-badge strong{color:var(--tour-accent,#c2410c)}
+.tour-origin-badge{padding:3px 8px;border:1px solid var(--tour-accent,#c2410c);border-radius:999px;background:#fff;vertical-align:middle}
+.tour-day-sheet-head{margin:0;padding:8px 10px;border-top:6px solid var(--tour-accent,#ff5a1f);background-color:#fff;background-image:var(--tour-motif,none)}
+
+/* Counts: a number and a one-line word; the button opens what it counts. */
+/* Beats the planner's filled-button rule (.booking-page main button): a count is a number on the page, not a button block. */
+.booking-page main button.tour-stat,.booking-page main button.tour-stat:hover,button.tour-stat{background:transparent;border:0;color:#172033;padding:8px 0;font-weight:inherit}
+.tour-stat{display:grid;justify-items:start;gap:2px;min-height:44px;padding:8px 0;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.tour-stat strong{font-size:1.35rem;font-weight:900;line-height:1}
+.tour-stat span{font-size:.82rem;font-weight:700;white-space:nowrap;color:#475467}
+.tour-stat:not(:disabled):hover strong,.tour-stat:not(:disabled):focus-visible strong{color:var(--tour-accent,#c2410c);text-decoration:underline;text-underline-offset:3px}
+.tour-stat:disabled{cursor:default;opacity:.7}
+.tour-stat[aria-pressed="true"] span{color:#121418;text-decoration:underline}
+.tour-stat-inline{display:inline-flex;align-items:baseline;gap:6px;padding:0;min-height:44px;font-size:inherit}
+.tour-stat-inline strong{font-size:inherit}
+.tour-stat-inline span{font-size:inherit;color:inherit;font-weight:inherit}
+.tour-manager-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0 10px}
+.tour-sheet-stats{display:flex;gap:0 22px;margin:4px 0 6px}
+.tour-calendar.only-shows tbody tr:not([data-show]){display:none}
+.metric-filter-banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 10px;padding:8px 0;border-top:2px solid var(--tour-accent,#ff5a1f);font-weight:700}
+.metric-filter-banner button{min-height:44px;white-space:nowrap}
+
+/* One fluid page: sections are separated by hairlines, not boxes inside boxes. Fields and buttons keep their frame. */
+.credit-panel,.tour-manager-dashboard,.pitch-stats,.route-dates{border:0;border-top:1px solid #d8dee8;border-radius:0;background:transparent;box-shadow:none;padding-inline:0}
+.tour-calendar-panel{border:0;border-top:1px solid #e4e7ec;border-radius:0;padding-inline:0}
+.tour-manager-stats div,.tour-finance-summary div{background:transparent;border-radius:0;padding-inline:0}
+.venue-card{border:0;border-top:1px solid #d8dee8;border-radius:0;box-shadow:none;background:transparent}
+.venue-card fieldset{border:0;border-top:1px dashed #d0d5dd;border-radius:0;padding-inline:0;background:transparent}
+body[data-tour-hometown] .venue-card,body[data-tour-hometown] .credit-panel{background:transparent}
+
+/* Day sheet on phones: one day per row with a hairline, not a card holding a grey card. */
+@media (max-width:700px){
+  .booking-page .tour-calendar tbody{gap:0}
+  .booking-page .tour-calendar tbody tr{border:0;border-top:1px solid #d8dee8;border-radius:0;background:transparent;box-shadow:none;padding-inline:0}
+  .booking-page .tour-calendar tbody tr td,.booking-page .tour-calendar tbody tr th,.booking-page .tour-calendar tr.off td,.booking-page .tour-calendar tr.off th{background:transparent}
+}
+/* One-line section titles and labels at phone width. */
+@media (max-width:480px){
+  .tour-manager-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  :is(.dashboard-heading h2,.credit-panel h2,.tour-keep-going > h3,.tour-calendar-panel h3,.route-cost-summary h3) {white-space:nowrap}
+}
+@media print{
+  body[data-tour-hometown]{background-image:none}
+  .tour-day-sheet-head{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .tour-stat{pointer-events:none}
+}
