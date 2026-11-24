@@ -12,6 +12,9 @@ With SYNC closed, Android lets a web app show a call notification with the notif
 - **Battery and phones that kill apps**: the app asks to be excluded from battery optimisation (once, translated, with the reason) and says plainly when the phone maker's settings may still close it (Samsung, Xiaomi, Huawei). Never silent: if the connection is down, SYNC says so with a one-tap fix.
 - **Permissions**: notifications, full-screen notifications (Android 14+), battery exclusion, asked once in the member's language.
 
+## iPhone (owner 2026-11-24: "or apple i am not paying them either")
+- No iPhone app: Apple requires its paid developer program for any installed app, even outside the App Store. iPhones stay on the installed web app: with SYNC closed a call shows as a notification with the notification sound (iOS 16.4+, app added to the home screen). SYNC tells iPhone members this once, in their language, and shows how to add SYNC to the home screen so notifications work.
+
 ## Owner steps (when Code's PR says so)
 1. Approve the call-signaling deploy run (adds the WebSocket API).
 2. Install the test app from danzstak.com/app/ on two phones and try a call with the app closed and the phone locked.
