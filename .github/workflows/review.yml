@@ -59,7 +59,7 @@ jobs:
 
   browser-call-media:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 15 # about 9 minutes of checks now (the one-SYNC-window check took it past 10)
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

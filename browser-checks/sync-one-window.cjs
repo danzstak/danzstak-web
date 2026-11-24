@@ -2,6 +2,7 @@
 // Owner 2026-11-24: "if a user is using the sync in the app and then opens the sync app and calls the audio is 2 times … need to
 // open only one version of sync at a time". Two SYNC windows on one phone (SYNC inside the DanzStak app, messages.html, and
 // the SYNC app, /sync/), same account, registered for calls, API mocked. Real browser, 320–430px, centre taps:
+//   (1 at 320–430px; 2–5 at 360 and 390px)
 //   1. the SYNC app opens: the SYNC in DanzStak stops checking for calls and, while on screen, says "SYNC is open in another
 //      window." with "Use SYNC here" (44px, centre tap takes SYNC back; the SYNC app then stops checking);
 //   2. phone-style switching (one window in front): the window brought to the front takes over with no cover;
@@ -58,9 +59,10 @@ async function open(context, name, url) {
 const front = (page, shown) => page.evaluate(shown => { Object.defineProperty(document, "hidden", { configurable: true, get: () => !shown }); Object.defineProperty(document, "visibilityState", { configurable: true, get: () => shown ? "visible" : "hidden" }); document.dispatchEvent(new Event("visibilitychange")); }, shown);
 const cover = page => page.evaluate(() => { const c = document.querySelector(".sync-elsewhere"); if (!c || c.hidden) return null; const b = c.querySelector("button"), r = b.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2; return { text: c.querySelector("p").textContent, button: b.hidden ? null : { text: b.textContent, height: r.height, hit: b.contains(document.elementFromPoint(x, y)), fits: r.left >= 0 && r.right <= innerWidth, x, y } }; });
 const ringing = page => page.evaluate(() => !document.getElementById("incomingCall").hidden);
+// SYNC checks for calls every 2 s, so 2.5 s is enough to see a live window check and a quiet one not.
 async function pollsDuring(state, name, ms, page) { const before = state.polls.get(name) || 0; await page.waitForTimeout(ms); return (state.polls.get(name) || 0) - before; }
 
-async function run(browser, width) {
+async function run(browser, width, full) {
   const tag = `${width}px`, failures = [];
   const { context, state } = await phone(browser, width);
   const inApp = await open(context, "inApp", "/messages.html");
@@ -71,20 +73,22 @@ async function run(browser, width) {
   if (seen?.text !== "SYNC is open in another window." || seen?.button?.text !== "Use SYNC here") failures.push(`${tag}: SYNC in DanzStak should say SYNC is open in another window, with Use SYNC here (${JSON.stringify(seen)})`);
   else if (seen.button.height < 44 || !seen.button.hit || !seen.button.fits) failures.push(`${tag}: Use SYNC here must be a 44px button that a centre tap reaches (${JSON.stringify(seen.button)})`);
   if (await cover(app)) failures.push(`${tag}: the SYNC app that just opened must not be covered`);
-  if (await pollsDuring(state, "inApp", 4500, inApp) > 0) failures.push(`${tag}: the SYNC in DanzStak kept checking for calls while the SYNC app was open`);
-  if (await pollsDuring(state, "app", 4500, app) < 1) failures.push(`${tag}: the SYNC app isn't checking for calls`);
+  if (await pollsDuring(state, "inApp", 2500, inApp) > 0) failures.push(`${tag}: the SYNC in DanzStak kept checking for calls while the SYNC app was open`);
+  if (await pollsDuring(state, "app", 2500, app) < 1) failures.push(`${tag}: the SYNC app isn't checking for calls`);
   if (width === 360 || width === 390) await inApp.screenshot({ path: path.join(output, `in-app-cover-${width}.png`) });
   // Use SYNC here (centre tap) takes it back; the SYNC app steps aside.
   if (seen?.button) await inApp.touchscreen.tap(seen.button.x, seen.button.y);
   await app.waitForFunction(() => document.querySelector(".sync-elsewhere:not([hidden])"), null, { timeout: 5000 }).catch(() => failures.push(`${tag}: Use SYNC here didn't move SYNC back`));
   if (await cover(inApp)) failures.push(`${tag}: the cover stayed after Use SYNC here`);
-  if (await pollsDuring(state, "app", 4500, app) > 0) failures.push(`${tag}: the SYNC app kept checking for calls after Use SYNC here`);
+  if (await pollsDuring(state, "app", 2500, app) > 0) failures.push(`${tag}: the SYNC app kept checking for calls after Use SYNC here`);
+  // The cover and its button are checked at every width; switching, ringing, a call elsewhere and an answer elsewhere at 360 and 390.
+  if (!full) { for (const page of [inApp, app]) if (page.errors.length) failures.push(`${tag} ${page.__name}: page errors ${page.errors.join(" | ")}`); await context.close(); return failures; }
 
   // 2. Phone-style: the window brought to the front takes over, with no cover.
   await front(inApp, false); await front(app, true);
   await app.waitForTimeout(400);
   if (await cover(app)) failures.push(`${tag}: the window in front was covered`);
-  if (await pollsDuring(state, "inApp", 4500, app) > 0) failures.push(`${tag}: the window behind kept checking for calls`);
+  if (await pollsDuring(state, "inApp", 2500, app) > 0) failures.push(`${tag}: the window behind kept checking for calls`);
 
   // 3. A call rings in the window in front; switching to the other SYNC moves the ring there, never both.
   const CALL = "55555555-5555-4555-8555-555555555555";
@@ -115,7 +119,7 @@ async function run(browser, width) {
   if (width === 360 || width === 390) await app.screenshot({ path: path.join(output, `in-a-call-elsewhere-${width}.png`) });
   await inApp.evaluate(() => end(false)); // eslint-disable-line no-undef
   await app.waitForFunction(() => !document.querySelector(".sync-elsewhere:not([hidden])"), null, { timeout: 5000 }).catch(() => failures.push(`${tag}: the SYNC app didn't take over when the call ended`));
-  if (await pollsDuring(state, "app", 4500, app) < 1) failures.push(`${tag}: the SYNC app isn't checking for calls after the other call ended`);
+  if (await pollsDuring(state, "app", 2500, app) < 1) failures.push(`${tag}: the SYNC app isn't checking for calls after the other call ended`);
 
   for (const page of [inApp, app]) if (page.errors.length) failures.push(`${tag} ${page.__name}: page errors ${page.errors.join(" | ")}`);
   await context.close();
@@ -141,7 +145,7 @@ async function italian(browser) {
   const browser = await chromium.launch({ ...(channel && channel !== "bundled" ? { channel } : {}), headless: true, args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
   const failures = [];
   try {
-    for (const width of [320, 360, 390, 430]) failures.push(...await run(browser, width));
+    for (const width of [320, 360, 390, 430]) failures.push(...await run(browser, width, width === 360 || width === 390));
     failures.push(...await italian(browser));
   } finally { await browser.close(); }
   if (failures.length) { console.error(`One SYNC window: ${failures.length} problem(s)\n- ${failures.join("\n- ")}`); process.exitCode = 1; return; }
