@@ -250,6 +250,7 @@ jobs:
             '.\browser-checks\not-found-pages.cjs'
             '.\browser-checks\epk-actions.cjs'
             '.\browser-checks\epk-video-check.cjs'
+            '.\browser-checks\hometown-swatches.cjs'
             '.\browser-checks\roll-empty.cjs'
             '.\browser-checks\profile-picture-links.cjs'
             '.\browser-checks\profile-showcase-fit.cjs'
