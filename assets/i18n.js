@@ -438,6 +438,10 @@
   id:"Ponsel {name} tidak bisa berdering selama SYNC ditutup."
  };
  for(const [language,value] of Object.entries(cantRing))(dictionaries[language]||(dictionaries[language]={}))[cantRingKey]=value;
+ /* Owner 2026-11-24 ("when user goes to the desktop the video stops"): over the other person's picture while their camera is paused. */
+ const pausedKey="{name} paused the video";
+ const paused={es:"{name} pausó el video",fr:"{name} a mis la vidéo en pause",de:"{name} hat das Video pausiert",pt:"{name} pausou o vídeo",it:"{name} ha messo in pausa il video",ko:"{name}님이 영상을 일시정지했습니다",ja:"{name}さんがビデオを一時停止しました","zh-Hans":"{name} 暂停了视频","zh-Hant":"{name} 暫停了視訊",fil:"Ipinause ni {name} ang video",hi:"{name} ने वीडियो रोक दिया",vi:"{name} đã tạm dừng video",th:"{name} หยุดวิดีโอชั่วคราว",id:"{name} menjeda video"};
+ for(const [language,value] of Object.entries(paused))(dictionaries[language]||(dictionaries[language]={}))[pausedKey]=value;
  const callNetworkKeys=["DanzStak is taking too long to respond. Retrying automatically.","DanzStak cannot connect to calls right now. Check your connection and try again.","Session expired","Request failed"];
  const callNetworkGuidance={
   es:["DanzStak está tardando demasiado en responder. Reintentando automáticamente.","DanzStak no puede conectarse a las llamadas ahora. Comprueba tu conexión y vuelve a intentarlo.","La sesión caducó","La solicitud falló"],

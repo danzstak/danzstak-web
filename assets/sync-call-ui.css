@@ -113,3 +113,7 @@ body[data-call-mode="video"][data-call-chrome="hidden"] .ds-call-top,body[data-c
 body[data-call-mode="video"][data-call-chrome="hidden"] .ds-call-top{transform:translateY(-12px)}
 body[data-call-mode="video"][data-call-chrome="hidden"] .media-controls.ds-call-panel{transform:translateY(16px)}
 @media (prefers-reduced-motion:reduce){body[data-call-mode="video"] .ds-call-top,body[data-call-mode="video"] .media-controls.ds-call-panel,body[data-call-mode="video"] .conversation-status{transition:none!important;transform:none!important}}
+/* Owner 2026-11-24 ("when user goes to the desktop the video stops"): the other person went to their home screen, so their
+   camera is paused. Their last picture dims under one line instead of looking frozen (chat.js remoteCamera). */
+.video-grid>figure>.call-remote-paused{position:absolute;inset:0;z-index:1;display:grid;place-items:center;margin:0;padding:24px;background:rgba(11,11,12,.62);color:#fff;font-weight:700;font-size:1rem;line-height:1.35;text-align:center}
+.video-grid>figure>.call-remote-paused[hidden]{display:none}

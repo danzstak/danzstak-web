@@ -390,7 +390,7 @@ foreach ($pushCapability in @(
   "key==='DELETE /push/subscribe'",
   "Content-Encoding':'aes128gcm",
   "signalType==='offer'&&['phone','video'].includes(mode)",
-  "notifyCall(recipientEmail,user.email,user.userId,mode,callId).catch(error=>console.error('Call push failed',error))",
+  "notifyCall(recipientEmail,user.email,user.userId,mode,callId).catch(error=>{console.error('Call push failed',error);return null;})",
   "notifyMessage(recipient,user.email,user.userId).catch(error=>console.error('Message push failed',error))",
   'const pushTranslations=',
   "localizedPush(preferences.language,'message',profile.name)"
@@ -399,7 +399,7 @@ foreach ($pushCapability in @(
 }
 foreach ($pushFanout in @(
   "async function callPushTargets(recipientEmail,excludedDeviceId=''){const [items,devices]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
-  "async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){const preferences=await pushPreferences(recipientEmail,'callAlerts');if(!preferences.enabled)return;const [targets,profile]=await Promise.all([callPushTargets(recipientEmail),publicProfile(senderEmail)]",
+  "async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){const preferences=await pushPreferences(recipientEmail,'callAlerts');if(!preferences.enabled)return 0;const [targets,profile]=await Promise.all([callPushTargets(recipientEmail),publicProfile(senderEmail)]",
   "async function notifyCallResolved(recipientEmail,callId,answeredByDeviceId){const targets=await callPushTargets(recipientEmail,answeredByDeviceId)",
   "async function notifyMessage(recipientEmail,senderEmail,senderMemberId){const preferences=await pushPreferences(recipientEmail,'messageAlerts');if(!preferences.enabled)return;",
   "if(chat?.muted?.BOOL===true)return;const [items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
