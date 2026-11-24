@@ -41,6 +41,10 @@ const TEST_SYNC_NETWORK_CATALOG = Object.freeze({
   priceId: TEST_SYNC_NETWORK_NUMBER_PRICE_ID,
   productId: TEST_SYNC_NETWORK_NUMBER_PRODUCT_ID
 });
+// Stripe Managed Payments is on for the DANZSTAK account: every product in a Checkout session needs a tax code,
+// or Stripe refuses the session (AI-1, 2026-11-23). Inline lines use the same code as the catalog products.
+export const STRIPE_SERVICE_TAX_CODE = "txcd_10000000";
+export const PAYMENTS_UNAVAILABLE_MESSAGE = "Payments aren't working right now. Nothing was charged. Try again later.";
 function stripeCatalog(livemode) { return livemode ? LIVE_STRIPE_CATALOG : TEST_STRIPE_CATALOG; }
 // Owner policy 2026-11-15: a refund returns the price minus Stripe's processing fee; the buyer pays the fee.
 export const REFUND_NOTICE_TEXT = "Refunds return the price minus Stripe's processing fee.";
@@ -83,7 +87,7 @@ function aiEpkCreditsKey(userId) { return { userId: { S: userId }, tourId: { S: 
 export const FEE_LINE_NAME = "DanzStak fee";
 function feeLineForm(index, subtotalCents) {
   const fee = buyerFees(subtotalCents);
-  return fee ? { [`line_items[${index}][price_data][currency]`]: "usd", [`line_items[${index}][price_data][unit_amount]`]: String(fee), [`line_items[${index}][price_data][product_data][name]`]: FEE_LINE_NAME, [`line_items[${index}][quantity]`]: "1" } : {};
+  return fee ? { [`line_items[${index}][price_data][currency]`]: "usd", [`line_items[${index}][price_data][unit_amount]`]: String(fee), [`line_items[${index}][price_data][product_data][name]`]: FEE_LINE_NAME, [`line_items[${index}][price_data][product_data][tax_code]`]: STRIPE_SERVICE_TAX_CODE, [`line_items[${index}][quantity]`]: "1" } : {};
 }
 function priced(subtotalCents) { const feeCents = buyerFees(subtotalCents); return { feeCents, totalCents: subtotalCents + feeCents }; }
 // A paid session must hold exactly the product line plus the fee line, and amount_total must equal price + fee.
@@ -227,7 +231,12 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     try {
       const result = await fetcher(`https://api.stripe.com/v1${path}`, { ...options, signal: controller.signal, headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, ...(options.headers || {}) } });
       const data = await result.json().catch(() => ({}));
-      if (!result.ok) { const error = new Error("Stripe request failed"); error.statusCode = result.status; throw error; }
+      if (!result.ok) {
+        // Stripe's own reason (type, code, param) goes to the logs; never the key, the request or the message text.
+        const reason = data?.error || {};
+        console.error("Stripe request refused", { path: String(path).split("?")[0].replace(/\/(?:cs|pi|re|ch)_[A-Za-z0-9_]+/g, "/:id"), status: result.status, type: String(reason.type || "").slice(0, 60), code: String(reason.code || "").slice(0, 60), param: String(reason.param || "").slice(0, 80) });
+        const error = new Error("Stripe request failed"); error.statusCode = result.status; error.stripeFailure = true; throw error;
+      }
       return data;
     } finally { clearTimeout(timer); }
   }
@@ -386,10 +395,12 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       "line_items[0][price_data][currency]": "usd",
       "line_items[0][price_data][unit_amount]": String(AI_EPK_PRICE_CENTS),
       "line_items[0][price_data][product_data][name]": kind === "redesign" ? "AI EPK redesign" : kind === "profile" ? "AI profile" : "AI EPK",
+      "line_items[0][price_data][product_data][tax_code]": STRIPE_SERVICE_TAX_CODE,
       "line_items[0][quantity]": "1",
       "line_items[1][price_data][currency]": "usd",
       "line_items[1][price_data][unit_amount]": String(AI_EPK_FEE_CENTS),
       "line_items[1][price_data][product_data][name]": "DanzStak fee",
+      "line_items[1][price_data][product_data][tax_code]": STRIPE_SERVICE_TAX_CODE,
       "line_items[1][quantity]": "1",
       client_reference_id: userId,
       "metadata[product]": AI_EPK_PRODUCT,
@@ -1194,18 +1205,29 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     }
   }
 
+  // A checkout that Stripe refuses (or that never reaches Stripe) answers one translated line, never the
+  // generic "Authentication service error". Nothing is stored before Stripe returns a session, so nothing was charged.
+  async function guardedCheckout(event, start) {
+    try { return await start(event); }
+    catch (error) {
+      if (!error?.stripeFailure && !/^Stripe /.test(String(error?.message || "")) && error?.name !== "AbortError") throw error;
+      if (!error?.stripeFailure) console.error("Stripe checkout failed", { errorName: error?.name || "Error" });
+      return response(503, { error: PAYMENTS_UNAVAILABLE_MESSAGE, code: "payments_unavailable" }, browserHeaders(event));
+    }
+  }
+
   return async function handle(event) {
     const providerResponse = await providerEvents(event);
     if (providerResponse) return providerResponse;
     const method = event?.requestContext?.http?.method, path = event?.rawPath;
     if (method === "POST" && ["/tour-manager/stripe/webhook", "/sync-network-number/stripe/webhook"].includes(path)) return webhook(event);
-    if (method === "POST" && path === "/tour-manager/checkout") return checkout(event);
-    if (method === "POST" && path === "/tour-manager/contact-unlock/checkout") return contactCheckout(event);
+    if (method === "POST" && path === "/tour-manager/checkout") return guardedCheckout(event, checkout);
+    if (method === "POST" && path === "/tour-manager/contact-unlock/checkout") return guardedCheckout(event, contactCheckout);
     if (method === "GET" && path === "/tour-manager/contact-unlocks") return contactUnlocks(event);
-    if (method === "POST" && path === "/phone-number/checkout") return phoneCheckout(event);
+    if (method === "POST" && path === "/phone-number/checkout") return guardedCheckout(event, phoneCheckout);
     if (method === "GET" && path === "/phone-number/entitlement") return phoneEntitlement(event);
-    if (method === "POST" && path === "/sync-network-number/checkout") return syncNetworkCheckout(event);
-    if (method === "POST" && path === "/tour-manager/ai-epk/checkout") return aiEpkCheckout(event);
+    if (method === "POST" && path === "/sync-network-number/checkout") return guardedCheckout(event, syncNetworkCheckout);
+    if (method === "POST" && path === "/tour-manager/ai-epk/checkout") return guardedCheckout(event, aiEpkCheckout);
     if (method === "GET" && path === "/sync-network-number/entitlement") return syncNetworkEntitlement(event);
     if (method === "GET" && path === "/tour-manager/credits") return credits(event);
     if (method === "GET" && path === "/tour-manager/refunds") return refundPurchases(event);

@@ -108,7 +108,7 @@ export function createTicketOrders({ db, commands, authenticate, corsHeaders, ta
     try {
       const session = await stripe("POST", "/v1/checkout/sessions", {
         mode: "payment", client_reference_id: orderId, customer_email: email, expires_at: expires,
-        line_items: { 0: { quantity, price_data: { currency: "usd", unit_amount: price, product_data: { name: `${ev.title?.S || "Event"} — ${tier.name?.S || "Ticket"}`.slice(0, 250), tax_code: "txcd_10000000" } } }, ...(fee ? { 1: { quantity: 1, price_data: { currency: "usd", unit_amount: fee, product_data: { name: FEE_LINE_NAME } } } } : {}) },
+        line_items: { 0: { quantity, price_data: { currency: "usd", unit_amount: price, product_data: { name: `${ev.title?.S || "Event"} — ${tier.name?.S || "Ticket"}`.slice(0, 250), tax_code: "txcd_10000000" } } }, ...(fee ? { 1: { quantity: 1, price_data: { currency: "usd", unit_amount: fee, product_data: { name: FEE_LINE_NAME, tax_code: "txcd_10000000" } } } } : {}) },
         payment_intent_data: { transfer_group: `ORDER_${orderId}`, metadata: { danzstak_order: orderId, danzstak_event: eventId } },
         metadata: { danzstak_order: orderId, danzstak_kind: "event_tickets" },
         success_url: `${APP}/event.html?id=${eventId}&order=${orderId}`, cancel_url: `${APP}/event.html?id=${eventId}&order=${orderId}&cancelled=1`
