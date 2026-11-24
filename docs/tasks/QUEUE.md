@@ -37,7 +37,7 @@ The owner should never have to paste prompts: everything Claude Code needs is in
 | T0-A2 | **Owner bug:** Dailies tile opens the photo picker; only your own big profile picture edits; every other avatar opens that profile | 36 | Dailies tile: PR #606; avatars: PR #598 |
 | T0-A3 | **Owner bug:** The Roll full screen loses sound (carry the sound choice over) + fill the screen | 36 | PR #633 |
 | T0-A11 | ~~+ bio opens the long-bio editor~~ Owner (later 2026-11-19): no + bio button at all; Edit profile owner-only; Edit · Shop · Share row | 36 | MERGED #600 |
-| T0-A12 | **Owner:** remove @username under the profile name; friends row there; tap a friend's photo → their posts | 36, 5a3 | PR #600 (@username hidden) + PR #572 (facepile, needs `/friends/of` deploy) |
+| T0-A12 | **Owner:** remove @username under the profile name; friends row there; tap a friend's photo → their posts | 36, 5a3 | PR #600 (@username hidden) + PR #738 (train: facepile opens the Friends screen, visitors' facepile; needs the call-signaling deploy; supersedes #572) |
 | T0-A13 | **Owner:** shop storefront beside the profile picture (shop name + item preview + price → Shop tab), replaces the shop icon button | 36 | MERGED #599 |
 | T0-A4 | Saved page crash (`volatilePostPreferences` used before declared) | 36 | PR #607 |
 | T0-A5 | Record Stores crash + endless loading | 36 | PR #607 |
