@@ -23,7 +23,7 @@
     "event.html": "events",
     "bazaar.html": "bazaar", "product.html": "bazaar", "store.html": "bazaar",
     "messages.html": "sync",
-    "profile.html": "menu", "moving-day.html": "menu", "support.html": "menu", "trusted-contacts.html": "menu", "privacy.html": "menu", "terms.html": "menu"
+    "profile.html": "menu", "friends.html": "menu", "moving-day.html": "menu", "support.html": "menu", "trusted-contacts.html": "menu", "privacy.html": "menu", "terms.html": "menu"
   };
   // Pages that had no bar before (their layout leaves no room for it yet).
   const NEW_TO_THE_BAR = new Set(["booking-selections.html", "support.html", "trusted-contacts.html", "privacy.html", "terms.html"]);

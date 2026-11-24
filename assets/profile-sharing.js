@@ -65,6 +65,8 @@
       }
     };
   }
+  // The same invite sheet opens from the Friends screen's Invite (5a3).
+  window.danzstakInvitePeople = opener => show('Invite People', new URL('./', location.href).href, 'Join me on DanzStak. Create an account to connect and share your original content.', opener);
   function start() {
     const actions = document.querySelector('.profile-actions'); if (!actions) return;
     const share = document.createElement('button'); share.type = 'button'; share.textContent = 'Share Profile'; share.dataset.icon = 'share'; share.setAttribute('aria-label', 'Share Profile'); share.hidden = true;
@@ -75,7 +77,7 @@
     });
     // Owner 2026-11-19: Share and Invite People were two buttons doing the same job. One Share button; on your own
     // profile its sheet also offers the plain DanzStak invite link.
-    const inviteSheet = () => show('Invite People', new URL('./', location.href).href, 'Join me on DanzStak. Create an account to connect and share your original content.', share);
+    const inviteSheet = () => window.danzstakInvitePeople(share);
     shareExtra = () => window.danzstakCurrentProfile?.isOwner === true ? { label: 'Invite People', run: inviteSheet } : null;
     actions.append(share);
     const update = () => { share.hidden = !/^[a-f0-9-]{36}$/.test(window.danzstakCurrentProfile?.memberId || ''); };

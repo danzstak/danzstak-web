@@ -52,12 +52,13 @@ const FRIENDS = ["#ff5a1f", "#3366ff", "#22aa66", "#aa22aa", "#999999"].map((col
       if (!layout.hit || layout.pile.h < 44) failures.push(`${label}: the facepile must be a 44px target reachable at its centre`);
       if (width === 390) await page.screenshot({ path: "docs/screenshots/profile-facepile-390.png" });
       await page.touchscreen.tap(layout.pile.l + layout.pile.w / 2, layout.pile.t + layout.pile.h / 2);
-      const friendsOpen = await page.waitForFunction(() => document.querySelector('.profile-tabs [data-profile-tab="Friends"]')?.getAttribute("aria-selected") === "true" || document.querySelector('.profile-tabs [data-profile-tab="Friends"]')?.classList.contains("active"), null, { timeout: 5000 }).then(() => true).catch(() => false);
-      if (!friendsOpen) failures.push(`${label}: tapping the facepile did not open the Friends tab`);
+      // 5a3: the pile opens the one Friends screen.
+      const friendsOpen = await page.waitForURL(/\/friends\.html(\?|$)/, { timeout: 5000 }).then(() => true).catch(() => false);
+      if (!friendsOpen) failures.push(`${label}: tapping the facepile did not open the Friends screen`);
       if (errors.length) failures.push(`${label}: page errors ${errors.join(" | ")}`);
       await context.close();
     }
   } finally { await browser.close(); }
   assert.deepEqual(failures, [], failures.join("\n"));
-  console.log("Profile facepile checks passed at 320, 360, 390, 430px: friends' photos stacked by half at the right end of the action row, on screen, named \"N friends\", a tap opens Friends.");
+  console.log("Profile facepile checks passed at 320, 360, 390, 430px: friends' photos stacked by half at the right end of the action row, on screen, named \"N friends\", a tap opens the Friends screen.");
 })().catch(error => { console.error(error.message || error); process.exitCode = 1; });
