@@ -46,6 +46,7 @@ import {
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import { BEDROCK_MODELS, anthropicLlm, bedrockLlm, braveSearch, createAiEpk, routedLlm, safeFetchPage } from "./ai-epk.mjs";
 import { createAiProfile } from "./ai-profile.mjs";
+import { createAiShop, safeFetchImage } from "./ai-shop.mjs";
 import { EPK_WORKSPACE_KEY, canMove, epkGate, pitchStats, stageOf, venueEvents, withPipeline } from "./booking-pipeline.mjs";
 import { MAX_ROUTE_STOPS, cleanDateOptions, planRouteDates, withRoadLegs } from "./booking-route-dates.mjs";
 import { VENUE_REPORT_OWNER, cleanReport, freshness, signalFromItem, signalUpdate, sortByFreshness, validSignalVenueKey, venueSignalKey } from "./booking-venue-signals.mjs";
@@ -281,7 +282,8 @@ async function personalPhoneService() {
 // Anthropic key the builder says "AI builder coming soon" and nothing can be charged.
 const anthropicSecretName = process.env.ANTHROPIC_SECRET_NAME || "danzstak/ai/anthropic-key";
 const braveSecretName = process.env.BRAVE_SEARCH_SECRET_NAME || "danzstak/ai/brave-search-key";
-let aiEpkPromise = null, aiEpkLoadedAt = 0, aiProfile = null;
+let aiEpkPromise = null, aiEpkLoadedAt = 0, aiProfile = null, aiShop = null;
+async function aiShopHandler() { await aiEpkHandler(); return aiShop; }
 async function aiProfileHandler() { await aiEpkHandler(); return aiProfile; }
 async function optionalAiSecret(name, fields) {
   try { return secretText(await secretsManager.send(new GetSecretValueCommand({ SecretId: name })), fields); }
@@ -318,6 +320,7 @@ function aiEpkHandler() {
     ]);
     const llm = aiProviders(anthropicKey);
     // Write it with AI (task 19) shares the provider and the key.
+    aiShop = createAiShop({ db, commands: { GetItemCommand, UpdateItemCommand }, authenticate: getAuthenticatedUser, corsHeaders, tableName: toursTable, llm, fetchImage: safeFetchImage() });
     aiProfile = createAiProfile({ db, commands: { GetItemCommand, UpdateItemCommand }, authenticate: getAuthenticatedUser, corsHeaders, tableName: toursTable, llm });
     return createAiEpk({
       db,
@@ -342,7 +345,7 @@ const tourManagerBilling = createTourManagerBilling({
   env: stripeEnvironment,
   validateOutreachEpkLink: validateBookingOutreachEpkLink,
   accountEmail: userId => accountForSub(userId),
-  aiEpkReady: async (userId, kind) => kind === "profile" ? (await aiProfileHandler()).checkoutReady(userId) : (await aiEpkHandler()).checkoutReady(userId, kind),
+  aiEpkReady: async (userId, kind) => kind === "shop" ? (await aiShopHandler()).checkoutReady(userId) : kind === "profile" ? (await aiProfileHandler()).checkoutReady(userId) : (await aiEpkHandler()).checkoutReady(userId, kind),
   // Bell notification when a venue answers through the reply page (owner 2026-11-16).
   notifyBookingReply: async ({ artistId, outreachId, dedupe, action, preview, proposedDate, at }) => {
     const send = (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${outreachId}` } }, ConsistentRead: true }))).Item;
@@ -5889,6 +5892,10 @@ async function routeRequest(event) {
       if (method === "POST" && ["/tour-manager/stripe/webhook", "/sync-network-number/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout", "/sync-network-number/checkout", "/tour-manager/ai-epk/checkout", "/tour-manager/refunds/quote", "/tour-manager/refunds/accept"].includes(path)) await ensureStripeSecrets();
       const billingResponse = await tourManagerBilling(event);
       if (billingResponse) return billingResponse;
+    }
+    if (path === "/shop/ai" || path?.startsWith("/shop/ai/")) {
+      const aiShopResponse = await (await aiShopHandler())(event);
+      if (aiShopResponse) return aiShopResponse;
     }
     if (path === "/profile/ai" || path?.startsWith("/profile/ai/")) {
       const aiProfileResponse = await (await aiProfileHandler())(event);
