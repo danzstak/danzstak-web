@@ -190,6 +190,8 @@
     render({ state:"verified", verified:true });
   });
   window.addEventListener("danzstak:call-device-ready", () => { if (current) render(); });
+  // A device whose key is still being checked counts as registered until SYNC answers (never "verify again" meanwhile).
+  window.addEventListener("danzstak:call-device-state", () => { if (current && !deviceChallenge) render(); });
   window.addEventListener("danzstak:device-registration-failed", event => {
     deviceChallenge = null;
     render({ state: current?.state === "verified" ? "verified" : "none" });

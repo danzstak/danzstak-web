@@ -91,6 +91,21 @@ async function painted(page, root) {
       assert.equal(await page.locator("#hometownCityPick").isVisible(), false, "the city search only shows for Another city");
       assert.match(await page.locator("#hometownVibe").textContent(), /Tacoma · Puget Sound grey, mill steam/);
       await page.waitForFunction(() => document.querySelector(".epk-laminate__city")?.textContent.includes("47.25° N"));
+      // Owner 2026-11-24 (phone screenshot, "Epk is tweaked with the new update"): the 15-D "no panels" rules took the
+      // paper away from the 5-minute checklist, so its dark ink sat on the dark page, and stacked a big laminate under the
+      // title. The checklist reads at 4.5:1 or better on what is really painted behind it, and the laminate stays beside
+      // the title.
+      const guide = await page.evaluate(() => {
+        const lum = c => { const v = c.match(/[\d.]+/g).slice(0, 3).map(n => { n /= 255; return n <= 0.03928 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4; }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+        const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+        const behind = node => { for (let n = node; n; n = n.parentElement) { const bg = getComputedStyle(n).backgroundColor; if (!/rgba\(\d+, \d+, \d+, 0\)|transparent/.test(bg)) return bg; } return "rgb(255, 255, 255)"; };
+        const items = [...document.querySelectorAll("#epkGuideChecklist li")].filter(li => li.getBoundingClientRect().height > 0);
+        const h1 = document.querySelector(".intro h1").getBoundingClientRect(), lam = document.querySelector(".epk-laminate").getBoundingClientRect();
+        return { items: items.map(li => ({ text: li.textContent.trim(), ratio: Math.round(ratio(getComputedStyle(li).color, behind(li)) * 100) / 100 })), lamBeside: lam.top < h1.bottom && lam.left >= h1.left + 40 };
+      });
+      assert.ok(guide.items.length === 5, `${width}px: the 5-minute checklist shows its 5 steps`);
+      for (const item of guide.items) assert.ok(item.ratio >= 4.5, `${width}px: checklist step "${item.text}" is ${item.ratio}:1 on what's behind it (dark ink on the dark page)`);
+      assert.ok(guide.lamBeside, `${width}px: the ALL ACCESS laminate sits beside the title, not stacked under it`);
       if (width === 320) assert.deepEqual(await wrappedLabels(page), [], "builder has labels on two lines at 320px");
       assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll(".intro h1,h2,h3,legend,summary,button,.epk-rider-slot__title")].filter(n => { const r = n.getBoundingClientRect(), st = getComputedStyle(n); return r.width > 0 && !n.closest("[hidden],dialog:not([open]),.epk-sr-only") && !n.classList.contains("epk-sr-only") && st.overflow === "hidden" && n.scrollWidth > n.clientWidth + 1; }).map(n => n.textContent.trim().slice(0, 40))), [], `builder cuts off a title at ${width}px`);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && ![...document.querySelectorAll("#epkForm *")].some(n => { const r = n.getBoundingClientRect(); return r.width && r.right > innerWidth + 1; })), true, `builder overflows sideways at ${width}px`);

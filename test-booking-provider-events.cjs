@@ -104,6 +104,6 @@ const fs = require("node:fs");
   assert.match(client, /This address bounced — find a newer contact. Your credit came back./);
   assert.match(client, /reported this email; this contact is now suppressed/);
   assert.match(page, /booking-selections\.js\?v=41/);
-assert.match(worker, /danzstak-shell-v1062/);
+assert.match(worker, /danzstak-shell-v1063/);
   console.log("Booking provider-event checks passed: delivery state, duplicate protection, permanent-bounce and complaint suppression, bounce credit restore (once), opt-out precedence, transient-bounce handling, private keys, and SES event infrastructure.");
 })().catch(error => { console.error(error); process.exit(1); });

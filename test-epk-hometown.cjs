@@ -27,7 +27,7 @@ const read = file => fs.readFileSync(file, "utf8");
   assert.match(fieldset, /id="hometownCity" list="hometownCities"/, "another city is searchable");
   assert.match(fieldset, /id="hometownVibe" aria-live="polite"/);
   assert.ok(html.indexOf("assets/hometown-looks.js") < html.indexOf("assets/epk.js?v="), "hometown data loads before the builder");
-  assert.match(html, /assets\/epk-hometown\.css\?v=1/);
+  assert.match(html, /assets\/epk-hometown\.css\?v=2/);
 
   // Builder logic.
   const js = read("assets/epk.js");
