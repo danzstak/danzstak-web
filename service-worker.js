@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v1051";
+const CACHE = "danzstak-shell-v1052";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/time-label.js", "/assets/page-missing.js", "/assets/scramble-by-seller.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -18,7 +18,7 @@ const SHELL = [
   "/assets/share-card-tools.js", "/assets/epk-share-card.js", "/assets/profile-share-card.js", "/assets/signed-out.js", "/assets/profile-collections.js", "/assets/activity-history-core.js", "/assets/account-export-core.js", "/assets/account-export.js",
   "/assets/profile-albums.js", "/assets/profile-albums.css",
   "/assets/call-alerts.js", "/assets/booking-workspace.css", "/assets/store.css", "/assets/store.js", "/assets/friendly-error.js", "/assets/bazaar.css", "/assets/bazaar.js", "/assets/product.js", "/assets/event.css", "/assets/event.js",
-  "/assets/link-preview-cards.css", "/assets/roll-reels.css", "/assets/tribes-polish.css", "/assets/tribes-home.css", "/assets/tribes-art.js", "/assets/tribe-create.js", "/assets/tribe-create.css", "/assets/profile-friend.js", "/assets/link-preview-cards.js", "/assets/support.css", "/assets/support.js", "/assets/booking-agent.css", "/assets/booking-agent-driver.css", "/assets/booking-discovery.css", "/assets/booking-agent.js", "/assets/booking-legs.js", "/assets/booking-identity.js", "/assets/booking-conversation.js", "/assets/booking-discovery.js", "/assets/booking-map.js", "/assets/booking-selections.css", "/assets/booking-selections.js", "/assets/booking-pipeline.js", "/assets/booking-freshness.js", "/assets/booking-billing.js", "/assets/purchase-terms.js", "/assets/fees.js", "/assets/media-fit.js", "/assets/media-scale.js", "/assets/media-fit.css", "/assets/media-viewer.js", "/assets/media-viewer.css", "/assets/image-position.js", "/assets/image-position.css", "/assets/media-actions.js", "/assets/media-actions.css", "/assets/post-photos.js", "/assets/post-photos.css", "/assets/mix-polish.css", "/assets/profile-polish.css", "/assets/profile-shop.css", "/assets/signup-onboarding.js", "/assets/signup-onboarding.css", "/assets/purchase-terms.css", "/assets/booking-opt-out.css", "/assets/booking-opt-out.js", "/assets/booking-reply.css", "/assets/booking-reply.js", "/assets/booking-sync.js", "/assets/record-stores.css", "/assets/record-placement.css", "/assets/record-stores-pagination.css", "/assets/record-stores.js", "/assets/epk.css", "/assets/epk-looks.css", "/assets/epk-hometown.css", "/assets/hometown-looks.js", "/assets/tour-hometown.css", "/assets/tour-hometown.js", "/assets/epk-production.css", "/assets/epk-reviews.css", "/assets/epk-media.css", "/assets/epk-production.js", "/assets/epk-reviews.js", "/assets/epk.js", "/assets/epk-video-check.js", "/assets/epk-ai.js", "/assets/epk-ai.css", "/assets/profile-ai.js", "/assets/epk-skin.css", "/assets/epk-laminate.js", "/assets/profile-editor.css", "/assets/profile-interactions.css", "/assets/profile-interactions.js", "/assets/profile-onboarding.css", "/assets/profile-onboarding.js", "/assets/display-preferences.js", "/assets/feed-enhancements.js", "/assets/device-reminder.js", "/assets/push-notifications.js", "/assets/call-devices.js", "/assets/call-setup.js", "/assets/call-setup.css", "/assets/phone-setup.js", "/assets/sync-tones.js", "/assets/sync-privacy.js", "/assets/sync-reply.js", "/assets/sync-make-it-yours.js", "/sync.html", "/sync.webmanifest", "/assets/sync-standalone.js", "/assets/sync-standalone.css", "/assets/sync-icon-192.png", "/assets/sync-icon-512.png", "/assets/sync-apple-touch-icon.png", "/assets/sync-make-it-yours.css", "/assets/sync-reply.css", "/assets/sync-tones.css", "/assets/sync-settings.js", "/assets/call-ringer.js", "/assets/call-ringer.css", "/assets/call-note.js", "/assets/call-note.css", "/assets/sync-wallpaper.js", "/assets/sync-wallpaper.css", "/assets/phone-verification.js", "/assets/i18n-sync.js", "/assets/phone-verification.css", "/assets/sync-network-number.js", "/assets/sync-network-number.css", "/assets/direct-messages.js", "/assets/make-plans.js", "/assets/make-plans.css", "/assets/incoming-calls.js", "/assets/incoming-calls.css", "/assets/call-screen.js", "/assets/sync-call-ui.js", "/assets/sync-call-ui.css", "/assets/call-screen.css", "/assets/sync-list-polish.js", "/assets/sync-list-polish.css", "/assets/call-invite.js", "/assets/call-invite.css", "/assets/answer.js", "/assets/answer.css", "/sync/", "/assets/sync-app.js", "/assets/sync-app.css",
+  "/assets/link-preview-cards.css", "/assets/roll-reels.css", "/assets/tribes-polish.css", "/assets/tribes-home.css", "/assets/tribes-art.js", "/assets/tribe-create.js", "/assets/tribe-create.css", "/assets/share-receive.js", "/assets/profile-friend.js", "/assets/link-preview-cards.js", "/assets/support.css", "/assets/support.js", "/assets/booking-agent.css", "/assets/booking-agent-driver.css", "/assets/booking-discovery.css", "/assets/booking-agent.js", "/assets/booking-legs.js", "/assets/booking-identity.js", "/assets/booking-conversation.js", "/assets/booking-discovery.js", "/assets/booking-map.js", "/assets/booking-selections.css", "/assets/booking-selections.js", "/assets/booking-pipeline.js", "/assets/booking-freshness.js", "/assets/booking-billing.js", "/assets/purchase-terms.js", "/assets/fees.js", "/assets/media-fit.js", "/assets/media-scale.js", "/assets/media-fit.css", "/assets/media-viewer.js", "/assets/media-viewer.css", "/assets/image-position.js", "/assets/image-position.css", "/assets/media-actions.js", "/assets/media-actions.css", "/assets/post-photos.js", "/assets/post-photos.css", "/assets/mix-polish.css", "/assets/profile-polish.css", "/assets/profile-shop.css", "/assets/signup-onboarding.js", "/assets/signup-onboarding.css", "/assets/purchase-terms.css", "/assets/booking-opt-out.css", "/assets/booking-opt-out.js", "/assets/booking-reply.css", "/assets/booking-reply.js", "/assets/booking-sync.js", "/assets/record-stores.css", "/assets/record-placement.css", "/assets/record-stores-pagination.css", "/assets/record-stores.js", "/assets/epk.css", "/assets/epk-looks.css", "/assets/epk-hometown.css", "/assets/hometown-looks.js", "/assets/tour-hometown.css", "/assets/tour-hometown.js", "/assets/epk-production.css", "/assets/epk-reviews.css", "/assets/epk-media.css", "/assets/epk-production.js", "/assets/epk-reviews.js", "/assets/epk.js", "/assets/epk-video-check.js", "/assets/epk-ai.js", "/assets/epk-ai.css", "/assets/profile-ai.js", "/assets/epk-skin.css", "/assets/epk-laminate.js", "/assets/profile-editor.css", "/assets/profile-interactions.css", "/assets/profile-interactions.js", "/assets/profile-onboarding.css", "/assets/profile-onboarding.js", "/assets/display-preferences.js", "/assets/feed-enhancements.js", "/assets/device-reminder.js", "/assets/push-notifications.js", "/assets/call-devices.js", "/assets/call-setup.js", "/assets/call-setup.css", "/assets/phone-setup.js", "/assets/sync-tones.js", "/assets/sync-privacy.js", "/assets/sync-reply.js", "/assets/sync-make-it-yours.js", "/sync.html", "/sync.webmanifest", "/assets/sync-standalone.js", "/assets/sync-standalone.css", "/assets/sync-icon-192.png", "/assets/sync-icon-512.png", "/assets/sync-apple-touch-icon.png", "/assets/sync-make-it-yours.css", "/assets/sync-reply.css", "/assets/sync-tones.css", "/assets/sync-settings.js", "/assets/call-ringer.js", "/assets/call-ringer.css", "/assets/call-note.js", "/assets/call-note.css", "/assets/sync-wallpaper.js", "/assets/sync-wallpaper.css", "/assets/phone-verification.js", "/assets/i18n-sync.js", "/assets/phone-verification.css", "/assets/sync-network-number.js", "/assets/sync-network-number.css", "/assets/direct-messages.js", "/assets/make-plans.js", "/assets/make-plans.css", "/assets/incoming-calls.js", "/assets/incoming-calls.css", "/assets/call-screen.js", "/assets/sync-call-ui.js", "/assets/sync-call-ui.css", "/assets/call-screen.css", "/assets/sync-list-polish.js", "/assets/sync-list-polish.css", "/assets/call-invite.js", "/assets/call-invite.css", "/assets/answer.js", "/assets/answer.css", "/sync/", "/assets/sync-app.js", "/assets/sync-app.css",
   "/assets/feed-enhancements.css", "/assets/artist-hq.js", "/assets/artist-hq.css", "/assets/chat.js", "/assets/chat.css", "/assets/sync.css", "/assets/legal.css", "/assets/soft-ui.css", "/assets/accessibility.css", "/assets/events-page.css", "/assets/events-page.js", "/assets/i18n-events.js",
   "/assets/sync-shell.css", "/assets/sync-shell.js",
   "/assets/bazaar-examples.js",
@@ -35,7 +35,8 @@ self.addEventListener("install", event => {
 
 self.addEventListener("activate", event => {
   event.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(key => key !== CACHE && key !== MEDIA_CACHE && key !== HANDLED_CALLS).map(key => caches.delete(key))))
+    .then(keys => Promise.all(keys.filter(key => key !== CACHE && key !== MEDIA_CACHE && key !== HANDLED_CALLS && key !== SHARE_CACHE).map(key => caches.delete(key))))
+    .then(() => caches.open(SHARE_CACHE).then(dropExpiredShares)) // a share in progress survives an update; old ones go
     .then(() => self.clients.claim()));
 });
 
@@ -58,9 +59,37 @@ async function cdnImage(request, url) {
   } catch (error) { if (hit) return hit; throw error; }
 }
 
+// Task 32 (owner 2026-11-18): DanzStak in the phone's Share menu. What the member shares is kept for up to 10 minutes in a
+// private cache on this phone, then Mix opens the composer with it attached; the member chooses to post (assets/
+// share-receive.js deletes it once it is in the composer). Only types Mix can post: no HEIC, never audio (CLAUDE.md: no
+// music files). A post holds up to 20 photos (owner 2026-11-22, post-photos.js) or one video: photos win when both are
+// shared, and whatever can't go in one post is counted so Mix can say so.
+const SHARE_CACHE = "danzstak-share", SHARE_TTL_MS = 10 * 60 * 1000, SHARE_MAX_BYTES = 100 * 1024 * 1024, SHARE_MAX_PHOTOS = 20;
+const SHARE_TYPES = /^(image\/(jpeg|png|webp|gif)|video\/(mp4|webm|quicktime))$/i;
+async function dropExpiredShares(cache) {
+  for (const key of await cache.keys()) { const at = Number(new URL(key.url).searchParams.get("at") || 0); if (!(Date.now() - at <= SHARE_TTL_MS)) await cache.delete(key); }
+}
+async function receiveShare(request) {
+  try {
+    const form = await request.formData();
+    const shared = form.getAll("media").filter(item => item && typeof item !== "string");
+    const usable = shared.filter(item => SHARE_TYPES.test(item.type) && item.size <= SHARE_MAX_BYTES);
+    const photos = usable.filter(item => item.type.startsWith("image/"));
+    const files = photos.length ? photos.slice(0, SHARE_MAX_PHOTOS) : usable.slice(0, 1);
+    const text = ["title", "text", "url"].map(key => String(form.get(key) || "").trim()).filter(Boolean).filter((v, i, all) => all.indexOf(v) === i).join(" ").slice(0, 2000);
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8), at = Date.now();
+    const cache = await caches.open(SHARE_CACHE);
+    await dropExpiredShares(cache);
+    for (const [index, file] of files.entries()) await cache.put(`/share-target/${id}/file/${index}?at=${at}`, new Response(file, { headers: { "content-type": file.type, "x-file-name": encodeURIComponent(file.name || "shared") } }));
+    await cache.put(`/share-target/${id}/meta?at=${at}`, new Response(JSON.stringify({ text, files: files.length, left: usable.length - files.length, rejected: shared.length - usable.length }), { headers: { "content-type": "application/json" } }));
+    return Response.redirect(`/feed.html?share=${id}`, 303);
+  } catch { return Response.redirect("/feed.html?share=failed", 303); }
+}
+
 self.addEventListener("fetch", event => {
   const request = event.request;
   const url = new URL(request.url);
+  if (request.method === "POST" && url.origin === self.location.origin && url.pathname === "/share-target") { event.respondWith(receiveShare(request)); return; }
   // Task 38: photos from the media CDN are immutable (a new upload = a new key), so the app keeps them by path: the signed
   // query changes every few hours but the picture never does. Images only (videos stream with Range requests and rely on
   // the browser's HTTP cache); capped and aged out so the phone never fills up.
@@ -118,7 +147,7 @@ self.addEventListener("message", event => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
   if (event.data?.type === "STOP_SHELL_REFRESH") stopShellRefresh(); // the member is updating: don't hold the update up
   if (event.data?.type === "REFRESH_SHELL" && event.data?.allow !== false) event.waitUntil(refreshAppShell());
-  if (event.data?.type === "CLEAR_MEDIA_CACHE") event.waitUntil(caches.delete(MEDIA_CACHE)); // log out / account switch
+  if (event.data?.type === "CLEAR_MEDIA_CACHE") event.waitUntil(Promise.all([caches.delete(MEDIA_CACHE), caches.delete(SHARE_CACHE)])); // log out / account switch
   if (event.data?.type === "DANZSTAK_CALL_HANDLED") callHandled(event); // 5a00: answered or declined in an open window
 });
 
