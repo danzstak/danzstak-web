@@ -68,7 +68,9 @@ const composer = page => page.evaluate(() => ({ text: document.getElementById("p
 
 (async () => {
   fs.mkdirSync(output, { recursive: true });
-  const browser = await chromium.launch({ headless: true });
+  // Edge in CI like the other checks (the runner has no bundled Chromium); DANZSTAK_BROWSER_CHANNEL=bundled locally.
+  const channel = process.env.DANZSTAK_BROWSER_CHANNEL ?? "msedge";
+  const browser = await chromium.launch({ ...(channel && channel !== "bundled" ? { channel } : {}), headless: true });
   try {
     for (const width of [320, 360, 390, 414, 430]) {
       const label = `${width}px`, shots = width === 360 || width === 390;
