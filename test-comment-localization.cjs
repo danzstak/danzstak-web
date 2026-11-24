@@ -40,6 +40,6 @@ assert.match(feed, /attributeFilter: \["lang"\]/, "comment translations must obs
 assert.match(feed, /dataset\.replyName/, "member names must be preserved separately from translated interface copy");
 assert.match(html, /assets\/i18n\.js\?v=424/);
 assert.match(html, /assets\/feed-enhancements\.js\?v=599/);
-assert.match(serviceWorker, /danzstak-shell-v1051/);
+assert.match(serviceWorker, /danzstak-shell-v1052/);
 
 console.log("Comment localization checks passed: all 15 languages cover composing, sorting, named replies, accessibility labels, and live language changes.");
