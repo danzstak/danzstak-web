@@ -161,9 +161,11 @@
     const kind = callKind() || document.body.dataset.callMinimised || "", sub = connectedAt ? clock() : t("SYNC Mobile");
     document.querySelectorAll(".ds-call-sub").forEach(node => { node.textContent = sub; });
     const state = $("callStage")?.querySelector(".ds-call-state");
-    if (state) state.textContent = connectedAt ? clock() : t(document.body.dataset.syncScreen === "incoming-call" ? "Ringing…" : "Calling…");
+    // "Ringing…" on the caller's side only once the server says the other phone is ringing (owner 2026-11-24), like a messenger.
+    const waiting = document.body.dataset.syncScreen === "incoming-call" || document.body.dataset.callReach === "ringing" ? "Ringing…" : "Calling…";
+    if (state) state.textContent = connectedAt ? clock() : t(waiting);
     const bubbleTime = $("callBubble")?.querySelector(".ds-call-bubble-time");
-    if (bubbleTime) bubbleTime.textContent = connectedAt ? clock() : t("Calling…");
+    if (bubbleTime) bubbleTime.textContent = connectedAt ? clock() : t(waiting);
     document.body.toggleAttribute("data-call-connected", Boolean(connectedAt) && Boolean(kind));
     document.body.toggleAttribute("data-call-status-echo", Boolean(kind) && echoesStage());
   }
@@ -274,7 +276,7 @@
       if (!callKind() && !document.body.dataset.callMinimised) { connectedAt = 0; $("callSheet")?.remove(); }
       if (callKind() !== "video") resetChrome();
       paintWho(); paintState(); refreshKeys(); requestAnimationFrame(fitPanel);
-    }).observe(document.body, { attributes: true, attributeFilter: ["data-call-mode", "data-sync-screen"] });
+    }).observe(document.body, { attributes: true, attributeFilter: ["data-call-mode", "data-sync-screen", "data-call-reach"] });
     // The link dropping brings the buttons and "Reconnecting…" back on show.
     new MutationObserver(() => { if (document.body.dataset.callLink === "reconnecting" && chromeHidden()) showChrome(); })
       .observe(document.body, { attributes: true, attributeFilter: ["data-call-link"] });
