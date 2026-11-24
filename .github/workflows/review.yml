@@ -281,6 +281,7 @@ jobs:
             '.\browser-checks\call-chrome-hide.cjs'
             '.\browser-checks\call-ends-text-works.cjs'
             '.\browser-checks\call-reconnect.cjs'
+            '.\browser-checks\call-headset.cjs'
             '.\browser-checks\epk-share-card.cjs'
             '.\browser-checks\epk-versions.cjs'
             '.\browser-checks\profile-share-card.cjs'

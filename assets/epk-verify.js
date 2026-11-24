@@ -66,6 +66,8 @@
 
   if (publicMode) {
     window.addEventListener("danzstak:epk-loaded", event => showPublic(event.detail || {}));
+    // epk.js can finish loading the EPK before this script runs (a slow download): use what it already loaded.
+    if (window.danzstakEpkLoaded) showPublic(window.danzstakEpkLoaded);
     return;
   }
 

@@ -90,6 +90,9 @@ async function sheetText(page) {
         await page.waitForURL(/\/profile\.html/, { timeout: 10000 }).catch(() => {});
         if (!/\/profile\.html/.test(page.url())) failures.push(`${width}px cookie lost: after signing in landed on ${page.url()}, not back on the profile (stored ${JSON.stringify(kept)})`);
         else {
+          // The field appears late, the way a composer does once the profile has loaded on a slow phone (CI's Edge
+          // run on 2026-11-24 drew the page after both of the guard's old attempts): its words still come back.
+          await page.waitForTimeout(2500);
           await page.evaluate(() => { const area = document.createElement("textarea"); area.id = "guardDraftProbe"; document.body.append(area); });
           await page.waitForFunction(() => document.getElementById("guardDraftProbe")?.value === "half-written post", null, { timeout: 4000 }).catch(() => {});
           if (await page.evaluate(() => document.getElementById("guardDraftProbe")?.value) !== "half-written post") failures.push(`${width}px cookie lost: the typed words did not come back after signing in`);
