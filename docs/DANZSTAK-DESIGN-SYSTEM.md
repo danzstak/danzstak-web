@@ -1,5 +1,7 @@
 # DANZSTAK Design System
 
+> **Superseded by the UI kit (2026-11-24):** tokens, components and the screen order now live in `docs/tasks/39-modern-look.md` (Tailwind + Flowbite + Lucide + Fluent Emoji, "Backstage" look) and `docs/tasks/39a-icons-and-reactions.md`. This file stays as the history of the first foundation pass.
+
 Status: **FOUNDATION IN PROGRESS**  
 Scope: GitHub Issue #55, stacked on the compact Feed/Dailies work from Issue #49  
 Production: **UNCHANGED**
