@@ -111,19 +111,30 @@
     location.assign(API + "/auth/login");
   }
 
-  // Back on the page after signing in: put the typed words back into the same (still empty) fields.
+  // Back on the page after signing in: put the typed words back into the same (still empty) fields. A field the page
+  // draws later (a composer that appears once the profile has loaded on a slow phone) is filled when it appears,
+  // for up to 15 s; then the saved words are dropped so a later visit never gets them.
   function restore() {
     let saved; try { saved = JSON.parse(store(sessionStorage, "getItem", DRAFTS) || "null"); } catch { saved = null; }
-    if (!saved || saved.path !== location.pathname + location.search) return;
+    if (!saved || saved.path !== location.pathname + location.search) return true;
     let left = 0;
     for (const [id, value] of Object.entries(saved.fields || {})) {
       const field = document.getElementById(id);
       if (!field) { left++; continue; }
       if (!field.value) { field.value = value; field.dispatchEvent(new Event("input", { bubbles: true })); }
     }
-    if (!left) store(sessionStorage, "removeItem", DRAFTS);
+    if (left) return false;
+    store(sessionStorage, "removeItem", DRAFTS);
+    return true;
   }
-  addEventListener("DOMContentLoaded", () => { restore(); setTimeout(restore, 1500); setTimeout(() => store(sessionStorage, "removeItem", DRAFTS), 6000); });
+  addEventListener("DOMContentLoaded", () => {
+    if (restore()) return;
+    let queued = null;
+    const stop = () => { watch.disconnect(); clearTimeout(queued); clearTimeout(limit); store(sessionStorage, "removeItem", DRAFTS); };
+    const watch = new MutationObserver(() => { if (!queued) queued = setTimeout(() => { queued = null; if (restore()) stop(); }, 50); });
+    const limit = setTimeout(stop, 15000);
+    watch.observe(document.documentElement, { childList: true, subtree: true });
+  });
 
   const style = document.createElement("style");
   style.textContent = `.session-guard{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:flex-end;justify-content:center;background:rgba(11,11,12,.45)}

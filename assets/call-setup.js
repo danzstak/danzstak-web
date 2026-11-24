@@ -27,7 +27,72 @@
     const video = kind === "video" ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 }, ...(s.camera ? { deviceId: { ideal: s.camera } } : {}) } : false;
     return { audio: s.mic ? { deviceId: { ideal: s.mic } } : true, video };
   }
-  async function routeOutput(element) { const s = read(); if (isComputer && canSink && s.speaker && element?.setSinkId) { try { await element.setSinkId(s.speaker); } catch {} } }
+  // ---------- headsets first ----------
+  // Owner 2026-11-24: "the sync audio does not come through blutooth headsets", for "both the caller and reciever".
+  // Chrome on Android sends a call's sound to the device whose microphone the call uses ("the input device selection will
+  // affect the output device as well", Chromium audio_manager_android.cc), and SYNC asked for the default microphone: the
+  // phone's own. Now a connected headset's microphone is asked for by its own id, on phones and computers, so the call is
+  // heard and spoken in the headset; one that connects during the call takes it over, and one that goes away hands it
+  // back (chat.js, devicechange). On computers the call's sound goes to the same headset (setSinkId, matched by group).
+  // Android names its inputs "Speakerphone", "Wired headset", "Headset earpiece", "Bluetooth headset", "USB audio": the
+  // earpiece is the phone's own, never a headset.
+  const NOT_HEADSET = /earpiece|speaker ?phone|built-?in|internal|microphone array|webcam|camera/i;
+  const BLUETOOTH = /bluetooth|airpods|buds|hands-?free|\bbt\b/i;
+  const WIRED = /headset|headphone|earphone|wired|usb/i;
+  const virtualId = id => id === "default" || id === "communications" || !id;
+  function headsetRank(device) {
+    const label = String(device?.label || "");
+    if (!label || virtualId(device.deviceId) || NOT_HEADSET.test(label)) return 0;
+    return BLUETOOTH.test(label) ? 2 : WIRED.test(label) ? 1 : 0;
+  }
+  async function devices() { try { return await navigator.mediaDevices.enumerateDevices(); } catch { return []; } }
+  const headsetIn = list => list.filter(device => device.kind === "audioinput" && headsetRank(device)).sort((a, b) => headsetRank(b) - headsetRank(a))[0] || null;
+  function headsetOut(list) {
+    const input = headsetIn(list);
+    const outputs = list.filter(device => device.kind === "audiooutput" && !virtualId(device.deviceId));
+    return (input && outputs.find(device => device.groupId && device.groupId === input.groupId)) || outputs.filter(headsetRank).sort((a, b) => headsetRank(b) - headsetRank(a))[0] || null;
+  }
+  // The microphone a call should use now: a connected headset first; otherwise the member's pick (computers) while it is
+  // still there; otherwise the system default (null). Labels only exist once the microphone is allowed.
+  function wantedMic(list) {
+    const headset = headsetIn(list);
+    if (headset) return headset.deviceId;
+    const s = isComputer ? read() : {};
+    return s.mic && list.some(device => device.kind === "audioinput" && device.deviceId === s.mic) ? s.mic : null;
+  }
+  // A new microphone track when the call should move to another microphone (a headset came or went, or the microphone
+  // stopped), else null. The old track is left to the caller (chat.js swaps the new one into the call with replaceTrack,
+  // keeps mute, then stops the old one).
+  async function micSwap(current) {
+    const list = await devices(), wanted = wantedMic(list);
+    if (current?.readyState === "live") {
+      const using = current.getSettings?.().deviceId || "";
+      if (!list.length || !using) return null; // nothing to compare with: keep the microphone that works
+      if (wanted === using) return null; // already on the headset (or the member's pick)
+      const stillThere = list.some(device => device.kind === "audioinput" && device.deviceId === using);
+      if (!wanted && (stillThere || virtualId(using))) return null; // no headset: the microphone in use stays
+    }
+    try {
+      const fresh = await navigator.mediaDevices.getUserMedia({ audio: wanted ? { deviceId: { exact: wanted } } : true });
+      return fresh.getAudioTracks()[0] || null;
+    } catch { return null; }
+  }
+  // The call's microphone stream with the headset in it: swaps the audio track of a stream just opened by chat.js.
+  async function preferHeadset(stream) {
+    const current = stream?.getAudioTracks?.()[0];
+    if (!current) return stream;
+    const next = await micSwap(current);
+    if (next) { stream.removeTrack(current); current.stop(); stream.addTrack(next); }
+    return stream;
+  }
+  async function routeOutput(element) {
+    if (!isComputer || !canSink || !element?.setSinkId) return;
+    const list = await devices(), headset = headsetOut(list), s = read();
+    const picked = s.speaker && list.some(device => device.kind === "audiooutput" && device.deviceId === s.speaker) ? s.speaker : "";
+    const target = headset?.deviceId || picked || "";
+    if (element.sinkId === target) return;
+    try { await element.setSinkId(target); } catch {}
+  }
 
   // ---------- blocked permission explainer ----------
   function browserSteps(kind) {
@@ -208,5 +273,5 @@
   window.addEventListener("danzstak:remote-media", event => routeOutput(event.detail?.element));
   const start = () => { mountCallScreen(); mountSettingsEntry(); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true }); else start();
-  window.danzstakCallSetup = { isComputer, settings, constraints, openCheck, needsFirstCheck, explainBlocked, browserSteps, ringVolume: () => Number(read().ringVolume) || DEFAULT_RING };
+  window.danzstakCallSetup = { isComputer, settings, constraints, preferHeadset, micSwap, routeOutput, openCheck, needsFirstCheck, explainBlocked, browserSteps, ringVolume: () => Number(read().ringVolume) || DEFAULT_RING };
 })();

@@ -5,7 +5,7 @@ const html = fs.readFileSync("epk.html","utf8"), client = fs.readFileSync("asset
 assert.match(html,/id="printEpkOnePage"[^>]*aria-label="One-page press PDF">Press PDF</);
 assert.match(html,/id="printEpk"[^>]*aria-label="Full press PDF">Full PDF</);
 assert.match(html,/assets\/epk\.css\?v=15/);
-assert.match(html,/assets\/epk\.js\?v=32/);
+assert.match(html,/assets\/epk\.js\?v=33/);
 assert.match(client,/dataset\.epkSection/);
 assert.match(client,/document\.querySelectorAll\("\.epk-pdf-action"\)/,"private booking permissions must govern both PDF actions");
 assert.match(client,/printEpk\("one-page"\)/);
