@@ -20,7 +20,8 @@ assert.match(enhancements, /const visibleName = screenTitles\[canonicalName\] \|
 assert.match(profile, />Your Mix<\/a>/);
 assert.match(booking, />Your Mix<\/a>/);
 assert.match(messages, /data-chat-return[^>]+aria-label="Back to previous DanzStak screen"[^>]*>Back<\/a>/);
-assert.ok(manifest.shortcuts.some(shortcut => shortcut.name === "Your Mix" && shortcut.url === "/feed.html"), "installed app shortcut should use Your Mix");
+// SHORTCUT (owner 2026-11-24: "just sync and their shop"): the icon's long-hold list is exactly SYNC, then My shop.
+assert.deepEqual(manifest.shortcuts.map(item => [item.name, item.url]), [["SYNC", "/sync/?app=sync"], ["My shop", "/store.html?manage=1"]], "long-hold shortcuts: SYNC and My shop only");
 
 // Stable route and API names remain unchanged for backward compatibility.
 assert.match(feed, /data-feature="Groups"/);

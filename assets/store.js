@@ -131,6 +131,9 @@
     status.textContent="Loading store…";
     try { const data=await request(path); if(!data?.shop){ const missing=new Error("No shop yet"); missing.status=404; throw missing; } data.shop.products=Array.isArray(data.shop.products)?data.shop.products:[]; showShop(data.shop); status.textContent=data.shop.products.length?`${data.shop.products.length} product${data.shop.products.length===1?"":"s"}.`:"No products are available right now."; }
     catch(error) {
+      // SHORTCUT (owner 2026-11-24): "My shop" on the app icon's long-hold opens here. Signed out → the landing page to
+      // sign in, then home.js brings the member straight back to their shop manager (danzstak_return_to).
+      if(managing && error.status===401) { try { sessionStorage.setItem("danzstak_return_to", "/store.html?manage=1"); } catch { /* sign-in still works */ } location.replace("index.html"); return; }
       if(managing && error.status===404) { currentShop=null; products.replaceChildren(); productManager.hidden=true; status.textContent="Name your shop to open a private draft. Publish it only when it is ready."; return; }
       if(!memberId && !managing && error.status===404) { byId("storeTitle").textContent="DanzStak Store"; products.replaceChildren(); status.textContent="The official store is being stocked. No products are available right now."; return; }
       status.textContent=window.danzstakFriendlyError?.(error, "Your shop could not be loaded or saved. Try again in a moment.") ?? "Your shop could not be loaded or saved. Try again in a moment.";

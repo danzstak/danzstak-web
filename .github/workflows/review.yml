@@ -284,6 +284,7 @@ jobs:
             '.\browser-checks\epk-share-card.cjs'
             '.\browser-checks\profile-share-card.cjs'
             '.\browser-checks\public-shop.cjs'
+            '.\browser-checks\app-shortcuts.cjs'
             '.\browser-checks\media-scale.cjs'
           )
       - name: Stop static review server
