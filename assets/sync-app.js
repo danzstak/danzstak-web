@@ -69,6 +69,7 @@
     try { localStorage.removeItem(INSTALLED_KEY); } catch { /* optional */ }
     if (dialog?.open) render();
     placeVerifiedInstall();
+    armBack(); // not SYNC's own app after all: Back goes to Mix (below)
   });
   // Sign-up's "Set up SYNC" (owner 2026-11-19: "it needs to be easy to verify the device and save the app"): SYNC's page
   // with ?install=1&device=register saves the app first, then goes straight into verifying the number (call-devices.js
@@ -275,6 +276,45 @@
     try { first = localStorage.getItem(FIRST_RUN_KEY) !== "1"; localStorage.setItem(FIRST_RUN_KEY, "1"); } catch { /* optional */ }
     if (first) { const params = new URLSearchParams(location.search); params.set("device", "register"); history.replaceState(history.state, "", `${HOME}?${params}${location.hash}`); }
   }
+
+  // ---- The phone's Back goes to Mix ----
+  // Owner 2026-11-24: "when on the text screen of danzstak … user hits the back button on their phone it exits out it
+  // should go to the mix". SYNC opened with nothing behind it (a message notification, the icon's SYNC shortcut, sign-in
+  // coming back to SYNC) left Back nothing to go to, so Android closed DanzStak. Inside DanzStak (not SYNC's own app),
+  // Back there now closes an open chat first, then goes to Mix. A hidden Mix step in the history can't do this: Chrome
+  // skips steps a page adds before it's tapped. Android's Back reaches a CloseWatcher instead (Esc on a computer), so
+  // this only runs at phone width. With a page behind SYNC (Mix's SYNC tab) Back works as before.
+  const MIX = "/feed.html?view=feed";
+  let backWatcher = null, syncAppHere = false;
+  const syncAppWindow = () => inInstalledSync() && (knownInstalled || syncAppHere);
+  const nothingBehind = (() => {
+    const entry = window.navigation?.currentEntry;
+    return entry ? entry.index === 0 && (standalone() || history.length === 1) : history.length === 1;
+  })();
+  const backToMix = window.parent === window && nothingBehind && window.matchMedia?.("(max-width: 760px)").matches === true;
+  function armBack() {
+    if (!backToMix || backWatcher || typeof window.CloseWatcher !== "function" || syncAppWindow()) return;
+    try { backWatcher = new window.CloseWatcher(); } catch { backWatcher = null; return; }
+    backWatcher.addEventListener("close", () => {
+      backWatcher = null;
+      if (syncAppWindow()) return; // SYNC's own app: Back leaves it, like any messenger
+      const body = document.body;
+      // Never cut a call off: Back makes a full-screen call small, and otherwise leaves the call alone.
+      if (body?.dataset.callMode && document.getElementById("callMinimise")) { armBack(); document.getElementById("callMinimise").click(); return; }
+      if (body?.dataset.callMode || body?.dataset.callMinimised || document.getElementById("incomingCall")?.hidden === false) { armBack(); return; }
+      // An open chat (its own step in the history) closes first, back to the chat list.
+      if ((window.navigation?.currentEntry?.index || 0) > 0) { armBack(); history.back(); return; }
+      try { sessionStorage.setItem(LAUNCH_KEY, "danzstak"); } catch { /* optional */ }
+      location.replace(MIX);
+    });
+  }
+  armBack();
+  addEventListener("pageshow", event => { if (event.persisted) armBack(); });
+  if (backToMix && inInstalledSync() && !knownInstalled) relatedAppAnswer().then(answer => {
+    if (answer !== true) return;
+    syncAppHere = true; // the phone says SYNC's own app is installed, and this window started as SYNC: it is that app
+    backWatcher?.destroy(); backWatcher = null;
+  });
 
   // call-devices.js asks before it opens "verify your number" from ?device=register: after the install sheet, and not in
   // iPhone Safari during sign-up's flow (the SYNC icon verifies instead).
