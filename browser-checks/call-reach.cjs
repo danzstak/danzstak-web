@@ -10,7 +10,7 @@
 // Run: node scripts/static-server.cjs 8150 . then DANZSTAK_BASE_URL=http://127.0.0.1:8150 node browser-checks/call-reach.cjs
 const { chromium } = require("playwright");
 
-const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8141").replace(/\/$/, "");
+const baseUrl = String(process.env.DANZSTAK_BASE_URL || process.env.DANZSTAK_LOCAL_URL || "http://127.0.0.1:8141").replace(/\/$/, "");
 const json = (body, status = 200) => ({ status, contentType: "application/json", body: JSON.stringify(body) });
 const ME = "me@danzstak.test", DEE = "dee@danzstak.test", DEE_ID = "44444444-4444-4444-8444-444444444444";
 const PHYSICAL = "77777777-7777-4777-8777-777777777777";
