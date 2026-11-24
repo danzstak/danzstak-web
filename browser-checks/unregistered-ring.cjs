@@ -83,7 +83,9 @@ async function declineRun(browser, width, lang) {
   await centreTap(page, ".global-incoming-call [data-decline]", tag, !desktop);
   await popupGone(page);
   assert.deepEqual(declines, [{ callId: CALL }], `${tag}: Decline refuses that call through /calls/decline`);
-  if (desktop) assert.deepEqual(await page.evaluate(() => window.__closed), [`call-${CALL}`], `${tag}: the desktop notification closes`);
+  // Closed by the decline itself and by the shared "call handled" path (call-ringer.js, which also closes it on pages the
+  // service worker doesn't control): closed at least once, and only that call's notification.
+  if (desktop) { const closed = await page.evaluate(() => window.__closed); assert.ok(closed.length >= 1 && closed.every(item => item === `call-${CALL}`), `${tag}: the desktop notification closes (${JSON.stringify(closed)})`); }
   await page.waitForTimeout(3500);
   assert.equal(await page.locator(".global-incoming-call").isHidden(), true, `${tag}: a declined call doesn't come back`);
   await context.close();
