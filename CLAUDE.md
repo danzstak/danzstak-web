@@ -885,6 +885,7 @@ Owner correction (2026-11-15, final): **no email codes for device registration.*
 **Done means:** a fresh account can sign up, post a photo and a video (it lands in Dailies and The Roll), comment, open a profile, use the Bazaar, start a SYNC chat and log out, at 360/390px, with **no raw errors, no dead buttons and no duplicate buttons**.
 
 ### Owner-session box (things only the owner's computer can do)
+- **Waiting-on list (owner 2026-11-24: "if you have to wait for code put the tasks you're waiting to do on a list on claude"):** every session keeps the Claude Sheet **"DanzStak — Waiting on"** (https://claude.ai/artifact/W6a68rxFnt87SE3mVK3VEs) current: when a run is blocked on the owner (an Approve, a CloudShell command, a decision), add a row (what, waiting on, what to do, link, what Code does next) and move on; mark rows Done once they are. Read it at the start of every run.
 - **SHARE: shared profiles show the member's own card (#677, after it merges; CloudShell, us-west-1).** Until these, `danzstak.com/@username` links open the app's landing page and previews stay general.
   1. **CloudShell:** `cd ~/danzstak-web && git pull -q`
   2. **CloudShell:** the call-signaling change-set deploy below (F4c entry, steps 2–3, `MediaCdnServe=true`). The change set should add `ShareProfileRoute` and `ShareProfileCardRoute` and modify `SignalingFunction`, nothing else.
