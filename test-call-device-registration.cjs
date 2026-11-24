@@ -52,7 +52,7 @@ assert.match(chatCss,/\.messages-page\.sync-device-registered:not\(\.is-conversa
 assert.doesNotMatch(client,/if\(state\.required\)event\.preventDefault\(\)/,"call registration must not trap members or block text chat");
 assert.match(client,/close\?\.addEventListener\("click",\(\)=>dialog\.close\(\)\)/,"call registration must always provide a close path back to text chat");
 assert.doesNotMatch(client,/if\(!state\.registered\)openPanel/ ,"unregistered devices must not auto-open enrollment before text chat loads");
-assert.ok(feed.indexOf('assets/call-devices.js?v=20')<feed.indexOf('assets/incoming-calls.js?v=315'),"the feed must load the installation credential before its global incoming-call listener");
+assert.ok(feed.indexOf('assets/call-devices.js?v=21')<feed.indexOf('assets/incoming-calls.js?v=315'),"the feed must load the installation credential before its global incoming-call listener");
 assert.match(client,/api\("\/profiles"\)[\s\S]{0,220}callingAccountName|callingAccountName[\s\S]{0,220}api\("\/profiles"\)/,"device registration must load the private signed-in account label from the profile API");
 assert.match(incoming,/path\.startsWith\("\/calls\/"\)[\s\S]*globalThis\.danzstakCallingDeviceHeaders/,"the feed's incoming-call requests must authenticate the registered installation");
 assert.match(incoming,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*callDeviceRegistrationRequired = true/,"unregistered feed installations must stop wasteful incoming-call polling");

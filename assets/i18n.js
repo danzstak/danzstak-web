@@ -480,6 +480,25 @@
   id:["SYNC terbuka di jendela lain.","Kamu sedang dalam panggilan di jendela SYNC yang lain.","Pakai SYNC di sini"]
  };
  for(const [language,values] of Object.entries(syncElsewhere))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(syncElsewhereKeys.map((key,index)=>[key,values[index]])));
+ /* Owner 2026-11-24 ("sometimes sync wants to reverify the device when the device is registered"): a device holding its key, while SYNC checks it (call-devices.js). */
+ const deviceCheckKeys=["Checking this device…","Couldn't reach SYNC to check this device. Trying again…"];
+ const deviceCheck={
+  es:["Comprobando este dispositivo…","No se pudo contactar con SYNC para comprobar este dispositivo. Reintentando…"],
+  fr:["Vérification de cet appareil…","Impossible de joindre SYNC pour vérifier cet appareil. Nouvel essai…"],
+  de:["Dieses Gerät wird geprüft…","SYNC war zum Prüfen dieses Geräts nicht erreichbar. Neuer Versuch…"],
+  pt:["Verificando este dispositivo…","Não foi possível falar com o SYNC para verificar este dispositivo. Tentando de novo…"],
+  it:["Controllo di questo dispositivo…","Impossibile raggiungere SYNC per controllare questo dispositivo. Nuovo tentativo…"],
+  ko:["이 기기를 확인하는 중…","이 기기를 확인하려고 SYNC에 연결하지 못했습니다. 다시 시도하는 중…"],
+  ja:["このデバイスを確認しています…","このデバイスを確認するためにSYNCに接続できませんでした。再試行しています…"],
+  "zh-Hans":["正在检查此设备…","无法连接 SYNC 检查此设备。正在重试…"],
+  "zh-Hant":["正在檢查此裝置…","無法連線 SYNC 檢查此裝置。正在重試…"],
+  fil:["Sinusuri ang device na ito…","Hindi maabot ang SYNC para suriin ang device na ito. Sinusubukan ulit…"],
+  hi:["इस डिवाइस की जाँच हो रही है…","इस डिवाइस की जाँच के लिए SYNC से जुड़ नहीं सके। फिर से कोशिश हो रही है…"],
+  vi:["Đang kiểm tra thiết bị này…","Không kết nối được SYNC để kiểm tra thiết bị này. Đang thử lại…"],
+  th:["กำลังตรวจสอบอุปกรณ์นี้…","เชื่อมต่อ SYNC เพื่อตรวจสอบอุปกรณ์นี้ไม่ได้ กำลังลองใหม่…"],
+  id:["Memeriksa perangkat ini…","Tidak bisa menghubungi SYNC untuk memeriksa perangkat ini. Mencoba lagi…"]
+ };
+ for(const [language,values] of Object.entries(deviceCheck))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(deviceCheckKeys.map((key,index)=>[key,values[index]])));
  const callNetworkKeys=["DanzStak is taking too long to respond. Retrying automatically.","DanzStak cannot connect to calls right now. Check your connection and try again.","Session expired","Request failed"];
  const callNetworkGuidance={
   es:["DanzStak está tardando demasiado en responder. Reintentando automáticamente.","DanzStak no puede conectarse a las llamadas ahora. Comprueba tu conexión y vuelve a intentarlo.","La sesión caducó","La solicitud falló"],

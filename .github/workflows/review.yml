@@ -111,6 +111,7 @@ jobs:
             '.\browser-checks\sync-attach.cjs'
             '.\browser-checks\sync-chat-menu.cjs'
             '.\browser-checks\sync-back-to-mix.cjs'
+            '.\browser-checks\sync-device-recheck.cjs'
             '.\browser-checks\message-read-receipt.cjs'
             '.\browser-checks\mix-portrait-preview.cjs'
             '.\browser-checks\original-feed-art-direction.cjs'
