@@ -5977,7 +5977,7 @@
  for(const [lang,list] of Object.entries(pats))(p[lang]||(p[lang]=[])).push(...list);
 })();
 
-// Spec 46: published EPK versions (owner 2026-11-24: "need a way to see my previous published epk"), the Unpublish
+// Spec 47: published EPK versions (owner 2026-11-24: "need a way to see my previous published epk"), the Unpublish
 // confirm and the save lines that say venues still see the published EPK, and the EPK link-preview lines.
 (() => {
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});

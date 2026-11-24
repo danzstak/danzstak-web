@@ -1,5 +1,5 @@
 "use strict";
-// Spec 46, Train A (owner 2026-11-24: "need a way to see my previous published epk"). Runs the Auth API's real EPK
+// Spec 47, Train A (owner 2026-11-24: "need a way to see my previous published epk"). Runs the Auth API's real EPK
 // handlers against an in-memory table and checks:
 // - saving a draft keeps the published EPK online (before: every draft save took it offline and lost it);
 // - venue links carry the published EPK, never the draft;

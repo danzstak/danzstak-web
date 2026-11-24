@@ -1,4 +1,4 @@
-// Spec 46, Train A (owner 2026-11-24: "need a way to see my previous published epk").
+// Spec 47, Train A (owner 2026-11-24: "need a way to see my previous published epk").
 // - The line under Publish says what venues see: the version published on a date, and whether the builder holds a draft.
 // - "Published versions" lists what venues saw each time the artist published (the server keeps the newest 20):
 //   View opens that version as venues saw it (only its owner can), Bring back loads it into the builder as a draft.

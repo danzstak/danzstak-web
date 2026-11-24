@@ -4552,7 +4552,7 @@ const bookingWorkspaceId = "booking-workspace-v1";
 const epkWorkspaceId = "epk-workspace-v1";
 const epkPublicPartition = "epk-public";
 const epkSharePartition = "epk-private-share";
-// Spec 46 (owner 2026-11-24: "need a way to see my previous published epk"): every publish keeps a copy of what venues
+// Spec 47 (owner 2026-11-24: "need a way to see my previous published epk"): every publish keeps a copy of what venues
 // saw, the newest 20. They live in their own partition (epkv#<member>), not the member's: the Tour list (GET /tours) and
 // the account export read the member's whole partition and must not pick up 20 copies of the EPK. Train B swaps "main"
 // for an EPK id when an artist has several EPKs.
@@ -4906,7 +4906,7 @@ async function epkWorkspace(event, method) {
     return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}")), publicId: result.Item.publicId?.S || "", published: isPublished, publishedAt: isPublished ? result.Item.publishedAt?.S || "" : "", draftChanged, privateShared: Boolean(result.Item.shareHash?.S), updatedAt: result.Item.updatedAt?.S || "", shareUrl: sharedId ? epkShareLink(sharedId) : "", shareCard: cardOn, shareCardOff: cardOff, shareCardSig: cardOn ? card.sig?.S || "" : "" });
   }
   const data = parseJsonBody(event), kit = cleanEpk(data?.kit, ownerPrefix);
-  // Spec 46: saving a draft never takes the published EPK offline; only Unpublish does. Older pages send { publish }.
+  // Spec 47: saving a draft never takes the published EPK offline; only Unpublish does. Older pages send { publish }.
   const action = ["draft", "publish", "unpublish"].includes(data?.action) ? data.action : (data?.publish === true ? "publish" : "draft");
   const publish = action === "publish";
   if (!kit) return reply(400, { error: "Add an artist name and valid EPK details." });
@@ -5147,7 +5147,7 @@ async function outreachEpkShare(event, method, shareId = "") {
     db.send(new GetItemCommand({ TableName: toursTable, Key: mapKey, ConsistentRead: true }))
   ]);
   if (!epkResult.Item || epkResult.Item.published?.BOOL !== true) return reply(409, { error: "Publish the EPK before creating a venue link." });
-  // Spec 46: a venue gets the published EPK, never the draft the artist is still working on. Task 20: the act on that
+  // Spec 47: a venue gets the published EPK, never the draft the artist is still working on. Task 20: the act on that
   // published copy must be verified (the impersonation hold lives on the EPK record); revoking a link always works.
   const publishedCopy = validEpkId(epkResult.Item.publicId?.S) ? (await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: epkResult.Item.publicId.S } }, ConsistentRead: true }))).Item : null;
   if (!publishedCopy?.plan?.S) return reply(409, { error: "Publish the EPK before creating a venue link." });

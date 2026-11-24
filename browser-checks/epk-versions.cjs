@@ -1,5 +1,5 @@
 "use strict";
-// Spec 46, Train A (owner 2026-11-24: "need a way to see my previous published epk"). Real browser, the EPK builder with a
+// Spec 47, Train A (owner 2026-11-24: "need a way to see my previous published epk"). Real browser, the EPK builder with a
 // published EPK and a newer draft, at 320/360/390/430px (touch, centre taps) and once in Italian:
 //   - the line under Publish says venues see the version published on a date and the changes are a draft;
 //   - "Published versions" opens the list (newest first, "Latest" on the first), every row fits the screen, 44px targets;

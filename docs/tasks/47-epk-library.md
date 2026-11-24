@@ -1,4 +1,4 @@
-# 46 — EPK library: several EPKs, several per artist, every published version kept
+# 47 — EPK library: several EPKs, several per artist, every published version kept
 
 Owner 2026-11-24: "need a way to see my previous published epk", "users may have a bunch of epk", "and also several per
 artist". Asked "several EPKs, version history, or both?": **both**.
