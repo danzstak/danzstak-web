@@ -31,8 +31,13 @@ EPKs, several of them can be for the same artist, and each keeps its published v
   ("Live set", "DJ set", "Festival", "Italia").
 - **At most 5 EPKs per artist** (owner, 2026-11-24: "an artist should have a limit of 5 epk per artist"). The 6th
   is refused with a translated line, and the server enforces it.
-  - An account that manages several artists also has an overall cap of 20 EPKs. That number is a default against
-    abuse, not an owner rule, and can change.
+  - **One person, several artist names.** Owner: "sleeping dragon records is my label", "all those artists are me".
+    An account holds every name its owner records or plays under (aliases, past bands, side projects, the label's
+    acts), and each name gets up to 5 EPKs.
+    - When the AI EPK build finds the act's other names (spec 43, "Find every name itself"), it offers each one as an
+      artist in My EPKs.
+    - The overall cap is 50 EPKs per account (10 names × 5). That number is a default against abuse, not an owner rule,
+      and can change.
 - Each EPK has **its own link** (`danzstak.com/e/<id>`), review link, share card and publish switch.
 
 ### Versions
