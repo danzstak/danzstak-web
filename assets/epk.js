@@ -168,7 +168,7 @@
     frame.allowFullscreen = true;
     card.dataset.playerActive = "true";
     button.hidden = true;
-    if (video) button.after(frame); else card.append(frame);
+    if (video) button.before(frame); else card.append(frame); // a video's player takes its picture's place
     // YouTube's "Video unavailable" never shows to a venue: a removed or private video leaves the EPK, one that won't
     // play inside other sites opens on its own site.
     const stop = check?.watchPlayer?.(frame, { onError: code => {
