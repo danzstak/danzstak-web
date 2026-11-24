@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!-- DanzStak "My shop" app-shortcut icon (owner 2026-11-24). Original artwork, same family as the SYNC icon:
+       black rounded square, one bold DanzStak-orange storefront with a striped awning and a vinyl record in the window. -->
+  <rect width="192" height="192" rx="40" fill="#0B0B0C"/>
+  <g id="shop" transform="translate(96 99) scale(.86) translate(-96 -99)">
+    <!-- awning: one band, scalloped bottom, black stripe gaps -->
+    <path fill="#FF5A1F" d="M44 48h104l8 22a12 12 0 0 1-23.2 4.2 12 12 0 0 1-22.4 0 12 12 0 0 1-22.4 0 12 12 0 0 1-22.4 0A12 12 0 0 1 36 70z"/>
+    <path stroke="#0B0B0C" stroke-width="4" d="M71.6 48l-2.4 26M96 48v26M120.4 48l2.4 26"/>
+    <!-- shop front -->
+    <path fill="#FF5A1F" d="M46 84h100v58a8 8 0 0 1-8 8H54a8 8 0 0 1-8-8z"/>
+    <!-- window with a record in it -->
+    <rect x="56" y="94" width="54" height="46" rx="6" fill="#0B0B0C"/>
+    <circle cx="83" cy="117" r="18" fill="#FF5A1F"/>
+    <circle cx="83" cy="117" r="13" fill="none" stroke="#0B0B0C" stroke-width="2.5"/>
+    <circle cx="83" cy="117" r="7" fill="#0B0B0C"/>
+    <circle cx="83" cy="117" r="2.2" fill="#FF5A1F"/>
+    <!-- door -->
+    <rect x="118" y="100" width="20" height="50" rx="3" fill="#0B0B0C"/>
+    <circle cx="132" cy="127" r="2.6" fill="#FF5A1F"/>
+  </g>
+</svg>

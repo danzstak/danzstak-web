@@ -165,7 +165,7 @@ jobs:
 
   browser-account-security:
     runs-on: windows-latest
-    timeout-minutes: 35 # about 20 minutes of checks now (train i's run took 19.5; train j's was stopped at 20 mid-check with every check passing)
+    timeout-minutes: 45 # about 31–35 minutes of checks now (#747 took 30; #751 was stopped at 35 in its last check with every check before it passing)
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -281,10 +281,12 @@ jobs:
             '.\browser-checks\call-chrome-hide.cjs'
             '.\browser-checks\call-ends-text-works.cjs'
             '.\browser-checks\call-reconnect.cjs'
+            '.\browser-checks\call-headset.cjs'
             '.\browser-checks\epk-share-card.cjs'
             '.\browser-checks\epk-versions.cjs'
             '.\browser-checks\profile-share-card.cjs'
             '.\browser-checks\public-shop.cjs'
+            '.\browser-checks\app-shortcuts.cjs'
             '.\browser-checks\media-scale.cjs'
           )
       - name: Stop static review server
