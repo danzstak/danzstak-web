@@ -40,3 +40,23 @@ Everything happens on the phone: nothing extra is uploaded or kept.
 - Undo gives back the whole screenshot. The chip is in it/fr/es. Centre taps work at 320/360/390/430 px.
 - The posted frame equals the trimmed photo's shape (F22 rule).
 - Part 2, `test-photo-fingerprint.cjs`: a cropped, re-compressed copy matches its original; another member's identical photo never matches.
+
+## Part 3: fix the photos already on DanzStak (owner 2026-11-24: "go through previous uploaded screenshots and make them tight looking so a user can't mess up our look with blank backgrounds and make DanzStak look more pro")
+**Blank borders too.** Parts 1 and 3 also trim flat, empty margins that aren't part of the picture: black, white or single-colour bars around a photo (a phone's letterboxing, an "Instagram square" padding, a screenshot of a photo on a white page). This applies to any photo, not only screenshots. The same "only when sure" rules hold: it never cuts into the picture itself, and it leaves dark or white photos whose edges really are the subject alone.
+
+**One shared detector.** The trimming code is one plain-JS module (it works on RGBA pixel arrays, with no DOM), used by the browser hook (part 1) and by the server script below, so both trim the same way.
+
+**Script** `infrastructure/auth-api/trim-old-photos.mjs`, run like the other backfills:
+- It covers post photos (every photo of a multi-photo post), album photos, profile pictures, covers, showcase photos, Tribe covers/pictures, shop photos and event flyers. It never touches SYNC media, Support attachments, Dailies older than 24 h (already gone) or videos.
+- **Dry run first** (the default). It prints counts only: photos checked, screenshots found, blank borders found, would trim, left alone (not sure). It also writes 20 before/after thumbnails of **the owner's own photos only** for him to look at. No member's photo leaves AWS, and no member data is printed.
+- `--apply` writes the trimmed copy as a **new** key next to the original, sets the item's display key to it and keeps the original key. Nothing is deleted or overwritten. Then it invalidates those CDN paths. It runs in batches and can be stopped and resumed.
+- **The member stays in control.** Their post's ⋯ menu gets "Show the whole photo", which switches back to the original. Delete everywhere removes both copies.
+- **Run order:** the owner looks at the dry run's thumbnails and says yes. Then `--apply` runs through the GitHub deploy or the Owner-session box.
+
+**Checks:**
+- `test-trim-old-photos.cjs`: the detector gives the same rectangle in Node and in the browser for the part 1 test images.
+- The dry run changes nothing.
+- `--apply` keeps the original key and adds the trimmed one. A second run changes nothing.
+- "Show the whole photo" brings the original back.
+- A photo with real black or white edges (a night shot, a white wall) is left alone.
+- Delete everywhere removes both keys.
