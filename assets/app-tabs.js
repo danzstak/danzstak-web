@@ -21,7 +21,7 @@
     "feed.html": "mix", "": "mix",
     "epk.html": "hq", "booking.html": "hq", "booking-selections.html": "hq", "record-stores.html": "hq",
     "event.html": "events",
-    "bazaar.html": "bazaar", "product.html": "bazaar", "store.html": "bazaar",
+    "bazaar.html": "bazaar", "product.html": "bazaar", "store.html": "bazaar", "shop-example.html": "bazaar",
     "messages.html": "sync",
     "profile.html": "menu", "friends.html": "menu", "moving-day.html": "menu", "support.html": "menu", "trusted-contacts.html": "menu", "privacy.html": "menu", "terms.html": "menu"
   };

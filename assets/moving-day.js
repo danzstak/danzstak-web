@@ -12,14 +12,16 @@
   const guides = {
     discogs: {
       label: "Discogs",
-      title: "Get your Discogs inventory export",
+      title: "Get your Discogs export",
       steps: [
-        "Sign in to Discogs in a browser and open your Dashboard, then your Inventory.",
-        "Choose Export and request an inventory export. Use the inventory export, not the collection export.",
+        "Selling already? Sign in to Discogs in a browser, open your Dashboard, then your Inventory, choose Export and request an inventory export. It keeps your prices.",
+        "Collector pricing your crate? On Discogs's Export page choose Collection from the menu and Request Data Export. A collection has no prices: you set them here before moving.",
         "When Discogs says it is ready, download the CSV and keep it private.",
         "Come back here and choose it below."
       ],
-      checked: "Guide checked November 17, 2026"
+      link: "https://support.discogs.com/hc/en-us/articles/360007331534",
+      linkLabel: "Open Discogs collection help",
+      checked: "Guide checked November 18, 2026"
     },
     ebay: {
       label: "eBay",
@@ -80,7 +82,7 @@
 
   const money = cents => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(cents / 100);
   const node = (tag, text = "", className = "") => { const el = document.createElement(tag); el.textContent = text; if (className) el.className = className; return el; };
-  const label = { discogs: "Discogs", ebay: "eBay", shopify: "Shopify", spreadsheet: "spreadsheet" };
+  const label = { discogs: "Discogs", "discogs-collection": "Discogs collection", ebay: "eBay", shopify: "Shopify", spreadsheet: "spreadsheet" };
 
   async function request(path, options = {}) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 60000);
@@ -96,9 +98,17 @@
     } finally { clearTimeout(timer); }
   }
 
+  // A price typed on a row wins; otherwise the file's price (with the % change); otherwise the
+  // "Set a price for all picked items" value. Discogs collection exports have no prices at all.
+  function basePrice(item) {
+    if (Number.isInteger(item.overrideCents)) return { cents: item.overrideCents, fromFile: false };
+    if (item.priceCents > 0) return { cents: item.priceCents, fromFile: true };
+    return { cents: parser.money(byId("priceAll").value) ?? 0, fromFile: false };
+  }
+
   function adjusted(item) {
-    const percent = Number(byId("priceAdjust").value) || 0;
-    const price = Math.round(item.priceCents * (1 + percent / 100));
+    const percent = Number(byId("priceAdjust").value) || 0, base = basePrice(item);
+    const price = base.fromFile ? Math.round(base.cents * (1 + percent / 100)) : base.cents;
     const shippingText = byId("shippingAll").value.trim();
     const shipping = shippingText ? parser.money(shippingText) ?? item.shippingCents : item.shippingCents;
     return { priceCents: price, shippingCents: shipping };
@@ -135,11 +145,32 @@
       const text = node("label", "", "moving-item-text"); text.htmlFor = box.id;
       const issue = problems(item), { priceCents } = adjusted(item);
       text.append(node("strong", item.title || `Row ${item.row}`), node("span", item.description.split("\n").slice(0, 2).join(" · "), "moving-item-meta"));
-      const price = node("span", issue.length ? issue.join(", ") : money(priceCents), issue.length ? "moving-item-issue" : "moving-item-price");
-      row.append(box, text, price); list.append(row);
+      if (item.priceCents > 0) {
+        const price = node("span", issue.length ? issue.join(", ") : money(priceCents), issue.length ? "moving-item-issue" : "moving-item-price");
+        row.append(box, text, price);
+      } else row.append(box, text, priceInput(item));
+      list.append(row);
     }
     byId("pickMore").hidden = view.length <= shown;
     summary();
+  }
+
+  // Row-by-row price for items the file has no price for (every item of a collection export).
+  function priceInput(item) {
+    const wrap = node("label", "", "moving-item-set-price"), input = document.createElement("input"), state = node("span", "", "moving-item-issue");
+    input.inputMode = "decimal"; input.autocomplete = "off"; input.placeholder = byId("priceAll").value.trim() || "Price";
+    input.value = Number.isInteger(item.overrideCents) ? (item.overrideCents / 100).toFixed(2) : "";
+    input.setAttribute("aria-label", `Price in USD for ${item.title || `row ${item.row}`}`);
+    const show = () => { const issue = problems(item); state.textContent = issue.join(", "); state.hidden = !issue.length; };
+    input.addEventListener("input", () => {
+      const cents = input.value.trim() ? parser.money(input.value) : null;
+      item.overrideCents = Number.isInteger(cents) ? cents : null;
+      if (cents !== null && cents >= 50) item.chosen = true;
+      const box = wrap.closest(".moving-item")?.querySelector("input[type=checkbox]"); if (box) box.checked = item.chosen;
+      show(); summary();
+    });
+    wrap.append(node("span", "$", "moving-item-currency"), input, state); show();
+    return wrap;
   }
 
   async function readFile(file) {
@@ -150,7 +181,11 @@
     items = parsed.items.map(item => ({ ...item, chosen: item.forSale && !item.problems.includes("no title") }));
     shown = PAGE;
     if (!items.length) { status.textContent = "No items found in that file. Check that it's the inventory export with a header row."; return; }
-    status.textContent = `Read ${items.length} items from your ${label[parsed.source]} export.`;
+    const unpriced = items.filter(item => !(item.priceCents > 0)).length;
+    byId("priceAllRow").hidden = !unpriced;
+    status.textContent = parsed.source === "discogs-collection"
+      ? `Read ${items.length} records from your Discogs collection export. Collections have no prices: set one for all picked items in step 4, or type a price on any row. Nothing without a price moves.`
+      : `Read ${items.length} items from your ${label[parsed.source]} export.${unpriced ? ` ${unpriced} have no price yet: set them in step 4 or on the row.` : ""}`;
     const unused = byId("pickUnused");
     unused.hidden = !parsed.unused.length;
     unused.textContent = parsed.unused.length ? `Not moved (no DanzStak field yet): ${parsed.unused.slice(0, 12).join(", ")}${parsed.unused.length > 12 ? "…" : ""}` : "";
@@ -204,6 +239,6 @@
   byId("pickAll").addEventListener("click", () => { for (const item of visibleItems()) item.chosen = true; render(); });
   byId("pickNone").addEventListener("click", () => { for (const item of visibleItems()) item.chosen = false; render(); });
   byId("pickMore").addEventListener("click", () => { shown += PAGE; render(); });
-  for (const id of ["priceAdjust", "shippingAll"]) byId(id).addEventListener("input", render);
+  for (const id of ["priceAdjust", "shippingAll", "priceAll"]) byId(id).addEventListener("input", render);
   byId("moveButton").addEventListener("click", move);
 })();
