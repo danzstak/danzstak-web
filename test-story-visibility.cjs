@@ -32,20 +32,25 @@ class DeleteItemCommand { constructor(input) { this.input=input; } }
 class DeleteObjectCommand { constructor(input) { this.input=input; } }
 class ListUsersCommand { constructor(input) { this.input=input; } }
 class GetItemCommand { constructor(input) { this.input=input; } }
+class BatchGetItemCommand { constructor(input) { this.input=input; } }
+class UpdateItemCommand { constructor(input) { this.input=input; } }
+const authorBatches=[];
 const ctx = vm.createContext({
   process:{env:{STORIES_TABLE:'stories',FRIENDS_TABLE:'friends',SETTINGS_TABLE:'settings',MEDIA_BUCKET:'media',USER_POOL_ID:'pool'}}, now:()=>current,
   scanAll:async input=>{assert.equal(input.TableName,'stories');assert.ok(!input.FilterExpression);return items;},
   queryAll:async()=>[{status:{S:'friends'},friendEmail:{S:'friend@example.com'}}],
   db:{send:async command=>{
     if (command instanceof GetItemCommand) return {Item:{dailyTakeCount:{N:'5'}}};
+    // C2: every author's settings come in one BatchGetItem; none here hold a name, so names come from Cognito.
+    if (command instanceof BatchGetItemCommand) {authorBatches.push(command.input);return {Responses:{settings:[]}};}
     const id=command.input.Key.storyId.S;
     deletedRecords.push(id);
     cleanupEvents.push(`record:${id}`);
   }},
   s3:{send:async command=>{const key=command.input.Key;deletedMedia.push(key);cleanupEvents.push(`media:${key}`);if(key==='stories/expired-failed.png')throw Error('temporary storage failure');}}, DeleteItemCommand, DeleteObjectCommand,
-  ListUsersCommand, GetItemCommand,
+  ListUsersCommand, GetItemCommand, BatchGetItemCommand, UpdateItemCommand, setTimeout,
+  attr:(user,name)=>user?.Attributes?.find(x=>x.Name===name)?.Value||'', cachedMember:()=>'', rememberMember(){},
   cognito:{send:async command=>{const email=command.input.Filter.match(/"(.*)"/)[1];return {Users:[{Attributes:[{Name:'email',Value:email},{Name:'sub',Value:`member-${email}`},{Name:'name',Value:email==='someone@example.com'?'Public Story Author':email==='friend@example.com'?'Friend Story Author':'Current Member'}]}]};}},
-  publicProfile:async(email,account)=>({memberId:account.Attributes.find(value=>value.Name==='sub').Value,name:account.Attributes.find(value=>value.Name==='name').Value}),
   blockedStatus:status=>status==='blocked'||status==='blocked_by',
   mapLimit:async(values,_limit,task)=>Promise.all(values.map(task)),
   console:{warn(){},error(){}}, signedMediaUrl:(_,key)=>'https://media.test/'+key, json:(_,payload)=>payload
@@ -67,5 +72,7 @@ vm.runInContext(getStoriesSource.trim(),ctx);
   assert.equal(Object.hasOwn(result.stories.find(value=>value.storyId==='public'),'userEmail'),false,'Flash responses must not expose account email addresses');
   assert.equal(Object.hasOwn(result.reels[0],'userEmail'),false,'Roll responses must not expose account email addresses');
   assert.equal(result.reels[0].displayName,'Current Member');
+  assert.equal(authorBatches.length,1,'every author\'s settings come in one read');
+  assert.deepEqual(Array.from(authorBatches[0].RequestItems.settings.Keys,key=>key.userEmail.S).sort(),['friend@example.com','me@example.com','someone@example.com']);
   console.log('Story visibility checks passed: 24h expiry, legacy cleanup, durable Reels, audience privacy, and public display names.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

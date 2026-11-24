@@ -76,6 +76,27 @@ containers, Kubernetes, pm2 or Redis are needed for this.
   hands out CDN URLs only when `MEDIA_CDN_DOMAIN` is set; set it together with `MediaCdnServe=true`, plus
   `MEDIA_CDN_DISTRIBUTION_ID` for delete invalidation, and give the Auth API role `secretsmanager:GetSecretValue` on the
   signing secret and `cloudfront:CreateInvalidation` on the distribution (managed policy).
+- Step 4 (`claude/c2-faster-stories`, C2):
+  - **Who is asking:** call-signaling's Cognito client is in us-east-1, so `identity()` crossed the country on every
+    request (`/calls/inbox` polls, every route). A member's id and email are now kept in the warm Lambda for 60 s; the
+    session record is still read on every request, so a signed-out or expired session is refused as before.
+  - **Dailies authors:** `GET /stories` reads every author's `profileName` and `memberSub` with one `BatchGetItem` on the
+    settings table (100 keys per request, unprocessed keys retried twice) instead of one Cognito `ListUsers` plus one
+    consistent `GetItem` per author. Cognito is asked only for an author whose settings lack them; their Cognito id is then
+    kept as `memberSub` on their existing settings record (`attribute_exists(userEmail)`, never creating one). If the
+    settings read fails, names come from Cognito as before. `SignalingRole` gains `dynamodb:BatchGetItem` on the settings
+    table.
+  - **No GSI:** the Stories table only ever holds live Dailies and Roll links (the cleanup Lambda deletes expired Dailies
+    every 15 minutes, and `GET /stories` deletes any it sees), so a Query on a new index would read exactly the items the
+    Scan reads. The time went to the Cognito calls. Revisit when Dailies are filtered per member (friends + follows)
+    instead of everyone's public ones.
+  - **Memory:** `SignalingFunction` and the Auth API at 1024 MB (four times the CPU of 256 MB; billed per ms). The Story
+    cleanup worker stays at 128 MB: it runs on a schedule, not while a member waits.
+  - **Mix list:** posts already come with signed media; the only per-item `/stories` `view` call left is the owner's own
+    profile-video fallback, not Mix.
+  - Checks: `test-stories-fast.cjs` (runs the real call-signaling code: Cognito calls per request and per author, the
+    batch sizes, the kept member id, the failure path, IAM, memory; fails on main), `test-story-visibility.cjs`.
+  - Not measured: Mix's first screen on 4G from Italy and San Francisco (C4) needs the live site after the deploy.
 
 ## Owner session (only the owner's computer / AWS console)
 1. Make the signing key (AWS CloudShell or `scripts/setup-media-cdn-key.ps1`): creates the CloudFront public key and stores
