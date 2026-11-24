@@ -3,6 +3,12 @@
 // a call push must still reach this browser's service worker and show the call with Accept and Decline. When the caller
 // hangs up, the ring stops.
 //
+// Owner 2026-11-24: "notification for incoming calls stay on top even after answering". Two more cases, each with its own call:
+//   6. the call is answered in the app before its push arrives (the app's own inbox check can win the race): the late push
+//      must not put the call up again;
+//   7. the call is answered on a page the service worker doesn't control (after a hard reload): the notification closes and
+//      the worker's re-ring (every 4 s) doesn't bring it back.
+//
 // The push is delivered the way the browser's push service does it (DevTools ServiceWorker.deliverPushMessage), with no
 // DanzStak page open, so the worker wakes up on its own. The payload is built by call-signaling's own localizedPush, in
 // Italian (the Bologna and Italy testers), exactly as notifyCall sends it. Which subscriptions get a call push is covered
@@ -104,7 +110,38 @@ function serverPushCopy() {
     await waitFor(list => list.length === 0, "the caller hung up: the call notification closes");
     await blank.waitForTimeout(4500);
     assert.equal((await shown()).length, 0, "and it doesn't ring again");
+
+    // 6. Answered in the app first, push afterwards: the notification never shows.
+    const pushFor = callId => JSON.stringify({ ...callPush, tag: `call-${callId}` });
+    const count = async tag => (await latestWorker()).evaluate(async tag => (await self.registration.getNotifications({ tag })).length, tag);
+    const LATE = "88888888-8888-4888-8888-888888888888", HARD = "99999999-9999-4999-8999-999999999999";
+    const sync = await context.newPage();
+    await sync.goto(`${baseUrl}/privacy.html`, { waitUntil: "load" });
+    await sync.addScriptTag({ url: "/assets/call-ringer.js" });
+    assert.equal(await sync.evaluate(() => Boolean(navigator.serviceWorker.controller)), true, "an ordinary page is controlled");
+    await sync.evaluate(id => window.danzstakCallRinger.handled(id), LATE);
+    await sync.waitForTimeout(500);
+    await cdp.send("ServiceWorker.deliverPushMessage", { origin, registrationId: registration.registrationId, data: pushFor(LATE) });
+    await blank.waitForTimeout(1500);
+    assert.equal(await count(`call-${LATE}`), 0, "a call answered in the app before its push arrived doesn't come back as a notification");
+
+    // 7. A page the worker doesn't control answers: its notification closes, and the re-ring doesn't bring it back.
+    await cdp.send("ServiceWorker.deliverPushMessage", { origin, registrationId: registration.registrationId, data: pushFor(HARD) });
+    for (let i = 0; i < 40 && await count(`call-${HARD}`).catch(() => 0) !== 1; i++) await blank.waitForTimeout(250);
+    assert.equal(await count(`call-${HARD}`), 1, "the second call rings");
+    const hard = await context.newPage();
+    await hard.goto(`${baseUrl}/privacy.html`, { waitUntil: "load" });
+    const hardCdp = await context.newCDPSession(hard);
+    await hardCdp.send("Page.enable");
+    await Promise.all([hard.waitForEvent("load"), hardCdp.send("Page.reload", { ignoreCache: true })]);
+    assert.equal(await hard.evaluate(() => navigator.serviceWorker.controller), null, "a hard reload leaves the page outside the worker");
+    await hard.addScriptTag({ url: "/assets/call-ringer.js" });
+    await hard.evaluate(id => window.danzstakCallRinger.handled(id), HARD);
+    for (let i = 0; i < 20 && await count(`call-${HARD}`) !== 0; i++) await blank.waitForTimeout(250);
+    assert.equal(await count(`call-${HARD}`), 0, "answering on a page the worker doesn't control closes the call notification");
+    await blank.waitForTimeout(4500);
+    assert.equal(await count(`call-${HARD}`), 0, "and the worker's re-ring doesn't bring it back");
     await context.close();
   } finally { await browser.close(); }
-  console.log("Closed-app call push checks passed: with every DanzStak page closed, a call push wakes the service worker and shows the caller with Accept and Decline in the member's language, it keeps ringing, and the caller's hang-up stops it.");
+  console.log("Closed-app call push checks passed: with every DanzStak page closed, a call push wakes the service worker and shows the caller with Accept and Decline in the member's language, it keeps ringing, and the caller's hang-up stops it; a call answered in the app stays closed when its push arrives late, and answering on a page outside the worker closes it for good.");
 })().catch(error => { console.error(error); process.exit(1); });

@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v1048";
+const CACHE = "danzstak-shell-v1049";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/time-label.js", "/assets/page-missing.js", "/assets/scramble-by-seller.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -35,7 +35,7 @@ self.addEventListener("install", event => {
 
 self.addEventListener("activate", event => {
   event.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(key => key !== CACHE && key !== MEDIA_CACHE).map(key => caches.delete(key))))
+    .then(keys => Promise.all(keys.filter(key => key !== CACHE && key !== MEDIA_CACHE && key !== HANDLED_CALLS).map(key => caches.delete(key))))
     .then(() => self.clients.claim()));
 });
 
@@ -131,6 +131,7 @@ self.addEventListener("push", event => {
     if (!/^[a-f0-9-]{36}$/.test(callId)) return;
     const reason = ["answered", "declined", "cancelled"].includes(payload.reason) ? payload.reason : "";
     event.waitUntil(Promise.all([
+      markCallHandled(callId),
       self.registration.getNotifications({ tag: `call-${callId}` })
         .then(notifications => notifications.forEach(notification => notification.close())),
       self.clients.matchAll({ type: "window", includeUncontrolled: true })
@@ -159,8 +160,36 @@ self.addEventListener("push", event => {
     actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Accept").slice(0, 40) }, { action: "decline", title: String(payload.declineTitle || payload.dismissTitle || "Decline").slice(0, 40) }] : [],
     data: { url, type: call ? "call" : payload.type === "booking" ? "booking" : "notification", callId: call && !test && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
   };
-  event.waitUntil(call && !test && payload.silent !== true ? ringCallNotification(title, options) : self.registration.showNotification(title, options));
+  event.waitUntil((async () => {
+    // Answered, declined or ended on this phone before its push got here: it doesn't come back.
+    if (options.data.callId && await callWasHandled(options.data.callId)) return;
+    return call && !test && payload.silent !== true ? ringCallNotification(title, options) : self.registration.showNotification(title, options);
+  })());
 });
+
+// Owner 2026-11-24: "notification for incoming calls stay on top even after answering". The app can see the call (its own
+// inbox check) before the push service delivers the call push, so a call answered in the app could still put its
+// notification up afterwards, and stay there (it waits for a tap). The calls answered, declined or ended on this phone are
+// remembered for 10 minutes, in a cache the pages can write too (a page the worker doesn't control can't message it).
+const HANDLED_CALLS = "danzstak-handled-calls", HANDLED_CALL_MS = 10 * 60 * 1000;
+const handledCallKey = callId => `/handled-call/${callId}`;
+async function markCallHandled(callId) {
+  if (!/^[a-f0-9-]{36}$/.test(String(callId || ""))) return;
+  try {
+    const cache = await caches.open(HANDLED_CALLS);
+    await cache.put(handledCallKey(callId), new Response(String(Date.now())));
+    for (const request of await cache.keys()) {
+      const at = Number(await (await cache.match(request))?.text());
+      if (!(Date.now() - at < HANDLED_CALL_MS)) await cache.delete(request);
+    }
+  } catch { /* storage is optional: the close below still happens */ }
+}
+async function callWasHandled(callId) {
+  try {
+    const hit = await (await caches.open(HANDLED_CALLS)).match(handledCallKey(callId));
+    return Boolean(hit) && Date.now() - Number(await hit.text()) < HANDLED_CALL_MS;
+  } catch { return false; }
+}
 
 // Owner 2026-11-19 (screenshot): the call notification arrived but "still not ringing". A web push plays the phone's
 // notification sound once, not a ringtone. So while the call is still waiting (the notification is still there: not
@@ -173,6 +202,7 @@ async function ringCallNotification(title, options) {
     await new Promise(resolve => setTimeout(resolve, CALL_RING_EVERY_MS));
     const open = await self.registration.getNotifications({ tag: options.tag });
     if (!open.length) return; // answered, declined, dismissed or the call ended (call-resolved push)
+    if (await callWasHandled(options.data.callId)) { open.forEach(notification => notification.close()); return; }
     await self.registration.showNotification(title, { ...options, renotify: true });
   }
 }
@@ -182,7 +212,7 @@ async function ringCallNotification(title, options) {
 function callHandled(event) {
   const callId = String(event.data.callId || "");
   if (!/^[a-f0-9-]{36}$/.test(callId)) return;
-  event.waitUntil?.(self.registration.getNotifications({ tag: `call-${callId}` }).then(list => list.forEach(notification => notification.close())));
+  event.waitUntil?.(Promise.all([markCallHandled(callId), self.registration.getNotifications({ tag: `call-${callId}` }).then(list => list.forEach(notification => notification.close()))]));
 }
 
 // 16-F: Decline from the lock screen. The server refuses the offer (cookie session, no camera or microphone) and tells the
@@ -198,6 +228,8 @@ async function declineCallFromNotification(callId) {
 
 self.addEventListener("notificationclick", event => {
   event.notification.close();
+  // A tapped call (Accept, Decline or the call itself) doesn't ring again from here; the app takes over.
+  if (event.notification.data?.type === "call" && event.notification.data?.callId) event.waitUntil(markCallHandled(event.notification.data.callId));
   if (event.action === "dismiss") return;
   if (event.action === "decline") { if (event.notification.data?.type === "call") event.waitUntil(declineCallFromNotification(String(event.notification.data.callId || ""))); return; }
   const destinationUrl = new URL(event.notification.data?.url || "/feed.html", self.location.origin);
