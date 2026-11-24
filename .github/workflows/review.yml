@@ -282,6 +282,7 @@ jobs:
             '.\browser-checks\call-ends-text-works.cjs'
             '.\browser-checks\call-reconnect.cjs'
             '.\browser-checks\epk-share-card.cjs'
+            '.\browser-checks\epk-versions.cjs'
             '.\browser-checks\profile-share-card.cjs'
             '.\browser-checks\public-shop.cjs'
             '.\browser-checks\media-scale.cjs'
