@@ -761,6 +761,11 @@ Do not write code until the plan is approved.
 - Local scene Tribes by city and genre, run by members ("elders" already exists).
 - Scene calendar that merges shows, in-stores and listening parties.
 
+**Long-term direction: decentralized DanzStak (owner 2026-11-24: "my hope is to one day get this decentralized and have computers and phones able to serve up danzstak")**
+- Not before doors open; today's code keeps the door open: open formats, full export, no lock-in to one cloud, the call ring and SYNC never tied to one company's push service.
+- Steps, easiest first: (1) federation (ActivityPub, like Mastodon: scenes, shops and labels run their own DanzStak server; members follow, message and book across servers); (2) public media served by many devices (e.g. IPFS) to cut hosting cost; (3) peer-to-peer phones and computers serving DanzStak (hardest: offline phones, privacy, takedowns, payments).
+- **Delete everywhere must still work** (owner: "in the future we can develop a way to delete everywhere"): federated servers honour signed Delete messages from the creator, and media is encrypted with a key the creator controls, so destroying the key makes every copy on every device unreadable (crypto-shredding). Servers that ignore deletes lose federation. Screenshots and copies outside DanzStak still can't be recalled, and the confirmation keeps saying so.
+
 **Revenue (already allowed by README)**
 - Pro EPK features, tour-management tools, verified venue/store tools, supporter memberships,
   clearly disclosed fees on bookings or sales DanzStak actually facilitates.
