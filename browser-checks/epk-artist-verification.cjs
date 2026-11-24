@@ -79,7 +79,9 @@ async function tap(page, locator) {
       assert.equal(await page.locator("#epkPublishReason").isHidden(), true);
       await step.screenshot({ path: path.join(output, `builder-verified-${width}.png`) });
 
-      // Public EPK: verified mark and Report impersonation.
+      // Public EPK: verified mark and Report impersonation. epk-verify.js arrives after the EPK itself (a slow
+      // download, as in CI's Edge run on 2026-11-24): the mark must still show.
+      await page.route(/\/assets\/epk-verify\.js/, async route => { await new Promise(resolve => setTimeout(resolve, 1200)); await route.continue(); });
       await page.goto(`${origin}/epk.html?id=road-test`, { waitUntil: "domcontentloaded" });
       await page.locator(".epk-verified-mark", { hasText: "Verified artist on DanzStak" }).waitFor();
       const report = page.getByRole("button", { name: "Report impersonation" });
