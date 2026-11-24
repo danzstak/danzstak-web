@@ -22,3 +22,10 @@
 .calling-devices-dialog>.sync-verified-install{width:calc(100% - 36px)} /* same width as the status line above it */
 .sync-verified-install[hidden]{display:none!important}
 .sync-verified-install:focus-visible{outline:3px solid #ff5a1f;outline-offset:3px}
+/* Owner 2026-11-24: only one SYNC window is live on a phone; the other says where SYNC is open (chat.js renderSyncCover). */
+.sync-elsewhere{position:fixed;inset:0;z-index:2147483000;display:grid;place-content:center;justify-items:center;gap:16px;padding:24px;background:rgba(11,11,12,.92);color:#fff;text-align:center}
+.sync-elsewhere[hidden]{display:none}
+.sync-elsewhere p{max-width:28ch;margin:0;font-size:1.05rem;font-weight:700;line-height:1.4}
+.sync-elsewhere-use{min-height:48px;padding:0 24px;border:0;border-radius:999px;background:var(--ds-btn-go,#15803d);color:#fff;font:inherit;font-weight:800;cursor:pointer}
+.sync-elsewhere-use[hidden]{display:none}
+.sync-elsewhere-use:focus-visible{outline:3px solid #ff5a1f;outline-offset:3px}

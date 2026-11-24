@@ -461,6 +461,25 @@
   id:["Pasang {app} dari Chrome","Pasang {app} dari Safari","{browser} hanya bisa menambahkan bookmark, bukan aplikasinya.","Browser di aplikasi ini tidak bisa memasang aplikasi.","Chrome memasang {app} sebagai aplikasi sungguhan yang bisa berdering saat ada panggilan.","Safari memasang {app} sebagai aplikasi sungguhan yang bisa berdering saat ada panggilan.","Ketuk Buka di Chrome.","Masuk jika Chrome memintanya.","Ketuk ⋮, lalu Instal aplikasi (atau Tambahkan ke layar utama).","Ketuk Salin tautan.","Buka Safari dan tempel tautannya.","Ketuk Bagikan, lalu Tambah ke Layar Utama.","Buka di Chrome","Tautan disalin. Tempel di Chrome.","Tautan disalin. Tempel di Safari.","Chrome tidak terbuka. Ketuk Salin tautan, lalu tempel di Chrome.","Buka Chrome dan buka {link}","Buka Safari dan buka {link}","Browser ini tidak bisa berdering untuk panggilan saat SYNC ditutup. Chrome bisa.","Browser ini tidak bisa berdering untuk panggilan saat SYNC ditutup. Safari bisa."]
  };
  for(const [language,values] of Object.entries(installElsewhere))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(installElsewhereKeys.map((key,index)=>[key,values[index]])));
+ /* Owner 2026-11-24 ("need to open only one version of sync at a time"): what a SYNC window says while SYNC is live in another window (chat.js). */
+ const syncElsewhereKeys=["SYNC is open in another window.","You're in a call in your other SYNC window.","Use SYNC here"];
+ const syncElsewhere={
+  es:["SYNC está abierto en otra ventana.","Estás en una llamada en tu otra ventana de SYNC.","Usar SYNC aquí"],
+  fr:["SYNC est ouvert dans une autre fenêtre.","Vous êtes en appel dans votre autre fenêtre SYNC.","Utiliser SYNC ici"],
+  de:["SYNC ist in einem anderen Fenster geöffnet.","Du telefonierst gerade in deinem anderen SYNC-Fenster.","SYNC hier verwenden"],
+  pt:["O SYNC está aberto em outra janela.","Você está em uma chamada na sua outra janela do SYNC.","Usar o SYNC aqui"],
+  it:["SYNC è aperto in un'altra finestra.","Sei in chiamata nell'altra finestra di SYNC.","Usa SYNC qui"],
+  ko:["SYNC가 다른 창에서 열려 있습니다.","다른 SYNC 창에서 통화 중입니다.","여기서 SYNC 사용"],
+  ja:["SYNCは別のウィンドウで開いています。","もう一方のSYNCウィンドウで通話中です。","ここでSYNCを使う"],
+  "zh-Hans":["SYNC 已在另一个窗口中打开。","你正在另一个 SYNC 窗口中通话。","在这里使用 SYNC"],
+  "zh-Hant":["SYNC 已在另一個視窗中開啟。","你正在另一個 SYNC 視窗中通話。","在這裡使用 SYNC"],
+  fil:["Nakabukas ang SYNC sa ibang window.","Nasa tawag ka sa iba mong SYNC window.","Gamitin ang SYNC dito"],
+  hi:["SYNC दूसरी विंडो में खुला है।","आप अपनी दूसरी SYNC विंडो में कॉल पर हैं।","SYNC यहाँ इस्तेमाल करें"],
+  vi:["SYNC đang mở trong một cửa sổ khác.","Bạn đang trong cuộc gọi ở cửa sổ SYNC kia.","Dùng SYNC ở đây"],
+  th:["SYNC เปิดอยู่ในอีกหน้าต่างหนึ่ง","คุณกำลังอยู่ในสายที่หน้าต่าง SYNC อีกอัน","ใช้ SYNC ที่นี่"],
+  id:["SYNC terbuka di jendela lain.","Kamu sedang dalam panggilan di jendela SYNC yang lain.","Pakai SYNC di sini"]
+ };
+ for(const [language,values] of Object.entries(syncElsewhere))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(syncElsewhereKeys.map((key,index)=>[key,values[index]])));
  const callNetworkKeys=["DanzStak is taking too long to respond. Retrying automatically.","DanzStak cannot connect to calls right now. Check your connection and try again.","Session expired","Request failed"];
  const callNetworkGuidance={
   es:["DanzStak está tardando demasiado en responder. Reintentando automáticamente.","DanzStak no puede conectarse a las llamadas ahora. Comprueba tu conexión y vuelve a intentarlo.","La sesión caducó","La solicitud falló"],

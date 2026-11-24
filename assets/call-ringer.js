@@ -195,9 +195,28 @@
   document.addEventListener("visibilitychange", visible);
 
   // A call answered or declined on this page: the service worker closes that call's notification and stops re-ringing it.
+  // Owner 2026-11-24: "notification for incoming calls stay on top even after answering". Two gaps, both closed here:
+  // a page the worker doesn't control (first visit, a hard reload) had no one to tell, so this page closes the
+  // notification itself; and a call push that arrives after the answer must not put it back, so the call is written to
+  // the cache the worker checks before it shows or re-rings a call (service-worker.js, HANDLED_CALLS).
+  // Owner 2026-11-24 ("the audio is 2 times" with SYNC open in the DanzStak app and as the SYNC app): every other window on
+  // this phone hears it too and stops ringing that call (chat.js and incoming-calls.js listen for the window event).
+  const handledChannel = typeof BroadcastChannel === "function" ? new BroadcastChannel("danzstak-call-handled") : null;
+  handledChannel?.addEventListener("message", ({ data }) => {
+    if (/^[a-f0-9-]{36}$/.test(String(data?.callId || ""))) dispatchEvent(new CustomEvent("danzstak:call-handled-elsewhere", { detail: { callId: String(data.callId) } }));
+  });
   function handled(callId) {
     if (!/^[a-f0-9-]{36}$/.test(String(callId || ""))) return;
-    try { navigator.serviceWorker?.controller?.postMessage({ type: "DANZSTAK_CALL_HANDLED", callId: String(callId) }); } catch {}
+    const id = String(callId), message = { type: "DANZSTAK_CALL_HANDLED", callId: id };
+    try { handledChannel?.postMessage({ callId: id }); } catch {}
+    try { navigator.serviceWorker?.controller?.postMessage(message); } catch {}
+    try { globalThis.caches?.open("danzstak-handled-calls").then(cache => cache.put(`/handled-call/${id}`, new Response(String(Date.now())))).catch(() => {}); } catch {}
+    try {
+      navigator.serviceWorker?.ready?.then(registration => {
+        if (!navigator.serviceWorker.controller) registration.active?.postMessage(message);
+        return registration.getNotifications({ tag: `call-${id}` });
+      }).then(list => list?.forEach(notification => notification.close())).catch(() => {});
+    } catch {}
   }
   // SYNC ⋮ → Test ringer: the ringtone for 3 s. It runs inside the member's tap (play() is called before any await).
   function test(ms = 3000) { return start({ durationMs: ms }); }

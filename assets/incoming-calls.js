@@ -202,6 +202,8 @@
   navigator.serviceWorker?.addEventListener?.("message", event => {
     if (event.data?.type === "DANZSTAK_CALL_RESOLVED") resolveCall(String(event.data.callId || ""));
   });
+  // Answered or declined in another window on this phone (SYNC, or DanzStak open twice): stop ringing it here.
+  globalThis.addEventListener?.("danzstak:call-handled-elsewhere", event => resolveCall(String(event.detail?.callId || "")));
 
   async function acknowledge(eventId) {
     await api("/calls/ack", { method: "POST", body: JSON.stringify({ eventIds: [eventId] }) });
