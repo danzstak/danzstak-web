@@ -10,6 +10,6 @@ assert.match(pwa, /if \(signedInPage\) installButton\.style\.setProperty\("displ
 assert.match(appBar, /const result = await window\.danzstakRequestInstall\(\);[\s\S]*?window\.danzstakOpenInstallHelp\?\.\(\);/, "Menu → Install DanzStak still installs");
 for (const page of ["profile.html", "messages.html", "feed.html"]) {
   const html = fs.readFileSync(page, "utf8");
-  assert.match(html, /assets\/pwa\.js\?v=436/, `${page} loads the fixed pwa.js`);
+  assert.match(html, /assets\/pwa\.js\?v=437/, `${page} loads the fixed pwa.js`);
 }
 console.log("No install arrow checks passed: hidden on profile, SYNC and Mix; Menu install still works.");

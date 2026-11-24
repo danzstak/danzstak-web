@@ -5,9 +5,43 @@ const installHelpTitle = document.getElementById("installHelpTitle");
 const installHelpText = document.getElementById("installHelpText");
 const installHelpAction = document.getElementById("installHelpAction");
 const installHelpClose = document.getElementById("installHelpClose");
+// Browsers that can't install (DuckDuckGo, apps' own browsers; pwa.js) get the steps to Chrome or Safari, Copy link and a note.
+const installHelpSteps = document.createElement("ol");
+const installHelpNote = document.createElement("p");
+const installHelpCopy = document.createElement("button");
+installHelpSteps.className = "install-help-steps";
+installHelpNote.className = "install-help-note";
+installHelpNote.setAttribute("role", "status");
+installHelpCopy.type = "button";
+installHelpCopy.id = "installHelpCopy";
+installHelpCopy.dataset.iconLayout = "label"; // keeps its words (icon-buttons.js would make "Copy link" a bare icon)
+installHelpSteps.hidden = true;
+installHelpCopy.hidden = true;
+installHelpText.after(installHelpSteps, installHelpNote);
+installHelpClose.before(installHelpCopy);
 
 function openInstallHelp(platform) {
-  const apple = platform === "apple";
+  const apple = platform === "apple", elsewhere = window.danzstakInstallElsewhere;
+  installHelpNote.textContent = "";
+  if (elsewhere) {
+    const content = elsewhere.content("DanzStak");
+    installHelp.dataset.mode = "elsewhere";
+    installHelpTitle.textContent = content.title;
+    installHelpText.textContent = content.text;
+    installHelpSteps.replaceChildren(...content.steps.map(step => { const item = document.createElement("li"); item.textContent = step; return item; }));
+    installHelpSteps.hidden = false;
+    installHelpAction.textContent = content.open;
+    installHelpAction.hidden = !content.open;
+    installHelpCopy.textContent = content.copy;
+    installHelpCopy.hidden = false;
+    installHelpClose.textContent = window.danzstakTranslate?.("Close") || "Close";
+    installHelp.showModal();
+    return;
+  }
+  delete installHelp.dataset.mode;
+  installHelpSteps.hidden = true;
+  installHelpCopy.hidden = true;
+  installHelpAction.textContent = "Install now";
   installHelpTitle.textContent = apple ? "Install DanzStak on Apple" : "Install DanzStak on Android";
   installHelpText.textContent = apple
     ? "On iPhone or iPad, open this page in Safari, tap Share, then choose Add to Home Screen. DanzStak installs from danzstak.com and updates automatically."
@@ -33,6 +67,11 @@ document.querySelectorAll("[data-app-platform]").forEach(link => {
 });
 
 installHelpAction.addEventListener("click", async () => {
+  const elsewhere = window.danzstakInstallElsewhere;
+  if (installHelp.dataset.mode === "elsewhere" && elsewhere) {
+    if (!await elsewhere.openChrome()) installHelpNote.textContent = elsewhere.notOpened();
+    return;
+  }
   const result = await window.danzstakRequestInstall?.();
   if (result === "accepted" || result === "installed") {
     installHelp.close();
@@ -40,6 +79,11 @@ installHelpAction.addEventListener("click", async () => {
   }
   installHelpText.textContent = "Open your browser menu and choose Install app or Add to Home screen. DanzStak will continue to update from danzstak.com.";
   installHelpAction.hidden = true;
+});
+
+installHelpCopy.addEventListener("click", async () => {
+  const elsewhere = window.danzstakInstallElsewhere;
+  if (elsewhere) installHelpNote.textContent = await elsewhere.copy();
 });
 
 installHelpClose.addEventListener("click", () => installHelp.close());

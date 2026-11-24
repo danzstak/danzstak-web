@@ -259,6 +259,7 @@ jobs:
             '.\browser-checks\image-position.cjs'
             '.\browser-checks\tribe-page.cjs'
             '.\browser-checks\sync-own-app.cjs'
+            '.\browser-checks\install-elsewhere.cjs'
             '.\browser-checks\sync-standalone.cjs'
             '.\browser-checks\sync-phone-setup.cjs'
             '.\browser-checks\device-reminder.cjs'

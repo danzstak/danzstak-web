@@ -16,3 +16,8 @@
 .call-alerts-close{min-width:44px;min-height:44px;border:0;background:none;color:inherit;font-size:22px;line-height:1;cursor:pointer}
 .call-alerts-note{margin:0 12px 6px;font-size:14px;font-weight:700}
 .call-alerts-note[hidden]{display:none}
+/* Owner 2026-11-24: a browser that can't ring with SYNC closed (DuckDuckGo) hands over to Chrome: the green go button. */
+.call-alerts-prompt[data-reason="browser"]{flex-wrap:wrap;padding-bottom:10px}
+.call-alerts-prompt[data-reason="browser"] span{flex:1 1 calc(100% - 52px)} /* the words keep the row, × beside them */
+.call-alerts-prompt[data-reason="browser"] .call-alerts-close{order:1}
+.call-alerts-prompt[data-reason="browser"] .primary{order:2;background:var(--ds-btn-go,#15803d);color:#fff;white-space:nowrap}

@@ -239,9 +239,71 @@ window.addEventListener("beforeinstallprompt", event => {
   });
 });
 
+// Owner 2026-11-24: "duckduckgo has issues with the app install, there is no way to install the app from duckduck", "its only
+// a bookmark", "chrome works great". DuckDuckGo never offers a site's install, and its Add to Home screen only makes a bookmark
+// that opens in DuckDuckGo: no app window, and on Android no notifications, so SYNC could never ring there. Apps' own browsers
+// (Facebook, Instagram, TikTok…, any Android web view) can't install at all. There every install button says so and hands
+// over: Open in Chrome on Android (it installs the real app), Copy link on both (paste it in Chrome, or Safari on iPhone).
+// One shared piece for DanzStak's install help (app-downloads.js) and SYNC's install sheet (sync-app.js).
+window.danzstakInstallElsewhere = (() => {
+  const ua = navigator.userAgent || "";
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const android = /Android/i.test(ua);
+  const duck = /DuckDuckGo\//i.test(ua);
+  const inApp = /FBAN|FBAV|FB_IAB|FBIOS|Instagram|musical_ly|BytedanceWebview|TikTok|Snapchat|Line\/|LinkedInApp|Pinterest/.test(ua) || (android && /; wv\)/.test(ua));
+  if (!(ios || android) || !(duck || inApp)) return null;
+  const t = value => window.danzstakTranslate?.(value) || value;
+  const fill = (value, values) => Object.entries(values).reduce((text, [key, part]) => text.split(`{${key}}`).join(part), t(value));
+  const target = ios ? "Safari" : "Chrome";
+  const link = path => { const url = new URL(path || location.pathname + location.search, location.origin); url.hash = ""; return url.href; };
+  // What the sheet says, in the member's language. app is "DanzStak" or "SYNC".
+  const content = app => ({
+    title: fill(`Install {app} from ${target}`, { app }),
+    text: [
+      duck && android ? fill("{browser} can only add a bookmark, not the app.", { browser: "DuckDuckGo" }) : !duck ? t("This app's browser can't install apps.") : "",
+      fill(`${target} installs {app} as a real app that can ring for calls.`, { app })
+    ].filter(Boolean).join(" "),
+    steps: (ios ? ["Tap Copy link.", "Open Safari and paste the link.", "Tap Share, then Add to Home Screen."]
+      : ["Tap Open in Chrome.", "Sign in if Chrome asks.", "Tap ⋮, then Install app (or Add to Home screen)."]).map(t),
+    open: android ? t("Open in Chrome") : "",
+    copy: t("Copy link")
+  });
+  // Android opens the page in Chrome through an intent link. Resolves false when this page is still in front 2 s later
+  // (Chrome isn't on the phone, or the browser ignored the link), so the sheet can point to Copy link instead.
+  const openChrome = path => new Promise(resolve => {
+    const url = new URL(link(path));
+    let left = false;
+    const away = () => { left = true; };
+    addEventListener("pagehide", away, { once: true });
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") away(); }, { once: true });
+    setTimeout(() => resolve(left || document.visibilityState === "hidden"), 2000);
+    const go = document.createElement("a");
+    go.href = `intent://${url.host}${url.pathname}${url.search}#Intent;scheme=${url.protocol.slice(0, -1)};package=com.android.chrome;end`;
+    (document.querySelector("dialog[open]") || document.body).append(go);
+    go.click();
+    go.remove();
+  });
+  // Copies the link; the note to show after it ("Link copied…", or the link itself when the phone won't copy).
+  const copy = async path => {
+    const text = link(path);
+    let copied = false;
+    try { await navigator.clipboard.writeText(text); copied = true; } catch {
+      try {
+        const area = document.createElement("textarea");
+        area.value = text; area.readOnly = true; area.style.position = "fixed"; area.style.opacity = "0";
+        (document.querySelector("dialog[open]") || document.body).append(area);
+        area.select(); copied = document.execCommand("copy"); area.remove();
+      } catch { /* shown below */ }
+    }
+    return copied ? t(`Link copied. Paste it in ${target}.`) : fill(`Open ${target} and go to {link}`, { link: text });
+  };
+  const notOpened = () => t("Chrome didn't open. Tap Copy link, then paste it in Chrome.");
+  return Object.freeze({ browser: duck ? "DuckDuckGo" : "in-app", ios, android, target, link, content, openChrome, copy, notOpened });
+})();
+
 window.danzstakRequestInstall = async () => {
   if (knownInstalled || await detectInstalledDanzStak()) return "installed";
-  if (!installPrompt) return "manual";
+  if (!installPrompt) return window.danzstakInstallElsewhere ? "elsewhere" : "manual";
   const prompt = installPrompt;
   installPrompt = null;
   await prompt.prompt();
