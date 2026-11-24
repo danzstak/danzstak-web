@@ -150,7 +150,7 @@ export function verifyStripeSignature(payload, header, secret, currentTime = Dat
   return signatures.some(signature => { if (!/^[a-f0-9]{64}$/i.test(signature)) return false; const candidate = Buffer.from(signature, "hex"); return candidate.length === expected.length && timingSafeEqual(candidate, expected); });
 }
 
-export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, accountEmail = async () => "", notifyBookingReply = async () => {}, env = process.env, fetcher = fetch, clock = Date.now, aliasGenerator = generateSyncNetworkAlias, mailDomainProblem = createMailDomainCheck({ clock }), aiEpkReady = async () => ({ ok: false, error: "AI builder coming soon" }) }) {
+export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, verifyArtist = null, accountEmail = async () => "", notifyBookingReply = async () => {}, env = process.env, fetcher = fetch, clock = Date.now, aliasGenerator = generateSyncNetworkAlias, mailDomainProblem = createMailDomainCheck({ clock }), aiEpkReady = async () => ({ ok: false, error: "AI builder coming soon" }) }) {
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
   const testMode = () => /^(?:sk|rk)_test_/.test(env.STRIPE_SECRET_KEY || "");
   const liveKey = () => /^(?:sk|rk)_live_/.test(env.STRIPE_SECRET_KEY || "");
@@ -585,6 +585,11 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const userId = await authenticate(event);
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
     if (typeof sendBookingReply !== "function") return response(503, { error: "Booking reply delivery is not configured." }, headers);
+    if (typeof verifyArtist === "function") {
+      const epkItem = (await db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: EPK_WORKSPACE_KEY } }, ConsistentRead: true }))).Item;
+      const hold = await verifyArtist({ userId, epkItem, purpose: "reply" }); // task 20: no mail in the act's name during an impersonation hold
+      if (!hold?.ok) return response(403, { error: hold?.message || "This EPK is on hold.", verification: hold?.status || "needs_review", hold: true }, headers);
+    }
     const body = parseBody(event), outreachId = String(body?.outreachId || "").trim(), content = String(body?.content || "").trim(), clientMessageId = String(body?.clientMessageId || "").trim();
     if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !/^[a-zA-Z0-9_-]{16,100}$/.test(clientMessageId) || content.length < 1 || content.length > 4000) return response(400, { error: "Write a reply of 1 to 4,000 characters for a valid booking thread." }, headers);
     const source = await db.send(new GetItemCommand({ TableName: tableName, Key: sendKey(userId, outreachId), ConsistentRead: true })), message = source.Item, to = String(message?.recipient?.S || "").trim().toLowerCase();
@@ -1033,6 +1038,9 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     ]);
     const sendGate = epkGate(epkRecord?.Item);
     if (!sendGate.ready) return response(409, { error: epkGateMessage(sendGate), epk: sendGate }, headers);
+    // Task 20 (owner 2026-11-24: required): only a verified act pitches venues (server-side, not just the UI), checked before any credit is held.
+    const artistCheck = typeof verifyArtist === "function" ? await verifyArtist({ userId, epkItem: epkRecord?.Item, purpose: "pitch" }) : null;
+    if (artistCheck && !artistCheck.ok) return response(403, { error: artistCheck.message || "Verify your act before you pitch.", verification: artistCheck.status || "not_verified", hold: artistCheck.hold === true }, headers);
     let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
     const venue = (plan.venues || []).find(item => item?.venueKey === venueKey && (item.emails || []).some(email => String(email).toLowerCase() === to)), artistName = String(plan.artist?.name || "").trim(), epk = String(plan.artist?.epk || "").trim();
     if (!venue) return response(409, { error: "Save this venue and its public booking email to your account before sending." }, headers);
@@ -1103,7 +1111,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     let providerAccepted = false;
     try {
       await db.send(new UpdateItemCommand({ TableName: tableName, Key: key, UpdateExpression: "SET #status = :sending, sendingAt = :at", ConditionExpression: "#status = :reserved", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":sending": { S: "sending" }, ":reserved": { S: "reserved" }, ":at": { S: nowIso() } } }));
-      const delivery = await sendBookingEmail({ userId, sendId: id, artistName, venueName: venue.name, to, subject, message, replyToken: footerToken });
+      const delivery = await sendBookingEmail({ userId, sendId: id, artistName, venueName: venue.name, to, subject, message, replyToken: footerToken, verified: artistCheck?.ok === true });
       if (!delivery?.messageId) throw new Error("Email provider did not accept the message");
       await db.send(new UpdateItemCommand({ TableName: tableName, Key: key, UpdateExpression: "SET #status = :accepted, providerAcceptedAt = :at, providerMessageId = :messageId", ConditionExpression: "#status = :sending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":accepted": { S: "provider_accepted" }, ":sending": { S: "sending" }, ":at": { S: nowIso() }, ":messageId": { S: delivery.messageId } } }));
       providerAccepted = true;
