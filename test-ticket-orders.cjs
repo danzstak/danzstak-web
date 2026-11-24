@@ -5,8 +5,8 @@ const crypto = require("node:crypto");
   const m = await import("./infrastructure/auth-api/ticket-orders.mjs");
   // pure rules
   assert.match(m.ticketCode(), /^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/, "door-readable codes without 0/O/1/I/L");
-  assert.equal(m.feeCents(5000), 300, "DanzStak fee is 6% of the ticket price");
-  assert.equal(m.feeCents(1000), 100, "$1 minimum fee per order");
+  assert.equal(m.feeCents(5000), 300, "buyer fee is 6% of the ticket price at $30+");
+  assert.equal(m.feeCents(1000), 160, "under $30 the buyer also pays the $1 processing fee");
   assert.equal(m.cleanName("  Shawn   Example "), "Shawn Example");
   assert.equal(m.cleanName("x"), null); assert.equal(m.cleanName("<script>"), null);
   assert.equal(m.releaseAfter({ startsAt: "2026-12-01T20:00:00.000Z", endsAt: "2026-12-02T02:00:00.000Z" }), "2026-12-05T02:00:00.000Z", "promoter is paid 3 days after the event ends");
@@ -37,5 +37,5 @@ const crypto = require("node:crypto");
   r = await orders(wh(body, `t=${t},v1=deadbeef`)); assert.equal(r.statusCode, 400);
   const other = JSON.stringify({ type: "checkout.session.completed", data: { object: { metadata: { danzstak_kind: "booking_credits" } } } });
   r = await orders(wh(other, `t=${t},v1=${crypto.createHmac("sha256", secret).update(`${t}.${other}`).digest("hex")}`)); assert.equal(JSON.parse(r.body).ignored, true, "other Stripe products are not touched");
-  console.log("Ticket order checks passed: 6% fee, 3-day release, named tickets, verified promoters only, signed webhooks, door-readable codes.");
+  console.log("Ticket order checks passed: buyer-paid 6% fee (+$1 under $30), 3-day release, named tickets, verified promoters only, signed webhooks, door-readable codes.");
 })().catch(e => { console.error(e); process.exit(1); });

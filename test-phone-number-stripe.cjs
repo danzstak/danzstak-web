@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const { createHmac } = require("node:crypto");
 
 (async () => {
+  const { buyerFees } = await import("./infrastructure/auth-api/fees.mjs");
   const {
     createTourManagerBilling,
     TEST_PHONE_NUMBER_PRICE_ID: PHONE_NUMBER_PRICE_ID,
@@ -40,9 +41,9 @@ const { createHmac } = require("node:crypto");
   let checkoutForm;
   const stripeSession = {
     id: "cs_test_phone123", mode: "payment", payment_status: "paid", status: "complete", livemode: false,
-    client_reference_id: userId, currency: "usd", amount_total: PHONE_NUMBER_UNIT_CENTS,
+    client_reference_id: userId, currency: "usd", amount_total: PHONE_NUMBER_UNIT_CENTS + buyerFees(PHONE_NUMBER_UNIT_CENTS),
     metadata: { product: "danzstak_phone_activation", userId, priceId: PHONE_NUMBER_PRICE_ID },
-    line_items: { data: [{ quantity: 1, price: { id: PHONE_NUMBER_PRICE_ID, product: PHONE_NUMBER_PRODUCT_ID, currency: "usd", unit_amount: PHONE_NUMBER_UNIT_CENTS } }] }
+    line_items: { data: [{ quantity: 1, price: { id: PHONE_NUMBER_PRICE_ID, product: PHONE_NUMBER_PRODUCT_ID, currency: "usd", unit_amount: PHONE_NUMBER_UNIT_CENTS } }, { description: "DanzStak fee", quantity: 1, amount_total: buyerFees(PHONE_NUMBER_UNIT_CENTS), price: { id: "price_inline_fee", currency: "usd", unit_amount: buyerFees(PHONE_NUMBER_UNIT_CENTS) } }] }
   };
   const fetcher = async (url, options = {}) => {
     if (url.endsWith("/checkout/sessions")) {

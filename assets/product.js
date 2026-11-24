@@ -16,7 +16,9 @@
       const product = data.product;
       byId("productTitle").textContent = product.title;
       byId("productDescription").textContent = product.description || "No description was provided.";
-      byId("productPrice").textContent = money(product.priceCents);
+      const fees = window.DanzStakFees;
+      byId("productPrice").textContent = fees ? fees.money(fees.withFees(product.priceCents).totalCents) : money(product.priceCents);
+      byId("productFee").textContent = fees ? `incl. ${fees.money(fees.buyerFees(product.priceCents))} fees (6%${product.priceCents < fees.SMALL_ORDER_LIMIT_CENTS ? " + $1 under $30" : ""}), shipping not included` : "plus DanzStak's 6% fee";
       byId("productShipping").textContent = product.shippingCents ? `Shipping: ${money(product.shippingCents)}` : "Free shipping";
       byId("productShop").textContent = product.shopName;
       byId("productShop").href = `store.html?member=${encodeURIComponent(product.memberId)}`;

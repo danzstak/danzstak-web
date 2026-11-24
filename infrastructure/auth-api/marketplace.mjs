@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { buyerFees } from "./fees.mjs";
 
 const SECURITY_HEADERS = Object.freeze({
   "content-type": "application/json",
@@ -114,6 +115,7 @@ function productView(item, own) {
     priceCents: number(item, "priceCents"),
     shippingCents: number(item, "shippingCents"),
     danzstakFeeCents: marketplaceFeeCents(number(item, "priceCents")),
+    sellerReceivesCents: number(item, "priceCents") + number(item, "shippingCents"),
     currency: item.currency?.S || "usd",
     available: number(item, "inventory") > 0 && item.status?.S === "published",
     createdAt: item.createdAt?.S || "",
@@ -219,14 +221,9 @@ function scrambleBySeller(items, seed, gap = 2) {
 // </scramble-by-seller>
 export { scrambleBySeller };
 
+// Task 12: the buyer pays DanzStak's fee on top of the item price (never on shipping); the seller keeps the full price.
 export function marketplaceFeeCents(subtotalCents) {
-  const subtotal = positiveInteger(subtotalCents, 0, Number.MAX_SAFE_INTEGER);
-  if (subtotal === null) throw new TypeError("Subtotal must be integer cents");
-  // Owner 2026-11-16: 6% of the item price (never shipping), Stripe processing included, $1 minimum per order.
-  // The $1 minimum is waived on orders of $30 and up.
-  if (subtotal <= 0) return 0;
-  const pct = Math.round(subtotal * 6 / 100);
-  return subtotal >= 3000 ? pct : Math.min(subtotal, Math.max(100, pct));
+  return buyerFees(subtotalCents);
 }
 
 export function createMarketplace({ db, commands, authenticate, corsHeaders, tableName, env = process.env, clock = Date.now, mediaOwnerPrefix = async () => "", signMedia = () => "" }) {

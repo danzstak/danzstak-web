@@ -81,7 +81,12 @@
     const list = document.createElement("ul");
     for (const point of terms.points) list.append(Object.assign(document.createElement("li"), { textContent: point }));
     const nodes = [list];
-    if (Number(priceCents) > 0) nodes.unshift(Object.assign(document.createElement("p"), { textContent: `Total: ${money(priceCents)} (USD)` }));
+    if (Number(priceCents) > 0) {
+      const fees = window.DanzStakFees;
+      const { subtotalCents, feeCents, totalCents } = fees ? fees.withFees(priceCents) : { subtotalCents: Number(priceCents), feeCents: 0, totalCents: Number(priceCents) };
+      const small = fees && subtotalCents < fees.SMALL_ORDER_LIMIT_CENTS;
+      nodes.unshift(Object.assign(document.createElement("p"), { className: "purchase-total", textContent: `Price ${money(subtotalCents)} · DanzStak fee ${money(feeCents)} (6%${small ? " + $1 processing fee under $30" : ""}) · Total ${money(totalCents)} (USD)` }));
+    }
     const termsLink = document.createElement("p");
     termsLink.innerHTML = 'Full rules: <a href="terms.html#refunds" target="_blank" rel="noopener">Terms of Service, Refunds</a>.';
     nodes.push(termsLink);

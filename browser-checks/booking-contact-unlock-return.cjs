@@ -35,7 +35,7 @@ const workspace = () => ({
 async function acceptPurchaseTerms(page, { label, price, beforeAccept }) {
   const terms = page.locator("dialog.ds-terms-dialog");
   await terms.waitFor({ state:"visible" });
-  assert.ok((await terms.textContent()).includes(`Total: ${price} (USD)`), `${label}: purchase pop-up total must match the button price ${price}`);
+  assert.ok((await terms.textContent()).includes(`Total ${price} (USD)`), `${label}: purchase pop-up total must match the button price ${price}`);
   const proceed = terms.getByRole("button", { name:"Continue to payment" });
   assert.equal(await proceed.isDisabled(), true, `${label}: Continue must wait for the terms checkbox`);
   beforeAccept?.();

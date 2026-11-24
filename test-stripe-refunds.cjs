@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const { createHmac } = require("node:crypto");
 
 (async () => {
+  const { buyerFees } = await import("./infrastructure/auth-api/fees.mjs");
   const billing = await import("./infrastructure/auth-api/tour-manager-billing.mjs");
   class Command { constructor(input) { this.input = input; } }
   class GetItemCommand extends Command {}
@@ -24,7 +25,7 @@ const { createHmac } = require("node:crypto");
     const productId = product === "contact" ? billing.TEST_BOOKING_CONTACT_PRODUCT_ID : product === "phone" ? billing.TEST_PHONE_NUMBER_PRODUCT_ID : billing.TEST_TOUR_MANAGER_PRODUCT_ID;
     const unitAmount = product === "contact" ? billing.BOOKING_CONTACT_UNIT_CENTS : product === "phone" ? billing.PHONE_NUMBER_UNIT_CENTS : billing.TOUR_MANAGER_EMAIL_UNIT_CENTS;
     const productName = product === "contact" ? "booking_contact_unlock" : product === "phone" ? "danzstak_phone_activation" : "tour_manager_booking_email";
-    const total = amount ?? unitAmount * quantity;
+    const total = amount ?? unitAmount * quantity + buyerFees(unitAmount * quantity);
     const checkout = {
       userId: { S: userId }, tourId: { S: `TOUR_MANAGER#CHECKOUT#${sessionId}` }, sessionId: { S: sessionId }, status: { S: "paid" },
       priceId: { S: price }, environment: { S: "test" }, ...(product === "credits" ? { quantity: { N: String(quantity) } } : { product: { S: productName } }),
@@ -75,7 +76,7 @@ const { createHmac } = require("node:crypto");
       id: sessionId, mode: "payment", payment_status: "paid", status: "complete", livemode: false, client_reference_id: userId,
       currency: "usd", amount_total: total,
       metadata: { product: productName, userId, priceId: price, ...(product === "credits" ? { quantity: String(quantity) } : {}), ...(product === "contact" ? { venueKey } : {}) },
-      line_items: { data: [{ quantity, price: { id: price, product: productId, currency: "usd", unit_amount: unitAmount } }] }
+      line_items: { data: [{ quantity, price: { id: price, product: productId, currency: "usd", unit_amount: unitAmount } }, { description: "DanzStak fee", quantity: 1, amount_total: buyerFees(unitAmount * quantity), price: { id: "price_inline_fee", currency: "usd", unit_amount: buyerFees(unitAmount * quantity) } }] }
     };
     const fetcher = async url => {
       if (url.includes("/checkout/sessions?payment_intent=")) return { ok: true, json: async () => ({ data: [session] }) };
