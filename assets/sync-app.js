@@ -77,6 +77,11 @@
   const verifyAfter = inSyncApp && startParams.get("install") === "1" && startParams.get("device") === "register";
   const verifyInApp = isIOS && !standalone();
 
+  // Owner 2026-11-24 ("duckduckgo … its only a bookmark", "chrome works great"): browsers that can't install hand over to
+  // Chrome (pwa.js). pwa.js loads after this file, so it's read when the sheet opens, not now.
+  const elsewhere = () => window.danzstakInstallElsewhere || null;
+  const syncLink = () => verifyAfter ? `${HOME}?install=1&device=register` : `${HOME}?install=1`;
+
   // One state at a time, most certain first.
   function currentState() {
     if (inInstalledSync()) return "installed-here";
@@ -84,6 +89,7 @@
     if (deferred) return "prompt";
     if (knownInstalled) return "known-installed";
     if (standalone()) return "other-app"; // inside the DanzStak app: install from the browser instead
+    if (elsewhere()) return "elsewhere"; // DuckDuckGo or an app's own browser: Chrome (Safari on iPhone) installs SYNC
     if (!waited) return "waiting";
     return "steps";
   }
@@ -119,25 +125,38 @@
     dialog.innerHTML = '<header><h2 id="syncInstallTitle"></h2><button type="button" class="call-setup-close" data-icon="close"></button></header>'
       + '<div class="sync-install-body"><img class="sync-install-icon" src="assets/sync-icon-192.png?v=1" alt="" width="72" height="72">'
       + '<p class="sync-install-text" role="status"></p><ol class="sync-install-steps"></ol>'
-      + '<button type="button" class="sync-install-primary"></button></div>';
+      + '<p class="sync-install-note" role="status"></p>'
+      + '<button type="button" class="sync-install-primary"></button><button type="button" class="sync-install-secondary" data-icon-layout="label" hidden></button></div>';
     dialog.querySelector(".call-setup-close").addEventListener("click", () => dialog.close());
     dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
     dialog.addEventListener("close", () => clearTimeout(waitTimer));
     dialog.querySelector(".sync-install-primary").addEventListener("click", primaryAction);
+    dialog.querySelector(".sync-install-secondary").addEventListener("click", async () => { note(await elsewhere()?.copy(syncLink())); });
     document.body.appendChild(dialog);
     window.danzstakIcons?.enhance?.(dialog);
   }
+  const note = text => { const line = dialog?.querySelector(".sync-install-note"); if (line) line.textContent = text || ""; };
   function render() {
     if (!dialog) return;
-    const state = currentState(), [headline, text] = COPY[state];
+    const state = currentState(), away = state === "elsewhere" ? elsewhere().content("SYNC") : null, [headline, text] = away ? [away.title, away.text] : COPY[state];
     dialog.dataset.state = state;
     dialog.querySelector("h2").textContent = t(headline);
     dialog.querySelector(".call-setup-close").setAttribute("aria-label", t("Close"));
     dialog.querySelector(".sync-install-text").textContent = t(text);
-    const steps = stepsFor(state), list = dialog.querySelector(".sync-install-steps");
+    const steps = away ? away.steps : stepsFor(state), list = dialog.querySelector(".sync-install-steps");
     list.replaceChildren(...steps.map(step => { const item = document.createElement("li"); item.textContent = t(step); return item; }));
     list.hidden = !steps.length;
-    const primary = dialog.querySelector(".sync-install-primary");
+    const primary = dialog.querySelector(".sync-install-primary"), secondary = dialog.querySelector(".sync-install-secondary");
+    secondary.hidden = !(away && away.open);
+    if (away) {
+      // Android: Open in Chrome, with Copy link under it. iPhone: Copy link (then paste it in Safari).
+      primary.hidden = false;
+      primary.removeAttribute("data-next");
+      primary.textContent = away.open || away.copy;
+      primary.dataset.action = away.open ? "chrome" : "copy";
+      secondary.textContent = away.copy;
+      return;
+    }
     primary.hidden = state === "waiting";
     const next = state !== "prompt" && verifyAfter && !verifyInApp; // sign-up's flow carries on to the number
     primary.textContent = t(state === "prompt" ? "Install SYNC" : next ? "Next: verify your number" : "Done");
@@ -145,7 +164,10 @@
     primary.dataset.action = state === "prompt" ? "install" : "close";
   }
   async function primaryAction(event) {
-    if (event.currentTarget.dataset.action !== "install" || !deferred) { dialog.close(); return; }
+    const action = event.currentTarget.dataset.action;
+    if (action === "chrome") { if (!await elsewhere()?.openChrome(syncLink())) note(elsewhere()?.notOpened()); return; }
+    if (action === "copy") { note(await elsewhere()?.copy(syncLink())); return; }
+    if (action !== "install" || !deferred) { dialog.close(); return; }
     const prompt = deferred; deferred = null;
     try {
       await prompt.prompt();
@@ -157,11 +179,13 @@
   function openInstall() {
     if (!inSyncApp) { location.href = `${HOME}?install=1`; return; } // SYNC's own page, where SYNC's manifest applies
     ensureDialog();
-    waited = false; render();
+    waited = false; note(""); render();
     if (!dialog.open) dialog.showModal();
     clearTimeout(waitTimer);
     // Browsers fire their install offer shortly after load; if none comes, show the phone's own steps.
     if (currentState() === "waiting") waitTimer = setTimeout(() => { waited = true; render(); }, 1500);
+    // Opened while the page is still loading (?install=1): pwa.js, which knows browsers that can't install, runs after this.
+    if (window.danzstakInstallElsewhere === undefined) document.addEventListener("DOMContentLoaded", () => { if (dialog.open) render(); }, { once: true });
     if (!knownInstalled && !deferred) installedRelatedApp().then(yes => { if (yes) { knownInstalled = true; render(); } });
   }
 

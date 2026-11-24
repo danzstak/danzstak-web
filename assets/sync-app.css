@@ -9,6 +9,13 @@
 .sync-install-dialog .sync-install-primary[data-action="close"]{background:rgba(239,108,32,.12);color:#9a3412}
 .sync-install-dialog .sync-install-primary[data-next]{background:var(--ds-btn-go,#15803d);color:#fff}
 .sync-install-dialog .sync-install-primary:focus-visible{outline:3px solid #ff5a1f;outline-offset:3px}
+/* Owner 2026-11-24: DuckDuckGo and apps' own browsers can't install SYNC; Open in Chrome is the go button, Copy link sits under it. */
+.sync-install-dialog .sync-install-primary[data-action="chrome"],.sync-install-dialog .sync-install-primary[data-action="copy"]{background:var(--ds-btn-go,#15803d);color:#fff}
+.sync-install-dialog .sync-install-secondary{display:grid;place-items:center;width:100%;min-height:48px;padding:0 20px;border:1px solid #c9ccd1;border-radius:999px;background:#fff;color:#0b0b0c;font:inherit;font-weight:700;cursor:pointer}
+.sync-install-dialog .sync-install-secondary[hidden]{display:none}
+.sync-install-dialog .sync-install-secondary:focus-visible{outline:3px solid #ff5a1f;outline-offset:3px}
+.sync-install-dialog .sync-install-note{max-width:34ch;margin:0;color:#16191f;font-size:.9rem;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+.sync-install-dialog .sync-install-note:empty{display:none}
 /* F16: "Add SYNC to home screen" directly under the verified text in "Calls on this device". */
 .sync-verified-install{display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box;width:auto;min-height:48px;margin-top:8px;margin-bottom:4px;padding:0 20px;border:0;border-radius:999px;background:#ff5a1f;color:#0b0b0c;font:inherit;font-weight:800;cursor:pointer;box-shadow:none}
 .sync-verified-install::before{content:"";width:20px;height:20px;background:url("sync-icon-192.png?v=1") center/cover;border-radius:5px}

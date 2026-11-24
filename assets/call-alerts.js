@@ -6,6 +6,9 @@
 //   closed", with Turn on. Dismissing it is remembered on this device; it never nags.
 // - L4 (owner 2026-11-20: "When app is closed it doesn't ring"): the same line, once per reason, when notifications are
 //   blocked (where to allow them; call alerts turn on by themselves once allowed) or saved unlinked on the server (Fix).
+// - Owner 2026-11-24 ("duckduckgo … its only a bookmark", "phone not ringing with the app closed"): a browser with no web
+//   notifications at all (DuckDuckGo, apps' own browsers) can never ring with SYNC closed; the line says so and hands over
+//   to Chrome (Safari on iPhone) through pwa.js's danzstakInstallElsewhere.
 (() => {
   const API = "https://api.danzstak.com", DISMISSED = "danzstak_call_alerts_prompt";
   const t = value => window.danzstakTranslate?.(value) || value;
@@ -49,6 +52,7 @@
     const state = await window.danzstakPushState?.().catch(() => "unsupported");
     if (state === "prompt" || state === "incomplete") return "off";
     if (state === "blocked") return "blocked";
+    if (state === "unsupported" && window.danzstakInstallElsewhere) return "browser";
     if (state === "enabled" && typeof window.danzstakPushLinked === "function" && await window.danzstakPushLinked().catch(() => null) === false) return "unlinked";
     return "";
   }
@@ -68,7 +72,8 @@
     text.textContent = t({
       off: "Turn on call alerts so calls ring when SYNC is closed",
       blocked: "Calls can't ring when SYNC is closed: notifications are blocked. Allow them for danzstak.com in your browser's site settings.",
-      unlinked: "This phone won't ring when SYNC is closed yet."
+      unlinked: "This phone won't ring when SYNC is closed yet.",
+      browser: window.danzstakInstallElsewhere?.android ? "This browser can't ring for calls when SYNC is closed. Chrome can." : "This browser can't ring for calls when SYNC is closed. Safari can."
     }[why]);
     const close = document.createElement("button"); close.type = "button"; close.className = "call-alerts-close"; close.textContent = "×";
     close.setAttribute("aria-label", t("Not now")); close.title = t("Not now");
@@ -79,7 +84,17 @@
       if (await window.danzstakPushLinked?.().catch(() => null) === false) { text.textContent = t("This phone isn't set up to ring with SYNC closed yet. Try again in a minute."); return false; }
       bar.remove(); say(t("Call alerts are on for this phone.")); return true;
     };
-    if (why === "blocked") {
+    if (why === "browser") {
+      // Android: Open in Chrome (SYNC's install page there). iPhone: Copy link, to paste in Safari.
+      const away = window.danzstakInstallElsewhere, go = document.createElement("button");
+      go.type = "button"; go.className = "primary"; go.dataset.iconLayout = "label";
+      go.textContent = away.android ? t("Open in Chrome") : t("Copy link");
+      go.addEventListener("click", async () => {
+        if (away.android) { if (!await away.openChrome("/sync/?install=1")) text.textContent = away.notOpened(); return; }
+        text.textContent = await away.copy("/sync/?install=1");
+      });
+      bar.append(text, go, close);
+    } else if (why === "blocked") {
       bar.append(text, close);
       // Allowed in the browser's settings while SYNC is open (or on the next visit): turn call alerts on straight away.
       globalThis.navigator?.permissions?.query?.({ name: "notifications" }).then(status => {
