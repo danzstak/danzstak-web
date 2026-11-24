@@ -36,3 +36,10 @@
 .moving-done a{display:inline-flex;align-items:center;min-height:44px;font-weight:900}
 .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media(max-width:700px){.moving-platforms{grid-template-columns:repeat(2,minmax(0,1fr))}.moving-main{padding:0 12px}.moving-grid{grid-template-columns:1fr}.moving-tools{top:58px}}
+/* Owner 2026-11-18: Discogs collection exports have no prices; set one for all picked items or row by row. */
+.moving-item-set-price{display:grid;grid-template-columns:auto 84px;grid-template-areas:"cur input" "issue issue";align-items:center;column-gap:4px;justify-items:end;font-weight:800}
+.moving-item-currency{grid-area:cur;color:var(--ds-muted,#667085)}
+.moving-item .moving-item-set-price input{grid-area:input;width:84px;height:44px;margin:0;padding:6px 8px;border:1px solid var(--ds-border-strong,#c5cfdd);border-radius:10px;background:#fff;font:inherit;font-weight:800;text-align:right}
+.moving-item-set-price .moving-item-issue{grid-area:issue;font-size:12px}
+.moving-price-all{grid-column:1/-1}
+.moving-price-all small{font-weight:500;color:var(--ds-muted,#667085)}

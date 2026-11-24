@@ -479,8 +479,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration did not finish updating." }
   } }
 
-  if (-not $DryRun -or [int]$current.Timeout -ne 30 -or [int]$current.MemorySize -ne 256) { Invoke-Change "Set Auth API timeout 30 s and memory 256 MB (now $($current.Timeout) s, $($current.MemorySize) MB)" {
-    aws lambda update-function-configuration --region $Region --function-name $FunctionName --timeout 30 --memory-size 256 --output json | Out-Null
+  # C2 (task 38 step 4): 1024 MB gives the function four times the CPU of 256 MB, so cold starts and every request finish
+  # sooner; Lambda bills per millisecond, so the cost stays about the same.
+  if (-not $DryRun -or [int]$current.Timeout -ne 30 -or [int]$current.MemorySize -ne 1024) { Invoke-Change "Set Auth API timeout 30 s and memory 1024 MB (now $($current.Timeout) s, $($current.MemorySize) MB)" {
+    aws lambda update-function-configuration --region $Region --function-name $FunctionName --timeout 30 --memory-size 1024 --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Auth API route-planning runtime configuration failed." }
     aws lambda wait function-updated --region $Region --function-name $FunctionName
     if ($LASTEXITCODE -ne 0) { throw "Auth API route-planning runtime configuration did not finish updating." }
