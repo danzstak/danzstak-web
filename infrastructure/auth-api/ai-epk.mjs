@@ -125,6 +125,14 @@ export function anthropicLlm({ apiKey, fetcher = fetch, extractModel = "claude-h
 // restores the credit; a denied or missing model fails closed (retryable false: the credit comes back, nothing charged).
 export const BEDROCK_MODELS = Object.freeze({ haiku: "us.anthropic.claude-haiku-4-5-20251001-v1:0", sonnet: "us.anthropic.claude-sonnet-5-5" });
 const BEDROCK_RETRY = new Set(["ThrottlingException", "TooManyRequestsException", "ServiceUnavailableException", "ModelNotReadyException", "InternalServerException", "ModelTimeoutException"]);
+// Anthropic-style content (a string, or text and base64 image blocks, as the AI shop sends a seller's photo) in
+// Converse's shape, so either provider can take a photo.
+export function bedrockContent(user) {
+  if (!Array.isArray(user)) return [{ text: String(user ?? "") }];
+  return user.map(block => block?.type === "image" && block.source?.type === "base64"
+    ? { image: { format: String(block.source.media_type || "").replace("image/", "").replace("jpg", "jpeg"), source: { bytes: Buffer.from(block.source.data, "base64") } } }
+    : { text: String(block?.text ?? "") });
+}
 export function bedrockLlm({ client, Command, extractModel = BEDROCK_MODELS.haiku, writeModel = BEDROCK_MODELS.haiku, retryDelayMs = 1500, sleep = ms => new Promise(done => setTimeout(done, ms)) }) {
   if (!client || !Command) return null;
   return {
@@ -134,7 +142,7 @@ export function bedrockLlm({ client, Command, extractModel = BEDROCK_MODELS.haik
       const input = {
         modelId,
         system: system ? [{ text: system }] : undefined,
-        messages: [{ role: "user", content: [{ text: user }] }],
+        messages: [{ role: "user", content: bedrockContent(user) }],
         inferenceConfig: { maxTokens },
         toolConfig: { tools: [{ toolSpec: { name: "answer", description: "Give the answer in this exact shape.", inputSchema: { json: schema } } }], toolChoice: { tool: { name: "answer" } } }
       };

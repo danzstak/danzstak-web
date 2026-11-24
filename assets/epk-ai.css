@@ -72,3 +72,7 @@
 .profile-ai-draft dt{margin-top:8px;color:#4b5565;font-size:.82rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
 .profile-ai-draft dd{margin:0;line-height:1.45;overflow-wrap:anywhere}
 .profile-ai-draft .ds-btn-tonal[aria-pressed="true"]{background:var(--ds-btn-primary,#c2410c);color:#fff}
+/* "Draft it with AI" in My Shop (task 19): same row as the profile; photo preview in the sheet. */
+.shop-ai-row{margin:0 0 12px}
+.shop-ai-preview{display:block;width:100%;max-height:40dvh;object-fit:contain;border-radius:10px;background:#f6f7f9}
+.shop-ai-sheet .epk-ai-form>.ds-btn-tonal{min-height:48px}
