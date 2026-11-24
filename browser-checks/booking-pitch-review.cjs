@@ -65,7 +65,7 @@ const artist = { name:"Road Test", genre:"Punk", hometown:"Seattle", epk:"https:
       const followDialog = page.locator(".booking-send-review"); await followDialog.waitFor(); assert.match(await followDialog.locator("pre").textContent(), /I'm following up on the booking pitch/);
       await followDialog.getByLabel("I reviewed this exact recipient and message and approve sending it.").check();
       const followResponse = page.waitForResponse(response => new URL(response.url()).pathname === "/tour-manager/emails/send"); await followDialog.getByRole("button", { name:"Approve and send · 1 credit" }).click(); await followResponse;
-      assert.equal(sendPayload.followUpTo, initialId, "The reminder must bind to the original pitch"); assert.notEqual(sendPayload.idempotencyKey, initialId); assert.equal(await page.getByRole("button", { name:"Review one follow-up · 1 credit" }).count(), 0, "Only one follow-up may be offered");
+      assert.equal(sendPayload.followUpTo, initialId, "The reminder must bind to the original pitch"); assert.notEqual(sendPayload.idempotencyKey, initialId); await page.getByText(/Your one follow-up was (submitted|delivered)/).waitFor({ timeout:10000 }); assert.equal(await page.getByRole("button", { name:"Review one follow-up · 1 credit" }).count(), 0, "Only one follow-up may be offered"); // the card redraws once the outreach list holds the follow-up, not the moment the send answers
       await page.evaluate(() => window.scrollTo(0, document.querySelector(".outreach").getBoundingClientRect().top + window.scrollY - 10));
       await page.screenshot({ path:path.join(output, `booking-pitch-${width}.png`), fullPage:false });
       await context.close();

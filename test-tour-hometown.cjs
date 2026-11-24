@@ -43,7 +43,7 @@ for (const file of ["tour-hometown.css", "tour-hometown.js", "hometown-looks.js"
 const css = read("assets/tour-hometown.css");
 assert.match(css, /body\[data-tour-hometown\]\{background-color:#fff;background-image:linear-gradient\(var\(--tour-accent\),var\(--tour-accent\)\),var\(--tour-motif,none\)/, "the skin wraps the page");
 assert.match(css, /body\[data-tour-hometown\] \.eyebrow\{color:var\(--tour-accent\)\}/);
-assert.match(css, /header\.tool-header\{box-shadow:inset 0 -6px 0 var\(--tour-accent\)!important\}/, "header accent stripe, drawn inside so the header keeps its height");
+assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ""), /\bheader\b[^{}]*\{[^}]*--tour-accent/, "the shared top bar stays the DanzStak frame (B1)");
 assert.match(css, /\.tour-day-sheet-head\{[^}]*border-top:6px solid var\(--tour-accent/, "day-sheet header");
 assert.doesNotMatch(css, /(?:input|select|textarea|\.pipeline-chip|\.leaflet|#venueMap)[^{]*\{[^}]*--tour-accent/, "no hometown colour on forms, the pipeline or the map");
 assert.doesNotMatch(css, /button(?!\.tour-stat)[^{,]*\{[^}]*background:var\(--tour-accent/, "buttons are not repainted");
@@ -62,8 +62,8 @@ assert.match(agent, /statButton\("Days", days, `\$\{days\} day\$\{days === 1 \? 
 assert.match(agent, /if \(venue\) row\.dataset\.show = "1";/);
 assert.match(read("assets/booking-legs.js"), /legsButton\.dataset\.metric = "legs"/);
 const hq = read("assets/artist-hq.js");
-assert.match(hq, /const metric = counted \? node\("a", String\(value\), "artist-hq-metric"\)/, "Music HQ counts are links");
-assert.match(hq, /`\$\{needs\.length\} booking thread\$\{needs\.length === 1 \? "" : "s"\} waiting for your answer`/);
+assert.match(hq, /const link = node\("a", "", `artist-hq-tile/, "Music HQ counts are links (main's tile dashboard, fix-it 18)");
+assert.match(hq, /link\.setAttribute\("aria-label", name \|\| `\$\{tr\(label\)\}: \$\{value\}`\)/, "each Music HQ count says what it counts");
 
 // Shortened labels keep their full wording for screen readers.
 assert.match(selectionsHtml, /<h1 aria-label="Your booking pipeline">Pipeline<\/h1>/);

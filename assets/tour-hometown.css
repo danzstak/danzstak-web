@@ -1,12 +1,11 @@
 /* Tour Manager hometown vibe + 15-D layout (task 15-C, owner 2026-11-17).
-   The hometown shows as accents and motif only: page wrap, header stripe, eyebrows, day-sheet header, "Out of <town>"
+   The hometown shows as accents and motif only: page wrap and top stripe, eyebrows, day-sheet header, "Out of <town>"
    and the origin badge. Forms, buttons, the map and the pipeline keep the DanzStak frame and colours.
    15-D: one fluid page (no panels inside panels), one-line labels at 320px, every count is a button. */
 
 /* The skin wraps the whole page edge to edge: a 6px hometown stripe at the top, the motif behind every section. */
 body[data-tour-hometown]{background-color:#fff;background-image:linear-gradient(var(--tour-accent),var(--tour-accent)),var(--tour-motif,none);background-size:100% 6px,auto;background-repeat:no-repeat,repeat;background-attachment:scroll}
-/* Header accent stripe: the hometown accent and motif run along the bottom of the page header. */
-body[data-tour-hometown] > header,body[data-tour-hometown] header.tool-header{box-shadow:inset 0 -6px 0 var(--tour-accent)!important} /* drawn inside: the header keeps its height */
+/* The top bar is the shared DanzStak frame (ds-app-bar, B1): the hometown never paints it. */
 body[data-tour-hometown] .eyebrow{color:var(--tour-accent)}
 .tour-out-of-line{margin:4px 0 8px}
 .tour-out-of,.tour-origin-badge{display:inline-flex;align-items:baseline;gap:5px;font:600 .74rem/1.2 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;color:#344054}

@@ -74,7 +74,8 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
       await page.waitForLoadState("load");
       const look = await page.evaluate(() => ({ bg: getComputedStyle(document.body).backgroundImage, eyebrow: getComputedStyle(document.querySelector(".eyebrow")).color, page: getComputedStyle(document.body).backgroundColor }));
       assert.ok(look.bg.includes("linear-gradient") && look.bg.includes("data:image/svg+xml"), `${width}px the hometown stripe and motif wrap the page`);
-      await page.waitForFunction(() => /0px -6px 0px 0px inset/.test(getComputedStyle(document.querySelector("body > header")).boxShadow), null, { timeout: 5000 }); // header accent stripe
+      // The top bar is the shared DanzStak frame (B1): it keeps its own colours, the hometown never paints it.
+      assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("header.ds-app-bar")).backgroundColor), "rgb(18, 20, 24)", `${width}px the top bar stays DanzStak`);
       assert.ok(ratio(look.eyebrow, "rgb(255, 255, 255)") >= 4.5, `${width}px eyebrow accent contrast ${ratio(look.eyebrow, "rgb(255, 255, 255)").toFixed(2)}`);
       // Counts: one-line label, an accessible name saying what is counted, and a tap opens exactly those clubs.
       await page.waitForFunction(() => document.getElementById("tmReplies")?.closest("button")?.getAttribute("aria-label")?.includes("replied"));
@@ -119,7 +120,7 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
       await tab.goto(`${origin}/booking.html`, { waitUntil: "domcontentloaded" });
       await tab.waitForFunction(() => document.body.dataset.tourHometown === "tacoma", null, { timeout: 15000 });
       await tab.waitForLoadState("load"); // stylesheets applied before measuring the stripe
-      await tab.waitForFunction(() => /0px -6px 0px 0px inset/.test(getComputedStyle(document.querySelector("header.tool-header")).boxShadow), null, { timeout: 5000 }); // route planner header stripe
+      assert.ok(/linear-gradient/.test(await tab.evaluate(() => getComputedStyle(document.body).backgroundImage)), "the route planner wears the hometown stripe");
       await tab.locator("#startCity").fill("Tacoma, Washington");
       await tab.locator("#bookingBrief").fill("Punk. Tacoma to Los Angeles one way. 8 days. 6 shows.");
       await tab.locator("#bookingBriefForm button[type=submit]").click();
