@@ -269,6 +269,7 @@ jobs:
             '.\browser-checks\device-reminder.cjs'
             '.\browser-checks\incoming-call-everywhere.cjs'
             '.\browser-checks\profile-facepile.cjs'
+            '.\browser-checks\friends-screen.cjs'
             '.\browser-checks\profile-bell.cjs'
             '.\browser-checks\profile-name-once.cjs'
             '.\browser-checks\profile-save-status.cjs'

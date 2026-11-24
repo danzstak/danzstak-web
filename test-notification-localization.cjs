@@ -30,7 +30,7 @@ for (const language of languages) {
     if (language !== "fr" || index !== 0) assert.notEqual(value, keys[index], `${language} notification translation ${index + 1} cannot fall back to English`);
   });
 }
-assert.equal(activityKeys.length, 19, "message, Tribe, reaction, tag, reply, comment, friend-request, and profile activity should all be localized");
+assert.equal(activityKeys.length, 21, "message, Tribe, reaction, tag, reply, comment, friend-request, friend-accepted, and profile activity should all be localized");
 assert.deepEqual(Object.keys(activity).sort(), [...languages].sort(), "every supported non-English locale needs activity-notification translations");
 for (const language of languages) {
   assert.equal(activity[language].length, activityKeys.length, `${language} should translate every activity-notification message`);

@@ -228,31 +228,51 @@ shopManagementLink.setAttribute("role", "button"); shopManagementLink.dataset.ic
 shopManagementLink.hidden = viewingOtherProfile;
 actions.appendChild(shopManagementLink);
 // Owner 2026-11-19 (screenshot next to Facebook's profile): "Friends should be a 50% stacked to the right of the 3
-// buttons". Up to four friends' photos, each overlapping the next by half, at the right end of the action row; the
-// whole pile opens the Friends tab. Own profile only for now: a visitor's view needs /friends/of (#572, a call-signaling
-// deploy).
+// buttons". Up to four friends' photos, each overlapping the next by half, at the right end of the action row. 5a3: the
+// pile opens the one Friends screen (friends.html); on someone else's profile it shows their friends you can see
+// (mutual friends, or all of them when you're friends) from GET /friends/of, and stays hidden until that route answers.
+const MEMBER_ID = /^[a-f0-9-]{36}$/;
+const friendsScreenUrl = () => {
+  const profile = window.danzstakCurrentProfile || {};
+  return viewingOtherProfile && !profile.isOwner && MEMBER_ID.test(profile.memberId || "") ? `friends.html?member=${encodeURIComponent(profile.memberId)}` : "friends.html";
+};
 const facepile = document.createElement("button");
 facepile.type = "button"; facepile.className = "profile-facepile"; facepile.hidden = true; facepile.dataset.iconLayout = "label";
-facepile.addEventListener("click", () => document.querySelector('.profile-tabs [data-profile-tab="Friends"]')?.click());
+facepile.addEventListener("click", () => location.assign(friendsScreenUrl()));
 actions.appendChild(facepile);
-let facepileLoaded = false;
-async function loadFacepile() {
-  if (facepileLoaded || viewingOtherProfile) return;
-  facepileLoaded = true;
+// The profile's Friends tab opens the same screen on a real tap or Enter (trusted click); arrow keys move through the
+// tabs with scripted clicks and stay on the profile.
+document.addEventListener("click", event => {
+  const tab = event.target.closest?.('.profile-tabs [data-profile-tab="Friends"]');
+  if (!tab || !event.isTrusted || !window.danzstakCurrentProfile) return;
+  event.preventDefault(); event.stopPropagation();
+  location.assign(friendsScreenUrl());
+}, true);
+let facepileLoadedFor = "";
+async function loadFacepile(shown) {
+  const profile = { ...(window.danzstakCurrentProfile || {}), ...(shown || {}) };
+  const other = viewingOtherProfile && !profile.isOwner;
+  if (other && !MEMBER_ID.test(profile.memberId || "")) return;
+  const key = other ? profile.memberId : "me";
+  if (facepileLoadedFor === key) return;
+  facepileLoadedFor = key;
   try {
-    const response = await profileFetch(profileApi + "/friends", { credentials: "include", cache: "no-store" });
-    if (!response.ok) return;
-    const friends = ((await response.json()).friends || []).filter(Boolean);
-    if (!friends.length) return;
+    const response = await profileFetch(profileApi + (other ? `/friends/of?member=${encodeURIComponent(profile.memberId)}` : "/friends"), { credentials: "include", cache: "no-store" });
+    if (!response.ok) { facepile.hidden = true; return; }
+    const data = await response.json();
+    const friends = (data.friends || []).filter(Boolean);
+    if (!friends.length) { facepile.hidden = true; return; }
     facepile.replaceChildren(...friends.slice(0, 4).map(friend => {
       const face = document.createElement("span"); face.className = "profile-facepile-face";
       if (friend.picture) { const image = document.createElement("img"); image.src = friend.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; face.append(image); }
       else face.textContent = String(friend.name || "").trim().charAt(0).toUpperCase() || "•"; // never from an email (privacy)
       return face;
     }));
-    const label = profileTranslate(friends.length === 1 ? "1 friend" : "{count} friends").replace("{count}", String(friends.length));
+    // Someone else's profile names what you share ("3 mutual friends", like Facebook); otherwise their friend count.
+    const mutual = other && (Number(data.mutualCount) > 0 || !data.listVisible), count = mutual ? Number(data.mutualCount || friends.length) : Number(data.count || friends.length);
+    const label = profileTranslate(mutual ? (count === 1 ? "1 mutual friend" : "{count} mutual friends") : (count === 1 ? "1 friend" : "{count} friends")).replace("{count}", String(count));
     facepile.setAttribute("aria-label", label); facepile.title = label; facepile.hidden = false;
-  } catch { facepileLoaded = false; }
+  } catch { facepileLoadedFor = ""; }
 }
 bioElement.insertAdjacentElement("afterend", actions);
 
@@ -1712,7 +1732,7 @@ function applyProfile(profile) {
   // Owner 2026-11-19 (A12): no @username line under the name; the friends facepile (#572) sits there instead.
   // The element stays (hidden) because the editor reads the handle from it.
   handleElement.hidden = true;
-  loadFacepile();
+  loadFacepile(profile);
   bioElement.textContent = profile.bio || "";
   // F14 (owner 2026-11-19): a bio that only repeats the name ("Dachshund Records" twice) is not shown.
   bioElement.hidden = !profile.bio || sameWords(profile.bio, profile.name || document.getElementById("profileName").textContent);

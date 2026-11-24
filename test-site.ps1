@@ -693,7 +693,9 @@ foreach ($workspaceAccessibility in @('control.setAttribute("aria-current", "pag
 }
 # Owner 2026-11-18: Photos and Videos live on the profile tabs, not in the main menu.
 if ($feed.Contains('data-feature="Photos"') -or $feed.Contains('data-feature="Videos"')) { Add-Failure "Photos and Videos must not be in the main menu" }
-foreach ($workspaceDestination in @('href="#friends"', 'href="#events"', 'href="#settings"')) {
+# Queue 5a3 (owner 2026-11-18): Menu -> Friends opens the one Friends screen (friends.html), not the old Mix workspace.
+if (-not $feed.Contains('<a href="friends.html"><span class="menu-icon" data-menu-icon="users"')) { Add-Failure "Menu Friends does not open the one Friends screen (friends.html)" }
+foreach ($workspaceDestination in @('href="#events"', 'href="#settings"')) {
   if (-not $feed.Contains($workspaceDestination)) { Add-Failure "Feed workspace has no durable navigation destination: $workspaceDestination" }
 }
 # Owner 2026-11-18: one Menu → Install DanzStak item (app-bar.js); no separate Android/Apple menu links.

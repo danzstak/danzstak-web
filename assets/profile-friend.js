@@ -18,14 +18,15 @@
     const friend = icon("person-add", "Add friend");
     friend.classList.add("primary");
     actions.prepend(friend);
+    // Queue 5a3: one tap to add, tap "Requested" again to cancel; an incoming request opens Friends to answer it.
     const setState = state => {
       // Audit E10 (2026-11-19): "Friends" was a dead, disabled button. Like Facebook it's "Friends ▾": tap for
-      // Unfriend / Block. "Requested" stays inert until the server can cancel a request.
-      friend.disabled = state === "requested";
+      // Unfriend / Block. 5a3: tapping "Requested" cancels the request (POST /friends/cancel).
+      friend.disabled = false;
       friend.setAttribute("aria-haspopup", state === "friends" ? "dialog" : "false");
       friend.dataset.icon = state === "friends" ? "person-check" : state === "requested" ? "clock" : "person-add";
       const label = state === "friends" ? "Friends ▾" : state === "requested" ? "Requested" : state === "incoming" ? "Respond in Friends" : "Add friend";
-      friend.textContent = label; friend.setAttribute("aria-label", state === "none" ? "Send friend request to " + name : state === "friends" ? "Friends with " + name + ". Friend options" : label); friend.title = friend.getAttribute("aria-label");
+      friend.textContent = label; friend.setAttribute("aria-label", state === "none" ? "Send friend request to " + name : state === "friends" ? "Friends with " + name + ". Friend options" : state === "requested" ? "Cancel friend request to " + name : label); friend.title = friend.getAttribute("aria-label");
       friend.classList.toggle("primary", state === "none");
       friend.dataset.state = state;
     };
@@ -35,8 +36,9 @@
     const refresh = async () => {
       try {
         const response = await fetch(API + "/friends", { credentials: "include", cache: "no-store" });
-        const data = response.ok ? await response.json() : {};
-        if ((data.friends || []).some(f => f.memberId === profile.memberId)) setState("friends");
+        if (!response.ok) return;
+        const data = await response.json(), has = list => (list || []).some(f => f.memberId === profile.memberId);
+        setState(has(data.friends) ? "friends" : has(data.outgoing) ? "requested" : has(data.incoming) ? "incoming" : "none");
       } catch {}
     };
     await refresh();
@@ -44,7 +46,7 @@
     document.addEventListener("visibilitychange", onReturn);
     window.addEventListener("focus", onReturn);
     friend.addEventListener("click", async () => {
-      if (friend.dataset.state === "incoming") { location.href = "feed.html#friends"; return; }
+      if (friend.dataset.state === "incoming") { location.href = "friends.html"; return; }
       if (friend.dataset.state === "friends") {
         const choice = await window.danzstakChoose?.(`You and ${name} are friends.`, { title: "Friend options", choices: [{ label: "Unfriend", value: "remove", danger: true }, { label: "Block", value: "block", danger: true }] });
         if (!["remove", "block"].includes(choice)) return;
@@ -57,6 +59,15 @@
           setState("none");
           window.danzstakShowFeedback?.(choice === "block" ? name + " is blocked." : "You and " + name + " are no longer friends.");
         } catch (error) { setState("friends"); window.danzstakShowFeedback?.(window.danzstakFriendlyError?.(error, "That didn't go through. Try again in a moment.") || "That didn't go through. Try again in a moment.", { urgent: true }); }
+        return;
+      }
+      if (friend.dataset.state === "requested") {
+        friend.disabled = true;
+        try {
+          const response = await fetch(API + "/friends/cancel", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ memberId: profile.memberId }) });
+          if (!response.ok && response.status !== 404) throw new Error("");
+          setState("none"); window.danzstakShowFeedback?.("Friend request cancelled.");
+        } catch { setState("requested"); window.danzstakShowFeedback?.("The request could not be cancelled. Try again.", { urgent: true }); }
         return;
       }
       friend.disabled = true; friend.textContent = "Sending…";
