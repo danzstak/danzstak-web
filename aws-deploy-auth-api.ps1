@@ -427,6 +427,47 @@ try {
   } }
   Remove-Item -LiteralPath $bedrockPolicy -Force -ErrorAction SilentlyContinue
 
+  # Task 21 (owner 2026-11-25: "Need to make the real time translations up and working with sync"): live translated
+  # captions in SYNC calls (call-translate.mjs). Its own managed policy (DanzStakCallTranslate): only starting an Amazon
+  # Transcribe streaming session (signed WebSocket address handed to the speaker's own phone) and Amazon Translate's
+  # TranslateText. Neither service supports narrower resources for these actions. No storage, no other AWS AI service.
+  $translatePolicyName = "DanzStakCallTranslate"
+  $translatePolicyArn = "arn:aws:iam::$($identity.Account):policy/$translatePolicyName"
+  $translatePolicy = Join-Path $TempRoot "danzstak-call-translate-policy.json"
+  @{
+    Version = "2012-10-17"
+    Statement = @(
+      @{ Sid = "TranscribeStreaming"; Effect = "Allow"; Action = @("transcribe:StartStreamTranscriptionWebSocket"); Resource = "*" },
+      @{ Sid = "TranslateText"; Effect = "Allow"; Action = @("translate:TranslateText"); Resource = "*" }
+    )
+  } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $translatePolicy -Encoding ascii
+  $translateLive = aws iam get-policy --policy-arn $translatePolicyArn --output json 2>$null | ConvertFrom-Json
+  $translatePolicyExists = $LASTEXITCODE -eq 0
+  $global:LASTEXITCODE = 0
+  if (-not $translatePolicyExists) { Invoke-Change "Create managed policy $translatePolicyName (Transcribe streaming + Translate only)" {
+    aws iam create-policy --policy-name $translatePolicyName --policy-document "file://$translatePolicy" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Call translation policy could not be created." }
+  } } else {
+    $translateLiveDocument = aws iam get-policy-version --policy-arn $translatePolicyArn --version-id $translateLive.Policy.DefaultVersionId --query 'PolicyVersion.Document' --output json | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0) { throw "Call translation policy could not be read." }
+    $translateWanted = Get-StatementMap (Get-Content -LiteralPath $translatePolicy -Raw | ConvertFrom-Json)
+    $translateHave = Get-StatementMap $translateLiveDocument
+    $translateSame = $translateWanted.Count -eq $translateHave.Count -and -not @($translateWanted.Keys | Where-Object { $translateHave[$_] -ne $translateWanted[$_] }).Count
+    if (-not $translateSame) { Invoke-Change "Update managed policy $translatePolicyName" {
+      $versions = @(aws iam list-policy-versions --policy-arn $translatePolicyArn --query 'Versions[?IsDefaultVersion==`false`]' --output json | ConvertFrom-Json | Sort-Object CreateDate)
+      if ($versions.Count -ge 4) { aws iam delete-policy-version --policy-arn $translatePolicyArn --version-id $versions[0].VersionId }
+      aws iam create-policy-version --policy-arn $translatePolicyArn --policy-document "file://$translatePolicy" --set-as-default --output json | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "Call translation policy could not be updated." }
+    } }
+  }
+  $translateAttached = @(aws iam list-attached-role-policies --role-name $RoleName --query 'AttachedPolicies[].PolicyArn' --output json | ConvertFrom-Json)
+  if ($LASTEXITCODE -ne 0) { throw "Auth API role policies could not be read." }
+  if ($translateAttached -notcontains $translatePolicyArn) { Invoke-Change "Attach $translatePolicyName to the Auth API role" {
+    aws iam attach-role-policy --role-name $RoleName --policy-arn $translatePolicyArn
+    if ($LASTEXITCODE -ne 0) { throw "Call translation policy could not be attached to the Auth API role." }
+  } }
+  Remove-Item -LiteralPath $translatePolicy -Force -ErrorAction SilentlyContinue
+
   $mediaBucket = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query 'StackResourceDetail.PhysicalResourceId' --output text
   if ($LASTEXITCODE -ne 0 -or -not $mediaBucket) { throw "DanzStak media bucket could not be resolved." }
   $activityPushOutboxTable = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id ActivityPushOutboxTable --query 'StackResourceDetail.PhysicalResourceId' --output text
@@ -582,7 +623,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   } }
-  foreach ($routeKey in @("GET /club-directory/contacts", "POST /club-directory/contacts", "POST /tour-manager/stripe/webhook", "POST /sync-network-number/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/refunds", "POST /tour-manager/refunds/quote", "POST /tour-manager/refunds/accept", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /sync-network-number/checkout", "GET /sync-network-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "POST /epk/share-card", "GET /share/epk/{publicId}", "GET /share/epk/{publicId}/card", "GET /epk/ai", "POST /epk/ai/identify", "POST /epk/ai/confirm", "POST /epk/ai/build", "POST /epk/ai/step", "POST /epk/ai/review", "POST /epk/ai/rewrite", "GET /profile/ai", "POST /profile/ai/draft", "GET /shop/ai", "POST /shop/ai/setup", "POST /shop/ai/listing", "GET /epk/verify", "POST /epk/verify/code", "POST /epk/verify/check", "POST /epk/verify/review", "POST /epk/verify/report", "GET /epk/verify/reviews", "POST /epk/verify/reviews", "POST /tour-manager/ai-epk/checkout", "GET /albums", "POST /albums", "GET /albums/{albumId}", "PATCH /albums/{albumId}", "DELETE /albums/{albumId}", "POST /albums/{albumId}/items", "DELETE /albums/{albumId}/items/{itemId}", "GET /review-targets", "GET /reviews", "POST /reviews", "PATCH /reviews/{reviewId}", "DELETE /reviews/{reviewId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /marketplace/store", "GET /marketplace/bazaar", "GET /marketplace/bazaar/{productId}", "PUT /marketplace/store", "GET /marketplace/shop", "PUT /marketplace/shop", "GET /marketplace/shop/{memberId}", "POST /marketplace/products", "POST /marketplace/products/import", "PATCH /marketplace/products/{productId}", "DELETE /marketplace/products/{productId}", "POST /marketplace/store/products", "PATCH /marketplace/store/products/{productId}", "DELETE /marketplace/store/products/{productId}", "GET /marketplace/events", "POST /marketplace/events", "GET /marketplace/events/{eventId}", "PATCH /marketplace/events/{eventId}", "POST /marketplace/events/{eventId}/tiers", "GET /auth/reset-password", "GET /auth/sessions", "DELETE /auth/sessions/{deviceId}", "POST /auth/sessions/revoke-others", "GET /auth/reauth", "POST /groups/{groupId}/everyone")) {
+  foreach ($routeKey in @("GET /club-directory/contacts", "POST /club-directory/contacts", "POST /tour-manager/stripe/webhook", "POST /sync-network-number/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/refunds", "POST /tour-manager/refunds/quote", "POST /tour-manager/refunds/accept", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /sync-network-number/checkout", "GET /sync-network-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "POST /epk/share-card", "GET /share/epk/{publicId}", "GET /share/epk/{publicId}/card", "GET /epk/ai", "POST /epk/ai/identify", "POST /epk/ai/confirm", "POST /epk/ai/build", "POST /epk/ai/step", "POST /epk/ai/review", "POST /epk/ai/rewrite", "GET /profile/ai", "POST /profile/ai/draft", "GET /shop/ai", "POST /shop/ai/setup", "POST /shop/ai/listing", "GET /epk/verify", "POST /epk/verify/code", "POST /epk/verify/check", "POST /epk/verify/review", "POST /epk/verify/report", "GET /epk/verify/reviews", "POST /epk/verify/reviews", "POST /tour-manager/ai-epk/checkout", "GET /albums", "POST /albums", "GET /albums/{albumId}", "PATCH /albums/{albumId}", "DELETE /albums/{albumId}", "POST /albums/{albumId}/items", "DELETE /albums/{albumId}/items/{itemId}", "GET /review-targets", "GET /reviews", "POST /reviews", "PATCH /reviews/{reviewId}", "DELETE /reviews/{reviewId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /marketplace/store", "GET /marketplace/bazaar", "GET /marketplace/bazaar/{productId}", "PUT /marketplace/store", "GET /marketplace/shop", "PUT /marketplace/shop", "GET /marketplace/shop/{memberId}", "POST /marketplace/products", "POST /marketplace/products/import", "PATCH /marketplace/products/{productId}", "DELETE /marketplace/products/{productId}", "POST /marketplace/store/products", "PATCH /marketplace/store/products/{productId}", "DELETE /marketplace/store/products/{productId}", "GET /marketplace/events", "POST /marketplace/events", "GET /marketplace/events/{eventId}", "PATCH /marketplace/events/{eventId}", "POST /marketplace/events/{eventId}/tiers", "GET /auth/reset-password", "GET /auth/sessions", "DELETE /auth/sessions/{deviceId}", "POST /auth/sessions/revoke-others", "GET /auth/reauth", "POST /groups/{groupId}/everyone", "GET /call-translate", "POST /call-translate/stream", "POST /call-translate/minute", "POST /call-translate/text")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) { Invoke-Change "Create API route $routeKey" {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
