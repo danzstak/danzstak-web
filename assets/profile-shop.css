@@ -41,17 +41,8 @@
 .profile-showcase-frame{display:block;width:100%;aspect-ratio:16/7;overflow:hidden;border-radius:12px;background:#0b0b0c}
 .profile-showcase-photo{display:block;width:100%;height:100%;object-fit:cover}
 .profile-showcase[aria-busy=true]{opacity:.6}
-/* Owner: one ⋯ on the photo opens Change / Remove (no floating circles). */
-.profile-showcase-menu{position:absolute;top:8px;right:8px}
-.profile-showcase-menu>summary{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#0b0b0cb3;color:#fff;font-size:22px;line-height:1;list-style:none;cursor:pointer}
-.profile-showcase-menu>summary::-webkit-details-marker{display:none}
-.profile-showcase-menu>summary:focus-visible{outline:3px solid #ef6c20;outline-offset:2px}
-.profile-showcase-tools{position:absolute;top:50px;right:0;z-index:3;display:grid;min-width:190px;padding:6px;border-radius:12px;background:#fff;box-shadow:0 8px 24px #10182833}
-.profile-showcase-tools button{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#121418;font:inherit;font-weight:600;text-align:left;cursor:pointer}
-.profile-showcase-tools button:hover,.profile-showcase-tools button:focus-visible{background:#f3f4f6}
-.profile-showcase-tools .profile-showcase-remove{color:#b42318}
-.profile-showcase-tools button[hidden]{display:none}
-.profile-showcase-tools svg{width:18px;height:18px;flex:0 0 18px}
+/* Owner: one kit ⋯ in the photo's top-right corner opens the Photo options sheet (no floating circles). */
+.ds.ds--day.profile-showcase-more-holder{position:absolute;top:8px;right:8px;display:block;background:transparent} /* the kit scope paints the page canvas; over a photo it must not */
 /* Owner, nothing chosen yet: one dashed band "Fill this space", then the shop link. */
 .profile-showcase:not(:has(.profile-showcase-photo)){display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:12px}
 .profile-showcase-add{display:flex;flex:1 1 0;min-width:0;align-items:center;gap:12px;min-height:64px;padding:10px 12px;border:2px dashed #ef6c20;border-radius:12px;background:#fff7f2;color:inherit;font:inherit;text-align:left;cursor:pointer}

@@ -130,9 +130,9 @@ function checkSheet(state, label, aspect, failures, { round = false } = {}) {
         await run.page.goto(`${base}/profile.html`, { waitUntil: "domcontentloaded" });
         await run.page.locator(".profile-showcase-frame").waitFor({ timeout: 15000 });
         const frame = await run.page.locator(".profile-showcase-frame").boundingBox();
-        await run.tap(run.page.locator(".profile-showcase-menu > summary"));
-        const move = await run.tap(run.page.locator(".profile-showcase-move"));
-        if (!/profile-showcase-move/.test(move.hit)) failures.push(`${label}: the centre of "Move to fit" is covered (${move.hit})`);
+        await run.tap(run.page.locator(".profile-showcase-more")); await run.page.waitForTimeout(350); // the sheet slides up
+        const move = await run.tap(run.page.locator(".ds-sheet.is-open .profile-showcase-move"));
+        if (!/profile-showcase-move|ds-choice__text">Move to fit/.test(move.hit)) failures.push(`${label}: the centre of "Move to fit" is covered (${move.hit})`);
         await run.page.waitForFunction(() => document.querySelector(".ds-fit-sheet")?.open, null, { timeout: 8000 });
         await run.page.waitForTimeout(300);
         checkSheet(await sheetState(run.page), label, frame.width / frame.height, failures);
@@ -261,8 +261,8 @@ function checkSheet(state, label, aspect, failures, { round = false } = {}) {
     try {
       await run.page.goto(`${base}/profile.html`, { waitUntil: "domcontentloaded" });
       await run.page.locator(".profile-showcase-frame").waitFor({ timeout: 15000 });
-      await run.tap(run.page.locator(".profile-showcase-menu > summary"));
-      await run.tap(run.page.locator(".profile-showcase-move"));
+      await run.tap(run.page.locator(".profile-showcase-more")); await run.page.waitForTimeout(350); // the sheet slides up
+      await run.tap(run.page.locator(".ds-sheet.is-open .profile-showcase-move"));
       await run.page.waitForFunction(() => document.querySelector(".ds-fit-sheet")?.open, null, { timeout: 8000 });
       const box = await run.page.locator(".ds-fit-box").boundingBox(), middle = centre(box);
       await run.drag(middle, { x: middle.x - box.width * 0.3, y: middle.y });
@@ -285,8 +285,8 @@ function checkSheet(state, label, aspect, failures, { round = false } = {}) {
     try {
       await run.page.goto(`${base}/profile.html`, { waitUntil: "domcontentloaded" });
       await run.page.locator(".profile-showcase-frame").waitFor({ timeout: 15000 });
-      await run.tap(run.page.locator(".profile-showcase-menu > summary"));
-      await run.tap(run.page.locator(".profile-showcase-move"));
+      await run.tap(run.page.locator(".profile-showcase-more")); await run.page.waitForTimeout(350); // the sheet slides up
+      await run.tap(run.page.locator(".ds-sheet.is-open .profile-showcase-move"));
       await run.page.waitForFunction(() => document.querySelector(".ds-fit-sheet")?.open, null, { timeout: 8000 });
       await run.page.waitForTimeout(300);
       const state = await sheetState(run.page);
