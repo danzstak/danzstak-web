@@ -233,3 +233,48 @@ body.ds-form-screen-open{overflow:hidden}
 .ds .ds-actions--sticky{position:sticky;bottom:calc(-1 * var(--ds-space-16));margin:var(--ds-space-8) calc(-1 * var(--ds-space-16)) calc(-1 * var(--ds-space-16));padding:var(--ds-space-12) var(--ds-space-16) var(--ds-space-16);border-top:1px solid var(--ds-hairline);background:var(--ds-surface)}
 .ds .ds-sheet__preview{display:block;width:100%;aspect-ratio:16/7;margin:0 0 var(--ds-space-12);overflow:hidden;border-radius:12px;background:var(--ds-surface-subtle)}
 .ds .ds-sheet__preview img{display:block;width:100%;height:100%;object-fit:cover}
+
+/* Friends (screen 4a) and the shared pieces it brought in. */
+/* Page: a whole page on the kit (<body class="ds ds-page">): the canvas behind, room for the tab bar under it. */
+.ds.ds-page{min-height:100vh;margin:0;background:var(--ds-surface);color:var(--ds-ink);font-family:var(--ds-font);font-size:var(--ds-text-15);line-height:22px}
+.ds.ds-page [hidden]{display:none}
+.ds .ds-page__main{width:min(100%,720px);margin:0 auto;padding:0 0 calc(96px + env(safe-area-inset-bottom))}
+/* App bar: frosted and sticky; ← on the left, the title, up to two icon buttons on the right. */
+.ds .ds-appbar{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;column-gap:var(--ds-space-4);min-height:56px;padding:max(var(--ds-space-4),env(safe-area-inset-top)) max(var(--ds-space-4),env(safe-area-inset-right)) var(--ds-space-4) max(var(--ds-space-4),env(safe-area-inset-left));border-bottom:1px solid var(--ds-hairline);background:color-mix(in srgb,var(--ds-surface) 85%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.ds .ds-appbar__title{margin:0;min-width:0;overflow:hidden;font-size:var(--ds-text-22);font-weight:800;font-stretch:110%;line-height:28px;white-space:nowrap;text-overflow:ellipsis;color:var(--ds-ink)}
+.ds .ds-appbar__actions{display:flex;gap:var(--ds-space-4)}
+/* Search field: one rounded box with the icon inside. */
+.ds .ds-search{position:relative;display:block;margin:0;padding:var(--ds-space-8) var(--ds-space-16)}
+.ds .ds-search .ds-icon{position:absolute;top:50%;left:28px;color:var(--ds-muted);transform:translateY(-50%);pointer-events:none}
+.ds .ds-search input{display:block;width:100%;min-height:44px;margin:0;padding:0 var(--ds-space-16) 0 44px;border:1px solid var(--ds-hairline);border-radius:var(--ds-radius-pill);background:var(--ds-surface-subtle);color:var(--ds-ink);font:inherit;appearance:none;-webkit-appearance:none}
+.ds .ds-search input::placeholder{color:var(--ds-muted)}
+/* Pills: a row of tabs that scrolls sideways with a fade at the edge; the active one filled ink. */
+.ds .ds-pills{position:sticky;top:56px;z-index:10;display:flex;gap:var(--ds-space-8);margin:0;padding:var(--ds-space-8) var(--ds-space-16);overflow-x:auto;background:var(--ds-surface);scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent)}
+.ds .ds-pills::-webkit-scrollbar{display:none}
+.ds .ds-pill{flex:none;display:inline-flex;align-items:center;min-height:44px;margin:0;padding:0 16px;border:0;border-radius:var(--ds-radius-pill);background:var(--ds-surface-subtle);color:var(--ds-ink);font:inherit;font-size:var(--ds-text-15);font-weight:700;line-height:1;white-space:nowrap;cursor:pointer;transition:transform var(--ds-motion-press) ease}
+.ds .ds-pill:active{transform:scale(.97)}
+.ds .ds-pill[aria-selected="true"]{background:var(--ds-ink);color:var(--ds-surface)}
+.ds .ds-pill:last-child{margin-right:24px}
+/* A row with a ⋯ at the end (friends): the third column holds a 44px icon button above the row's tap target. */
+.ds .ds-row--more{grid-template-columns:56px minmax(0,1fr) 44px;padding-right:var(--ds-space-8)}
+.ds .ds-row__more{position:relative;z-index:1}
+.ds .ds-row__name{margin:0;overflow:hidden;font-size:var(--ds-text-15);font-weight:800;line-height:20px;white-space:nowrap;text-overflow:ellipsis}
+.ds .ds-row__sub.is-online{color:var(--ds-btn-go);font-weight:700}
+.ds .ds-row__photo.is-icon{background:var(--ds-surface-subtle);color:var(--ds-ink)}
+/* Facepile: small round photos overlapping by a third. */
+.ds .ds-facepile{display:flex;margin-top:var(--ds-space-4)}
+.ds .ds-facepile__face{display:grid;place-items:center;width:28px;height:28px;overflow:hidden;border:2px solid var(--ds-surface);border-radius:50%;background:var(--ds-ink);color:var(--ds-surface);font-size:11px;font-weight:800}
+.ds .ds-facepile__face+.ds-facepile__face{margin-left:-9px}
+.ds .ds-facepile__face img{display:block;width:100%;height:100%;object-fit:cover}
+@media (prefers-reduced-motion:reduce){.ds .ds-pill{transition:none}}
+/* A whole row that is one button (Find friends ›). */
+.ds button.ds-row{width:100%;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ds button.ds-row:active{background:var(--ds-surface-subtle)}
+.ds button.ds-row>.ds-icon{justify-self:center;color:var(--ds-muted)}
+.ds a.ds-choice{text-decoration:none}
+.ds .ds-section__title:empty{display:none}
+.ds .ds-sheet__body .ds-search{padding:0 0 var(--ds-space-8)}
+.ds .ds-sheet__body .ds-search .ds-icon{top:22px;left:12px}
+/* The body of a whole-page kit screen: no browser margin, nothing showing around the page. */
+body:has(>.ds.ds-page){margin:0;padding:0}
+.ds .ds-row__sub.is-online{color:var(--ds-online)}
