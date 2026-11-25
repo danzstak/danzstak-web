@@ -179,6 +179,7 @@ body.ds-form-screen-open{overflow:hidden}
 .ds .ds-choice__text small{display:block;font-size:var(--ds-text-13);line-height:18px;color:var(--ds-ink-soft)}
 .ds .ds-choice__check{visibility:hidden;color:var(--ds-btn-go)}
 .ds .ds-choice[aria-checked="true"] .ds-choice__check{visibility:visible}
+.ds .ds-choice--danger{color:var(--ds-danger)}
 
 /* Ticket stub (music 20%): a perforated tear-off on the right. */
 .ds .ds-stub{display:grid;grid-template-columns:minmax(0,1fr) 44px;border:1px solid var(--ds-hairline);border-radius:12px;background:var(--ds-surface)}

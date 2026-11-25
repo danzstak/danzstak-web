@@ -108,20 +108,32 @@ function judge(r, c, label, failures) {
         if (renamed.fontSize >= 26) failures.push(`${label}: a much longer name did not shrink (${renamed.fontSize}px)`);
       }
       if (c.menu) {
-        // The owner's ⋯ on the photo: tap its centre, Change and Remove show, nothing else floats over the photo.
-        const toggle = page.locator(".profile-showcase-menu > summary");
+        // The owner's ⋯ on the photo (kit icon button): tap its centre, the Photo options sheet lists Move to fit /
+        // Change / Remove, the centre of each row is the row itself, and the phone's Back closes the sheet.
+        const toggle = page.locator(".profile-showcase-more");
         const box = await toggle.boundingBox({ timeout: 3000 }).catch(() => null);
         if (!box || box.width < 44 || box.height < 44) failures.push(`${label}: the ⋯ is not a 44px target`);
         else {
+          const hit = await page.evaluate(([x, y]) => Boolean(document.elementFromPoint(x, y)?.closest(".profile-showcase-more")), [box.x + box.width / 2, box.y + box.height / 2]);
+          if (!hit) failures.push(`${label}: the centre of the ⋯ is covered`);
+          const holderPaint = await page.evaluate(() => getComputedStyle(document.querySelector(".profile-showcase-more").parentElement).backgroundColor);
+          if (!/rgba\(0, 0, 0, 0\)|transparent/.test(holderPaint)) failures.push(`${label}: a square of ${holderPaint} shows behind the round ⋯`);
           await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-          await page.waitForTimeout(200);
-          const open = await page.evaluate(() => [...document.querySelectorAll(".profile-showcase-tools button")].filter(button => button.getClientRects().length).map(button => button.textContent.trim()));
-          if (open.join("|") !== "Move to fit|Change this photo|Remove this photo") failures.push(`${label}: the ⋯ does not open Move to fit / Change / Remove: ${JSON.stringify(open)}`); // F12: Move to fit first
-          // A tap outside closes it, like any familiar menu.
-          const name = await page.locator("#profileName").boundingBox();
-          await page.touchscreen.tap(name.x + 4, name.y + name.height / 2);
-          await page.waitForTimeout(200);
-          if (await page.evaluate(() => Boolean(document.querySelector(".profile-showcase-menu[open]")))) failures.push(`${label}: a tap outside does not close the ⋯ menu`);
+          await page.waitForSelector(".ds-sheet.is-open .ds-sheet__panel", { timeout: 4000 }).catch(() => {});
+          await page.waitForTimeout(300);
+          const rows = await page.evaluate(() => [...document.querySelectorAll(".ds-sheet.is-open .ds-choice")].map(row => {
+            const r = row.getBoundingClientRect(), at = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+            return { text: row.textContent.trim(), h: r.height, hit: Boolean(at && row.contains(at)), inside: r.left >= 0 && r.right <= innerWidth + 0.5 && r.bottom <= innerHeight + 0.5, colour: getComputedStyle(row).color };
+          }));
+          if (process.env.CAPTURE && [360, 390].includes(width)) await page.screenshot({ path: path.join(process.env.CAPTURE, `photo-options-${width}.png`) });
+          if (rows.map(row => row.text).join("|") !== "Move to fit|Change this photo|Remove this photo") failures.push(`${label}: the ⋯ sheet is not Move to fit / Change / Remove: ${JSON.stringify(rows.map(row => row.text))}`); // F12: Move to fit first
+          rows.forEach(row => { if (!row.hit || !row.inside || row.h < 44) failures.push(`${label}: "${row.text}" is not a whole 44px row on screen (${JSON.stringify(row)})`); });
+          if (rows[2] && rows[2].colour === rows[1]?.colour) failures.push(`${label}: Remove this photo is not in the danger colour`);
+          if (await page.evaluate(() => Boolean(document.querySelector(".profile-showcase-menu,.profile-showcase-tools")))) failures.push(`${label}: the old drop-down menu is still on the page`);
+          await page.goBack();
+          await page.waitForTimeout(400);
+          if (await page.evaluate(() => Boolean(document.querySelector(".ds-sheet")))) failures.push(`${label}: Back does not close the Photo options sheet`);
+          if (!/profile\.html/.test(page.url())) failures.push(`${label}: Back left the profile (${page.url()})`);
         }
       }
       } catch (error) { failures.push(`${label}: ${String(error.message || error).split("\n")[0]}`); }
@@ -130,5 +142,5 @@ function judge(r, c, label, failures) {
     }
   } finally { await browser.close(); }
   if (failures.length) { console.error(`Profile header (F4): ${failures.length} problem(s)\n- ${failures.join("\n- ")}`); process.exit(1); }
-  console.log("Profile header (F4) passed at 320/360/390/430px: the name sits right of the avatar and always shows in full, the picture band is below it at full width (16:7 photo, shop items, Fill this space), no gap over 12px, renames re-fit, and the owner's ⋯ opens Change / Remove and closes on a tap outside.");
+  console.log("Profile header (F4) passed at 320/360/390/430px: the name sits right of the avatar and always shows in full, the picture band is below it at full width (16:7 photo, shop items, Fill this space), no gap over 12px, renames re-fit, and the owner's ⋯ opens the Photo options sheet (Move to fit / Change / Remove) and Back closes it.");
 })();
