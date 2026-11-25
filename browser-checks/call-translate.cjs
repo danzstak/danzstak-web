@@ -50,7 +50,8 @@ async function open(browser, width, { locale = "en-US", available = true, minute
   // A connected video call: the real microphone (fake device) and a stubbed open data channel.
   await page.evaluate(() => { document.body.dataset.callMode = "video"; document.getElementById("videoGrid").hidden = false; document.getElementById("mediaControls").hidden = false; });
   await page.evaluate("(async () => { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); channel = { readyState: 'open', send(data) { (window.__sent ||= []).push(JSON.parse(data)); } }; })()");
-  await page.waitForFunction(() => window.__sent !== undefined || true);
+  // The other person's camera (the browser's fake one) fills the screen, as on a connected video call.
+  await page.evaluate(async () => { const cam = await navigator.mediaDevices.getUserMedia({ video: { width: 720, height: 1280 } }); const remote = document.getElementById("remoteVideo"); remote.srcObject = cam; remote.muted = true; await remote.play().catch(() => {}); document.body.dataset.callConnected = "1"; });
   return { context, page, errors, calls };
 }
 
@@ -79,6 +80,7 @@ async function openFromMore(page, tag, label = "Live translation") {
   try {
     for (const width of [320, 360, 390, 430]) {
       const tag = `${width}px`, { context, page, errors, calls } = await open(browser, width);
+      const gridBefore = await page.evaluate(() => { const r = document.getElementById("videoGrid").getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: r.height }; });
       // Shawn turns it on.
       await openFromMore(page, tag);
       await page.waitForSelector(".call-translate-sheet #callTranslateLanguage");
@@ -113,10 +115,24 @@ async function openFromMore(page, tag, label = "Live translation") {
       assert.match(box.label, /FR → EN/);
       if (process.env.SHOT) await page.screenshot({ path: `/tmp/claude-0/shots/ct-${width}.png` });
       assert.ok(box.bottom <= box.controlsTop + 1 && box.left >= 0 && box.right <= width, `${tag}: captions above the call buttons, on screen (${JSON.stringify(box)})`);
-      assert.ok(box.gridBottom <= box.top + 1, `${tag}: the video ends above the captions (${JSON.stringify(box)})`);
+      assert.ok(Math.abs(box.gridBottom - gridBefore.bottom) < 1, `${tag}: the video keeps its full size under the captions (${JSON.stringify({ box, gridBefore })})`);
+      assert.ok(box.top >= gridBefore.top && box.bottom <= gridBefore.bottom + 1, `${tag}: the captions sit over the picture, as subtitles`);
+      const shade = await page.evaluate(() => { const cs = getComputedStyle(document.querySelector(".call-captions")); return { image: cs.backgroundImage, filter: cs.backdropFilter }; });
+      assert.match(shade.image, /gradient/, `${tag}: a soft shade, not a box`);
+      const status = await page.evaluate(() => { const node = document.querySelector(".conversation-status"); if (!node || !node.textContent.trim() || getComputedStyle(node).visibility === "hidden") return null; const r = node.getBoundingClientRect(), c = document.querySelector(".call-captions").getBoundingClientRect(); return { bottom: r.bottom, captionsTop: c.top }; });
+      if (status) assert.ok(status.bottom <= status.captionsTop + 1, `${tag}: the status line sits above the captions, never behind them (${JSON.stringify(status)})`);
+      assert.ok(!/blur/.test(shade.filter), `${tag}: the video isn't blurred behind the captions`);
       assert.ok(box.overflow <= 0, `${tag}: nothing wider than the screen`);
       assert.deepEqual(calls.filter(c => c.p === "/call-translate/text").at(-1).body, { texts: ["On se voit vendredi au club"], from: "fr", to: "en" });
       if (width === 390) await page.screenshot({ path: "docs/screenshots/call-translate-390.png" });
+      // The call buttons step aside: the captions drop to the bottom edge, the video stays full.
+      await page.evaluate(() => { document.body.dataset.callChrome = "hidden"; });
+      await page.waitForTimeout(300);
+      const low = await page.evaluate(() => document.querySelector(".call-captions").getBoundingClientRect().bottom);
+      assert.ok(low >= 800 - 16 && low <= 800, `${tag}: captions at the bottom edge while the buttons are hidden (${low})`);
+      if (width === 390) await page.screenshot({ path: "docs/screenshots/call-translate-390-buttons-hidden.png" });
+      await page.evaluate(() => { delete document.body.dataset.callChrome; });
+      await page.waitForTimeout(300); // the captions slide back up in 0.2 s
       // Stop: both phones.
       await centreTap(page, ".call-captions-stop", tag);
       assert.equal((await sent(page)).at(-1).type, "call-translate-stop");

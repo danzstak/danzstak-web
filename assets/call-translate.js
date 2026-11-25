@@ -6,7 +6,8 @@
 //   translated?"); nothing leaves either phone until they allow it. Then each phone streams only its OWN microphone to
 //   Amazon Transcribe (signed address from the Auth API, call-translate.mjs) and sends the words over the call's own
 //   data channel. The other phone translates them into its language (Amazon Translate) and shows them as captions that
-//   roll like a teleprompter above the call buttons; the video ends above them.
+//   roll like a teleprompter above the call buttons. On a video call the video keeps the whole screen and the captions
+//   are subtitles over its bottom edge (owner 2026-11-25: "Still need to make the video visible as well").
 // - Either person can stop it (✕ on the captions, or More → Stop live translation); it stops on both phones at once.
 // - Muting the call mutes the captions too (a muted microphone sends silence).
 // - Nothing is stored. Free for testers for now: today's minutes per account come from the server.
@@ -114,12 +115,11 @@
   }
   function fit() {
     const body = document.body;
-    if (!band?.isConnected) { body.style.removeProperty("--call-caption-h"); body.style.removeProperty("--call-caption-reach"); delete body.dataset.callCaptions; return; }
+    if (!band?.isConnected) { body.style.removeProperty("--call-caption-h"); delete body.dataset.callCaptions; return; }
     body.dataset.callCaptions = "on";
-    const box = band.getBoundingClientRect();
     // Not --call-subtitle-band: that one lifts the call panel itself (sync-call-ui.css) and would push it under the band.
-    body.style.setProperty("--call-caption-h", `${Math.ceil(box.height + 8)}px`); // a call note sits above the captions
-    body.style.setProperty("--call-caption-reach", `${Math.max(0, Math.ceil(window.innerHeight - box.top + 8))}px`); // the video ends above them
+    // The video never shrinks for captions; only a call note moves up to stay clear of them.
+    body.style.setProperty("--call-caption-h", `${Math.ceil(band.getBoundingClientRect().height + 8)}px`);
   }
   window.addEventListener("resize", () => { if (band) fit(); });
   function paintLine(line) {

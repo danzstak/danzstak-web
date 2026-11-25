@@ -1,6 +1,7 @@
-/* Task 21: live translated captions in SYNC calls (assets/call-translate.js). A band above the call buttons; the video
-   ends above it (--call-caption-reach) and a call note sits above it (--call-caption-h). */
-body[data-call-mode="video"][data-call-captions="on"] .video-grid{bottom:max(var(--call-caption-reach,0px),var(--call-note-band,0px))!important}
+/* Task 21: live translated captions in SYNC calls (assets/call-translate.js). A band above the call buttons; a call note
+   sits above it (--call-caption-h). On a video call (owner 2026-11-25: "Still need to make the video visible as well")
+   the video keeps the whole screen and the captions are subtitles over the bottom of the picture: no box, a soft shade,
+   the last two lines only, and they drop to the bottom edge when the call buttons step aside. */
 .call-captions{position:fixed;z-index:29;left:12px;right:12px;bottom:calc(var(--call-panel-h,112px) + 8px);display:grid;gap:6px;padding:8px 8px 10px 14px;border-radius:16px;background:rgba(6,7,9,.82);backdrop-filter:blur(10px);color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.4)}
 .call-captions-head{display:flex;align-items:center;gap:8px}
 .call-captions-label{flex:1;min-width:0;color:#ffb38f;font:700 11px/1.3 ui-monospace,"JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
@@ -23,5 +24,12 @@ body[data-call-mode="video"][data-call-captions="on"] .video-grid{bottom:max(var
 .call-translate-go,.call-translate-quiet{min-height:44px;padding:0 20px;border:0;border-radius:999px;font:800 15px system-ui,sans-serif}
 .call-translate-go{background:var(--ds-btn-go,#15803d);color:#fff}
 .call-translate-quiet{background:rgba(255,255,255,.14);color:#fff}
+body[data-call-mode="video"] .call-captions{gap:2px;padding:8px 6px 6px 12px;border-radius:12px;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.5) 30%,rgba(0,0,0,.62));backdrop-filter:none;box-shadow:none;transition:bottom .2s ease}
+body[data-call-mode="video"] .call-captions-stop{width:44px;height:44px;background:rgba(0,0,0,.35)}
+body[data-call-mode="video"] .call-captions-lines{max-height:none;mask-image:none}
+body[data-call-mode="video"] .call-caption:not(:nth-last-child(-n+2)){display:none}
+body[data-call-mode="video"] .call-caption-text,body[data-call-mode="video"] .call-caption-original{text-shadow:0 1px 3px rgba(0,0,0,.9)}
+body[data-call-mode][data-call-captions="on"] .conversation-status{bottom:calc(var(--call-panel-h) + 10px + var(--call-caption-h,0px))}/* the status line sits above the captions, never behind them */
+body[data-call-mode="video"][data-call-chrome="hidden"] .call-captions{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
 @keyframes call-caption-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-@media(prefers-reduced-motion:reduce){.call-caption{animation:none}}
+@media(prefers-reduced-motion:reduce){.call-caption{animation:none}body[data-call-mode="video"] .call-captions{transition:none}}
