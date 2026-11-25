@@ -117,6 +117,7 @@ jobs:
           .\scripts\run-checks.ps1 -Checks @(
             '.\browser-checks\call-video-two-party.cjs'
             '.\browser-checks\call-note.cjs'
+            '.\browser-checks\call-translate.cjs'
             '.\browser-checks\sync-call-screen-ui.cjs'
             '.\browser-checks\call-audio-output.cjs'
             '.\browser-checks\foreground-call-ringtone.cjs'
@@ -135,6 +136,7 @@ jobs:
             '.\browser-checks\original-feed-art-direction.cjs'
             '.\browser-checks\post-photos.cjs'
             '.\browser-checks\screenshot-trim.cjs'
+            '.\browser-checks\comment-replies.cjs'
             '.\browser-checks\share-target.cjs'
             '.\browser-checks\post-menu-fit.cjs'
             '.\browser-checks\photo-frame.cjs'

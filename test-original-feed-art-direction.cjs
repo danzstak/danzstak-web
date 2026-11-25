@@ -12,7 +12,7 @@ const profileScript = fs.readFileSync("assets/profile-editor.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 
 assert.match(feed, /<body class="danzstak-original">/, "the scoped art direction must be explicit");
-assert.match(feed, /assets\/mobile-design-system\.css\?v=24[\s\S]*assets\/danzstak-original-feed\.css\?v=35/, "the Feed layer must extend the shared foundation");
+assert.match(feed, /assets\/mobile-design-system\.css\?v=24[\s\S]*assets\/danzstak-original-feed\.css\?v=36/, "the Feed layer must extend the shared foundation");
 assert.doesNotMatch(feed, /\.menu \.app-menu-link\s*\{[^}]*min-height:\s*42px/, "legacy application links must not undercut the shared touch target");
 assert.doesNotMatch(art, /--mix-/, "the Feed must not introduce a competing token palette");
 for (const token of ["--ds-brand", "--ds-accent", "--ds-ink", "--ds-canvas", "--ds-surface", "--ds-border", "--ds-touch"]) {
@@ -45,7 +45,7 @@ assert.match(foundation, /\.profile-page \.profile-post-card\{[\s\S]*?padding:12
 assert.match(foundation, /\.profile-page \.profile-post-header\{[\s\S]*?gap:12px;[\s\S]*?min-height:40px;/, "mobile Profile headers must preserve the 40px avatar and 12px identity gap");
 assert.match(foundation, /\.profile-page \.profile-post-media\{[\s\S]*?width:calc\(100% \+ 32px\);[\s\S]*?margin:12px -16px 0;/, "mobile Profile media must break through the 16px text gutters to both card edges");
 assert.match(foundation, /\.profile-page \.profile-post-tools\{[\s\S]*?margin-top:12px;[\s\S]*?border-top:1px solid #ced0d4;/, "mobile Profile actions must use the familiar 12px media gap and hairline divider");
-assert.match(worker, /danzstak-shell-v1077/);
+assert.match(worker, /danzstak-shell-v1083/);
 assert.match(worker, /\/assets\/danzstak-original-feed\.css/, "the installed PWA must cache the art-direction layer");
 
 console.log("Original Feed art-direction checks passed: shared tokens, edge media, touch targets, and PWA caching.");

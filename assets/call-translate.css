@@ -1,0 +1,35 @@
+/* Task 21: live translated captions in SYNC calls (assets/call-translate.js). A band above the call buttons; a call note
+   sits above it (--call-caption-h). On a video call (owner 2026-11-25: "Still need to make the video visible as well")
+   the video keeps the whole screen and the captions are subtitles over the bottom of the picture: no box, a soft shade,
+   the last two lines only, and they drop to the bottom edge when the call buttons step aside. */
+.call-captions{position:fixed;z-index:29;left:12px;right:12px;bottom:calc(var(--call-panel-h,112px) + 8px);display:grid;gap:6px;padding:8px 8px 10px 14px;border-radius:16px;background:rgba(6,7,9,.82);backdrop-filter:blur(10px);color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.4)}
+.call-captions-head{display:flex;align-items:center;gap:8px}
+.call-captions-label{flex:1;min-width:0;color:#ffb38f;font:700 11px/1.3 ui-monospace,"JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
+.call-captions-stop{flex:none;width:44px;height:44px;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:18px}
+.call-captions-lines{display:grid;gap:6px;max-height:min(30dvh,180px);overflow:hidden;align-content:end;mask-image:linear-gradient(to bottom,transparent,#000 28%)}
+.call-caption{margin:0;display:grid;gap:1px;animation:call-caption-in .16s ease-out}
+.call-caption-text{font:700 19px/1.3 system-ui,sans-serif;overflow-wrap:anywhere}
+.call-caption-text.is-waiting{color:#d8d8d4}
+.call-caption.is-partial .call-caption-text{opacity:.86}
+.call-caption-original{color:#bdbdb7;font:500 13px/1.3 system-ui,sans-serif;overflow-wrap:anywhere}
+.call-caption-original:empty{display:none}
+.call-caption:not(:nth-last-child(-n+3)){display:none}
+.call-translate-sheet{position:fixed;z-index:31;left:12px;right:12px;bottom:calc(var(--call-panel-h,112px) + 8px);display:grid;gap:10px;padding:14px;border-radius:18px;background:rgba(18,20,24,.95);backdrop-filter:blur(14px);color:#f5f5f2;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.call-translate-sheet strong{font:800 17px/1.3 system-ui,sans-serif}
+.call-translate-sheet p{margin:0;color:#d6d6d0;font:15px/1.4 system-ui,sans-serif}
+.call-translate-status:empty{display:none}
+.call-translate-field{display:grid;gap:6px;font:700 13px system-ui,sans-serif;color:#ffb38f}
+.call-translate-select{min-height:44px;padding:0 12px;border:0;border-radius:12px;background:#fff;color:#121418;font:16px system-ui,sans-serif}
+.call-translate-row{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.call-translate-go,.call-translate-quiet{min-height:44px;padding:0 20px;border:0;border-radius:999px;font:800 15px system-ui,sans-serif}
+.call-translate-go{background:var(--ds-btn-go,#15803d);color:#fff}
+.call-translate-quiet{background:rgba(255,255,255,.14);color:#fff}
+body[data-call-mode="video"] .call-captions{gap:2px;padding:8px 6px 6px 12px;border-radius:12px;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.5) 30%,rgba(0,0,0,.62));backdrop-filter:none;box-shadow:none;transition:bottom .2s ease}
+body[data-call-mode="video"] .call-captions-stop{width:44px;height:44px;background:rgba(0,0,0,.35)}
+body[data-call-mode="video"] .call-captions-lines{max-height:none;mask-image:none}
+body[data-call-mode="video"] .call-caption:not(:nth-last-child(-n+2)){display:none}
+body[data-call-mode="video"] .call-caption-text,body[data-call-mode="video"] .call-caption-original{text-shadow:0 1px 3px rgba(0,0,0,.9)}
+body[data-call-mode][data-call-captions="on"] .conversation-status{bottom:calc(var(--call-panel-h) + 10px + var(--call-caption-h,0px))}/* the status line sits above the captions, never behind them */
+body[data-call-mode="video"][data-call-chrome="hidden"] .call-captions{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+@keyframes call-caption-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.call-caption{animation:none}body[data-call-mode="video"] .call-captions{transition:none}}

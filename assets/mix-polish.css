@@ -41,7 +41,7 @@
 
 /* Comments: two shown, the rest behind a small "+N" chip. */
 #feed > .post .commentList{margin:2px 0 0!important}
-#feed > .post .comment{margin:6px 0!important}
+#feed > .post .comment{margin-top:6px!important;margin-bottom:6px!important} /* left margin free: replies sit indented under their comment */
 #feed > .post .comment-bubble{border-radius:14px}
 #feed > .post .comments-more{
   display:inline-flex;align-items:center;justify-content:center;

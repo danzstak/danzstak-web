@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v1077";
+const CACHE = "danzstak-shell-v1083";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/time-label.js", "/assets/page-missing.js", "/assets/scramble-by-seller.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -18,7 +18,7 @@ const SHELL = [
   "/assets/share-card-tools.js", "/assets/epk-share-card.js", "/assets/profile-share-card.js", "/assets/signed-out.js", "/assets/profile-collections.js", "/friends.html", "/assets/friends-screen.js", "/assets/activity-history-core.js", "/assets/account-export-core.js", "/assets/account-export.js",
   "/assets/profile-albums.js", "/assets/profile-albums.css",
   "/assets/call-alerts.js", "/assets/epk-verify.js", "/assets/epk-verify.css", "/assets/booking-workspace.css", "/assets/store.css", "/assets/store.js", "/shop-example.html", "/assets/shop-example.js", "/assets/shop-example.css", "/assets/friendly-error.js", "/assets/bazaar.css", "/assets/bazaar.js", "/assets/product.js", "/assets/event.css", "/assets/event.js",
-  "/assets/link-preview-cards.css", "/assets/roll-reels.css", "/assets/tribes-polish.css", "/assets/tribes-home.css", "/assets/tribes-art.js", "/assets/tribe-create.js", "/assets/tribe-create.css", "/assets/share-receive.js", "/assets/profile-friend.js", "/assets/link-preview-cards.js", "/assets/support.css", "/assets/support.js", "/assets/booking-agent.css", "/assets/booking-agent-driver.css", "/assets/booking-discovery.css", "/assets/booking-agent.js", "/assets/booking-legs.js", "/assets/booking-identity.js", "/assets/booking-conversation.js", "/assets/booking-discovery.js", "/assets/booking-map.js", "/assets/booking-selections.css", "/assets/booking-selections.js", "/assets/booking-pipeline.js", "/assets/booking-freshness.js", "/assets/booking-billing.js", "/assets/purchase-terms.js", "/assets/fees.js", "/assets/media-fit.js", "/assets/photo-trim.js", "/assets/media-scale.js", "/assets/media-fit.css", "/assets/media-viewer.js", "/assets/media-viewer.css", "/assets/image-position.js", "/assets/image-position.css", "/assets/media-actions.js", "/assets/media-actions.css", "/assets/post-photos.js", "/assets/post-photos.css", "/assets/mix-polish.css", "/assets/profile-polish.css", "/assets/profile-shop.css", "/assets/signup-onboarding.js", "/assets/signup-onboarding.css", "/assets/purchase-terms.css", "/assets/booking-opt-out.css", "/assets/booking-opt-out.js", "/assets/booking-reply.css", "/assets/booking-reply.js", "/assets/booking-sync.js", "/assets/record-stores.css", "/assets/record-placement.css", "/assets/record-stores-pagination.css", "/assets/record-stores.js", "/assets/epk.css", "/assets/epk-looks.css", "/assets/epk-hometown.css", "/assets/hometown-looks.js", "/assets/tour-hometown.css", "/assets/tour-hometown.js", "/assets/epk-production.css", "/assets/epk-reviews.css", "/assets/epk-media.css", "/assets/epk-production.js", "/assets/epk-reviews.js", "/assets/epk.js", "/assets/epk-video-check.js", "/assets/epk-versions.js", "/assets/epk-library.js", "/assets/epk-library.css", "/assets/epk-ai.js", "/assets/epk-ai.css", "/assets/profile-ai.js", "/assets/shop-ai.js", "/assets/epk-skin.css", "/assets/epk-laminate.js", "/assets/profile-editor.css", "/assets/profile-interactions.css", "/assets/profile-interactions.js", "/assets/profile-onboarding.css", "/assets/profile-onboarding.js", "/assets/display-preferences.js", "/assets/feed-enhancements.js", "/assets/device-reminder.js", "/assets/ds-tokens.css", "/assets/ds.css", "/assets/icons.svg", "/assets/ds-icon.js", "/assets/ds-sheet.js", "/assets/notifications.js", "/assets/push-notifications.js", "/assets/call-devices.js", "/assets/call-setup.js", "/assets/call-setup.css", "/assets/phone-setup.js", "/assets/sync-tones.js", "/assets/sync-privacy.js", "/assets/sync-reply.js", "/assets/sync-make-it-yours.js", "/sync.html", "/sync.webmanifest", "/assets/sync-standalone.js", "/assets/sync-standalone.css", "/assets/sync-icon-192.png", "/assets/sync-icon-512.png", "/assets/shop-icon-96.png", "/assets/shop-icon-192.png", "/assets/sync-apple-touch-icon.png", "/assets/sync-make-it-yours.css", "/assets/sync-reply.css", "/assets/sync-tones.css", "/assets/sync-settings.js", "/assets/call-ringer.js", "/assets/call-ringer.css", "/assets/call-note.js", "/assets/call-note.css", "/assets/sync-wallpaper.js", "/assets/sync-wallpaper.css", "/assets/phone-verification.js", "/assets/i18n-sync.js", "/assets/phone-verification.css", "/assets/sync-network-number.js", "/assets/sync-network-number.css", "/assets/direct-messages.js", "/assets/make-plans.js", "/assets/make-plans.css", "/assets/incoming-calls.js", "/assets/incoming-calls.css", "/assets/call-screen.js", "/assets/sync-call-ui.js", "/assets/sync-call-ui.css", "/assets/call-screen.css", "/assets/sync-list-polish.js", "/assets/sync-list-polish.css", "/assets/call-invite.js", "/assets/call-invite.css", "/assets/answer.js", "/assets/answer.css", "/sync/", "/assets/sync-app.js", "/assets/sync-app.css",
+  "/assets/link-preview-cards.css", "/assets/roll-reels.css", "/assets/tribes-polish.css", "/assets/tribes-home.css", "/assets/tribes-art.js", "/assets/tribe-create.js", "/assets/tribe-create.css", "/assets/share-receive.js", "/assets/profile-friend.js", "/assets/link-preview-cards.js", "/assets/support.css", "/assets/support.js", "/assets/booking-agent.css", "/assets/booking-agent-driver.css", "/assets/booking-discovery.css", "/assets/booking-agent.js", "/assets/booking-legs.js", "/assets/booking-identity.js", "/assets/booking-conversation.js", "/assets/booking-discovery.js", "/assets/booking-map.js", "/assets/booking-selections.css", "/assets/booking-selections.js", "/assets/booking-pipeline.js", "/assets/booking-freshness.js", "/assets/booking-billing.js", "/assets/purchase-terms.js", "/assets/fees.js", "/assets/media-fit.js", "/assets/photo-trim.js", "/assets/media-scale.js", "/assets/media-fit.css", "/assets/media-viewer.js", "/assets/media-viewer.css", "/assets/image-position.js", "/assets/image-position.css", "/assets/media-actions.js", "/assets/media-actions.css", "/assets/post-photos.js", "/assets/post-photos.css", "/assets/mix-polish.css", "/assets/profile-polish.css", "/assets/profile-shop.css", "/assets/signup-onboarding.js", "/assets/signup-onboarding.css", "/assets/purchase-terms.css", "/assets/booking-opt-out.css", "/assets/booking-opt-out.js", "/assets/booking-reply.css", "/assets/booking-reply.js", "/assets/booking-sync.js", "/assets/record-stores.css", "/assets/record-placement.css", "/assets/record-stores-pagination.css", "/assets/record-stores.js", "/assets/epk.css", "/assets/epk-looks.css", "/assets/epk-hometown.css", "/assets/hometown-looks.js", "/assets/tour-hometown.css", "/assets/tour-hometown.js", "/assets/epk-production.css", "/assets/epk-reviews.css", "/assets/epk-media.css", "/assets/epk-production.js", "/assets/epk-reviews.js", "/assets/epk.js", "/assets/epk-video-check.js", "/assets/epk-versions.js", "/assets/epk-library.js", "/assets/epk-library.css", "/assets/epk-ai.js", "/assets/epk-ai.css", "/assets/profile-ai.js", "/assets/shop-ai.js", "/assets/epk-skin.css", "/assets/epk-laminate.js", "/assets/profile-editor.css", "/assets/profile-interactions.css", "/assets/profile-interactions.js", "/assets/profile-onboarding.css", "/assets/profile-onboarding.js", "/assets/display-preferences.js", "/assets/feed-enhancements.js", "/assets/device-reminder.js", "/assets/ds-tokens.css", "/assets/ds.css", "/assets/icons.svg", "/assets/ds-icon.js", "/assets/ds-sheet.js", "/assets/notifications.js", "/assets/push-notifications.js", "/assets/call-devices.js", "/assets/call-setup.js", "/assets/call-setup.css", "/assets/phone-setup.js", "/assets/sync-tones.js", "/assets/sync-privacy.js", "/assets/sync-reply.js", "/assets/sync-make-it-yours.js", "/sync.html", "/sync.webmanifest", "/assets/sync-standalone.js", "/assets/sync-standalone.css", "/assets/sync-icon-192.png", "/assets/sync-icon-512.png", "/assets/shop-icon-96.png", "/assets/shop-icon-192.png", "/assets/sync-apple-touch-icon.png", "/assets/sync-make-it-yours.css", "/assets/sync-reply.css", "/assets/sync-tones.css", "/assets/sync-settings.js", "/assets/call-ringer.js", "/assets/call-ringer.css", "/assets/call-note.js", "/assets/call-translate.js", "/assets/call-translate.css", "/assets/call-translate-worklet.js", "/assets/call-note.css", "/assets/sync-wallpaper.js", "/assets/sync-wallpaper.css", "/assets/phone-verification.js", "/assets/i18n-sync.js", "/assets/phone-verification.css", "/assets/sync-network-number.js", "/assets/sync-network-number.css", "/assets/direct-messages.js", "/assets/make-plans.js", "/assets/make-plans.css", "/assets/incoming-calls.js", "/assets/incoming-calls.css", "/assets/call-screen.js", "/assets/sync-call-ui.js", "/assets/sync-call-ui.css", "/assets/call-screen.css", "/assets/sync-list-polish.js", "/assets/sync-list-polish.css", "/assets/call-invite.js", "/assets/call-invite.css", "/assets/answer.js", "/assets/answer.css", "/sync/", "/assets/sync-app.js", "/assets/sync-app.css",
   "/assets/feed-enhancements.css", "/assets/artist-hq.js", "/assets/artist-hq.css", "/assets/chat.js", "/assets/chat.css", "/assets/sync.css", "/assets/legal.css", "/assets/soft-ui.css", "/assets/accessibility.css", "/assets/events-page.css", "/assets/events-page.js", "/assets/i18n-events.js",
   "/assets/sync-shell.css", "/assets/sync-shell.js",
   "/assets/bazaar-examples.js",
@@ -126,6 +126,7 @@ self.addEventListener("fetch", event => {
 //   (STOP_SHELL_REFRESH, sent when the member updates).
 const SHELL_REFRESHED = "/__danzstak-shell-refreshed";
 let shellRefresh = null;
+
 function stopShellRefresh() { shellRefresh?.abort(); shellRefresh = null; }
 self.registration?.addEventListener?.("updatefound", stopShellRefresh);
 async function refreshAppShell() {
@@ -151,6 +152,12 @@ self.addEventListener("message", event => {
   if (event.data?.type === "DANZSTAK_CALL_HANDLED") callHandled(event); // 5a00: answered or declined in an open window
 });
 
+// Owner 2026-11-25 ("baby proof", Italian testers): Android draws a notification's buttons itself, so a website can't
+// colour them. A green dot marks Accept and a red dot marks Decline, in every language.
+function callButton(mark, words) {
+  const text = String(words).replace(/^[\u{1F7E2}\u{1F534}]\s*/u, "");
+  return `${mark} ${text}`.slice(0, 40);
+}
 self.addEventListener("push", event => {
   let payload = {};
   try { payload = event.data?.json() || {}; }
@@ -188,7 +195,7 @@ self.addEventListener("push", event => {
     requireInteraction: call,
     // 16-F: the lock-screen ring has Accept and Decline. Decline refuses the call without opening the app.
     // 5a3: a friend request has Accept and Delete right on the notification (answered without opening the app).
-    actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Accept").slice(0, 40) }, { action: "decline", title: String(payload.declineTitle || payload.dismissTitle || "Decline").slice(0, 40) }]
+    actions: call ? [{ action: "answer", title: callButton("🟢", payload.answerTitle || "Accept") }, { action: "decline", title: callButton("🔴", payload.declineTitle || payload.dismissTitle || "Decline") }]
       : friendRequest ? [{ action: "friend-accept", title: String(payload.acceptTitle || "Accept").slice(0, 40) }, { action: "friend-delete", title: String(payload.deleteTitle || "Delete").slice(0, 40) }] : [],
     data: { url, type: call ? "call" : payload.type === "booking" ? "booking" : friendRequest ? "friend_request" : "notification", callId: call && !test && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "", memberId: friendRequest ? String(payload.memberId) : "" }
   };
@@ -228,14 +235,23 @@ async function callWasHandled(callId) {
 // answered, declined or ended, which close it), show it again every few seconds with renotify, so the phone sounds and
 // vibrates again, for about as long as an in-app ring (25 s).
 const CALL_RING_REPEATS = 6, CALL_RING_EVERY_MS = 4000;
+// A platform that refuses the dots in the button words must still show the call (plain words).
+async function showCall(title, options) {
+  try { await self.registration.showNotification(title, options); }
+  catch (error) {
+    console.warn("Call notification refused, showing plain buttons:", error?.name || error);
+    const actions = (options.actions || []).map(item => ({ ...item, title: String(item.title).replace(/^[\u{1F7E2}\u{1F534}]\s*/u, "") }));
+    await self.registration.showNotification(title, { ...options, actions });
+  }
+}
 async function ringCallNotification(title, options) {
-  await self.registration.showNotification(title, options);
+  await showCall(title, options);
   for (let i = 0; i < CALL_RING_REPEATS; i++) {
     await new Promise(resolve => setTimeout(resolve, CALL_RING_EVERY_MS));
     const open = await self.registration.getNotifications({ tag: options.tag });
     if (!open.length) return; // answered, declined, dismissed or the call ended (call-resolved push)
     if (await callWasHandled(options.data.callId)) { open.forEach(notification => notification.close()); return; }
-    await self.registration.showNotification(title, { ...options, renotify: true });
+    await showCall(title, { ...options, renotify: true });
   }
 }
 

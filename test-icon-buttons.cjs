@@ -53,7 +53,7 @@ assert.match(sendMarkup, /aria-label="Send message"/, "Chat send icon must retai
 assert.match(sendMarkup, /title="Send message"/, "Chat send icon must retain its tooltip");
 
 const feed = fs.readFileSync("assets/feed-enhancements.js", "utf8");
-assert.match(feed, /reply\.dataset\.icon = "reply"/, "comment replies must use the shared reply icon");
+assert.match(feed, /reply\.dataset\.iconLayout = "label"/, "comment Reply is the word, never a bare arrow (owner 2026-11-25: icons users will understand)");
 assert.match(feed, /button\.dataset\.icon = "trash"/, "comment deletion must use the shared trash icon");
 assert.match(feed, /rollOpen\.dataset\.icon = "expand"/, "The Roll must use the expand icon");
 assert.match(feed, /rollClose\.dataset\.icon = "close"/, "The Roll must use the close icon");

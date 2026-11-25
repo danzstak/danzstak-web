@@ -96,7 +96,7 @@ function serverPushCopy() {
     assert.equal(call.body, copy.body);
     assert.ok(/Tour Friend/.test(call.body), "says who is calling");
     assert.equal(call.requireInteraction, true, "stays until answered or declined");
-    assert.deepEqual(call.actions, [{ action: "answer", title: copy.answerTitle }, { action: "decline", title: copy.declineTitle }], "Accept and Decline, as the server names them");
+    assert.deepEqual(call.actions, [{ action: "answer", title: `🟢 ${copy.answerTitle}` }, { action: "decline", title: `🔴 ${copy.declineTitle}` }], "Accept and Decline, as the server names them, with the stop/go dots (owner 2026-11-25)");
     assert.equal(call.data.callId, CALL, "Accept and Decline know which call");
     assert.equal(call.data.url, `/messages.html?member=${CALLER}`, "Accept opens SYNC on the caller's chat");
     assert.deepEqual(context.pages().map(page => page.url()), ["about:blank"], "the ring didn't need any page");
