@@ -137,6 +137,7 @@ jobs:
             '.\browser-checks\post-photos.cjs'
             '.\browser-checks\screenshot-trim.cjs'
             '.\browser-checks\comment-replies.cjs'
+            '.\browser-checks\roll-spacing.cjs'
             '.\browser-checks\language-sweep.cjs'
             '.\browser-checks\share-target.cjs'
             '.\browser-checks\post-menu-fit.cjs'
