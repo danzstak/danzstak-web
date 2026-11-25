@@ -1,0 +1,48 @@
+name: UI kit build
+
+# Builds the committed UI kit files (assets/ds.css, assets/icons.svg, tools/ui-kit/package-lock.json) on a working
+# branch and commits them back, because the cloud build session can't reach npm (docs/tasks/39-modern-look.md).
+# Never runs on main: main only receives these files through a reviewed pull request.
+on:
+  push:
+    branches: ["claude/**", "train/**"]
+    paths: ["tools/ui-kit/**", ".github/workflows/kit-build.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kit-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install the kit's build tools
+        working-directory: tools/ui-kit
+        run: if [ -f package-lock.json ]; then npm ci --ignore-scripts; else npm install --ignore-scripts --no-audit --no-fund; fi
+      - name: Build ds.css and icons.svg
+        working-directory: tools/ui-kit
+        run: npm run build
+      - name: Check the build
+        env:
+          UI_KIT_REQUIRED: "1"
+        run: node test-ds-css-build.cjs
+      - name: Sprite holds exactly the listed icons
+        run: node test-icon-sprite.cjs
+      - name: Commit the built files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/ds.css assets/icons.svg assets/vendor/lucide-LICENSE.txt tools/ui-kit/package-lock.json
+          if git diff --cached --quiet; then echo "Built files already up to date"; exit 0; fi
+          git commit -m "UI kit: build ds.css and icons.svg (GitHub Actions)"
+          git push

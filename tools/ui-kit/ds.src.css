@@ -1,0 +1,45 @@
+/* DanzStak UI kit source (docs/tasks/39-modern-look.md). Built by `npm run css` into assets/ds.css, which is committed.
+   - No Preflight: old screens don't shift. A moved screen opts in with <body class="ds"> (tokens in ds-tokens.css).
+   - Utilities are prefixed (tw:flex), so class names already used by the old CSS (hidden, block, container…)
+     never pick up a Tailwind rule.
+   - Only *.html and assets/*.js are scanned. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme) prefix(tw);
+@import "tailwindcss/utilities.css" layer(utilities) prefix(tw) source(none);
+@import "./components.css" layer(components);
+@source "../../*.html";
+@source "../../assets/*.js";
+
+@theme {
+  --color-*: initial;
+  --color-canvas: var(--ds-canvas);
+  --color-surface: var(--ds-surface);
+  --color-surface-subtle: var(--ds-surface-subtle);
+  --color-ink: var(--ds-ink);
+  --color-ink-soft: var(--ds-ink-soft);
+  --color-muted: var(--ds-muted);
+  --color-hairline: var(--ds-hairline);
+  --color-accent: var(--ds-accent);
+  --color-accent-soft: var(--ds-accent-soft);
+  --color-go: var(--ds-btn-go);
+  --color-danger: var(--ds-danger);
+  --color-white: #fff;
+  --color-black: #000;
+  --color-transparent: transparent;
+  --font-sans: var(--ds-font);
+  --font-mono: var(--ds-font-mono);
+  --text-*: initial;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-base--line-height: 22px;
+  --text-lg: 17px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --radius-*: initial;
+  --radius-card: 16px;
+  --radius-pill: 999px;
+  --shadow-*: initial;
+  --shadow-float: var(--ds-shadow-float);
+}
+

@@ -1,0 +1,11 @@
+{
+  "note": "Only the icons DanzStak uses (docs/tasks/39a-icons-and-reactions.md). Add a name here, run `npm run icons` (or push: the UI kit build workflow does it), then use <svg class=\"ds-icon\"><use href=\"assets/icons.svg#name\"></use></svg>.",
+  "icons": [
+    "menu", "square-plus", "search", "message-circle", "refresh-cw", "bell", "arrow-left", "x", "ellipsis",
+    "house", "square-play", "users", "store", "image", "camera", "video",
+    "thumbs-up", "repeat-2", "forward", "share", "bookmark", "send", "smile",
+    "plus", "check", "chevron-right", "chevron-down", "pencil", "trash-2", "settings", "log-out", "lock",
+    "phone", "phone-off", "mic", "mic-off", "volume-2", "minimize-2", "user-plus",
+    "calendar", "map-pin", "ticket", "disc-3", "music"
+  ]
+}
