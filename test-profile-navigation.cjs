@@ -16,7 +16,7 @@ const people = fs.readFileSync("assets/i18n-people.js", "utf8");
 // Root cause of visitors seeing Edit / Open my shop / Invite: display:grid!important beat the hidden attribute.
 // UIKIT 4b part 2: the row is kit icon buttons with no display rule of their own, and no old rule targets it.
 assert.doesNotMatch(polish, /\.profile-actions/, "no old action-row rule can override [hidden]");
-assert.match(html, /<style>\n\*\{box-sizing:border-box\}\[hidden\]\{display:none!important\}/, "[hidden] always wins on the profile");
+assert.match(html, /<style>\r?\n\*\{box-sizing:border-box\}\[hidden\]\{display:none!important\}/, "[hidden] always wins on the profile");
 assert.match(fs.readFileSync("assets/profile-sharing.js", "utf8"), /share\.hidden = share\.classList\.contains\('profile-share-hidden'\)/, "the visitor's Share stays in ⋯");
 
 // Race: a fast profile load must still get Add friend (deferred scripts run before the row exists).
