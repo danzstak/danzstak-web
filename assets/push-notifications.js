@@ -4,6 +4,19 @@
   const API = "https://api.danzstak.com";
   // Every word in the member's own language (owner 2026-11-16; Italian tester 2026-11-19).
   const t = value => window.danzstakTranslate?.(value) || value;
+  // The language this app is showing (i18n.js: the member's choice, else the phone's), as the server's codes.
+  const pushLanguage = () => {
+    let code = (typeof document !== "undefined" && document.documentElement?.lang) || "";
+    try { code = localStorage.getItem("danzstak_language") || code || (navigator.languages && navigator.languages[0]) || navigator.language || "en"; } catch (_) {}
+    const known = (window.danzstakLanguages || []).map(([value]) => value);
+    if (known.includes(code)) return code;
+    const lower = String(code).toLowerCase();
+    if (/^zh-(hant|tw|hk|mo)/.test(lower)) return "zh-Hant";
+    if (lower.startsWith("zh")) return "zh-Hans";
+    if (lower.startsWith("tl")) return "fil";
+    const base = lower.split("-")[0];
+    return known.includes(base) ? base : "en";
+  };
 
   function applicationServerKey(value) {
     const padding = "=".repeat((4 - value.length % 4) % 4);
@@ -65,9 +78,9 @@
     const serialized = subscription.toJSON();
     const linked = await api("/push/subscribe", {
       method: "POST",
-      body: JSON.stringify({ endpoint: serialized.endpoint, keys: serialized.keys })
+      body: JSON.stringify({ endpoint: serialized.endpoint, keys: serialized.keys, language: pushLanguage() })
     });
-    try { sessionStorage.setItem(SYNC_KEY, linked.callingDeviceLinked ? "linked" : "1"); } catch (_) {}
+    try { sessionStorage.setItem(SYNC_KEY, linked.callingDeviceLinked ? "linked" : "1"); sessionStorage.setItem("danzstak_push_language", pushLanguage()); } catch (_) {}
     dispatchEvent(new CustomEvent("danzstak:push-enabled"));
     return subscription;
   }
@@ -82,10 +95,16 @@
   // device that becomes registered re-links straight away.
   const SYNC_KEY = "danzstak_push_synced";
   const syncedState = () => { try { return sessionStorage.getItem(SYNC_KEY) || ""; } catch (_) { return ""; } };
+  // Owner 2026-11-25 (Italian testers): "Italian has to be Italian the whole thing". The lock-screen call and message
+  // notifications are written by the server, so every save tells it the language this app is showing (the member's
+  // choice, else the phone's); a change of language saves again.
+  const LANGUAGE_KEY = "danzstak_push_language";
+  const syncedLanguage = () => { try { return sessionStorage.getItem(LANGUAGE_KEY) || ""; } catch (_) { return ""; } };
+  const markLanguage = () => { try { sessionStorage.setItem(LANGUAGE_KEY, pushLanguage()); } catch (_) {} };
   let syncing = null;
   async function renewExistingSubscription({ force = false } = {}) {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window) || Notification.permission !== "granted") return;
-    if (syncedState() === "linked" || (!force && syncedState() === "1")) return;
+    if (syncedLanguage() === pushLanguage() && (syncedState() === "linked" || (!force && syncedState() === "1"))) return;
     if (syncing) return syncing;
     syncing = (async () => {
       try {
@@ -95,9 +114,10 @@
         const serialized = subscription.toJSON();
         const result = await api("/push/subscribe", {
           method: "POST",
-          body: JSON.stringify({ endpoint: serialized.endpoint, keys: serialized.keys })
+          body: JSON.stringify({ endpoint: serialized.endpoint, keys: serialized.keys, language: pushLanguage() })
         });
         try { sessionStorage.setItem(SYNC_KEY, result.callingDeviceLinked ? "linked" : "1"); } catch (_) {}
+        markLanguage();
         dispatchEvent(new CustomEvent("danzstak:push-enabled"));
       } catch (_) { /* Retry on the next page load without disturbing the signed-in experience. */ }
       finally { syncing = null; }
@@ -106,6 +126,8 @@
   }
   addEventListener("danzstak:call-device-ready", event => { if (event.detail?.registered === true) renewExistingSubscription({ force: true }); });
   addEventListener("danzstak:call-device-registered", () => renewExistingSubscription({ force: true }));
+  if (typeof MutationObserver === "function" && document.documentElement) new MutationObserver(() => { if (syncedLanguage() && syncedLanguage() !== pushLanguage()) renewExistingSubscription({ force: true }); })
+    .observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
   window.danzstakRenewPushSubscription = renewExistingSubscription;
   // L4: true when the server says this phone's subscription is linked to its registered SYNC device (calls ring with SYNC
   // closed), false when it saved it unlinked, null when unknown (no subscription, offline).

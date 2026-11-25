@@ -406,7 +406,7 @@ body.danzstak-original .right :is(h3,h2) {
   }
   body.danzstak-original #newsFeedView .post-composer:not(.is-expanded) {
     display:grid;
-    grid-template-columns:36px minmax(0,1fr) 44px 44px;
+    grid-template-columns:36px minmax(0,1fr) 52px 52px;
     align-items:center;
     gap:6px;
   }
@@ -441,16 +441,19 @@ body.danzstak-original .right :is(h3,h2) {
     grid-column:3 / 5;
     grid-row:1;
     display:grid!important;
-    grid-template-columns:repeat(2,44px);
+    grid-template-columns:repeat(2,52px);
     gap:0!important;
     margin:0!important;
     padding:0!important;
     border:0!important;
   }
   body.danzstak-original #newsFeedView .post-composer:not(.is-expanded) .composer-media-tools .secondary {
-    width:44px;
-    min-width:44px;
-    min-height:44px;
+    width:52px;
+    min-width:52px;
+    min-height:48px;
+    grid-template-columns:1fr;
+    grid-template-rows:22px auto;
+    gap:1px;
     padding:0!important;
     border:0;
     background:transparent;

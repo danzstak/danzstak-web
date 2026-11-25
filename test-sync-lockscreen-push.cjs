@@ -133,7 +133,8 @@ const offer = (recipient, callId = CALL) => ({ recipientEmail: { S: recipient },
 
   // Service worker: Accept / Decline, Decline calls the server without opening the app.
   const worker = fs.readFileSync("service-worker.js", "utf8");
-  assert.match(worker, /\{ action: "decline", title: String\(payload\.declineTitle \|\| payload\.dismissTitle \|\| "Decline"\)/);
+  assert.match(worker, /\{ action: "decline", title: callButton\("🔴", payload\.declineTitle \|\| payload\.dismissTitle \|\| "Decline"\)/); // stop/go marks (owner 2026-11-25)
+  assert.match(worker, /\{ action: "answer", title: callButton\("🟢", payload\.answerTitle \|\| "Accept"\)/);
   assert.match(worker, /if \(event\.action === "decline"\) \{ if \(event\.notification\.data\?\.type === "call"\) event\.waitUntil\(declineCallFromNotification/);
   assert.match(worker, /fetch\("https:\/\/api\.danzstak\.com\/calls\/decline", \{ method: "POST", credentials: "include"/);
   assert.match(worker, /client\.postMessage\(\{ type: "DANZSTAK_CALL_RESOLVED", callId \}\)/, "open SYNC windows stop ringing");

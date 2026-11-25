@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v1082";
+const CACHE = "danzstak-shell-v1083";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/time-label.js", "/assets/page-missing.js", "/assets/scramble-by-seller.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -126,6 +126,7 @@ self.addEventListener("fetch", event => {
 //   (STOP_SHELL_REFRESH, sent when the member updates).
 const SHELL_REFRESHED = "/__danzstak-shell-refreshed";
 let shellRefresh = null;
+
 function stopShellRefresh() { shellRefresh?.abort(); shellRefresh = null; }
 self.registration?.addEventListener?.("updatefound", stopShellRefresh);
 async function refreshAppShell() {
@@ -151,6 +152,12 @@ self.addEventListener("message", event => {
   if (event.data?.type === "DANZSTAK_CALL_HANDLED") callHandled(event); // 5a00: answered or declined in an open window
 });
 
+// Owner 2026-11-25 ("baby proof", Italian testers): Android draws a notification's buttons itself, so a website can't
+// colour them. A green dot marks Accept and a red dot marks Decline, in every language.
+function callButton(mark, words) {
+  const text = String(words).replace(/^[\u{1F7E2}\u{1F534}]\s*/u, "");
+  return `${mark} ${text}`.slice(0, 40);
+}
 self.addEventListener("push", event => {
   let payload = {};
   try { payload = event.data?.json() || {}; }
@@ -188,7 +195,7 @@ self.addEventListener("push", event => {
     requireInteraction: call,
     // 16-F: the lock-screen ring has Accept and Decline. Decline refuses the call without opening the app.
     // 5a3: a friend request has Accept and Delete right on the notification (answered without opening the app).
-    actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Accept").slice(0, 40) }, { action: "decline", title: String(payload.declineTitle || payload.dismissTitle || "Decline").slice(0, 40) }]
+    actions: call ? [{ action: "answer", title: callButton("🟢", payload.answerTitle || "Accept") }, { action: "decline", title: callButton("🔴", payload.declineTitle || payload.dismissTitle || "Decline") }]
       : friendRequest ? [{ action: "friend-accept", title: String(payload.acceptTitle || "Accept").slice(0, 40) }, { action: "friend-delete", title: String(payload.deleteTitle || "Delete").slice(0, 40) }] : [],
     data: { url, type: call ? "call" : payload.type === "booking" ? "booking" : friendRequest ? "friend_request" : "notification", callId: call && !test && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "", memberId: friendRequest ? String(payload.memberId) : "" }
   };
@@ -227,21 +234,24 @@ async function callWasHandled(callId) {
 // notification sound once, not a ringtone. So while the call is still waiting (the notification is still there: not
 // answered, declined or ended, which close it), show it again every few seconds with renotify, so the phone sounds and
 // vibrates again, for about as long as an in-app ring (25 s).
-// Owner 2026-11-25 (screenshot: "Incoming DanzStak call · Sam is calling by video" still on the lock screen 18 minutes
-// later): "The calling notification needs to go away after answering the phone". A call notification asks to stay until
-// it is tapped (requireInteraction), and the "answered/ended" push that closes it can be lost (a phone asleep, a push
-// service that drops it). A call can't still be ringing after CALL_RING_LIFETIME_MS (the caller's ring gives up before
-// that), so then it goes, whatever happened.
-const CALL_RING_REPEATS = 6, CALL_RING_EVERY_MS = 4000, CALL_RING_LIFETIME_MS = 60000;
+const CALL_RING_REPEATS = 6, CALL_RING_EVERY_MS = 4000;
+// A platform that refuses the dots in the button words must still show the call (plain words).
+async function showCall(title, options) {
+  try { await self.registration.showNotification(title, options); }
+  catch (error) {
+    console.warn("Call notification refused, showing plain buttons:", error?.name || error);
+    const actions = (options.actions || []).map(item => ({ ...item, title: String(item.title).replace(/^[\u{1F7E2}\u{1F534}]\s*/u, "") }));
+    await self.registration.showNotification(title, { ...options, actions });
+  }
+}
 async function ringCallNotification(title, options) {
-  const started = Date.now();
-  await self.registration.showNotification(title, options);
+  await showCall(title, options);
   for (let i = 0; i < CALL_RING_REPEATS; i++) {
     await new Promise(resolve => setTimeout(resolve, CALL_RING_EVERY_MS));
     const open = await self.registration.getNotifications({ tag: options.tag });
     if (!open.length) return; // answered, declined, dismissed or the call ended (call-resolved push)
     if (await callWasHandled(options.data.callId)) { open.forEach(notification => notification.close()); return; }
-    await self.registration.showNotification(title, { ...options, renotify: true });
+    await showCall(title, { ...options, renotify: true });
   }
   await new Promise(resolve => setTimeout(resolve, Math.max(0, CALL_RING_LIFETIME_MS - (Date.now() - started))));
   (await self.registration.getNotifications({ tag: options.tag })).forEach(notification => notification.close?.());
