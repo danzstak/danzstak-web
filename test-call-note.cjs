@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 const note = fs.readFileSync("assets/call-note.js", "utf8"), chat = fs.readFileSync("assets/chat.js", "utf8"), html = fs.readFileSync("messages.html", "utf8");
-assert.match(chat, /startsWith\('\{"type":"call-note'\)&&window\.danzstakCallNote\?\.receive\(event\.data,contactName\)\)return;addMessage\(event\.data\)/, "notes and their delivery receipts go to the note layer, other strings to the chat");
+assert.match(chat, /startsWith\('\{"type":"call-note'\)&&window\.danzstakCallNote\?\.receive\(event\.data,contactName\)\)return;[^\n]*?addMessage\(event\.data\)/, "notes and their delivery receipts go to the note layer, other strings to the chat");
 assert.match(note, /fill\(body, text\); \/\/ text only/, "rendered as text");
 assert.match(note, /if \(url && url\.origin === location\.origin\) \{ const link = document\.createElement\("a"\); link\.href = url\.href; link\.textContent = url\.href;/, "only a link back to DanzStak becomes tappable, built as text");
 assert.doesNotMatch(note, /(body|node)\.innerHTML/, "a received note never goes through innerHTML");

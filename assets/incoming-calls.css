@@ -1,9 +1,33 @@
-.global-incoming-call{position:fixed;right:18px;top:82px;z-index:61000;width:min(390px,calc(100vw - 28px));display:grid;grid-template-columns:52px minmax(0,1fr);gap:11px;padding:16px;border:1px solid #b9d8ff;border-radius:20px;background:rgba(255,255,255,.97);box-shadow:0 18px 55px #101b2f55;color:#172033;backdrop-filter:blur(18px);animation:globalCallPulse 1s ease-in-out infinite alternate}.global-incoming-call[hidden]{display:none!important}.global-call-icon{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:linear-gradient(145deg,#69d6ff,#237edf 52%,#704bc7);font-size:26px}.global-incoming-call strong{font-size:18px}.global-incoming-call p{margin:5px 0 0;color:#526173;font-size:13px;line-height:1.35}.global-call-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:9px}.global-call-actions button{min-height:48px;border:0;border-radius:14px;background:#15803d;box-shadow:0 7px 18px #12141844;color:#fff;font-weight:850}.global-call-actions .global-call-decline{background:#c62828}@keyframes globalCallPulse{to{box-shadow:0 18px 55px #101b2f55,0 0 0 5px #69d6ff44}}@media(max-width:600px){.global-incoming-call{left:14px;right:14px;top:auto;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:auto}}
 .push-alert-prompt{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:12000;width:min(410px,calc(100vw - 32px));display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px;border:1px solid #d8dce2;border-radius:12px;background:#fff;color:#1c1e21;box-shadow:0 10px 28px #1018282e}.push-alert-prompt[hidden]{display:none}.push-alert-prompt div{display:grid;gap:2px;min-width:0}.push-alert-prompt strong{font-size:14px;line-height:1.25}.push-alert-prompt span{color:#65676b;font-size:12px;line-height:1.3}.push-alert-prompt button{min-height:44px;white-space:nowrap}.push-alert-prompt .push-alert-dismiss{grid-column:1/-1;justify-self:start;min-height:44px;padding:0 8px;border:0;background:transparent;box-shadow:none;color:#566174;font-size:12px}@media(max-width:560px){.push-alert-prompt{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:calc(62px + env(safe-area-inset-bottom));width:auto;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;padding:8px 10px}.push-alert-prompt span{display:none}.push-alert-prompt .primary{width:auto;min-height:44px;padding:8px 10px}.push-alert-prompt .push-alert-dismiss{grid-column:auto;justify-self:stretch;padding:0 6px}}
-
-/* Incoming decisions are primary phone actions and retain a full touch target. */
-.global-call-actions button{min-height:44px}
-@media(max-width:600px){.global-incoming-call{bottom:calc(var(--mobile-app-nav,54px) + 14px + env(safe-area-inset-bottom,0px))}}
-/* L1: a call to an unregistered device. "Register this device to answer" is long in most languages, so the two choices stack
-   full width instead of wrapping into a narrow column. */
-.global-incoming-call.needs-registration .global-call-actions{grid-template-columns:1fr}
+/* Owner 2026-11-25: "the notification from sync [should] be full screen like the phone ringing … answering decline".
+   An incoming call takes the whole screen on every member page, like the phone's own ringing screen: SYNC Mobile on top,
+   the caller's big round photo and name in the middle, round Decline (red) and Answer (green) at the bottom with their
+   words under them. Nothing of the page shows or can be tapped behind it. */
+.global-incoming-call{position:fixed;inset:0;z-index:61000;display:grid;grid-template-rows:auto 1fr auto;justify-items:center;padding:calc(28px + env(safe-area-inset-top,0px)) 20px calc(36px + env(safe-area-inset-bottom,0px));overflow:hidden;background:#0b0b0c;color:#fff;text-align:center;overscroll-behavior:contain;touch-action:none}
+.global-incoming-call[hidden]{display:none!important}
+.gic-bg{position:absolute;inset:-40px;z-index:-1;background:radial-gradient(120% 70% at 50% 30%,#ff5a1f55,transparent 62%),#0b0b0c center/cover no-repeat;filter:blur(28px) brightness(.45)}
+.gic-bg[data-photo]{background-image:radial-gradient(120% 70% at 50% 30%,#ff5a1f33,transparent 62%),var(--gic-photo)}
+.gic-brand{margin:0;font:600 12px/1.2 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#ffffffc0}
+.gic-middle{align-self:center;display:grid;justify-items:center;gap:14px;width:min(100%,420px)}
+.gic-photo{display:grid;place-items:center;width:min(46vw,190px);aspect-ratio:1;border-radius:50%;overflow:hidden;background:linear-gradient(145deg,#ff7a45,#ff5a1f 55%,#b43a0c);box-shadow:0 0 0 6px #ffffff14;font:800 clamp(56px,16vw,84px)/1 Archivo,system-ui,sans-serif;color:#fff;animation:gicRing 1.6s ease-out infinite}
+.gic-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.gic-name{max-width:100%;margin:6px 0 0;font:800 clamp(26px,8vw,34px)/1.15 Archivo,system-ui,sans-serif;overflow-wrap:anywhere}
+.global-incoming-call [data-ringer-slot]{display:grid;justify-items:center;gap:4px}
+.global-incoming-call #globalIncomingTitle{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.global-incoming-call #globalIncomingLabel{margin:0;color:#ffffffcc;font-size:16px;line-height:1.35}
+.global-call-actions{display:grid;grid-template-columns:1fr 1fr;gap:24px;width:min(100%,360px)}
+.global-call-actions button{display:grid;justify-items:center;align-content:start;gap:10px;min-height:44px;padding:0;border:0;background:none;box-shadow:none;color:#fff;font:600 15px/1.25 Archivo,system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.gic-circle{display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:var(--ds-btn-go,#15803d);box-shadow:0 10px 26px #0008;transition:transform .15s}
+.global-call-decline .gic-circle{background:#dc2626}
+.gic-circle svg{width:32px;height:32px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.global-call-actions button:active .gic-circle{transform:scale(.94)}
+.global-call-actions button:focus-visible{outline:none}
+.global-call-actions button:focus-visible .gic-circle{outline:3px solid #fff;outline-offset:4px}
+.global-call-actions button:disabled{opacity:.6}
+.global-call-decline{order:-1} /* Decline left, Answer right, as on the phone */
+/* L1: an unregistered device. "Register this device to answer" is long in most languages, so it wraps under its circle. */
+.global-incoming-call.needs-registration .global-call-actions button{max-width:100%;overflow-wrap:anywhere}
+@keyframes gicRing{0%{box-shadow:0 0 0 0 #ff5a1f88}70%{box-shadow:0 0 0 26px #ff5a1f00}100%{box-shadow:0 0 0 0 #ff5a1f00}}
+@media(prefers-reduced-motion:reduce){.gic-photo{animation:none}}
+@media(max-height:560px){.global-incoming-call{padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}.gic-photo{width:min(30vh,120px)}.gic-middle{gap:8px}}
+html:has(.global-incoming-call:not([hidden])),html:has(.global-incoming-call:not([hidden])) body{overflow:hidden}

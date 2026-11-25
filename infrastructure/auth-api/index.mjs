@@ -48,6 +48,7 @@ import { createArtistVerification, kitArtistName } from "./artist-verification.m
 import { BEDROCK_MODELS, anthropicLlm, bedrockLlm, braveSearch, createAiEpk, routedLlm, safeFetchPage } from "./ai-epk.mjs";
 import { createAiProfile } from "./ai-profile.mjs";
 import { createAiShop, safeFetchImage } from "./ai-shop.mjs";
+import { createCallTranslate } from "./call-translate.mjs";
 import { EPK_WORKSPACE_KEY, canMove, epkGate, pitchStats, stageOf, venueEvents, withPipeline } from "./booking-pipeline.mjs";
 import { MAX_ROUTE_STOPS, cleanDateOptions, planRouteDates, withRoadLegs } from "./booking-route-dates.mjs";
 import { VENUE_REPORT_OWNER, cleanReport, freshness, signalFromItem, signalUpdate, sortByFreshness, validSignalVenueKey, venueSignalKey } from "./booking-venue-signals.mjs";
@@ -305,6 +306,23 @@ function bedrockAdapter() {
   if (!bedrockRuntime) return null;
   return bedrockLlm({ ...bedrockRuntime, extractModel: process.env.AI_BEDROCK_EXTRACT_MODEL || BEDROCK_MODELS.haiku, writeModel: process.env.AI_BEDROCK_WRITE_MODEL || BEDROCK_MODELS.sonnet });
 }
+// Task 21: live translated captions in SYNC calls (call-translate.mjs). Amazon Translate comes from the AWS SDK that
+// ships in the Lambda runtime (createRequire, no new package); without it every /call-translate route says unavailable.
+let translateRuntime, callTranslateInstance = null;
+function translateText({ text, from, to }) {
+  if (translateRuntime === undefined) {
+    try {
+      const { TranslateClient, TranslateTextCommand } = createRequire(import.meta.url)("@aws-sdk/client-translate");
+      translateRuntime = { client: new TranslateClient({ region: process.env.AWS_REGION || "us-west-1", maxAttempts: 2 }), Command: TranslateTextCommand };
+    } catch (error) { console.warn("Translate unavailable", { reason: error.code || error.name || "error" }); translateRuntime = null; }
+  }
+  if (!translateRuntime) throw Object.assign(new Error("Translate unavailable"), { name: "TranslateUnavailable" });
+  return translateRuntime.client.send(new translateRuntime.Command({ Text: text, SourceLanguageCode: from, TargetLanguageCode: to })).then(result => result.TranslatedText || "");
+}
+const callTranslateService = () => callTranslateInstance ||= createCallTranslate({
+  db, commands: { UpdateItemCommand, GetItemCommand }, tableName: toursTable, authenticate: getAuthenticatedUser,
+  corsHeaders, originAllowed: origin => allowedOrigins.has(origin), translate: translateText
+});
 function aiProviders(anthropicKey) {
   const anthropic = anthropicLlm({ apiKey: anthropicKey, extractModel: process.env.AI_EPK_EXTRACT_MODEL || "claude-haiku-4-5", writeModel: process.env.AI_EPK_WRITE_MODEL || "claude-sonnet-5-5" });
   const pick = (setting, fallback) => (String(process.env[setting] || fallback).trim().toLowerCase() === "bedrock" ? bedrockAdapter() : anthropic);
@@ -6193,6 +6211,7 @@ async function routeRequest(event) {
       const preview = await linkPreview(event.queryStringParameters?.url || "");
       return { statusCode: preview ? 200 : 422, headers: { ...headers, "cache-control": "private, max-age=3600" }, body: JSON.stringify(preview ? { preview } : { error: "No preview for that link." }) };
     }
+    if (path === "/call-translate" || path.startsWith("/call-translate/")) return await callTranslateService().handle(event, method, path);
     if (method === "GET" && path === "/phone-verification") return await getPersonalPhoneStatus(event);
     if (method === "POST" && path === "/phone-verification/send") return await sendPersonalPhoneCode(event);
     if (method === "POST" && path === "/phone-verification/confirm") return await confirmPersonalPhoneCode(event);

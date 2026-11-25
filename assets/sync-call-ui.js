@@ -87,6 +87,8 @@
   }
   function moreAction() {
     const items = [];
+    const live = window.danzstakCallTranslate?.menuItem?.(); // task 21: Live translation first
+    if (live) items.push(live);
     if ($("callNoteButton")) items.push({ label: "Text note", run: () => $("callNoteButton").click() });
     if (!phone && window.danzstakCallSetup?.openCheck) items.push({ label: "Audio & video check", run: () => window.danzstakCallSetup.openCheck() });
     if ($("enableRinging")) items.push({ label: "Call alerts", run: () => $("enableRinging").click() });
