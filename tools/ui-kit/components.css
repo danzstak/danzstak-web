@@ -278,3 +278,25 @@ body.ds-form-screen-open{overflow:hidden}
 /* The body of a whole-page kit screen: no browser margin, nothing showing around the page. */
 body:has(>.ds.ds-page){margin:0;padding:0}
 .ds .ds-row__sub.is-online{color:var(--ds-online)}
+/* A kit block on its own (UIKIT 4b, profile): the block itself carries .ds, so the pill row and the details work
+   without a .ds ancestor while the rest of the page hasn't moved. */
+.ds.ds-pills{display:flex;gap:var(--ds-space-8);margin:0;padding:var(--ds-space-8) 0;overflow-x:auto;background:var(--ds-surface);scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent)}
+.ds.ds-pills::-webkit-scrollbar{display:none}
+/* Facts (profile About, F9): icon, small mono label, the value; Location and Work share one line. */
+.ds.ds-facts{display:block;background:var(--ds-surface);color:var(--ds-ink)}
+.ds .ds-fact{display:grid;grid-template-columns:24px minmax(0,1fr);align-items:start;column-gap:var(--ds-space-12);min-width:0;margin:0;padding:var(--ds-space-12) 0;border:0;border-radius:0;background:transparent}
+.ds .ds-fact>.ds-icon{margin-top:8px;color:var(--ds-muted)}
+.ds .ds-fact__text{display:block;min-width:0}
+.ds .ds-fact__label{display:block;margin:0;color:var(--ds-muted);font-family:var(--ds-font-mono);font-size:var(--ds-text-12);font-weight:600;line-height:16px;letter-spacing:.06em;text-transform:uppercase}
+.ds .ds-fact__value{display:block;color:var(--ds-ink);font-size:var(--ds-text-15);font-weight:600;line-height:22px;overflow-wrap:anywhere}
+.ds .ds-fact__value.is-empty{color:var(--ds-muted);font-weight:400}
+.ds .ds-fact__value a{color:inherit;text-decoration:underline;text-decoration-color:var(--ds-accent);text-underline-offset:3px}
+.ds .ds-facts__pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:var(--ds-space-16)}
+.ds .ds-facts__pair:has(>.ds-fact[hidden]){grid-template-columns:minmax(0,1fr)}
+.ds .ds-facts__pair:not(:has(>.ds-fact:not([hidden]))){display:none}
+.ds .ds-facts__pair,.ds.ds-facts>.ds-fact{border-bottom:1px solid var(--ds-hairline)}
+/* A row that goes somewhere: icon, words, chevron; the whole row one 56px target. */
+.ds.ds-linkrow{display:flex;align-items:center;gap:var(--ds-space-12);min-height:56px;margin:0;padding:0 var(--ds-space-4);background:var(--ds-surface);color:var(--ds-ink);font-size:var(--ds-text-15);font-weight:700;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.ds.ds-linkrow>span{flex:1;min-width:0}
+.ds.ds-linkrow>.ds-icon:last-child{color:var(--ds-muted)}
+.ds.ds-linkrow:active{background:var(--ds-surface-subtle)}

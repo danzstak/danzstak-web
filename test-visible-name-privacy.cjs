@@ -16,7 +16,7 @@ assert.match(feed, /const storyAuthor = story\.displayName \|\| "DanzStak member
 assert.match(enhancements, /author\.textContent = comment\.authorName \|\| "DanzStak member"/);
 assert.match(messages, /name: friend\.name \|\| existing\.name \|\| "DanzStak member"/);
 assert.match(profile, /\|\| "DanzStak member"/);
-assert.match(editor, /friend\.name \|\| "DanzStak member"/);
+assert.match(readFileSync('assets/friends-screen.js', 'utf8'), /String\(person\.name \|\| "DanzStak member"\)/, 'the Friends screen names a member without a name, never by email');
 assert.doesNotMatch(authApi, /(?:authorName|actorName|name)[^;\n]{0,180}split\("@"\)\[0\]/, 'Auth API must not derive public display names from account email');
 assert.doesNotMatch(authApi, /authorNames\.get\(item\.userEmail\?\.S\) \|\| item\.actorName/, 'Legacy stored reaction labels must not bypass current public-name privacy');
 assert.doesNotMatch(signaling, /(?:name|handle)[^;\n]{0,180}split\('@'\)\[0\]/, 'Signaling API must not derive public display names from account email');

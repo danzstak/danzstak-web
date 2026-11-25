@@ -7,9 +7,9 @@ const source = fs.readFileSync("assets/profile-editor.js", "utf8");
 const functionSource = source.match(/function renderProfileWebsite\(value\) \{[\s\S]*?\n\}/)?.[0];
 assert.ok(functionSource, "profile website renderer must exist");
 
-const target = { children: [], textContent: "", replaceChildren() { this.children = []; }, appendChild(node) { this.children.push(node); } };
+const target = { children: [], textContent: "", classList: { toggle() {} }, replaceChildren() { this.children = []; }, appendChild(node) { this.children.push(node); } };
 const document = { getElementById: () => target, createElement: tag => ({ tag, setAttribute(name, value) { this[name] = value; } }) };
-const context = vm.createContext({ document, window: { danzstakNormalizeUserUrl: normalizeUserUrl }, Error });
+const context = vm.createContext({ document, window: { danzstakNormalizeUserUrl: normalizeUserUrl }, Error, profileTranslate: value => value });
 vm.runInContext(functionSource, context);
 
 context.renderProfileWebsite("https://sleepingdragon.example/path");

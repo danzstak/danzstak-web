@@ -20,9 +20,11 @@ assert.match(editor, /storyText\.setAttribute\("data-no-translate", ""\)/, "the 
 assert.match(editor, /renderProfileStory\(profile\);/);
 // Look: big pull-quote, no grey boxes, 44px targets.
 assert.match(css, /\.profile-story-text\{[^}]*font-size:clamp\(20px,5\.4vw,26px\)[^}]*white-space:pre-line/);
-assert.match(css, /\.details \.detail\{[^}]*border:0!important[^}]*background:transparent!important/);
+const kit = fs.readFileSync("tools/ui-kit/components.css", "utf8");
+assert.match(kit, /\.ds \.ds-fact\{[^}]*border:0;[^}]*background:transparent\}/, "details are kit facts: icon, label, value; no grey boxes (UIKIT 4b)");
+assert.doesNotMatch(css, /\.details \.detail/, "no old detail rules left");
 // Owner 2026-11-19: Location and Work on one line.
-assert.match(editor, /detail\("Location", "profileLocation", locationWork\);\r?\ndetail\("Work", "profileWork", locationWork\);/);
-assert.match(css, /\.details \.detail-pair\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
-assert.match(css, /\.details \.detail-pair:has\(>\.detail\[hidden\]\)\{grid-template-columns:minmax\(0,1fr\)\}/, "a visitor sees one full-width item when only one is filled");
+assert.match(editor, /detail\("Location", "profileLocation", locationWork, "map-pin"\);\r?\ndetail\("Work", "profileWork", locationWork, "briefcase"\);/);
+assert.match(kit, /\.ds \.ds-facts__pair\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+assert.match(kit, /\.ds \.ds-facts__pair:has\(>\.ds-fact\[hidden\]\)\{grid-template-columns:minmax\(0,1fr\)\}/, "a visitor sees one full-width item when only one is filled");
 console.log("profile story ok");

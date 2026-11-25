@@ -164,24 +164,31 @@ function sameWords(a, b) {
   return Boolean(plain(a)) && plain(a) === plain(b);
 }
 
-function detail(label, id, parent = details) {
+// UIKIT 4b (F9 "Personal details as icon rows"): each detail is an icon, a small grey label and the value. Location and
+// Work keep sharing one line (owner 2026-11-19), Website below.
+function detail(label, id, parent = details, icon = "") {
   const box = document.createElement("div");
-  box.className = "detail";
+  box.className = "detail ds-fact";
+  if (icon && window.danzstakIcon) box.appendChild(window.danzstakIcon(icon));
+  const text = document.createElement("span");
+  text.className = "ds-fact__text";
   const title = document.createElement("span");
-  title.className = "label";
-  title.textContent = label;
+  title.className = "label ds-fact__label";
+  title.textContent = profileTranslate(label);
   const value = document.createElement("span");
-  value.className = "value";
+  value.className = "value ds-fact__value";
   value.id = id;
-  value.textContent = "Not added";
-  box.append(title, value);
+  value.textContent = profileTranslate("Not added");
+  text.append(title, value);
+  box.append(text);
   parent.appendChild(box);
 }
 
 function setProfileDetail(id, value) {
   const target = document.getElementById(id);
   const text = String(value || "").trim();
-  target.textContent = text || "Not added";
+  target.textContent = text || profileTranslate("Not added");
+  target.classList.toggle("is-empty", !text);
   target.closest(".detail").hidden = viewingOtherProfile && !text;
 }
 
@@ -206,11 +213,12 @@ function renderProfileStory(profile = {}) {
 
 // Owner 2026-11-19: Location and Work share one line (two columns), then Website.
 const locationWork = document.createElement("div");
-locationWork.className = "detail-pair";
+locationWork.className = "detail-pair ds-facts__pair";
 details.appendChild(locationWork);
-detail("Location", "profileLocation", locationWork);
-detail("Work", "profileWork", locationWork);
-detail("Website", "profileWebsite");
+detail("Location", "profileLocation", locationWork, "map-pin");
+detail("Work", "profileWork", locationWork, "briefcase");
+detail("Website", "profileWebsite", details, "globe");
+details.classList.add("ds", "ds--day", "ds-facts");
 
 const actions = document.createElement("div");
 actions.className = "profile-actions";
@@ -692,8 +700,10 @@ if (viewingOtherProfile) {
   mediaTools.hidden = true;
 }
 
+// UIKIT 4b (F9): the tabs are the kit's pill row. A kit block on a page that hasn't moved stays Day (.ds--day) until
+// the whole profile moves, so it never turns dark on a light page.
 const tabs = document.createElement("nav");
-tabs.className = "profile-tabs";
+tabs.className = "ds ds--day ds-pills profile-tabs";
 tabs.setAttribute("aria-label", "Profile sections");
 tabs.setAttribute("role", "tablist");
 for (const name of ["Posts", "About", "Friends", "Photos", "Videos", "More"]) {
@@ -701,6 +711,7 @@ for (const name of ["Posts", "About", "Friends", "Photos", "Videos", "More"]) {
   tab.type = "button";
   tab.textContent = name;
   tab.dataset.profileTab = name;
+  tab.className = "ds-pill";
   tab.classList.toggle("active", name === "Posts");
   tab.setAttribute("role", "tab");
   tab.setAttribute("aria-selected", String(name === "Posts"));
@@ -1228,118 +1239,16 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaTy
   }
 }
 
-async function loadProfileFriends() {
-  const version = profileTabVersion;
-  if (viewingOtherProfile) { tabMessage.textContent = "This member’s friend list is private."; return; }
-  tabMessage.textContent = "Loading friends…";
-  try {
-    const [friendsResult, directoryResult, everyoneResult] = await Promise.allSettled([
-      profileFetch(profileApi + "/friends", { credentials: "include", cache: "no-store" }),
-      profileFetch(profileApi + "/calls/directory", { credentials: "include", cache: "no-store" }),
-      // Owner 2026-11-18: "I'm still not able to see all the users that have signed up." Everyone on DanzStak, online first.
-      profileFetch(profileApi + "/people?all=1", { credentials: "include", cache: "no-store" })
-    ]);
-    const everyoneResponse = everyoneResult.status === "fulfilled" ? everyoneResult.value : null;
-    const everyoneData = everyoneResponse?.ok ? await everyoneResponse.json().catch(() => null) : null;
-    const response = friendsResult.status === "fulfilled" ? friendsResult.value : null;
-    if (!response?.ok) throw new Error("Friends could not be loaded");
-    const data = await response.json();
-    const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;
-    const onlineDirectory = directoryResponse?.ok ? ((await directoryResponse.json()).users || []).filter(user => user.online === true) : [];
-    const online = new Set(onlineDirectory.map(user => String(user.email || "").toLowerCase()));
-    if (version !== profileTabVersion) return;
-    tabMessage.replaceChildren();
-    const friendEmails = new Set((data.friends || []).map(friend => String(friend.email || "").toLowerCase()));
-    const sortedFriends = [...(data.friends || [])].sort((a, b) => Number(online.has(String(b.email || "").toLowerCase())) - Number(online.has(String(a.email || "").toLowerCase())) || String(a.name || "").localeCompare(String(b.name || "")));
-    const friendsHeading = document.createElement("h3"); friendsHeading.className = "profile-friends-heading"; friendsHeading.textContent = `Friends · ${sortedFriends.length}`;
-    tabMessage.appendChild(friendsHeading);
-    if (!sortedFriends.length) { const none = document.createElement("p"); none.className = "muted"; none.textContent = "No friends yet."; tabMessage.appendChild(none); }
-    const grid = document.createElement("div"); grid.className = "profile-friend-grid";
-    for (const friend of sortedFriends) {
-      const link = document.createElement("a"); link.className = "profile-friend-card"; link.href = "profile.html?member=" + encodeURIComponent(friend.memberId);
-      const avatar = friend.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "profile-friend-avatar";
-      if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, friend); }
-      else { avatar.textContent = (friend.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
-      const copy = document.createElement("span");
-      const name = document.createElement("strong"); name.textContent = friend.name || "DanzStak member";
-      const status = document.createElement("span");
-      const isOnline = online.has(String(friend.email || "").toLowerCase());
-      status.className = isOnline ? "profile-friend-presence online" : "profile-friend-presence";
-      status.title = isOnline ? "Online" : "Offline";
-      status.setAttribute("aria-hidden", "true");
-      const availability = document.createElement("small"); availability.textContent = isOnline ? "Online" : "Offline";
-      copy.append(name, availability); link.append(avatar, copy, status); grid.appendChild(link);
-    }
-    if (sortedFriends.length) tabMessage.appendChild(grid);
-    // Owner 2026-11-17: pending requests live on the Friends tab too — incoming to answer, sent ones marked "Request sent".
-    appendProfileFriendRequests(data.incoming, "incoming");
-    appendProfileFriendRequests(data.outgoing, "outgoing");
-    // Everyone else on DanzStak (not already friends), online first. Falls back to "Online now" if the member list is unavailable.
-    const friendIds = new Set((data.friends || []).map(friend => String(friend.memberId || "")));
-    const everyone = Array.isArray(everyoneData?.users) ? everyoneData.users.filter(user => user.friendStatus !== "friends" && !friendIds.has(String(user.memberId || "")) && /^[a-f0-9-]{36}$/.test(String(user.memberId || ""))) : null;
-    const onlineMembers = everyone || onlineDirectory.filter(user => !friendEmails.has(String(user.email || "").toLowerCase()) && /^[a-f0-9-]{36}$/.test(String(user.memberId || "")));
-    if (onlineMembers.length) {
-      const onlineHeading = document.createElement("h3"); onlineHeading.className = "profile-friends-heading"; onlineHeading.textContent = everyone ? `Everyone on DanzStak · ${onlineMembers.length}` : `Online now · ${onlineMembers.length}`;
-      const onlineGrid = document.createElement("div"); onlineGrid.className = "profile-friend-grid";
-      for (const member of onlineMembers) {
-        const link = document.createElement("a"); link.className = "profile-friend-card"; link.href = "profile.html?member=" + encodeURIComponent(member.memberId);
-        const avatar = member.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "profile-friend-avatar";
-        if (member.picture) { avatar.src = member.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
-        else { avatar.textContent = (member.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
-        const copy = document.createElement("span"); const name = document.createElement("strong"); name.textContent = member.name || "DanzStak member";
-        const isOnline = everyone ? member.online === true : true;
-        const availability = document.createElement("small"); availability.textContent = isOnline ? "Online" : (member.handle ? "@" + member.handle : "");
-        const status = document.createElement("span"); status.className = isOnline ? "profile-friend-presence online" : "profile-friend-presence"; status.title = isOnline ? "Online" : "Offline"; status.setAttribute("aria-hidden", "true");
-        copy.append(name, availability); link.append(avatar, copy, status); onlineGrid.appendChild(link);
-      }
-      tabMessage.append(onlineHeading, onlineGrid);
-    }
-  } catch (error) { if (version === profileTabVersion) tabMessage.textContent = error.message; }
-}
-
-function appendProfileFriendRequests(people, relationship) {
-  const list = (Array.isArray(people) ? people : []).filter(person => /^[a-f0-9-]{36}$/.test(String(person.memberId || "")));
-  if (!list.length) return;
-  const heading = document.createElement("h3"); heading.className = "profile-friends-heading";
-  heading.textContent = `${relationship === "incoming" ? "Friend requests" : "Requests sent"} · ${list.length}`;
-  const grid = document.createElement("div"); grid.className = "profile-friend-grid";
-  for (const person of [...list].sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")))) {
-    const displayName = person.name || "DanzStak member";
-    const card = document.createElement("div"); card.className = "profile-friend-card profile-friend-request"; card.dataset.relationship = relationship;
-    const link = document.createElement("a"); link.className = "profile-friend-request-link"; link.href = "profile.html?member=" + encodeURIComponent(person.memberId);
-    const avatar = person.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "profile-friend-avatar";
-    if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, person); }
-    else { avatar.textContent = displayName.charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
-    const copy = document.createElement("span"); const name = document.createElement("strong"); name.textContent = displayName;
-    const detail = document.createElement("small"); detail.textContent = relationship === "incoming" ? "Wants to be friends" : "Request sent";
-    copy.append(name, detail); link.append(avatar, copy); card.appendChild(link);
-    if (relationship === "incoming") {
-      const actions = document.createElement("span"); actions.className = "profile-friend-request-actions";
-      for (const [accept, label, icon] of [[true, "Accept", "person-check"], [false, "Decline", "close"]]) {
-        const button = document.createElement("button"); button.type = "button"; button.dataset.icon = icon;
-        button.className = accept ? "profile-friend-accept" : "profile-friend-decline";
-        button.setAttribute("aria-label", `${label}: ${displayName}`); button.title = button.getAttribute("aria-label"); button.textContent = label;
-        button.addEventListener("click", async () => {
-          actions.querySelectorAll("button").forEach(item => { item.disabled = true; });
-          try {
-            const response = await profileFetch(profileApi + "/friends/respond", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: person.email, accept }) });
-            const result = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(result.error || "Friend request could not be updated.");
-            window.danzstakShowFeedback?.(accept ? "You are now friends." : "Friend request declined.");
-            void loadProfileFriends();
-          } catch (error) {
-            actions.querySelectorAll("button").forEach(item => { item.disabled = false; });
-            window.danzstakShowFeedback?.(error.message, { urgent: true });
-          }
-        });
-        actions.appendChild(button);
-      }
-      card.appendChild(actions);
-    }
-    grid.appendChild(card);
-  }
-  tabMessage.append(heading, grid);
-  window.danzstakIcons?.enhance?.(grid);
+// The Friends tab opens the one Friends screen (5a3) on a tap; selected from the keyboard it shows one row that goes
+// there. Requests, friends and "Things in common" live on that screen only (UIKIT 4a), never a second copy here.
+function showProfileFriendsLink() {
+  const row = document.createElement("a");
+  row.className = "ds ds--day ds-linkrow profile-friends-link";
+  row.href = friendsScreenUrl();
+  const label = document.createElement("span");
+  label.textContent = profileTranslate(viewingOtherProfile && !window.danzstakCurrentProfile?.isOwner ? "See their friends" : "See all your friends");
+  row.append(window.danzstakIcon?.("users") || "", label, window.danzstakIcon?.("chevron-right") || "");
+  tabMessage.replaceChildren(row);
 }
 
 let profileShop = null;
@@ -1611,7 +1520,6 @@ async function openProfileMoreSection(name = "") {
   }
   if (name === "Featured") await loadProfilePosts(false, "featured");
   else if (name === "Memories" && window.danzstakCurrentProfile?.isOwner === true) await loadProfilePosts(false, "memories");
-  else if (name === "Friends") await loadProfileFriends();
   else if (name === "Media") await loadProfilePosts(true);
   else if (name === "Shop" && profileShop) await loadProfileShop();
   if (tabMessage.dataset.profileMoreSection === name && name !== "Shop") tabMessage.prepend(profileMoreNavigation(name)); // the Shop tab is the shop itself, no extra "Shop" button
@@ -1632,7 +1540,7 @@ tabs.addEventListener("click", async event => {
   if (name === "Posts") await loadProfilePosts(false);
   else if (name === "Photos") await loadProfilePosts(true, "posts", "image");
   else if (name === "Videos") await loadProfilePosts(true, "posts", "video");
-  else if (name === "Friends") await loadProfileFriends();
+  else if (name === "Friends") showProfileFriendsLink();
   else if (name === "More") await openProfileMoreSection(profileShop ? "Shop" : requestedMoreSection);
 });
 tabs.addEventListener("keydown", event => {
@@ -1701,7 +1609,8 @@ function renderProfileWebsite(value) {
   const target = document.getElementById("profileWebsite");
   const text = String(value || "").trim();
   target.replaceChildren();
-  if (!text) { target.textContent = "Not added"; return; }
+  target.classList.toggle("is-empty", !text);
+  if (!text) { target.textContent = profileTranslate("Not added"); return; }
   try {
     const href = window.danzstakNormalizeUserUrl?.(text);
     if (!href) throw new Error("Unsupported website address");

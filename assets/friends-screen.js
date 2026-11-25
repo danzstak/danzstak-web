@@ -10,7 +10,7 @@
   const byId = id => document.getElementById(id);
   const member = (() => { const value = new URLSearchParams(location.search).get("member") || ""; return MEMBER.test(value) ? value : ""; })();
   const status = byId("friendsStatus");
-  let people = [], presence = new Map(), viewerFriends = new Set(), state = null;
+  let people = [], everyone = [], presence = new Map(), viewerFriends = new Set(), state = null;
 
   // Every word goes through the translation layer; {name}-style values are filled in after translating.
   const t = (text, values = {}) => String(window.danzstakTranslate?.(text) || text).replace(/\{(\w+)\}/g, (all, key) => key in values ? String(values[key]) : all);
@@ -117,6 +117,12 @@
       const line = nowLine(person);
       return personRow(person, { href: profileUrl(person.memberId), sub: line, subClass: presence.get(person.memberId)?.online ? "is-online" : "", more: moreButton(person) });
     }));
+    // Owner 2026-11-18: "members should be able to see all the users that have signed up until we get a ton of users."
+    // On your own screen, everyone else on DanzStak follows your friends (online first, from GET /people?all=1).
+    const others = term ? everyone.filter(person => person.name.toLocaleLowerCase().includes(term)) : everyone;
+    byId("friendsEveryone").hidden = !others.length;
+    byId("friendsEveryoneTitle").textContent = t("Everyone on DanzStak · {count}", { count: others.length });
+    byId("friendsEveryoneList").replaceChildren(...others.map(person => personRow(person, { href: profileUrl(person.memberId), sub: person.online ? t("Online now") : person.handle ? "@" + person.handle : "", subClass: person.online ? "is-online" : "" })));
     const friendsCount = count => t(count === 1 ? "1 friend" : "{count} friends", { count });
     if (!people.length) status.textContent = t(state?.isOwner ? "No friends yet. Find friends or invite your people." : state && !state.listVisible ? "No mutual friends yet." : "No friends to show yet.");
     else if (!shown.length) status.textContent = t("No friends match \"{term}\".", { term: search.value.trim() });
@@ -212,10 +218,13 @@
       byId("friendsTitle").textContent = name; document.title = `${name} · ${t("Friends")} | DanzStak`;
       byId("tab-common").hidden = of.isOwner; // things in common are between you and someone else
       byId("friendsFindRow").hidden = byId("friendsInvite").hidden = byId("friendsMore").hidden = !of.isOwner;
-      const [mine, directory] = await Promise.all([
+      const [mine, directory, all] = await Promise.all([
         api("/friends").catch(() => null),
-        api("/calls/directory").catch(() => null)
+        api("/calls/directory").catch(() => null),
+        of.isOwner ? api("/people?all=1").catch(() => null) : null
       ]);
+      const friendIds = new Set(people.map(person => person.memberId));
+      everyone = (all?.users || []).filter(user => MEMBER.test(user.memberId || "") && user.friendStatus !== "friends" && !friendIds.has(user.memberId)).map(user => ({ ...user, name: String(user.name || "DanzStak member") }));
       viewerFriends = new Set((mine?.friends || []).map(friend => friend.memberId));
       presence = new Map((directory?.users || []).filter(user => MEMBER.test(user.memberId || "")).map(user => [user.memberId, user]));
       if (of.isOwner && mine) renderRequests(mine.incoming || [], mine.outgoing || []);
@@ -225,7 +234,7 @@
       renderFriends();
       renderCommon(of.common || []);
     } catch (error) {
-      people = []; byId("friendsList").replaceChildren(); byId("friendsList").removeAttribute("aria-busy");
+      people = []; everyone = []; byId("friendsEveryone").hidden = true; byId("friendsList").replaceChildren(); byId("friendsList").removeAttribute("aria-busy");
       if (error.status === 401) { status.textContent = t("Sign in to see friends.") + " "; const link = el("a", "", t("Sign in")); link.href = `${API}/auth/login?next=${encodeURIComponent(location.pathname + location.search)}`; status.append(link); }
       else if (error.status === 403) status.textContent = t("Friends are shown to this member's friends and people in their Tribes.");
       else status.textContent = error.message;
