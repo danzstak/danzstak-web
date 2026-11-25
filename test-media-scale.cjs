@@ -12,7 +12,7 @@ assert.match(scale, /width >= height \? \[LONG, SHORT\] : \[SHORT, LONG\]/, "lan
 assert.match(scale, /Math\.min\(1, maxW \/ width, maxH \/ height\)/, "never scaled up, aspect kept");
 assert.match(scale, /\/\^image\\\/\(jpeg\|png\|webp\)\$\/i/, "GIF and other files pass through");
 assert.match(scale, /hasAttribute\("data-no-scale"\)/, "inputs can opt out");
-assert.match(scale, /blob\.size >= file\.size\) return \{ file \}/, "never uploads a bigger file");
+assert.match(scale, /\(!crop && blob\.size >= file\.size\)\) return \{ file \}/, "never uploads a bigger file (a trimmed screenshot is a different picture, so it always goes up trimmed)");
 // Owner 2026-11-22: a cut-off photo (createImageBitmap refuses it) never reaches the page's upload, on any picker, and the
 // member is told to pick it again (translated).
 assert.match(scale, /catch \{ return \{ broken: true \}; \}/, "a photo the browser can't read is marked broken");
