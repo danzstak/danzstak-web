@@ -6,6 +6,7 @@
     "thumbs-up", "repeat-2", "forward", "share", "bookmark", "send", "smile",
     "plus", "check", "chevron-right", "chevron-down", "pencil", "trash-2", "settings", "log-out", "lock",
     "phone", "phone-off", "mic", "mic-off", "volume-2", "minimize-2", "user-plus",
-    "calendar", "map-pin", "ticket", "disc-3", "music", "move", "globe", "wallet", "briefcase"
+    "calendar", "map-pin", "ticket", "disc-3", "music", "move", "globe", "wallet", "briefcase",
+    "user-check", "clock"
   ]
 }

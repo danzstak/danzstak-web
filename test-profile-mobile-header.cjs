@@ -8,7 +8,7 @@ const mobile = fs.readFileSync("assets/mobile-design-system.css", "utf8");
 const profileHeader = fs.readFileSync("assets/profile-app-header.css", "utf8");
 const feedEnhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 
-assert.match(profile, /assets\/mobile-design-system\.css\?v=23/,
+assert.match(profile, /assets\/mobile-design-system\.css\?v=24/,
   "the profile must load the shared mobile application shell");
 // Audit 36 B2: the six destinations come from the one tab bar component (app-tabs.js), not a copy in each page.
 assert.match(profile, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"><\/nav>/, "the profile keeps the tab bar placeholder");

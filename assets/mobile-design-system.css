@@ -141,27 +141,6 @@ body:not(.public-mode) :where(.panel,.card){
   .ds-tool-page .map-shell,.ds-tool-page #map{max-width:100%;border-radius:var(--ds-radius);overflow:hidden}
 }
 
-/* Profile actions stay compact without sacrificing familiar labels or touch size.
-   Sections remain a single, horizontally scrollable row when every owner tab is
-   available, rather than turning the profile header into several button rows. */
-@media(max-width:600px){
-  .profile-actions{
-    display:flex;
-    flex-wrap:nowrap;
-    gap:6px;
-    margin:14px 0;
-  }
-  .profile-actions>:is(button,a){
-    flex:1 1 0;
-    min-width:0;
-    min-height:44px;
-    padding:7px 4px;
-    font-size:12px;
-    line-height:1.15;
-    white-space:normal;
-  }
-}
-
 /* Profile uses the same phone application shell without changing its desktop account navigation. */
 @media(max-width:700px){
   body.profile-page{padding-bottom:calc(54px + env(safe-area-inset-bottom) + 2px)}

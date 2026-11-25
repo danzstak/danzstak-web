@@ -20,6 +20,10 @@ const used = new Set();
 const files = fs.readdirSync(root).filter(f => f.endsWith(".html")).map(f => path.join(root, f))
   .concat(fs.readdirSync(path.join(root, "assets")).filter(f => f.endsWith(".js")).map(f => path.join(root, "assets", f)));
 for (const file of files) for (const m of fs.readFileSync(file, "utf8").matchAll(/icons\.svg#([a-z0-9-]+)/g)) used.add(m[1]);
+// Kit icon buttons name their icon in code: danzstakIconButton(control, "pencil", …), danzstakIcon("share"), and the
+// profile's kit(button, "user-plus", …) wrappers. Every literal name must be in the sprite (UIKIT 4b part 2).
+for (const file of files) for (const m of fs.readFileSync(file, "utf8").matchAll(/(?:danzstakIconButton\(\w+|\bkit(?:Button)?\(\w+), (?:[^,]*\? )?"([a-z0-9-]+)"/g)) used.add(m[1]);
+for (const m of fs.readFileSync(path.join(root, "assets", "profile-friend.js"), "utf8").matchAll(/"(user-check|user-plus|clock)"/g)) used.add(m[1]);
 for (const m of fs.readFileSync(path.join(root, "assets", "ds-icon.js"), "utf8").matchAll(/danzstakIcon\("([a-z0-9-]+)"/g)) used.add(m[1]);
 const unknown = [...used].filter(name => !ids.includes(name));
 assert.deepEqual(unknown, [], `icons used but not in the sprite: ${unknown.join(", ")}`);

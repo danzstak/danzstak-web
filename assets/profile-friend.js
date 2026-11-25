@@ -5,7 +5,9 @@
   let installedFor = "";
   // Deferred scripts run before DOMContentLoaded (readyState is already "interactive"), so track parsing ourselves.
   let parsed = false; document.addEventListener("DOMContentLoaded", () => { parsed = true; }, { once: true });
-  const icon = (name, label, el = "button") => { const b = document.createElement(el); if (el === "button") b.type = "button"; b.className = "button profile-friend-action"; b.dataset.icon = name; b.textContent = label; b.setAttribute("aria-label", label); b.title = label; return b; };
+  const t = value => window.danzstakTranslate?.(value) || value;
+  // UIKIT 4b part 2: a kit icon button; the words are its accessible name (ds-icon.js danzstakIconButton).
+  const kit = (button, icon, label, kind) => window.danzstakIconButton ? window.danzstakIconButton(button, icon, label, kind) : (button.textContent = label, button.setAttribute("aria-label", label), button);
 
   async function install(profile, target) {
     const actions = target || document.querySelector(".profile-actions");
@@ -15,8 +17,8 @@
     installedFor = profile.memberId;
     actions.querySelectorAll(".profile-friend-action").forEach(el => el.remove());
     const name = profile.name || "this member";
-    const friend = icon("person-add", "Add friend");
-    friend.classList.add("primary");
+    const friend = document.createElement("button");
+    friend.type = "button"; friend.className = "profile-friend-action";
     actions.prepend(friend);
     // Queue 5a3: one tap to add, tap "Requested" again to cancel; an incoming request opens Friends to answer it.
     const setState = state => {
@@ -25,9 +27,9 @@
       friend.disabled = false;
       friend.setAttribute("aria-haspopup", state === "friends" ? "dialog" : "false");
       friend.dataset.icon = state === "friends" ? "person-check" : state === "requested" ? "clock" : "person-add";
-      const label = state === "friends" ? "Friends ▾" : state === "requested" ? "Requested" : state === "incoming" ? "Respond in Friends" : "Add friend";
-      friend.textContent = label; friend.setAttribute("aria-label", state === "none" ? "Send friend request to " + name : state === "friends" ? "Friends with " + name + ". Friend options" : state === "requested" ? "Cancel friend request to " + name : label); friend.title = friend.getAttribute("aria-label");
-      friend.classList.toggle("primary", state === "none");
+      const label = state === "none" ? t("Send friend request to {name}") : state === "friends" ? t("Friends with {name}") + ". " + t("Friend options") : state === "requested" ? t("Cancel friend request to {name}") : t("Respond in Friends");
+      // One primary action: Add friend is green; Friends, Requested and Respond are quiet.
+      kit(friend, state === "friends" ? "user-check" : state === "requested" ? "clock" : "user-plus", label.replace("{name}", name), state === "none" ? "go" : "quiet");
       friend.dataset.state = state;
     };
     setState("none");
@@ -70,7 +72,7 @@
         } catch { setState("requested"); window.danzstakShowFeedback?.("The request could not be cancelled. Try again.", { urgent: true }); }
         return;
       }
-      friend.disabled = true; friend.textContent = "Sending…";
+      friend.disabled = true;
       try {
         const response = await fetch(API + "/friends/request", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ memberId: profile.memberId }) });
         const result = await response.json().catch(() => ({}));
@@ -85,7 +87,7 @@
   window.addEventListener("danzstak:profile-locked", event => {
     const { memberId, status } = event.detail || {};
     if (!status || document.querySelector(".profile-locked-friend")) return;
-    const holder = document.createElement("div"); holder.className = "profile-actions profile-locked-friend";
+    const holder = document.createElement("div"); holder.className = "profile-actions profile-locked-friend ds ds--day ds-actions";
     status.insertAdjacentElement("afterend", holder);
     install({ memberId, name: "this member", isOwner: false }, holder);
   });

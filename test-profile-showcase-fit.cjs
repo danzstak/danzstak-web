@@ -9,7 +9,7 @@ assert.match(css, /#profileContent\.profile\{position:relative;display:grid;grid
 assert.match(css, /#profileContent\.profile>#profileName\{grid-column:2;grid-row:1;/, "the name sits right of the avatar");
 assert.match(css, /\.profile-showcase-frame\{display:block;width:100%;aspect-ratio:16\/7;overflow:hidden;/, "a full-width 16:7 frame that clips a zoomed photo (F12)");
 assert.match(css, /\.profile-showcase-photo\{display:block;width:100%;height:100%;object-fit:cover\}/, "the photo fills the frame");
-assert.match(polish, /\.profile-actions\{[^}]*margin:0!important\}/, "the header sets each gap once (grid margins do not collapse)");
+assert.match(fs.readFileSync("tools/ui-kit/components.css", "utf8"), /\.ds\.ds-actions\{[^}]*margin:0;/, "the header sets each gap once (the kit action row has no margin of its own)");
 const fit = editor.match(/function fitProfileName\(\) \{[\s\S]*?\r?\n\}\r?\n/)[0]; // CRLF on Windows checkouts
 assert.match(fit, /size >= 18; size -= 1/, "one line down to 18px");
 assert.match(fit, /size >= 15; size -= 1/, "then two lines down to 15px");

@@ -14,8 +14,10 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const people = fs.readFileSync("assets/i18n-people.js", "utf8");
 
 // Root cause of visitors seeing Edit / Open my shop / Invite: display:grid!important beat the hidden attribute.
-assert.match(polish, /\.profile-actions > :is\(button,a\)\.ds-icon-button:not\(\[hidden\]\)\{\s*display:grid!important;/, "the action-button display rule must not override [hidden]");
-assert.match(polish, /\.profile-actions > \[hidden\],\.profile-actions > :is\(button,a\)\.ds-icon-button\.profile-share-hidden\{display:none!important\}/, "hidden actions and the visitor's moved Share stay hidden");
+// UIKIT 4b part 2: the row is kit icon buttons with no display rule of their own, and no old rule targets it.
+assert.doesNotMatch(polish, /\.profile-actions/, "no old action-row rule can override [hidden]");
+assert.match(html, /<style>\r?\n\*\{box-sizing:border-box\}\[hidden\]\{display:none!important\}/, "[hidden] always wins on the profile");
+assert.match(fs.readFileSync("assets/profile-sharing.js", "utf8"), /share\.hidden = share\.classList\.contains\('profile-share-hidden'\)/, "the visitor's Share stays in ⋯");
 
 // Race: a fast profile load must still get Add friend (deferred scripts run before the row exists).
 assert.match(friend, /let parsed = false; document\.addEventListener\("DOMContentLoaded", \(\) => \{ parsed = true; \}, \{ once: true \}\);/, "profile-friend tracks parsing itself");
@@ -35,8 +37,10 @@ assert.match(polish, /color:#f5f5f2!important;-webkit-tap-highlight-color:transp
 // Visitor row: Message joins the row as an icon; Share moves into ⋯.
 assert.match(nav, /message\.dataset\.icon = "chat";/);
 assert.match(nav, /fmt\("Message \{name\}"/, "Message has the member's name as its accessible name");
-assert.match(nav, /more\.dataset\.icon = "more";[\s\S]*aria-haspopup", "menu"/, "more is a menu button");
-assert.match(nav, /item\.textContent = t\("Share profile"\);/);
+assert.match(nav, /more\.dataset\.icon = "more";[\s\S]*aria-haspopup", "dialog"/, "more opens a sheet");
+assert.match(nav, /words\.textContent = t\("Share profile"\);/);
+assert.match(nav, /window\.danzstakSheet\?\.open\(\{ title: profile\.name \|\| t\("More"\), content: list, opener: more, className: "ds--day" \}\)/, "⋯ is a kit sheet, Day on the not-yet-moved profile");
+assert.match(html, /assets\/ds-sheet\.js\?v=\d+/, "profile loads the kit sheet");
 
 // No instructional copy where there's nothing to do.
 assert.doesNotMatch(editor, /note\.textContent = profile\.profilePostPermission === "friends"/, "visitors see no 'only … can post' note");

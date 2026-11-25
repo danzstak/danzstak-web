@@ -10,10 +10,10 @@
   let serial = 0;
   const icon = name => window.danzstakIcon ? window.danzstakIcon(name) : document.createTextNode("×");
 
-  function open({ title = "", content, onClose, container = document.body, opener = document.activeElement } = {}) {
+  function open({ title = "", content, onClose, container = document.body, opener = document.activeElement, className = "" } = {}) {
     const id = ++serial;
     const root = document.createElement("div");
-    root.className = "ds ds-sheet";
+    root.className = ["ds", "ds-sheet", className].filter(Boolean).join(" "); // className "ds--day": Day on a page that hasn't moved
     // The dim backdrop is not a control (screen readers use ✕ or Escape); a tap on it closes the sheet.
     const backdrop = document.createElement("div");
     backdrop.className = "ds-sheet__backdrop"; backdrop.setAttribute("aria-hidden", "true");

@@ -192,7 +192,7 @@ function checkSheet(state, label, aspect, failures, { round = false } = {}) {
         label = `${width}px cover`;
         await run.page.evaluate(() => scrollTo(0, 0));
         const coverBox = await run.page.locator(".cover").boundingBox();
-        await run.tap(run.page.locator('.profile-actions .button[data-icon="edit"]'));
+        await run.tap(run.page.locator('.profile-actions button[data-icon="edit"]'));
         await run.tap(run.page.locator(".profile-edit-section > summary").first());
         await run.tap(run.page.locator(".profile-media-menu > summary", { hasText: "Cover photo" }));
         await run.tap(run.page.locator('.profile-media-menu button[data-media-field="cover"]', { hasText: "Move to fit" }));
