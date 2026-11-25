@@ -290,6 +290,7 @@
         el("div", { className: "ds-media-pick__empty" }, icon("image"), el("strong", { textContent: "Add a flyer" }), el("span", { textContent: "Image, or a video of 15 seconds or less" })));
       const pickButton = (label, iconName, accept) => {
         const input = el("input", { type: "file", className: "ev-file", accept });
+        if (/^image/.test(accept)) input.dataset.trimScreenshots = ""; // spec 46
         const button = el("label", { className: "ds-btn ds-btn--quiet ds-media-pick__btn" }, icon(iconName), el("span", { textContent: label }), input);
         input.addEventListener("change", () => { if (input.files?.[0]) takeFile(input.files[0]); input.value = ""; });
         return { button, input };

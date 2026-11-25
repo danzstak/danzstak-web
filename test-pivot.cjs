@@ -31,12 +31,12 @@ assert.match(source, /Your imported content is trackable inside DanzStak/);
 assert.match(source, /DanzStak tracks content, not people/);
 assert.match(source, /Independent screenshots or copies uploaded to another platform may not be traceable or removable/);
 assert.match(source, /Nothing imports automatically/);
-assert.match(worker, /danzstak-shell-v1082/);
+assert.match(worker, /danzstak-shell-v1087/);
 assert.match(worker, /\/assets\/pivot\.js/);
 assert.match(worker, /\/assets\/pivot\.css/);
 assert.match(profile, /assets\/pivot\.css\?v=3/);
 assert.match(profile, /assets\/pivot\.js\?v=6/);
-assert.match(profile, /assets\/profile-editor\.js\?v=526/);
+assert.match(profile, /assets\/profile-editor\.js\?v=527/);
 assert.doesNotMatch(profileEditor, /data-facebook-import/);
 // Owner 2026-11-18: Edit profile is its own screen without the Moving Day box; Pivot lives in the Menu.
 assert.doesNotMatch(profileEditor, /Pivot — Moving Day|profilePivotButton/);
