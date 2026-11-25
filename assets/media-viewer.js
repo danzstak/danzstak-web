@@ -344,13 +344,13 @@
     event.preventDefault(); event.stopPropagation();
     openFrom(element);
   }, true); // capture: replaces older single-item openers (profile) with the swipeable viewer
-  // Photos become keyboard reachable (videos already are through their controls).
+  // Photos, and videos without browser controls (Mix and profile, owner 2026-11-25), become keyboard reachable.
   const prepare = node => {
     const list = node.matches?.(OPENERS) ? [node] : [...(node.querySelectorAll?.(OPENERS) || [])];
     for (const element of list) {
       if (element.closest(SKIP)) continue;
       element.classList.add("ds-media-viewer-opener");
-      if (element.tagName === "IMG" && !element.hasAttribute("tabindex")) element.tabIndex = 0;
+      if ((element.tagName === "IMG" || (element.tagName === "VIDEO" && !element.controls)) && !element.hasAttribute("tabindex")) element.tabIndex = 0;
     }
   };
   const start = () => {

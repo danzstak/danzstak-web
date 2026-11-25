@@ -225,7 +225,7 @@ body:not(.public-mode) :where(.panel,.card){
   .post-actions .saveBtn{font-size:12px!important}
 
   .comments{margin-top:6px;padding-top:6px}
-  .commentList{gap:7px;margin-top:4px}
+  .commentList{--comment-gap:7px;gap:var(--comment-gap);margin-top:4px}
   .comment{grid-template-columns:32px minmax(0,1fr);column-gap:7px}
   .comment-avatar,.comment-composer-avatar{width:32px;height:32px;font-size:12px}
   .comment-action-row{margin-top:1px}

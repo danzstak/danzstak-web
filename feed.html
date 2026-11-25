@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-/bFJMIYUJxlpqEzUDPBoTp4BaL5+rELQ028cjgvACS8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-oI+owQ5i9H4qaAgoAt4+kLqroWxKbj8q4bekCbjTCjU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -911,7 +911,9 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
     media.className = "post-media";
     media.loading = "lazy";
     if (mediaType === "image") media.alt = translateInterface("Photo shared by {name}").replace("{name}", author);
-    if (mediaType === "video") { media.controls = true; media.playsInline = true; media.setAttribute("aria-label", translateInterface("Video shared by {name}").replace("{name}", author)); }
+    // Owner 2026-11-25 (screenshot: two mute buttons on a Mix video): no browser controls, like profile videos (fix-it 18).
+    // media-visibility.js autoplays muted at 50% and adds the one DanzStak mute button; a tap opens it full screen.
+    if (mediaType === "video") { media.playsInline = true; media.setAttribute("aria-label", translateInterface("Video shared by {name}").replace("{name}", author)); }
     article.appendChild(media);
     // Owner 2026-11-22: a post can hold up to 20 photos, swiped sideways in one frame (post-photos.js).
     if (mediaType === "image" && Array.isArray(moreMediaUrls) && moreMediaUrls.length) window.danzstakPostPhotos?.mount(media, moreMediaUrls);
@@ -1500,7 +1502,8 @@ async function loadPosts() {
           media.className = "post-media";
           media.loading = "lazy";
           if (post.mediaType === "image") media.alt = window.danzstakTranslate?.("Photo shared by " + authorName) || "Photo shared by " + authorName;
-          if (post.mediaType === "video") { media.controls = true; media.playsInline = true; media.setAttribute("aria-label", window.danzstakTranslate?.("Video shared by " + authorName) || "Video shared by " + authorName); }
+          if (post.mediaType === "video") { media.playsInline = true; media.setAttribute("aria-label", window.danzstakTranslate?.("Video shared by " + authorName) || "Video shared by " + authorName); }
+          // No browser controls (owner 2026-11-25): one DanzStak mute button, tap opens it full screen.
           media.addEventListener("error", () => showMediaRecovery("Media is temporarily unavailable."), { once: true });
           article.querySelector(".post-media")?.remove();
           if (recovery?.parentNode) recovery.replaceWith(media);
