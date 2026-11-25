@@ -29,6 +29,24 @@ jobs:
         shell: pwsh
         run: .\test-regressions.ps1
 
+  ui-kit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install the UI kit's build tools
+        working-directory: tools/ui-kit
+        run: npm ci --ignore-scripts
+      - name: Committed ds.css and icons.svg match a fresh build
+        env:
+          UI_KIT_REQUIRED: "1"
+        run: node test-ds-css-build.cjs
+      - name: Sprite holds exactly the listed icons
+        run: node test-icon-sprite.cjs
+
   responsive-accessibility-security:
     runs-on: windows-latest
     timeout-minutes: 10

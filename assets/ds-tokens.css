@@ -1,0 +1,74 @@
+/* DanzStak UI kit tokens ("Backstage", docs/tasks/39-modern-look.md section 1).
+   One source of colour. Scoped to .ds: a screen opts in with <body class="ds"> when it moves onto the kit, so pages
+   that haven't moved keep their current look. Old rules read the same --ds-* names and move with the screen. */
+@font-face{font-family:Archivo;src:url(fonts/archivo.woff2) format("woff2");font-weight:400 900;font-stretch:75% 125%;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url(fonts/jetbrains-mono.woff2) format("woff2");font-weight:400 700;font-display:swap}
+
+.ds{
+  color-scheme:light;
+  --ds-canvas:#F4F4F2;
+  --ds-surface:#FFFFFF;
+  --ds-surface-subtle:#F4F4F2;
+  --ds-ink:#0B0B0C;
+  --ds-ink-soft:#3A3B3F;
+  --ds-muted:#62656C;
+  --ds-hairline:rgb(201 204 209 / .6);
+  --ds-border:var(--ds-hairline);
+  --ds-accent:#FF5A1F;
+  --ds-accent-soft:#FFF0E8;
+  --ds-btn-go:#15803D;
+  --ds-btn-go-ink:#FFFFFF;
+  --ds-danger:#DC2626;
+  --ds-danger-ink:#FFFFFF;
+  --ds-focus:#FF5A1F;
+  --ds-font:Archivo,"DanzStak Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --ds-font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --ds-text-12:12px;--ds-text-13:13px;--ds-text-15:15px;--ds-text-17:17px;--ds-text-22:22px;--ds-text-28:28px;
+  --ds-radius-pill:999px;--ds-radius-card:16px;--ds-radius-media:0;
+  --ds-space-4:4px;--ds-space-8:8px;--ds-space-12:12px;--ds-space-16:16px;--ds-space-24:24px;--ds-space-32:32px;
+  --ds-shadow-float:0 8px 24px rgb(0 0 0 / .12);
+  --ds-motion-press:150ms;--ds-motion-sheet:220ms;--ds-motion-fade:150ms;
+  --ds-z-content:0;--ds-z-sticky:20;--ds-z-call:30;--ds-z-sheet:40;--ds-z-toast:50;
+  --ds-touch:44px;
+  background:var(--ds-canvas);
+  color:var(--ds-ink);
+  font-family:var(--ds-font);
+  font-size:var(--ds-text-15);
+  line-height:22px;
+}
+
+/* Night: follows the phone unless the member picked Day in Settings (html[data-theme]). */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .ds{
+    color-scheme:dark;
+    --ds-canvas:#0B0B0C;
+    --ds-surface:#151517;
+    --ds-surface-subtle:#1C1C1F;
+    --ds-ink:#EDEDEA;
+    --ds-ink-soft:#C9CCD1;
+    --ds-muted:#8E9199;
+    --ds-hairline:#2A2A2E;
+    --ds-accent-soft:#2A1710;
+    --ds-btn-go:#15803D;
+    --ds-danger:#DC2626;
+    --ds-shadow-float:0 8px 24px rgb(0 0 0 / .5);
+  }
+}
+:root[data-theme="dark"] .ds{
+  color-scheme:dark;
+  --ds-canvas:#0B0B0C;
+  --ds-surface:#151517;
+  --ds-surface-subtle:#1C1C1F;
+  --ds-ink:#EDEDEA;
+  --ds-ink-soft:#C9CCD1;
+  --ds-muted:#8E9199;
+  --ds-hairline:#2A2A2E;
+  --ds-accent-soft:#2A1710;
+  --ds-btn-go:#15803D;
+  --ds-danger:#DC2626;
+  --ds-shadow-float:0 8px 24px rgb(0 0 0 / .5);
+}
+
+@media (prefers-reduced-motion:reduce){
+  .ds{--ds-motion-press:0ms;--ds-motion-sheet:0ms;--ds-motion-fade:0ms}
+}

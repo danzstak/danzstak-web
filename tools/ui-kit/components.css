@@ -1,0 +1,11 @@
+/* Kit components (docs/tasks/39-modern-look.md section 3). Each screen PR adds the components it needs here,
+   so nothing ships before a screen uses it. Selectors live under .ds so old screens are untouched. */
+
+/* Icons from assets/icons.svg (Lucide, ISC): outline by default, .ds-icon--filled for the active tab (39a). */
+.ds-icon{width:24px;height:24px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
+.ds-icon--sm{width:20px;height:20px}
+.ds-icon--bar{width:28px;height:28px}
+.ds-icon--filled{fill:currentColor}
+
+/* Focus ring for every control on a moved screen. */
+.ds :focus-visible{outline:2px solid var(--ds-focus);outline-offset:2px}
