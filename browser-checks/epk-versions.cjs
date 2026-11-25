@@ -7,7 +7,8 @@
 //   - Save private draft sends action "draft" (it never takes the EPK offline);
 //   - Unpublish asks first: "Keep it online" sends nothing, "Unpublish" sends action "unpublish";
 //   - View (epk.html?version=…) shows that version to its owner with "Back to my EPK" and "Bring back";
-//   - epk.html?restore=… brings a version back after the builder loads, then the address is plain epk.html again.
+//   - epk.html?restore=… brings a version back after the builder loads, then the address is epk.html?epk=main (spec 47
+//     Train B: a plain epk.html opens the EPK last worked on, so links back to the first EPK name it).
 // Run: node scripts/static-server.cjs 8132 . then DANZSTAK_BASE_URL=http://127.0.0.1:8132 node browser-checks/epk-versions.cjs
 const assert = require("node:assert/strict");
 const path = require("node:path");
@@ -143,7 +144,7 @@ async function noSideScroll(page, tag) {
       assert.match(await view.page.locator(".epk-public-notice").textContent(), /The version you published on .*2026.*\. Only you can see this page\./, `${tag}: the version page says whose it is`);
       assert.match(await view.page.locator("#epkPreview").textContent(), /Vinyl on Sleeping Dragon Records since 1996\./, `${tag}: that version is shown`);
       assert.equal(await view.page.getAttribute(".epk-public-notice a[href^='epk.html?restore=']", "href"), `epk.html?restore=${encodeURIComponent(older)}`);
-      assert.equal(await view.page.locator(".epk-public-notice a[href='epk.html']").count(), 1, `${tag}: Back to my EPK`);
+      assert.equal(await view.page.locator(".epk-public-notice a[href='epk.html?epk=main']").count(), 1, `${tag}: Back to my EPK`);
       await noSideScroll(view.page, `${tag} version page`);
       if (captureDir && width === 390) await view.page.screenshot({ path: path.join(captureDir, `epk-versions-view-${width}.png`) });
       assert.deepEqual(view.errors, [], `${tag}: version page errors`);
@@ -154,7 +155,7 @@ async function noSideScroll(page, tag) {
       await restore.page.locator(".danzstak-confirm-dialog").waitFor({ timeout: 15000 });
       await centreTap(restore.page, ".danzstak-confirm-dialog button[value=confirm]", tag);
       await restore.page.waitForFunction(text => document.getElementById("shortBio").value === text, versions[older].shortBio, { timeout: 5000 });
-      assert.equal(new URL(restore.page.url()).search, "", `${tag}: the address is plain epk.html again`);
+      assert.equal(new URL(restore.page.url()).search, "?epk=main", `${tag}: the address names the first EPK again`);
       assert.deepEqual(restore.errors, [], `${tag}: restore errors`);
       await restore.context.close();
       console.log(`ok ${tag}`);
