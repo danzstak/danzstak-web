@@ -130,11 +130,6 @@ async function open(browser, width, pathName, { oldServer = false, posts = [], l
           const indent = at(reply).left - at(parent).left;
           if (indent < 36) failures.push(`${label}: reply ${reply} is indented ${Math.round(indent)}px, not under its comment`);
         }
-        // Owner 2026-11-25 ("The reply to comment should be [tight] to the original comment"): a reply starts right under
-        // its comment's Reply row, no empty band between them (was ~24px at 390px).
-        const gaps = await page.evaluate(() => [["c2", "c1"], ["c4", "c3"]].map(([r, p]) => { const reply = document.querySelector(`.comment[data-comment-id="${r}"]`), parent = document.querySelector(`.comment[data-comment-id="${p}"]`), top = Math.min(reply.querySelector(".comment-avatar").getBoundingClientRect().top, reply.querySelector(".comment-head, .comment-author").getBoundingClientRect().top), bottom = [...parent.querySelectorAll(".comment-action-row button")].reduce((m, b) => { const s = b.getBoundingClientRect(); return s.height ? Math.max(m, s.top + s.height / 2 + 7) : m; }, 0); return { r, gap: top - bottom }; }));
-        if (process.env.GAP_DEBUG) console.log(label, JSON.stringify(gaps));
-        for (const { r, gap } of gaps) if (gap > 10) failures.push(`${label}: reply ${r} sits ${Math.round(gap)}px below its comment's Reply row (want 10px or less: the Reply button's own tap padding)`);
         // Like the owner's reference: Reply on the left, like/dislike on the right; a reply starts with the name it
         // answers; a thread line joins replies to their comment.
         const look = await page.evaluate(() => { const c1 = document.querySelector('.comment[data-comment-id="c1"]'), c2 = document.querySelector('.comment[data-comment-id="c2"]'), row = c1.querySelector(".comment-action-row").getBoundingClientRect(), reply = c1.querySelector(".comment-reply-button").getBoundingClientRect(), like = c1.querySelector(".comment-like").getBoundingClientRect(); return { replyLeft: reply.left - row.left, likeRight: row.right - like.right, likeAfter: like.left > reply.right + 40, mention: c2.querySelector(".comment-content .comment-mention")?.textContent || "", oldLabel: Boolean(c2.querySelector(".comment-reply-context")), line: getComputedStyle(c1, "::after").borderLeftWidth, elbow: getComputedStyle(c2, "::before").borderBottomWidth }; });

@@ -46,7 +46,7 @@ assert.match(require("node:fs").readFileSync("tools/ui-kit/components.css", "utf
 assert.match(worker, /danzstak-shell-v1087/);
 assert.match(worker, /\/assets\/mobile-design-system\.css/, "the installed PWA must cache the shared mobile system");
 
-for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=25/, `${file} must load the same mobile design system`);
+for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=24/, `${file} must load the same mobile design system`);
 for (const file of ["messages.html", "booking.html", "record-stores.html", "epk.html", "profile.html"]) {
   const html = pages.find(([name]) => name === file)[1];
   assert.match(html, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"><\/nav>/, `${file} keeps only the placeholder; app-tabs.js draws the tabs`);
