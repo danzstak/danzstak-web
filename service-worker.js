@@ -234,7 +234,12 @@ async function callWasHandled(callId) {
 // notification sound once, not a ringtone. So while the call is still waiting (the notification is still there: not
 // answered, declined or ended, which close it), show it again every few seconds with renotify, so the phone sounds and
 // vibrates again, for about as long as an in-app ring (25 s).
-const CALL_RING_REPEATS = 6, CALL_RING_EVERY_MS = 4000;
+// Owner 2026-11-25 (screenshot: "Incoming DanzStak call · Sam is calling by video" still on the lock screen 18 minutes
+// later): "The calling notification needs to go away after answering the phone". A call notification asks to stay until
+// it is tapped (requireInteraction), and the "answered/ended" push that closes it can be lost (a phone asleep, a push
+// service that drops it). A call can't still be ringing after CALL_RING_LIFETIME_MS (the caller's ring gives up before
+// that), so then it goes, whatever happened.
+const CALL_RING_REPEATS = 6, CALL_RING_EVERY_MS = 4000, CALL_RING_LIFETIME_MS = 60000;
 // A platform that refuses the dots in the button words must still show the call (plain words).
 async function showCall(title, options) {
   try { await self.registration.showNotification(title, options); }
@@ -245,6 +250,7 @@ async function showCall(title, options) {
   }
 }
 async function ringCallNotification(title, options) {
+  const started = Date.now();
   await showCall(title, options);
   for (let i = 0; i < CALL_RING_REPEATS; i++) {
     await new Promise(resolve => setTimeout(resolve, CALL_RING_EVERY_MS));
