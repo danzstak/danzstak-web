@@ -1387,3 +1387,112 @@
 };
  for(const [lang,words] of Object.entries(add))Object.assign(t[lang]||(t[lang]={}),words);
 })();
+
+// Task 21: live translated captions in SYNC calls (assets/call-translate.js).
+(() => {
+ const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
+ const add={
+"it": {
+"Live translation": "Traduzione dal vivo",
+"Stop live translation": "Ferma la traduzione dal vivo",
+"Live translation · {from} → {to}": "Traduzione dal vivo · {from} → {to}",
+"You speak": "Parli",
+"{name}'s words show up here as captions in your language. They're asked first.": "Le parole di {name} compaiono qui come sottotitoli nella tua lingua. Prima glielo chiediamo.",
+"{name} turned on live translation": "{name} ha attivato la traduzione dal vivo",
+"Allow your voice to be turned into captions in their language? Machine translation can be wrong. Double-check prices, dates and deals in writing.": "Consenti che la tua voce diventi sottotitoli nella sua lingua? La traduzione automatica può sbagliare. Ricontrolla per iscritto prezzi, date e accordi.",
+"Waiting for {name} to allow live translation…": "In attesa che {name} consenta la traduzione dal vivo…",
+"{name} said not now.": "{name} ha detto non ora.",
+"Today's free translation minutes are used up. They come back tomorrow.": "I minuti di traduzione gratuiti di oggi sono finiti. Tornano domani.",
+"{name}'s free translation minutes are used up for today.": "I minuti di traduzione gratuiti di {name} per oggi sono finiti.",
+"Live translation isn't available right now.": "La traduzione dal vivo non è disponibile in questo momento.",
+"Live translation stopped. Try again.": "La traduzione dal vivo si è fermata. Riprova.",
+"Live translation needs your microphone in the call.": "La traduzione dal vivo ha bisogno del tuo microfono nella chiamata.",
+"Sign in again to use live translation.": "Accedi di nuovo per usare la traduzione dal vivo.",
+"Wait until the call is connected.": "Aspetta che la chiamata sia collegata.",
+"The other person": "L'altra persona"
+},
+"fr": {
+"Live translation": "Traduction en direct",
+"Stop live translation": "Arrêter la traduction en direct",
+"Live translation · {from} → {to}": "Traduction en direct · {from} → {to}",
+"You speak": "Tu parles",
+"{name}'s words show up here as captions in your language. They're asked first.": "Les mots de {name} s'affichent ici en sous-titres dans ta langue. On lui demande d'abord.",
+"{name} turned on live translation": "{name} a activé la traduction en direct",
+"Allow your voice to be turned into captions in their language? Machine translation can be wrong. Double-check prices, dates and deals in writing.": "Autoriser que ta voix devienne des sous-titres dans sa langue ? La traduction automatique peut se tromper. Vérifie les prix, les dates et les accords par écrit.",
+"Waiting for {name} to allow live translation…": "En attente que {name} autorise la traduction en direct…",
+"{name} said not now.": "{name} a dit pas maintenant.",
+"Today's free translation minutes are used up. They come back tomorrow.": "Les minutes de traduction gratuites d'aujourd'hui sont épuisées. Elles reviennent demain.",
+"{name}'s free translation minutes are used up for today.": "Les minutes de traduction gratuites de {name} sont épuisées pour aujourd'hui.",
+"Live translation isn't available right now.": "La traduction en direct n'est pas disponible pour le moment.",
+"Live translation stopped. Try again.": "La traduction en direct s'est arrêtée. Réessaie.",
+"Live translation needs your microphone in the call.": "La traduction en direct a besoin de ton micro dans l'appel.",
+"Sign in again to use live translation.": "Reconnecte-toi pour utiliser la traduction en direct.",
+"Wait until the call is connected.": "Attends que l'appel soit connecté.",
+"The other person": "L'autre personne"
+},
+"es": {
+"Live translation": "Traducción en directo",
+"Stop live translation": "Detener la traducción en directo",
+"Live translation · {from} → {to}": "Traducción en directo · {from} → {to}",
+"You speak": "Hablas",
+"{name}'s words show up here as captions in your language. They're asked first.": "Las palabras de {name} aparecen aquí como subtítulos en tu idioma. Primero se le pregunta.",
+"{name} turned on live translation": "{name} activó la traducción en directo",
+"Allow your voice to be turned into captions in their language? Machine translation can be wrong. Double-check prices, dates and deals in writing.": "¿Permitir que tu voz se convierta en subtítulos en su idioma? La traducción automática puede equivocarse. Confirma por escrito precios, fechas y acuerdos.",
+"Waiting for {name} to allow live translation…": "Esperando a que {name} permita la traducción en directo…",
+"{name} said not now.": "{name} dijo ahora no.",
+"Today's free translation minutes are used up. They come back tomorrow.": "Los minutos gratis de traducción de hoy se acabaron. Vuelven mañana.",
+"{name}'s free translation minutes are used up for today.": "Los minutos gratis de traducción de {name} se acabaron por hoy.",
+"Live translation isn't available right now.": "La traducción en directo no está disponible ahora.",
+"Live translation stopped. Try again.": "La traducción en directo se detuvo. Inténtalo de nuevo.",
+"Live translation needs your microphone in the call.": "La traducción en directo necesita tu micrófono en la llamada.",
+"Sign in again to use live translation.": "Vuelve a iniciar sesión para usar la traducción en directo.",
+"Wait until the call is connected.": "Espera a que la llamada esté conectada.",
+"The other person": "La otra persona"
+},
+"de": {
+"Live translation": "Live-Übersetzung",
+"Stop live translation": "Live-Übersetzung beenden",
+"Live translation · {from} → {to}": "Live-Übersetzung · {from} → {to}",
+"You speak": "Du sprichst",
+"{name}'s words show up here as captions in your language. They're asked first.": "Was {name} sagt, erscheint hier als Untertitel in deiner Sprache. Vorher wird gefragt.",
+"{name} turned on live translation": "{name} hat die Live-Übersetzung eingeschaltet",
+"Allow your voice to be turned into captions in their language? Machine translation can be wrong. Double-check prices, dates and deals in writing.": "Erlauben, dass deine Stimme zu Untertiteln in der anderen Sprache wird? Maschinelle Übersetzung kann Fehler machen. Prüfe Preise, Termine und Absprachen schriftlich.",
+"Waiting for {name} to allow live translation…": "Warte darauf, dass {name} die Live-Übersetzung erlaubt…",
+"{name} said not now.": "{name} hat jetzt nicht gesagt.",
+"Today's free translation minutes are used up. They come back tomorrow.": "Die kostenlosen Übersetzungsminuten für heute sind aufgebraucht. Morgen gibt es neue.",
+"{name}'s free translation minutes are used up for today.": "Die kostenlosen Übersetzungsminuten von {name} sind für heute aufgebraucht.",
+"Live translation isn't available right now.": "Die Live-Übersetzung ist gerade nicht verfügbar.",
+"Live translation stopped. Try again.": "Die Live-Übersetzung wurde beendet. Versuch es noch einmal.",
+"Live translation needs your microphone in the call.": "Die Live-Übersetzung braucht dein Mikrofon im Anruf.",
+"Sign in again to use live translation.": "Melde dich wieder an, um die Live-Übersetzung zu nutzen.",
+"Wait until the call is connected.": "Warte, bis der Anruf verbunden ist.",
+"The other person": "Die andere Person"
+},
+"he": {
+"Live translation": "תרגום חי",
+"Stop live translation": "לעצור את התרגום החי",
+"Live translation · {from} → {to}": "תרגום חי · {from} → {to}",
+"Your language": "השפה שלך",
+"You speak": "את/ה מדבר/ת",
+"Start": "להתחיל",
+"Cancel": "ביטול",
+"Close": "סגירה",
+"Allow": "לאשר",
+"Not now": "לא עכשיו",
+"{name}'s words show up here as captions in your language. They're asked first.": "המילים של {name} יופיעו כאן ככתוביות בשפה שלך. קודם שואלים אותו/ה.",
+"{name} turned on live translation": "{name} הפעיל/ה תרגום חי",
+"Allow your voice to be turned into captions in their language? Machine translation can be wrong. Double-check prices, dates and deals in writing.": "לאשר שהקול שלך יהפוך לכתוביות בשפה שלו/ה? תרגום מכונה יכול לטעות. כדאי לאמת מחירים, תאריכים והסכמים בכתב.",
+"Waiting for {name} to allow live translation…": "מחכים ש{name} יאשר/תאשר תרגום חי…",
+"{name} said not now.": "{name} אמר/ה לא עכשיו.",
+"Today's free translation minutes are used up. They come back tomorrow.": "דקות התרגום החינמיות של היום נגמרו. הן חוזרות מחר.",
+"{name}'s free translation minutes are used up for today.": "דקות התרגום החינמיות של {name} נגמרו להיום.",
+"Live translation isn't available right now.": "תרגום חי לא זמין כרגע.",
+"Live translation stopped. Try again.": "התרגום החי נעצר. נסו שוב.",
+"Live translation needs your microphone in the call.": "תרגום חי צריך את המיקרופון שלך בשיחה.",
+"Sign in again to use live translation.": "צריך להתחבר שוב כדי להשתמש בתרגום חי.",
+"Wait until the call is connected.": "חכו עד שהשיחה תתחבר.",
+"The other person": "הצד השני"
+}
+};
+ for(const [lang,words] of Object.entries(add))Object.assign(t[lang]||(t[lang]={}),words);
+})();

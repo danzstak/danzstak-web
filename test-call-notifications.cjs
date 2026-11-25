@@ -15,7 +15,7 @@ assert.match(template,/notifyCall\(recipientEmail,user\.email,user\.userId,mode,
 assert.match(template,/notifyMessage\(recipient,user\.email,user\.userId\)/,'Message alerts must pass the opaque sender ID');
 const controls=()=>({handlers:{},hidden:true,classList:{toggle(){},add(){},remove(){}},setAttribute(){},focus(){this.focuses=(this.focuses||0)+1;},addEventListener(name,fn){this.handlers[name]=fn;}});
 const popup=controls(),answer=controls(),decline=controls(),label={};
-popup.querySelector=selector=>selector==='[data-answer]'?answer:selector==='[data-decline]'?decline:label;
+const part=()=>({textContent:'',style:{setProperty(){},removeProperty(){}},dataset:{},setAttribute(){},removeAttribute(){},replaceChildren(){}});const parts=new Map();popup.querySelector=selector=>selector==='[data-answer]'?answer:selector==='[data-decline]'?decline:selector==='#globalIncomingLabel'?label:(parts.get(selector)||parts.set(selector,part()).get(selector));
 const first={eventId:'offer-1',callId:'11111111-1111-1111-1111-111111111111',signalType:'offer',senderEmail:'caller@example.com',senderName:'Caller Name',mode:'phone'};
 let events=[first],poll,notifications=0,fetches=0,serviceMessage,toneStarts=0,deviceRegistered=true;const drawers=[],registrationOptions=[],documentHandlers={},intervals=new Map(),callRequests=[];let nextInterval=1;
 class Notification {constructor(){notifications++;}}Notification.permission='granted';

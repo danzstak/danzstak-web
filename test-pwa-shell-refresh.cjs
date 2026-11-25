@@ -50,9 +50,9 @@ assert.doesNotMatch(hostingHeaders, /s-maxage\s*=\s*31536000/i, "the app shell m
 
 for (const [file, expected] of [
   ["index.html", "assets/home.js?v=314"],
-  ["feed.html", "assets/soft-ui.css?v=430"],
-  ["messages.html", "assets/soft-ui.css?v=430"],
-  ["profile.html", "assets/soft-ui.css?v=430"],
+  ["feed.html", "assets/soft-ui.css?v=431"],
+  ["messages.html", "assets/soft-ui.css?v=431"],
+  ["profile.html", "assets/soft-ui.css?v=431"],
   ["feed.html", "assets/mobile-design-system.css?v=24"],
   ["feed.html", "assets/danzstak-original-feed.css?v=35"],
   ["messages.html", "assets/mobile-design-system.css?v=24"],
@@ -76,7 +76,7 @@ for (const [file, expected] of [
   ["feed.html", "assets/media-visibility.js?v=404"],
   ["messages.html", "assets/media-visibility.js?v=404"],
   ["profile.html", "assets/media-visibility.js?v=404"],
-  ["messages.html", "assets/chat.js?v=485"],
+  ["messages.html", "assets/chat.js?v=487"],
   ["messages.html", "assets/chat.css?v=473"],
   ["messages.html", "assets/direct-messages.js?v=520"],
   ["profile.html", "assets/profile-sharing.js?v=421"],

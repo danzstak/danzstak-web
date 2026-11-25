@@ -120,13 +120,15 @@ const device = { deviceId: "44444444-4444-4444-8444-444444444444", deviceToken: 
         const navRect = nav?.getBoundingClientRect();
         const actions = [...element.querySelectorAll("button")].map(button => {
           const target = button.getBoundingClientRect();
-          return { width: target.width, height: target.height };
+          const hit = document.elementFromPoint(target.left + target.width / 2, target.top + target.height / 2);
+          return { width: target.width, height: target.height, reachable: Boolean(hit && button.contains(hit)) };
         });
         return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, navTop: navRect?.top ?? innerHeight, actions };
       });
       assert.equal(errors.length, 0, `${width}px foreground call errors: ${errors.join(" | ")}`);
       assert.ok(geometry.left >= 0 && geometry.right <= width + 1, `${width}px incoming call escapes the viewport: ${JSON.stringify(geometry)}`);
-      assert.ok(geometry.bottom <= geometry.navTop - 8, `${width}px incoming call actions are covered by mobile navigation: ${JSON.stringify(geometry)}`);
+      // Owner 2026-11-25: the call is full screen like the phone ringing, so it covers the tab bar instead of sitting above it.
+      assert.ok(geometry.actions.every(target => target.reachable), `${width}px incoming call actions are covered by mobile navigation: ${JSON.stringify(geometry)}`);
       assert.ok(geometry.actions.every(target => target.width >= 44 && target.height >= 44), `${width}px incoming actions must retain 44px touch targets: ${JSON.stringify(geometry.actions)}`);
       assert.match(await popup.textContent(), /Tour Friend/, `${width}px incoming call must identify the caller by display name`);
       assert.doesNotMatch(await popup.textContent(), /@/, `${width}px incoming call must not expose account email`);
