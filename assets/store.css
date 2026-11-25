@@ -4,54 +4,44 @@ a{color:var(--ds-brand,#121418)}
 .store-header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;min-height:64px;padding:8px max(16px,calc((100vw - 1120px)/2));border-bottom:3px solid var(--ds-accent,#ef6c20);background:var(--ds-brand,#121418)}
 .store-brand{display:flex;align-items:center;gap:8px;color:#fff;text-decoration:none;font-weight:900;letter-spacing:.04em}.store-brand img{width:44px;height:44px;object-fit:contain}.store-header nav{display:flex;gap:8px}.store-header nav a{min-height:44px;display:grid;place-items:center;padding:0 14px;border-radius:10px;background:#fff;color:#10213d;text-decoration:none;font-weight:800}
 .store-main{width:min(100% - 24px,980px);margin:24px auto 96px}.store-hero{padding:24px 0 20px;border-bottom:1px solid var(--ds-border,#d9e1eb)}
-.store-eyebrow{margin:0 0 6px;color:var(--ds-accent,#ef6c20);font-size:12px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.store-hero h1,.shop-manager h2{margin:0;color:var(--ds-ink,#172033)}.store-hero h1{font-size:clamp(30px,7vw,48px);line-height:1.04}.store-hero>p:last-of-type{max-width:68ch;margin:10px 0 0;color:var(--ds-ink-soft,#344054);line-height:1.5}
+.store-eyebrow{margin:0 0 6px;color:var(--ds-accent,#ef6c20);font-size:12px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.store-hero h1{margin:0;color:var(--ds-ink,#172033)}.store-hero h1{font-size:clamp(30px,7vw,48px);line-height:1.04}.store-hero>p:last-of-type{max-width:68ch;margin:10px 0 0;color:var(--ds-ink-soft,#344054);line-height:1.5}
 .store-status{min-height:24px;margin:18px 0;color:var(--ds-muted,#667085)}
 .product-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px}.product-card{min-width:0;overflow:hidden;border-bottom:1px solid var(--ds-border,#d9e1eb);background:transparent}.product-image{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#dfe6ee}.product-card-copy{padding:14px 0 18px}.product-card h2{margin:0 0 6px;font-size:19px}.product-card p{margin:6px 0;color:var(--ds-ink-soft,#344054);line-height:1.45}.product-price{font-size:20px;font-weight:900;color:var(--ds-ink,#172033)!important}.product-note{font-size:13px}.product-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}.product-actions button{min-width:44px;min-height:44px;padding:0 14px;border:0;border-radius:10px;background:var(--ds-brand,#121418);color:#fff;font:inherit;font-weight:900;cursor:pointer}.product-actions .store-secondary-action{border:1px solid var(--ds-border-strong,#c5cfdd);background:#fff;color:var(--ds-brand,#121418)}
-.shop-manager{margin-top:28px;padding-top:24px;border-top:1px solid var(--ds-border,#d9e1eb)}.manager-heading{display:flex;align-items:end;justify-content:space-between;gap:16px}.manager-heading>a,.store-secondary-action{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;border:1px solid var(--ds-border-strong,#c5cfdd);border-radius:10px;background:#fff;color:var(--ds-brand,#121418);font-weight:800;text-decoration:none}
-.shop-form,.product-form{display:grid;gap:14px;max-width:720px;margin-top:18px}.shop-form label,.product-form label{display:grid;gap:6px;color:var(--ds-ink-soft,#344054);font-size:14px;font-weight:800}.shop-form input,.shop-form textarea,.shop-form select,.product-form input,.product-form textarea,.product-form select{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--ds-border-strong,#c5cfdd);border-radius:10px;background:#fff;color:var(--ds-ink,#172033);font:inherit}.shop-form textarea,.product-form textarea{resize:vertical}.shop-form button,.product-form button{min-height:46px;padding:0 18px;border:0;border-radius:10px;background:var(--ds-brand,#121418);color:#fff;font-weight:900;cursor:pointer}.product-numbers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.form-actions{display:flex;gap:10px;flex-wrap:wrap}
-.product-form small{font-weight:500;color:var(--ds-muted,#667085)}.fee-preview{display:grid;gap:4px;padding:12px 0;border-top:1px solid var(--ds-border,#d9e1eb);border-bottom:1px solid var(--ds-border,#d9e1eb)}.fee-preview span{font-size:18px;font-weight:900}.fee-preview small{font-size:13px}.product-detail-link{display:inline-flex;align-items:center;min-height:44px;margin-top:7px;font-weight:900}
+.product-detail-link{display:inline-flex;align-items:center;min-height:44px;margin-top:7px;font-weight:900}
 .skip-link{position:fixed;left:12px;top:-80px;z-index:100;padding:10px;background:#fff}.skip-link:focus{top:12px}
-@media(max-width:700px){.store-header{min-height:58px;padding:6px 12px}.store-brand span{display:none}.store-header nav a{padding:0 9px;font-size:13px}.store-main{width:100%;margin:0 auto 84px;padding:0 12px}.store-hero{padding:20px 0 16px}.product-grid{display:block}.product-card{margin-bottom:16px}.product-image{width:calc(100% + 24px);max-width:none;margin-left:-12px}.product-card-copy{padding:12px 0 14px}.product-numbers{grid-template-columns:1fr}.manager-heading{align-items:start;flex-direction:column}.ds-mobile-nav{display:grid}}
+@media(max-width:700px){.store-header{min-height:58px;padding:6px 12px}.store-brand span{display:none}.store-header nav a{padding:0 9px;font-size:13px}.store-main{width:100%;margin:0 auto 84px;padding:0 12px}.store-hero{padding:20px 0 16px}.product-grid{display:block}.product-card{margin-bottom:16px}.product-image{width:calc(100% + 24px);max-width:none;margin-left:-12px}.product-card-copy{padding:12px 0 14px}.ds-mobile-nav{display:grid}}
 @media(max-width:350px){.store-header nav a{padding:0 7px;font-size:12px}}
 @media(min-width:701px){.product-card{max-width:360px}}
 
-/* Get paid (Stripe Connect payouts) */
-.payouts-card{margin:0 0 16px;padding:14px 16px;border-left:3px solid #ff5a1f;background:#fff}
-.payouts-card h2{margin:0 0 4px;font-size:17px}
-.payouts-card[data-status=active]{border-left-color:#1f9d55}
-.payouts-note{margin:0 0 8px;color:#344054;font-size:14px;line-height:1.4}
-.payouts-testing{margin:0 0 8px;font:600 11px/1.3 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#d9480f}
-.payouts-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
-.payouts-row label{display:grid;gap:4px;font-size:13px;font-weight:600}
-.payouts-row select{min-height:44px}
-.payouts-start{min-height:44px;padding:0 16px;border-radius:999px;background:#121418;color:#fff;font-weight:800;border:0}
 
-.moving-day-link a{display:inline-flex;align-items:center;min-height:44px;padding:4px 0;font-weight:900}
 
-/* Owner 2026-11-19: shop cover, shop album and product photos from the phone. */
+/* Owner 2026-11-19: shop cover and shop album on the public shop. */
 .store-hero{position:relative}
-.store-cover{display:block;width:calc(100% + 32px);max-width:none;margin:-16px -16px 14px;aspect-ratio:16/7;object-fit:cover;background:#121418}
+.store-cover-frame{display:block;width:calc(100% + 32px);max-width:none;margin:-16px -16px 14px;overflow:hidden}
+.store-cover-frame:has(.store-cover[hidden]){display:none}
+.store-cover{display:block;width:100%;aspect-ratio:16/7;object-fit:cover;background:#121418}
 .store-cover[hidden]{display:none}
 .shop-album{margin:18px 0}
 .shop-album[hidden]{display:none}
-.shop-album h2,.shop-photos h2,.shop-photos h3{margin:0 0 10px}
+.shop-album h2{margin:0 0 10px}
 .shop-album-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
 .shop-album-grid img{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:#121418}
-.shop-album-tile{position:relative;margin:0}
-.shop-album-remove{position:absolute;top:4px;right:4px;width:32px;height:32px;min-height:32px;padding:0;border:0;border-radius:50%;background:rgba(11,11,12,.72);color:#fff;font-size:20px;line-height:32px}
-.shop-album-remove::after{content:"";position:absolute;inset:-6px}
-.shop-photos{margin:18px 0;padding-top:14px;border-top:1px solid rgba(18,20,24,.12)}
-.shop-photos .store-note{margin:0 0 10px;color:#5d6066}
-.shop-photos .store-note[hidden]{display:none}
-.shop-cover-preview{display:block;width:100%;aspect-ratio:16/7;object-fit:cover;margin:0 0 10px;background:#121418}
-.shop-cover-preview[hidden]{display:none}
-.shop-photo-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-.shop-photos button,.product-photo-field button{min-height:44px}
-#addAlbumPhotos{margin-top:10px}
-.product-photo-field{display:grid;gap:8px;margin:0 0 12px}
-.product-photo-label{font-weight:700}
-.product-photo-preview{width:120px;height:120px;object-fit:cover;background:#121418}
-.product-photo-preview[hidden]{display:none}
 
 /* Task 12: one-time fee-change banner for sellers and promoters. */
 .fee-change-banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 16px;padding:10px 12px;border-left:3px solid #ff5a1f;background:#fff7f2;color:#172033}.fee-change-banner p{margin:0;flex:1 1 220px;font-size:.92rem;line-height:1.4}.fee-change-close{min-height:44px;padding:0 14px}
+
+/* My shop on the UI kit (docs/tasks/39-modern-look.md screen 3, CLAUDE.md F21). Tokens only, no !important:
+   the pieces are kit components (ds.css); this only lays the screen out. */
+.store-main--kit{width:100%;max-width:720px;margin:0 auto 96px;padding:0}
+.shop-dash .shop-form{margin:var(--ds-space-16) 0 0}
+.shop-dash .ds-media-pick__media img[hidden]{display:none}
+.shop-dash__products,.shop-dash__album,.shop-dash__links{margin-top:var(--ds-space-16)}
+.shop-dash__links{display:grid;gap:var(--ds-space-8);padding:0 var(--ds-space-16)}
+.shop-dash__album .ds-thumbs:empty{display:none}
+.shop-dash .fee-change-banner{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--ds-space-8);margin:var(--ds-space-8) var(--ds-space-16);padding:var(--ds-space-12);border:0;border-radius:12px;background:var(--ds-accent-soft);color:var(--ds-ink)}
+.shop-dash .fee-change-banner p{margin:0;font-size:var(--ds-text-13);line-height:18px}
+#productScreen .product-numbers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-space-12)}
+#productScreen .product-form{padding-bottom:var(--ds-space-16)}
+#productScreen .fee-preview small{display:block;margin-top:2px}
+@media(min-width:600px){#productScreen .product-numbers{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.ds-sheet .payouts-kit-title{padding:var(--ds-space-16) 0 var(--ds-space-4)}

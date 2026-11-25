@@ -20,7 +20,7 @@ assert.ok(store.includes(SELLER.replace("'", "&#39;")), "shop listing form shows
 assert.ok(store.indexOf('src="assets/fees.js?v=') < store.indexOf('src="assets/store.js?v='), "store loads fees.js first");
 assert.match(storeJs, /fees\.payoutPreview\(price, shipping\)/, "live preview includes shipping");
 assert.match(storeJs, /productShipping"\)\.addEventListener\("input",updateFeePreview\)/, "preview updates when shipping changes");
-assert.match(storeJs, /if \(managing\) \{\s*window\.DanzStakFees\?\.feeChangeBanner\(byId\("shopManager"\)\)/, "one-time banner in the shop dashboard");
+assert.match(storeJs, /if \(managing\) \{[\s\S]{0,400}window\.DanzStakFees\?\.feeChangeBanner\(byId\("shopManager"\)\)/, "one-time banner in the shop dashboard");
 assert.doesNotMatch(storeJs, /Math\.round\(price \* 0\.06\)/, "old seller-deducted math is gone");
 
 const composer = read("assets/events-page.js");

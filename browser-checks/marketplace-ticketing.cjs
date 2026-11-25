@@ -83,7 +83,7 @@ async function inspect(page, width, label) {
     for (const width of widths) {
       for (const screen of [
         { label: "member-shop", url: "store.html?member=11111111-1111-4111-8111-111111111111", ready: "Signal tour shirt" },
-        { label: "shop-manager", url: "store.html?manage=1", ready: "Open or edit your shop" },
+        { label: "shop-manager", url: "store.html?manage=1", ready: "Signal tour shirt" },
         { label: "bazaar", url: "bazaar.html", ready: "Signal tour shirt" },
         { label: "bazaar-product", url: `product.html?id=${productId}`, ready: "Secure checkout is being tested" },
         { label: "published-event", url: `event.html?id=${eventId}`, ready: "General admission" }

@@ -63,7 +63,7 @@ assert.match(page, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navig
 assert.match(page, /assets\/app-tabs\.js\?v=\d+/); assert.doesNotMatch(page, /data-icon="store"/, "no hand-written tab bar");
 assert.match(fs.readFileSync("assets/app-tabs.js", "utf8"), /"shop-example\.html": "bazaar"/, "Bazaar is the lit tab");
 assert.match(fs.readFileSync("assets/shop-example.css", "utf8"), /\.example-primary\{[^}]*background:var\(--ds-btn-go,#15803d\)/, "go buttons are green (owner 2026-11-19)");
-assert.match(fs.readFileSync("store.html", "utf8"), /href="shop-example\.html">See example shops/);
+assert.match(fs.readFileSync("store.html", "utf8"), /href="shop-example\.html"[^>]*>[\s\S]{0,200}See example shops/, "My shop links to the example shops");
 assert.match(fs.readFileSync("moving-day.html", "utf8"), /href="shop-example\.html\?shop=record"/);
 const sw = fs.readFileSync("service-worker.js", "utf8");
 for (const file of ["/shop-example.html", "/assets/shop-example.js", "/assets/shop-example.css"]) assert.ok(sw.includes(`"${file}"`), `${file} is in the offline shell`);

@@ -77,6 +77,18 @@ const assert = require("node:assert/strict");
   assert.equal(bodyOf(saved).shop.coverUrl, "https://signed.example/" + mine(1), "cover survives a name change");
   assert.equal(bodyOf(saved).shop.album.length, 2, "album survives a name change");
 
+  // F12/F21 Move to fit: the storefront picture keeps where the seller placed it; a new picture starts centred.
+  assert.deepEqual(bodyOf(saved).shop.coverPosition, { x: 50, y: 50, zoom: 1 }, "an unplaced cover sits in the middle");
+  saved = await service(event("PUT", "/marketplace/shop", { name: "Night Shift", description: "", status: "published", coverX: 20, coverY: 140, coverZoom: 1.756 }));
+  assert.deepEqual(bodyOf(saved).shop.coverPosition, { x: 20, y: 100, zoom: 1.76 }, "position saved, clamped and rounded");
+  saved = await service(event("PUT", "/marketplace/shop", { name: "Night Shift", description: "", status: "published" }));
+  assert.deepEqual(bodyOf(saved).shop.coverPosition, { x: 20, y: 100, zoom: 1.76 }, "a name save keeps the position");
+  saved = await service(event("PUT", "/marketplace/shop", { name: "Night Shift", description: "", status: "published", coverKey: mine(4) }));
+  assert.deepEqual(bodyOf(saved).shop.coverPosition, { x: 50, y: 50, zoom: 1 }, "a new cover without a position starts centred");
+  saved = await service(event("PUT", "/marketplace/shop", { name: "Night Shift", description: "", status: "published", coverKey: mine(1), coverX: 70, coverY: 30, coverZoom: 2 }));
+  assert.deepEqual(bodyOf(saved).shop.coverPosition, { x: 70, y: 30, zoom: 2 }, "a new cover saved with its position");
+  assert.equal(bodyOf(saved).shop.coverUrl, "https://signed.example/" + mine(1));
+
   // Someone else's upload or a non-image is refused.
   assert.equal((await service(event("PUT", "/marketplace/shop", { name: "X", status: "draft", coverKey: theirs }))).statusCode, 400);
   assert.equal((await service(event("PUT", "/marketplace/shop", { name: "X", status: "draft", albumKeys: [mine(2).replace(".jpg", ".mp3")] }))).statusCode, 400);

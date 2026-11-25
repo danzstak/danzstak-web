@@ -11,7 +11,7 @@ const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 const file = path.join(os.tmpdir(), "danzstak-shop-photo.png"); fs.writeFileSync(file, png);
 const pic = "data:image/png;base64," + png.toString("base64");
 (async () => {
-  const browser = await chromium.launch({ channel: "msedge", headless: true });
+  const browser = await chromium.launch(process.env.DANZSTAK_BROWSER_CHANNEL === "bundled" ? { headless: true } : { channel: process.env.DANZSTAK_BROWSER_CHANNEL || "msedge", headless: true });
   const failures = [];
   try {
     for (const width of [360, 390]) {
@@ -42,7 +42,13 @@ const pic = "data:image/png;base64," + png.toString("base64");
       await page.locator("#chooseShopCover").click();
       let picked = await chooser;
       if (!picked) failures.push(`${width}px: "Choose cover photo" opened no photo picker`);
-      else { await picked.setFiles(file); await page.waitForTimeout(800); }
+      else {
+        await picked.setFiles(file);
+        // F21: the shop front opens Move to fit, then offers itself to the profile (Keep shop only here).
+        await page.locator(".ds-fit-save").click({ timeout: 5000 }).catch(() => failures.push(`${width}px: Move to fit did not open for the shop front`));
+        await page.locator("#shopFrontKeep").click({ timeout: 5000 }).catch(() => failures.push(`${width}px: the "use it on your profile?" sheet did not open`));
+        await page.waitForTimeout(500);
+      }
       if (!saves.some(s => s.coverKey)) failures.push(`${width}px: the cover photo was not saved to the shop`);
       if (await page.locator("#shopCoverPreview").isHidden()) failures.push(`${width}px: the cover preview did not show`);
       // Album: several photos at once.
@@ -54,6 +60,7 @@ const pic = "data:image/png;base64," + png.toString("base64");
       if ((await page.locator("#shopAlbumEditor img").count()) !== 2) failures.push(`${width}px: album shows ${await page.locator("#shopAlbumEditor img").count()} photos, expected 2`);
       // Product photo from the phone (not only an https link).
       chooser = page.waitForEvent("filechooser", { timeout: 4000 }).catch(() => null);
+      await page.locator("#addProduct").click(); // the listing form is its own screen (UI kit)
       await page.locator("#chooseProductPhoto").click();
       picked = await chooser;
       if (!picked) failures.push(`${width}px: "Choose photo" for a product opened no photo picker`);

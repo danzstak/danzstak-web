@@ -12,7 +12,10 @@
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
   <link rel="stylesheet" href="assets/mobile-design-system.css?v=22">
   <link rel="stylesheet" href="assets/icon-buttons.css?v=5">
-  <link rel="stylesheet" href="assets/store.css?v=9">
+  <link rel="stylesheet" href="assets/ds-tokens.css?v=1">
+  <link rel="stylesheet" href="assets/ds.css?v=4">
+  <link rel="stylesheet" href="assets/image-position.css?v=1">
+  <link rel="stylesheet" href="assets/store.css?v=10">
   <link rel="stylesheet" href="assets/buttons.css?v=9">
   <link rel="stylesheet" href="assets/epk-ai.css?v=4">
 <link rel="stylesheet" href="assets/top-search.css?v=2">
@@ -21,7 +24,7 @@
 <script src="assets/session-guard.js?v=2"></script>
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
-<script src="assets/i18n-music.js?v=32" defer></script>
+<script src="assets/i18n-music.js?v=33" defer></script>
 <script src="assets/i18n-people.js?v=35" defer></script>
 <script src="assets/i18n-sync.js?v=40" defer></script>
 <script src="assets/i18n.js?v=427" defer></script>
@@ -38,7 +41,7 @@
   </header>
   <main id="storeMain" class="store-main" tabindex="-1">
     <section class="store-hero" aria-labelledby="storeTitle">
-      <img id="storeCover" class="store-cover" alt="" hidden>
+      <span class="store-cover-frame"><img id="storeCover" class="store-cover" alt="" hidden></span>
       <p class="store-eyebrow" id="storeEyebrow">Member shop</p>
       <h1 id="storeTitle">Shop</h1>
       <p id="storeDescription">Physical goods from a DanzStak member.</p>
@@ -52,66 +55,106 @@
       <div id="shopAlbumGrid" class="shop-album-grid"></div>
     </section>
 
-    <section id="shopManager" class="shop-manager" aria-labelledby="manageTitle" hidden>
-      <div class="manager-heading"><div><p class="store-eyebrow">Your profile shop</p><h2 id="manageTitle">Open or edit your shop</h2></div><a href="profile.html">View profile</a></div>
-      <p>One named shop per member. Published physical products also appear in the Bazaar. DanzStak never hosts music files.</p>
-      <p class="moving-day-link"><a href="moving-day.html">Moving Day: bring your whole inventory over from Discogs, eBay or Shopify (free)</a></p>
-      <p class="moving-day-link"><a href="shop-example.html">See example shops: a fan, a band and a record shop</a></p>
-      <form id="shopForm" class="shop-form">
-        <label>Shop name<input id="shopName" maxlength="60" required></label>
-        <label>About your shop<textarea id="shopDescription" maxlength="500" rows="3"></textarea></label>
-        <label>Visibility<select id="shopStatus"><option value="draft">Private draft</option><option value="published">Published on my profile</option><option value="closed">Closed</option></select></label>
-        <button type="submit">Save shop</button>
-      </form>
-      <section id="shopPhotos" class="shop-photos" aria-labelledby="shopPhotosTitle">
-        <h2 id="shopPhotosTitle">Cover and album</h2>
-        <p id="shopPhotosHint" class="store-note">Name and save your shop first, then add photos from your phone.</p>
-        <div class="shop-cover-edit">
-          <img id="shopCoverPreview" class="shop-cover-preview" alt="Your shop cover" hidden>
-          <div class="shop-photo-actions">
-            <button id="chooseShopCover" type="button" class="store-secondary-action">Choose cover photo</button>
-            <button id="removeShopCover" type="button" class="store-secondary-action" hidden>Remove cover</button>
+    <!-- UI kit screen 3 (docs/tasks/39-modern-look.md, CLAUDE.md F21): My shop. Storefront picture first (Move to fit,
+         then "use it on your profile?"), then the shop's fields, products as rows that open the product screen. -->
+    <section id="shopManager" class="ds ds-screen shop-dash" aria-labelledby="manageTitle" hidden>
+      <div class="ds-head">
+        <h1 id="manageTitle" class="ds-head__title">My shop</h1>
+        <a id="viewShopLink" class="ds-btn ds-btn--quiet" href="profile.html">View on profile</a>
+      </div>
+      <div id="shopStatusSlot"></div>
+      <section class="shop-dash__front" aria-labelledby="shopFrontTitle">
+        <h2 id="shopFrontTitle" class="ds-section__title">Shop front</h2>
+        <div class="ds-media-pick ds-media-pick--wide shop-front">
+          <div class="ds-media-pick__media">
+            <img id="shopCoverPreview" class="shop-front__img" alt="Your shop front" hidden>
+            <div id="shopFrontEmpty" class="ds-media-pick__empty"><svg class="ds-icon" aria-hidden="true"><use href="assets/icons.svg#store"></use></svg><strong>Add your shop front</strong><span>One wide photo: your table, your crates, your merch.</span></div>
           </div>
+          <div class="ds-media-pick__actions">
+            <button id="chooseShopCover" type="button" class="ds-btn ds-btn--quiet ds-media-pick__btn"><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="assets/icons.svg#image"></use></svg><span>Upload</span></button>
+            <button id="moveShopCover" type="button" class="ds-btn ds-btn--quiet ds-media-pick__btn" hidden><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="assets/icons.svg#move"></use></svg><span>Move to fit</span></button>
+          </div>
+          <button id="removeShopCover" type="button" class="ds-icon-btn ds-media-pick__corner" aria-label="Remove shop front" hidden><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="assets/icons.svg#trash-2"></use></svg></button>
           <input id="shopCoverInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
         </div>
-        <h3>Shop album</h3>
-        <div id="shopAlbumEditor" class="shop-album-grid"></div>
-        <button id="addAlbumPhotos" type="button" class="store-secondary-action">+ Add photos</button>
+        <p id="shopPhotosHint" class="ds-status">Name and save your shop first, then add photos from your phone.</p>
+      </section>
+      <form id="shopForm" class="shop-form ds-fields" novalidate>
+        <div class="ds-field"><input id="shopName" class="ds-field__input" maxlength="60" required placeholder=" " autocomplete="off"><label class="ds-field__label" for="shopName">Shop name</label><p id="shopNameError" class="ds-field__error" aria-live="polite"></p></div>
+        <div class="ds-field"><textarea id="shopDescription" class="ds-field__input" maxlength="500" rows="3" placeholder=" "></textarea><label class="ds-field__label" for="shopDescription">About your shop</label></div>
+        <input id="shopStatus" type="hidden" value="draft">
+        <button id="shopStatusPick" type="button" class="ds-pick"><svg class="ds-icon" aria-hidden="true"><use href="assets/icons.svg#lock"></use></svg><span class="ds-pick__label">Who can see it?</span><span id="shopStatusValue" class="ds-pick__value">Private draft</span><svg class="ds-icon" aria-hidden="true"><use href="assets/icons.svg#chevron-right"></use></svg></button>
+        <button type="submit" class="ds-btn ds-btn--go ds-btn--block">Save shop</button>
+      </form>
+      <div id="productManager" class="shop-dash__products" hidden>
+        <div class="ds-section-head"><h2 id="productsTitle" class="ds-section__title">Products</h2><button id="addProduct" type="button" class="ds-btn ds-btn--go"><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="assets/icons.svg#plus"></use></svg><span>Add a product</span></button></div>
+        <div id="productList" class="shop-dash__list" aria-labelledby="productsTitle"></div>
+      </div>
+      <section id="shopPhotos" class="shop-dash__album" aria-labelledby="shopPhotosTitle">
+        <div class="ds-section-head"><h2 id="shopPhotosTitle" class="ds-section__title">Shop album</h2><button id="addAlbumPhotos" type="button" class="ds-btn ds-btn--quiet"><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="assets/icons.svg#plus"></use></svg><span>Add photos</span></button></div>
+        <div id="shopAlbumEditor" class="ds-thumbs"></div>
         <input id="shopAlbumInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
       </section>
-      <div id="productManager" hidden>
-        <h2 id="productFormTitle">Add a physical product</h2>
-        <form id="productForm" class="product-form">
-          <input id="productId" type="hidden"><input id="productRevision" type="hidden">
-          <label>Product name<input id="productTitle" maxlength="120" required></label>
-          <label>Description<textarea id="productDescription" maxlength="2000" rows="4"></textarea></label>
-          <div class="product-photo-field">
-            <span class="product-photo-label">Product photo</span>
-            <img id="productPhotoPreview" class="product-photo-preview" alt="" hidden>
-            <button id="chooseProductPhoto" type="button" class="store-secondary-action">Choose photo</button>
-            <input id="productPhotoInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-            <input id="productImageKey" type="hidden">
-          </div>
-          <label>Or paste an image link (optional)<input id="productImage" type="url" inputmode="url" placeholder="https://"></label>
-          <div class="product-numbers">
-            <label>Price (USD)<input id="productPrice" inputmode="decimal" placeholder="25.00" required></label>
-            <label>Shipping (USD)<input id="productShipping" inputmode="decimal" value="0.00" required><small>Must not exceed the item price.</small></label>
-            <label>Stock<input id="productInventory" type="number" min="0" max="99999" step="1" required></label>
-          </div>
-          <label>Listing status<select id="productStatus"><option value="draft">Draft</option><option value="published">Published</option><option value="sold_out">Sold out</option></select></label>
-          <aside class="fee-preview" aria-live="polite"><strong>How you get paid</strong><span id="feePreview">Enter an item price</span><small>Buyers pay your price plus DanzStak&#39;s 6% fee ($1 more on orders under $30). You receive your full price plus your shipping. No fees come out of your payout.</small></aside>
-          <div class="form-actions"><button type="submit">Save product</button><button id="cancelProductEdit" type="button" class="store-secondary-action" hidden>Cancel edit</button></div>
-        </form>
-      </div>
+      <nav class="shop-dash__links" aria-label="More for your shop">
+        <div id="payoutsSlot"></div>
+        <a class="ds-pick" href="moving-day.html"><svg class="ds-icon" aria-hidden="true"><use href="assets/icons.svg#refresh-cw"></use></svg><span class="ds-pick__label">Moving Day</span><span class="ds-pick__value">Bring your inventory from Discogs, eBay or Shopify</span><svg class="ds-icon" aria-hidden="true"><use href="assets/icons.svg#chevron-right"></use></svg></a>
+        <a class="ds-pick" href="shop-example.html"><svg class="ds-icon" aria-hidden="true"><use href="assets/icons.svg#store"></use></svg><span class="ds-pick__label">See example shops</span><span class="ds-pick__value">A fan, a band and a record shop</span><svg class="ds-icon" aria-hidden="true"><use href="assets/icons.svg#chevron-right"></use></svg></a>
+        <p class="ds-note">Published items also appear in the Bazaar. DanzStak never hosts music files.</p>
+      </nav>
     </section>
+
+    <!-- Add / edit a product: a full-screen kit form (centred dialog from 760px), sticky Save. -->
+    <div id="productScreen" class="ds ds-form-screen" role="dialog" aria-modal="true" aria-labelledby="productFormTitle" hidden>
+      <div class="ds-form-screen__panel">
+        <header class="ds-form-screen__bar">
+          <button id="closeProductScreen" type="button" class="ds-icon-btn" aria-label="Close"><svg class="ds-icon" aria-hidden="true"><use href="assets/icons.svg#x"></use></svg></button>
+          <h2 id="productFormTitle" class="ds-form-screen__title">Add a product</h2>
+        </header>
+        <div class="ds-form-screen__body">
+          <form id="productForm" class="product-form ds-stack" novalidate>
+            <input id="productId" type="hidden"><input id="productRevision" type="hidden"><input id="productImageKey" type="hidden">
+            <div class="ds-media-pick ds-media-pick--square product-pick">
+              <div class="ds-media-pick__media">
+                <img id="productPhotoPreview" alt="" hidden>
+                <div id="productPhotoEmpty" class="ds-media-pick__empty"><svg class="ds-icon" aria-hidden="true"><use href="assets/icons.svg#camera"></use></svg><strong>Add a photo</strong><span>What the buyer gets, in good light.</span></div>
+              </div>
+              <div class="ds-media-pick__actions"><button id="chooseProductPhoto" type="button" class="ds-btn ds-btn--quiet ds-media-pick__btn"><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="assets/icons.svg#image"></use></svg><span>Choose photo</span></button></div>
+              <input id="productPhotoInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+            </div>
+            <div class="ds-fields">
+              <div class="ds-field"><input id="productTitle" class="ds-field__input" maxlength="120" required placeholder=" " autocomplete="off"><label class="ds-field__label" for="productTitle">Product name</label><p id="productTitleError" class="ds-field__error" aria-live="polite"></p></div>
+              <div class="ds-field"><textarea id="productDescription" class="ds-field__input" maxlength="2000" rows="4" placeholder=" "></textarea><label class="ds-field__label" for="productDescription">Description</label></div>
+              <div class="product-numbers">
+                <div class="ds-field"><input id="productPrice" class="ds-field__input" inputmode="decimal" required placeholder=" " autocomplete="off"><label class="ds-field__label" for="productPrice">Price (USD)</label></div>
+                <div class="ds-field"><input id="productShipping" class="ds-field__input" inputmode="decimal" value="0.00" required placeholder=" " autocomplete="off"><label class="ds-field__label" for="productShipping">Shipping (USD)</label></div>
+                <div class="ds-field"><input id="productInventory" class="ds-field__input" type="number" inputmode="numeric" min="0" max="99999" step="1" required placeholder=" "><label class="ds-field__label" for="productInventory">Stock</label></div>
+              </div>
+              <p id="productNumbersError" class="ds-field__error" aria-live="polite"></p>
+              <p class="fee-preview ds-note" aria-live="polite"><strong>How you get paid</strong> <span id="feePreview">Enter an item price</span><br><small>Buyers pay your price plus DanzStak&#39;s 6% fee ($1 more on orders under $30). You receive your full price plus your shipping. No fees come out of your payout.</small></p>
+              <input id="productStatus" type="hidden" value="draft">
+              <button id="productStatusPick" type="button" class="ds-pick"><svg class="ds-icon" aria-hidden="true"><use href="assets/icons.svg#store"></use></svg><span class="ds-pick__label">Listing</span><span id="productStatusValue" class="ds-pick__value">Draft</span><svg class="ds-icon" aria-hidden="true"><use href="assets/icons.svg#chevron-right"></use></svg></button>
+              <div class="ds-field"><input id="productImage" class="ds-field__input" type="url" inputmode="url" placeholder=" " autocomplete="off"><label class="ds-field__label" for="productImage">Or paste an image link (optional)</label></div>
+              <button id="removeProduct" type="button" class="ds-btn ds-btn--danger" hidden><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="assets/icons.svg#trash-2"></use></svg><span>Remove from shop</span></button>
+            </div>
+          </form>
+        </div>
+        <footer class="ds-form-screen__foot">
+          <p id="productScreenStatus" class="ds-form-screen__status" role="status"></p>
+          <button id="saveProduct" type="submit" form="productForm" class="ds-btn ds-btn--go ds-btn--block">Save product</button>
+        </footer>
+      </div>
+    </div>
   </main>
   <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"></nav>
   <script src="assets/icon-buttons.js?v=20" defer></script>
   <script src="assets/friendly-error.js?v=1" defer></script>
   <script src="assets/fees.js?v=2" defer></script>
-  <script src="assets/store.js?v=10" defer></script>
+  <script src="assets/ds-icon.js?v=1" defer></script>
+  <script src="assets/ds-sheet.js?v=1" defer></script>
+  <script src="assets/image-position.js?v=1" defer></script>
+  <script src="assets/store.js?v=11" defer></script>
   <script src="assets/shop-ai.js?v=1" defer></script>
-  <script src="assets/payouts.js?v=1" defer></script>
+  <script src="assets/payouts.js?v=2" defer></script>
 <script src="assets/people-search.js?v=424" defer></script>
 <script src="assets/top-search.js?v=3" defer></script>
 <script src="assets/app-bar.js?v=8" defer></script>

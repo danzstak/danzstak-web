@@ -257,6 +257,7 @@ jobs:
             '.\browser-checks\epk-ai.cjs'
             '.\browser-checks\profile-ai.cjs'
             '.\browser-checks\shop-ai.cjs'
+            '.\browser-checks\shop-manager.cjs'
             '.\browser-checks\shop-examples.cjs'
             '.\browser-checks\dailies-rotate.cjs'
             '.\browser-checks\app-tabs.cjs'

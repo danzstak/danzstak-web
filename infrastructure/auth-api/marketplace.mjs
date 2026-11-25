@@ -88,6 +88,8 @@ function number(item, name) {
 let mediaSigner = () => "";
 const SHOP_ALBUM_MAX = 60;
 const signedKey = key => (key ? mediaSigner(key) || "" : "");
+const clampPlace = (value, low, high, start) => { const n = Number(value); return Math.round(Math.max(low, Math.min(high, Number.isFinite(n) ? n : start)) * 100) / 100; };
+const coverPlace = (item, field, low, high, start) => clampPlace(item?.[field]?.N ?? start, low, high, start);
 
 function shopView(item, products, own) {
   return {
@@ -97,6 +99,8 @@ function shopView(item, products, own) {
     description: item.description?.S || "",
     status: item.status?.S || "draft",
     coverUrl: signedKey(item.coverKey?.S),
+    // F12 Move to fit: where the storefront picture sits in its 16:7 box (x/y in percent, zoom 1-3).
+    coverPosition: { x: coverPlace(item, "coverX", 0, 100, 50), y: coverPlace(item, "coverY", 0, 100, 50), zoom: coverPlace(item, "coverZoom", 1, 3, 1) },
     album: (item.albumKeys?.L || []).map(entry => entry?.S).filter(Boolean).map(key => own ? { key, url: signedKey(key) } : { url: signedKey(key) }),
     createdAt: item.createdAt?.S || "",
     updatedAt: item.updatedAt?.S || "",
@@ -371,7 +375,15 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
       }
       albumKeys = checked;
     }
-    const item = { ...key, entityType: { S: "shop" }, ownerId: { S: access.id }, name: { S: body.name }, description: { S: body.description }, status: { S: body.status }, revision: { N: String(revision) }, createdAt: existing.Item?.createdAt || { S: at }, updatedAt: { S: at }, ...(coverKey ? { coverKey: { S: coverKey } } : {}), albumKeys: { L: albumKeys.map(value => ({ S: value })) } };
+    // Where the storefront picture sits (F12). A new picture starts centred unless the seller placed it; no picture, no place.
+    const coverChanged = coverKey !== (existing.Item?.coverKey?.S || "");
+    const place = {};
+    for (const [field, low, high, start] of [["coverX", 0, 100, 50], ["coverY", 0, 100, 50], ["coverZoom", 1, 3, 1]]) {
+      const kept = coverChanged ? start : coverPlace(existing.Item, field, low, high, start);
+      const value = request[field] !== undefined && request[field] !== null && request[field] !== "" ? clampPlace(request[field], low, high, kept) : kept;
+      if (coverKey) place[field] = { N: String(value) };
+    }
+    const item = { ...key, entityType: { S: "shop" }, ownerId: { S: access.id }, name: { S: body.name }, description: { S: body.description }, status: { S: body.status }, revision: { N: String(revision) }, createdAt: existing.Item?.createdAt || { S: at }, updatedAt: { S: at }, ...(coverKey ? { coverKey: { S: coverKey }, ...place } : {}), albumKeys: { L: albumKeys.map(value => ({ S: value })) } };
     await db.send(new PutItemCommand({ TableName: tableName, Item: item }));
     const products = (await queryProducts(ownerKey(access.id))).filter(product => product.status?.S !== "archived");
     await syncBazaar(item, products);

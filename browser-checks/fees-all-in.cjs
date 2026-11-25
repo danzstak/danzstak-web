@@ -70,13 +70,17 @@ function payload(pathname) {
       const banner = page.locator(".fee-change-banner");
       await banner.waitFor();
       assert.match(await banner.innerText(), /Fee change: Buyers pay your price plus DanzStak's 6% fee/);
+      await page.locator("#addProduct").click(); // My shop (UI kit): the listing form is its own screen
+      await page.locator("#productScreen:not([hidden])").waitFor();
       await page.locator("#productPrice").fill("25.00");
       await page.locator("#productShipping").fill("6.00");
       assert.equal(await page.locator("#feePreview").innerText(), "Buyer pays $33.50 · You get $31.00", `${width}px shop listing preview`);
       await noOverflow("shop manager"); await shot("shop-manager");
+      await page.locator("#closeProductScreen").click();
+      await page.locator("#productScreen").waitFor({ state: "hidden" });
       await banner.getByRole("button", { name: "Got it" }).click();
       await page.reload({ waitUntil: "domcontentloaded" });
-      await page.locator("#feePreview").waitFor();
+      await page.locator("#feePreview").waitFor({ state: "attached" });
       assert.equal(await page.locator(".fee-change-banner").count(), 0, `${width}px the banner shows once`);
 
       // The purchase dialog shown before every DanzStak purchase breaks the fee out (Tour Manager's Buy form is gone, T0-C1).
