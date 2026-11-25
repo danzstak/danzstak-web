@@ -431,10 +431,10 @@ $profileMarkup = Get-Content -LiteralPath (Join-Path $root 'profile.html') -Raw 
 foreach ($profileShell in @('background-color:var(--ds-canvas,#f6f6f4)', 'class="header-actions"', 'href="messages.html">Messages</a>', 'aria-label="Account navigation"')) {
   if (-not $profileMarkup.Contains($profileShell)) { Add-Failure "Profiles: familiar responsive navigation shell is missing: $profileShell" }
 }
-foreach ($notificationHistoryUi in @('notice.unread !== false', 'row.classList.toggle("is-read"', 'notificationSourceCounts.engagement = 0')) {
+foreach ($notificationHistoryUi in @('notice.unread !== false', 'kit.place(list, rows)', 'notificationSourceCounts.engagement = 0')) {
   if (-not $feedEnhancements.Contains($notificationHistoryUi)) { Add-Failure "Notifications: read history behavior is missing: $notificationHistoryUi" }
 }
-foreach ($notificationAccessibility in @('list.setAttribute("aria-label", feedTranslate("Notifications"))', 'list.setAttribute("aria-live", "polite")', 'list.setAttribute("aria-busy", "true")', 'loading.setAttribute("role", "status")', 'list.setAttribute("aria-busy", "false")')) {
+foreach ($notificationAccessibility in @('list.setAttribute("aria-label", feedTranslate("Notifications"))', 'list.setAttribute("aria-live", "polite")', 'list.setAttribute("aria-busy", "true")', 'skeleton(list, feedTranslate("Loading notifications…"))', 'list.setAttribute("aria-busy", "false")')) {
   if (-not $feedEnhancements.Contains($notificationAccessibility)) { Add-Failure "Notifications: dynamic loading state is not accessible: $notificationAccessibility" }
 }
 foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey && !viewingOtherProfile')) {
@@ -617,7 +617,7 @@ if (-not $feedEnhancementsJs.Contains('readSections().Settings?.notifications ==
 }
 if (-not $feedEnhancementsJs.Contains('const people = new Map();') -or
     -not $feedEnhancementsJs.Contains('fetch("https://api.danzstak.com/friends"') -or
-    -not $feedEnhancementsJs.Contains('avatar.className = "notification-avatar"') -or
+    -not $feedEnhancementsJs.Contains('avatar: { picture: person?.picture, initial: displayName, person, profileHref') -or
     -not $feedEnhancementsJs.Contains('if ((featurePanel.dataset?.workspaceName || featureHeading.textContent) === "Notifications") renderWorkspace("Notifications")')) {
   Add-Failure 'Notifications: member identity or post-read refresh is incomplete'
 }

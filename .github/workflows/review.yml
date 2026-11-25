@@ -290,6 +290,7 @@ jobs:
             '.\browser-checks\sync-standalone.cjs'
             '.\browser-checks\sync-phone-setup.cjs'
             '.\browser-checks\device-reminder.cjs'
+            '.\browser-checks\notifications-screen.cjs'
             '.\browser-checks\incoming-call-everywhere.cjs'
             '.\browser-checks\profile-facepile.cjs'
             '.\browser-checks\friends-screen.cjs'

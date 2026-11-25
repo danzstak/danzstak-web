@@ -27,7 +27,8 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
 const textPairs = [];
 for (const ink of ["--ds-ink", "--ds-ink-soft", "--ds-muted"])
   for (const ground of ["--ds-surface", "--ds-canvas", "--ds-surface-subtle"]) textPairs.push([ink, ground]);
-textPairs.push(["--ds-ink", "--ds-accent-soft"], ["--ds-btn-go-ink", "--ds-btn-go"], ["--ds-danger-ink", "--ds-danger"]);
+// Unread rows (Notifications) sit on accent-soft: their sentence, sub-line and time must read there too.
+textPairs.push(["--ds-ink", "--ds-accent-soft"], ["--ds-ink-soft", "--ds-accent-soft"], ["--ds-muted", "--ds-accent-soft"], ["--ds-btn-go-ink", "--ds-btn-go"], ["--ds-danger-ink", "--ds-danger"]);
 
 const failures = [];
 for (const [name, set] of [["Day", day], ["Night", night]]) {

@@ -9,3 +9,63 @@
 
 /* Focus ring for every control on a moved screen. */
 .ds :focus-visible{outline:2px solid var(--ds-focus);outline-offset:2px}
+
+/* Screen readers only. */
+.ds-sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* Buttons (spec 39 section 3): go = green pill, quiet = plain pill; 44px high; press scale; one disabled look. */
+.ds .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;min-width:44px;margin:0;padding:0 20px;border:1px solid transparent;border-radius:var(--ds-radius-pill);font:inherit;font-size:var(--ds-text-15);font-weight:700;line-height:1;cursor:pointer;text-decoration:none;-webkit-tap-highlight-color:transparent;transition:transform var(--ds-motion-press) ease,opacity var(--ds-motion-fade) ease}
+.ds .ds-btn:active{transform:scale(.97)}
+.ds .ds-btn:disabled{opacity:.5;cursor:default;transform:none}
+.ds .ds-btn--go{background:var(--ds-btn-go);color:var(--ds-btn-go-ink)}
+.ds .ds-btn--quiet{background:var(--ds-surface);border-color:var(--ds-hairline);color:var(--ds-ink)}
+
+/* List (spec 39 section 3): sections with a title, rows with a 56px avatar, one sentence, a small time, the whole row
+   one tap target. Hairlines between rows, never boxes; unread rows on the soft accent tint. */
+.ds.ds-list{display:block;margin:0;padding:0 0 var(--ds-space-16);background:var(--ds-surface);color:var(--ds-ink)}
+.ds .ds-section+.ds-section{margin-top:var(--ds-space-8)}
+.ds .ds-section__title{margin:0;padding:var(--ds-space-12) var(--ds-space-16) var(--ds-space-4);font-size:var(--ds-text-17);font-weight:800;font-stretch:110%;line-height:24px;color:var(--ds-ink)}
+.ds .ds-row{position:relative;display:grid;grid-template-columns:56px minmax(0,1fr) 12px;align-items:center;column-gap:var(--ds-space-12);min-height:72px;margin:0;padding:var(--ds-space-8) var(--ds-space-16);border:0;border-radius:0;background:var(--ds-surface);color:var(--ds-ink);box-shadow:none}
+.ds .ds-row+.ds-row::before{content:"";position:absolute;top:0;right:0;left:84px;height:1px;background:var(--ds-hairline);pointer-events:none}
+.ds .ds-row.is-unread{background:var(--ds-accent-soft)}
+.ds .ds-row.is-unread+.ds-row.is-unread::before{display:none}
+.ds .ds-row__target{position:absolute;inset:0;z-index:0;display:block;width:100%;margin:0;padding:0;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;cursor:pointer;appearance:none;-webkit-tap-highlight-color:transparent;transition:background-color var(--ds-motion-fade) ease}
+.ds .ds-row__target:active{background:rgb(11 11 12 / .06)}
+.ds .ds-row__target:disabled{cursor:default}
+.ds .ds-row__target:focus-visible{outline-offset:-2px}
+.ds .ds-row__avatar{position:relative;z-index:1;display:block;width:56px;height:56px;color:inherit;text-decoration:none}
+.ds span.ds-row__avatar{pointer-events:none}
+.ds .ds-row__photo{display:grid;place-items:center;width:56px;height:56px;overflow:hidden;border-radius:50%;background:var(--ds-ink);color:var(--ds-surface);font-size:var(--ds-text-22);font-weight:800}
+.ds .ds-row__photo img{display:block;width:100%;height:100%;object-fit:cover}
+.ds .ds-row__badge{position:absolute;right:-4px;bottom:-4px;display:grid;place-items:center;width:26px;height:26px;border:2px solid var(--ds-surface);border-radius:50%;color:#fff}
+.ds .ds-row.is-unread .ds-row__badge{border-color:var(--ds-accent-soft)}
+.ds .ds-row__badge .ds-icon{width:14px;height:14px;stroke-width:2.5}
+.ds .ds-row__badge--accent{background:var(--ds-accent)}
+.ds .ds-row__badge--go{background:var(--ds-btn-go)}
+.ds .ds-row__badge--danger{background:var(--ds-danger)}
+.ds .ds-row__badge--ink{background:var(--ds-ink);color:var(--ds-surface)}
+.ds .ds-row__body{position:relative;z-index:1;display:grid;gap:2px;min-width:0;pointer-events:none}
+.ds .ds-row__text{display:-webkit-box;margin:0;overflow:hidden;font-size:var(--ds-text-15);font-weight:400;line-height:20px;color:var(--ds-ink);overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:3}
+.ds .ds-row__text strong{font-weight:800}
+.ds .ds-row__sub{color:var(--ds-ink-soft)}
+.ds .ds-row__time{font-family:var(--ds-font-mono);font-size:var(--ds-text-12);line-height:16px;letter-spacing:.02em;color:var(--ds-muted)}
+.ds .ds-row__actions{display:flex;flex-wrap:wrap;gap:var(--ds-space-8);margin-top:var(--ds-space-8);pointer-events:auto}
+.ds .ds-row__error{margin:var(--ds-space-4) 0 0;font-size:var(--ds-text-13);font-weight:700;color:var(--ds-ink)}
+.ds .ds-row__dot{width:12px;height:12px;border-radius:50%;background:var(--ds-accent)}
+.ds .ds-row__link{display:flex;align-items:center;min-height:44px;margin:0;padding:0 var(--ds-space-16) 0 84px;background:inherit;color:var(--ds-ink);font-weight:700;text-decoration:underline;text-decoration-color:var(--ds-accent);text-decoration-thickness:2px;text-underline-offset:3px}
+.ds .ds-row.is-unread+.ds-row__link{background:var(--ds-accent-soft)}
+.ds .ds-empty{margin:0;padding:var(--ds-space-24) var(--ds-space-16);text-align:center;color:var(--ds-ink-soft)}
+
+/* Skeleton: shimmer blocks shaped like the content, instead of "Loading…". */
+.ds .ds-shimmer{display:block;border-radius:var(--ds-radius-pill);background:linear-gradient(90deg,var(--ds-surface-subtle) 25%,var(--ds-hairline) 50%,var(--ds-surface-subtle) 75%);background-size:200% 100%;animation:ds-shimmer 1.2s linear infinite}
+.ds .ds-row--skeleton .ds-row__photo{border-radius:50%}
+.ds .ds-shimmer--line{width:85%;height:14px}
+.ds .ds-shimmer--short{width:30%;height:10px;margin-top:6px}
+@keyframes ds-shimmer{from{background-position:100% 0}to{background-position:-100% 0}}
+@media (prefers-reduced-motion:reduce){.ds .ds-shimmer{animation:none}.ds .ds-btn,.ds .ds-row__target{transition:none}}
+
+/* Screen: a page area that has moved onto the kit (spec 39 section 4). Edge to edge on phones, the title in the kit's
+   type, then the content. */
+.ds.ds-screen{display:block;margin:0;padding:0 0 var(--ds-space-16);border:0;border-radius:0;background:var(--ds-surface);box-shadow:none;color:var(--ds-ink)}
+.ds.ds-screen>h1,.ds.ds-screen>h2,.ds.ds-screen>h3{margin:0;padding:var(--ds-space-16) var(--ds-space-16) var(--ds-space-4);font-size:var(--ds-text-28);font-weight:800;font-stretch:110%;line-height:34px;letter-spacing:-.01em;color:var(--ds-ink)}
+.ds.ds-screen>p:empty{display:none}

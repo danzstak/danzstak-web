@@ -72,25 +72,16 @@ function updateNotificationCount(count) {
 
 if (typeof MutationObserver === "function") new MutationObserver(() => { if (lastNotificationCount !== null) updateNotificationCount(lastNotificationCount); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
 
-function formatNotificationTimestamp(value) {
-  const created = new Date(value || "");
-  if (Number.isNaN(created.valueOf())) return "";
-  return created.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
-}
-
-function formatReactionNotification(displayName, reaction) {
-  const label = String(reaction || "").trim();
-  const templates = {
-    Like: "{name} liked your post.",
-    Dislike: "{name} disliked your post.",
-    Love: "{name} loved your post.",
-    Laugh: "{name} laughed at your post.",
-    Wow: "{name} reacted Wow to your post.",
-    Sad: "{name} reacted Sad to your post.",
-    Fire: "{name} reacted Fire to your post."
-  };
-  return feedFormat(templates[label] || "{name} reacted to your post.", { name: displayName });
-}
+// Reaction notifications, one sentence each with the name in bold (assets/notifications.js draws them).
+const REACTION_NOTIFICATION_TEMPLATES = Object.freeze({
+  Like: "{name} liked your post.",
+  Dislike: "{name} disliked your post.",
+  Love: "{name} loved your post.",
+  Laugh: "{name} laughed at your post.",
+  Wow: "{name} reacted Wow to your post.",
+  Sad: "{name} reacted Sad to your post.",
+  Fire: "{name} reacted Fire to your post."
+});
 
 async function readArrayResponse(response, key) {
   if (!response?.ok) return { available: false, items: [] };
@@ -641,19 +632,21 @@ async function respondToNotificationRequest(row, email, accept) {
   } catch (error) {
     buttons.forEach(button => { button.disabled = false; });
     const status = document.createElement("p");
-    status.className = "notification-request-status muted";
+    status.className = "notification-request-status ds-row__error";
     status.setAttribute("role", "alert");
     status.textContent = feedTranslate("Friend request could not be updated.");
-    row.appendChild(status);
+    (row.querySelector(".ds-row__body") || row).appendChild(status);
     return false;
   }
-  const notificationList = row.parentElement;
+  const notificationList = row.closest(".notification-list") || row.parentElement;
+  const section = row.closest(".ds-section");
   row.remove();
+  if (section && !section.querySelector(".notification-row")) section.remove();
   notificationSourceCounts.social = Math.max(0, Number(notificationSourceCounts.social || 1) - 1);
   updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
   if (notificationList && !notificationList.querySelector(".notification-row")) {
     const empty = document.createElement("p");
-    empty.className = "muted";
+    empty.className = "muted ds-empty";
     empty.textContent = feedTranslate("No new notifications.");
     notificationList.appendChild(empty);
   }
@@ -760,6 +753,11 @@ function renderWorkspace(name) {
   }
   workspace.replaceChildren();
   featurePanel.classList.toggle("friends-feature-view", name === "Friends");
+  // Screens moved onto the UI kit (spec 39) wear its tokens on the whole screen, title included.
+  const onKit = name === "Notifications";
+  featurePanel.classList.toggle("ds", onKit);
+  featurePanel.classList.toggle("ds-screen", onKit);
+  featurePanel.classList.toggle("panel", !onKit); // the old card frame (.panel padding, border, radius) stays off a kit screen
   featurePanel.querySelector(".friends-heading-invite")?.remove();
   workspace.classList.remove("settings-workspace", "events-workspace", "groups-workspace", "artist-hq-workspace");
   const saved = readSections();
@@ -1467,11 +1465,9 @@ function renderWorkspace(name) {
     list.setAttribute("aria-label", feedTranslate("Notifications"));
     list.setAttribute("aria-live", "polite");
     list.setAttribute("aria-busy", "true");
-    const loading = document.createElement("p");
-    loading.className = "muted";
-    loading.setAttribute("role", "status");
-    loading.textContent = feedTranslate("Loading notifications…");
-    list.appendChild(loading);
+    // UI kit (spec 39, screen 1): the list wears the Backstage tokens; shimmer rows while it loads.
+    list.classList.add("ds-list");
+    window.danzstakNotifications?.skeleton(list, feedTranslate("Loading notifications…"));
     workspace.appendChild(list);
     async function loadNotificationSources() {
       let results = [];
@@ -1529,7 +1525,8 @@ function renderWorkspace(name) {
         updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
         list.replaceChildren();
         list.setAttribute("aria-busy", "false");
-        if (reminderNeeded) { list.append(reminder.row()); reminder.markSeen(); }
+        const rows = [];
+        if (reminderNeeded) { rows.push(reminder.row()); reminder.markSeen(); }
         const appendAvailabilityWarning = () => {
           const warning = document.createElement("p");
           warning.className = "muted notification-source-warning";
@@ -1542,14 +1539,16 @@ function renderWorkspace(name) {
           retry.addEventListener("click", () => renderWorkspace("Notifications"));
           list.append(warning, retry);
         };
+        const kit = window.danzstakNotifications;
         if (!data.notifications.length) {
+          kit.place(list, rows);
           if (!notificationSourcesComplete) {
             appendAvailabilityWarning();
             return;
           }
           if (reminderNeeded) return;
           const empty = document.createElement("p");
-          empty.className = "muted";
+          empty.className = "muted ds-empty";
           empty.textContent = feedTranslate("No new notifications.");
           list.appendChild(empty);
           return;
@@ -1559,130 +1558,48 @@ function renderWorkspace(name) {
             ? { memberId: notice.memberId, name: notice.name, picture: notice.picture }
             : people.get(String(notice.email || "").toLowerCase());
           const displayName = person?.name || feedTranslate("DanzStak member");
-          const row = document.createElement("article");
-          row.className = "notification-row";
-          row.classList.toggle("is-read", notice.unread === false);
           const memberId = String(person?.memberId || "").trim();
-          const avatar = document.createElement(memberId ? "a" : "span");
-          avatar.className = "notification-avatar";
-          if (memberId) {
-            avatar.href = `profile.html?member=${encodeURIComponent(memberId)}`;
-            avatar.setAttribute("aria-label", feedFormat("Open {name} profile", { name: displayName }));
-          }
-          if (person?.picture) {
-            const picture = document.createElement("img");
-            picture.src = person.picture;
-            picture.alt = "";
-            picture.referrerPolicy = "no-referrer";
-            window.danzstakIdentityMedia?.install(picture, person);
-            avatar.appendChild(picture);
-          }
-          else {
-            avatar.textContent = displayName.charAt(0).toUpperCase();
-            if (!memberId) avatar.setAttribute("aria-hidden", "true");
-          }
-          const message = document.createElement("p");
-          message.textContent = notice.type === "booking_reply"
-            ? `${notice.venueName || feedTranslate("A venue")} ${feedTranslate(notice.verb || "answered your pitch")}${notice.proposedDate ? ` (${notice.proposedDate})` : ""}${notice.preview ? `: ${notice.preview}` : ""}`
-            : notice.type === "plan"
-            ? notice.preview
-            : notice.type === "message"
-            ? `${displayName}: ${notice.preview || feedTranslate("New message")}`
-            : notice.type === "group_everyone"
-              ? feedFormat("{name} notified @everyone in {group}: {preview}", { name: displayName, group: notice.groupName || feedTranslate("your Tribe"), preview: notice.preview || feedTranslate("New announcement") })
-            : notice.type === "reaction"
-              ? formatReactionNotification(displayName, notice.preview)
-              : notice.type === "tag"
-                ? feedFormat("{name} tagged you in a post.", { name: displayName })
-                : notice.type === "reply"
-                  ? feedFormat("{name} replied to you: {preview}", { name: displayName, preview: notice.preview || feedTranslate("New reply") })
-                : notice.type === "comment"
-                ? feedFormat("{name} commented: {preview}", { name: displayName, preview: notice.preview || feedTranslate("New comment") })
-                : notice.type === "friend_accepted"
-                ? feedFormat("{name} accepted your friend request.", { name: displayName })
-                : feedFormat("{name} sent you a friend request.", { name: displayName });
-          const copy = document.createElement("div");
-          copy.className = "notification-copy";
-          copy.appendChild(message);
-          const timestamp = formatNotificationTimestamp(notice.createdAt);
-          if (timestamp) {
-            const time = document.createElement("time");
-            time.dateTime = notice.createdAt;
-            time.textContent = timestamp;
-            copy.appendChild(time);
-          }
-          const actions = document.createElement("div");
-          actions.className = "notification-actions";
-          if (notice.type === "booking_reply") {
-            // Owner 2026-11-16: open the booking thread in SYNC straight from the bell.
-            const open = document.createElement("a");
-            open.className = "primary";
-            open.textContent = feedTranslate("Open booking thread");
-            open.href = /^[a-zA-Z0-9_-]{16,100}$/.test(String(notice.outreachId || "")) ? `messages.html?section=bookings&outreach=${encodeURIComponent(notice.outreachId)}` : "messages.html?section=bookings";
-            open.setAttribute("aria-label", `${feedTranslate("Open booking thread")}: ${notice.venueName || ""}`);
-            actions.appendChild(open);
-          } else if (notice.type === "group_everyone") {
-            const open = document.createElement("a");
-            open.className = "primary";
-            open.textContent = feedTranslate("Open Tribe");
-            open.href = /^[a-f0-9-]{36}$/i.test(String(notice.groupId || ""))
-              ? `feed.html?view=groups&tribe=${encodeURIComponent(notice.groupId)}#groups`
-              : "feed.html?view=groups#groups";
-            open.setAttribute("aria-label", `${feedTranslate("Open Tribe")}: ${notice.groupName || feedTranslate("Tribe")}`);
-            actions.appendChild(open);
-          } else if (["reaction", "comment", "reply", "tag"].includes(notice.type)) {
-            const open = document.createElement("a");
-            open.className = "primary";
-            open.textContent = feedTranslate("View post");
-            open.setAttribute("aria-label", `${feedTranslate("View post")}: ${displayName}`);
-            open.href = `feed.html#post-${encodeURIComponent(notice.postId)}`;
-            actions.appendChild(open);
-          } else if (notice.type === "plan") {
-            const open = document.createElement("button");
-            open.type = "button";
-            open.className = "primary";
-            open.textContent = feedTranslate("Open chat");
-            open.addEventListener("click", () => {
-              sessionStorage.setItem("danzstakRequestedPlan", String(notice.planId || ""));
-              if (typeof window.openMessageDrawer === "function") window.openMessageDrawer(notice.email);
-            });
-            actions.appendChild(open);
-          } else if (notice.type === "message") {
-            const open = document.createElement("button");
-            open.type = "button";
-            open.className = "primary";
-            open.textContent = feedTranslate("Open chat");
-            open.setAttribute("aria-label", `${feedTranslate("Open chat")}: ${displayName}`);
-            open.addEventListener("click", () => {
-              if (typeof window.openMessageDrawer === "function") window.openMessageDrawer(notice.email);
-              setTimeout(() => {
-                refreshNotificationCount();
-                if ((featurePanel.dataset?.workspaceName || featureHeading.textContent) === "Notifications") renderWorkspace("Notifications");
-              }, 1500);
-            });
-            actions.appendChild(open);
-          } else if (notice.type === "friend_accepted") {
-            row.classList.add("is-read");
-            const open = document.createElement("a");
-            open.className = "button secondary";
-            open.href = memberId ? `profile.html?member=${encodeURIComponent(memberId)}` : "friends.html";
-            open.textContent = feedTranslate("View profile");
-            open.setAttribute("aria-label", `${feedTranslate("View profile")}: ${displayName}`);
-            actions.appendChild(open);
-          } else for (const [label, accept] of [["Accept", true], ["Decline", false]]) {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.textContent = feedTranslate(label);
-            button.setAttribute("aria-label", `${feedTranslate(label)}: ${displayName}`);
-            button.className = accept ? "primary" : "secondary";
-            button.addEventListener("click", async () => {
-              await respondToNotificationRequest(row, notice.email, accept);
-            });
-            actions.appendChild(button);
-          }
-          row.append(avatar, copy, actions);
-          list.appendChild(row);
+          const profileHref = memberId ? `profile.html?member=${encodeURIComponent(memberId)}` : "";
+          const kind = notice.type === "friend_accepted" || ["booking_reply", "plan", "message", "group_everyone", "reaction", "tag", "reply", "comment"].includes(notice.type) ? notice.type : "friend_request";
+          // One running sentence, the name in bold (F8). Every template goes through the translation layer.
+          const say = (template, values = {}, bold = ["name"]) => kit.sentence(feedTranslate(template), { name: displayName, ...values }, bold);
+          const text = kind === "booking_reply"
+            ? kit.sentence(`{venue} ${feedTranslate(notice.verb || "answered your pitch")}${notice.proposedDate ? ` (${notice.proposedDate})` : ""}${notice.preview ? `: ${notice.preview}` : ""}`, { venue: notice.venueName || feedTranslate("A venue") }, ["venue"])
+            : kind === "plan" ? kit.sentence(String(notice.preview || ""))
+            : kind === "message" ? kit.sentence(`{name}: ${notice.preview || feedTranslate("New message")}`, { name: displayName })
+            : kind === "group_everyone" ? say("{name} notified @everyone in {group}: {preview}", { group: notice.groupName || feedTranslate("your Tribe"), preview: notice.preview || feedTranslate("New announcement") }, ["name", "group"])
+            : kind === "reaction" ? say(REACTION_NOTIFICATION_TEMPLATES[String(notice.preview || "").trim()] || "{name} reacted to your post.")
+            : kind === "tag" ? say("{name} tagged you in a post.")
+            : kind === "reply" ? say("{name} replied to you: {preview}", { preview: notice.preview || feedTranslate("New reply") })
+            : kind === "comment" ? say("{name} commented: {preview}", { preview: notice.preview || feedTranslate("New comment") })
+            : kind === "friend_accepted" ? say("{name} accepted your friend request.")
+            : say("{name} sent you a friend request.");
+          // Where a tap on the row goes: the post, the booking thread, the Tribe, the chat or the person.
+          const open = kind === "booking_reply"
+            ? { href: /^[a-zA-Z0-9_-]{16,100}$/.test(String(notice.outreachId || "")) ? `messages.html?section=bookings&outreach=${encodeURIComponent(notice.outreachId)}` : "messages.html?section=bookings" }
+            : kind === "group_everyone"
+              ? { href: /^[a-f0-9-]{36}$/i.test(String(notice.groupId || "")) ? `feed.html?view=groups&tribe=${encodeURIComponent(notice.groupId)}#groups` : "feed.html?view=groups#groups" }
+            : ["reaction", "comment", "reply", "tag"].includes(kind) ? { href: `feed.html#post-${encodeURIComponent(notice.postId)}` }
+            : kind === "plan" ? { onClick: () => { sessionStorage.setItem("danzstakRequestedPlan", String(notice.planId || "")); if (typeof window.openMessageDrawer === "function") window.openMessageDrawer(notice.email); } }
+            : kind === "message" ? { onClick: () => {
+                if (typeof window.openMessageDrawer === "function") window.openMessageDrawer(notice.email);
+                setTimeout(() => {
+                  refreshNotificationCount();
+                  if ((featurePanel.dataset?.workspaceName || featureHeading.textContent) === "Notifications") renderWorkspace("Notifications");
+                }, 1500);
+              } }
+            : { href: profileHref || "friends.html" };
+          let node;
+          const actions = kind === "friend_request"
+            ? [["Accept", true, "go"], ["Decline", false, "quiet"]].map(([label, accept, tone]) => kit.action(feedTranslate(label), tone, () => respondToNotificationRequest(node, notice.email, accept), `${feedTranslate(label)}: ${displayName}`))
+            : [];
+          // A friend request stays "new" until it is answered; an accepted request is news, not a task.
+          const unread = kind === "friend_accepted" ? false : notice.unread !== false;
+          node = kit.row({ kind, unread, text, time: notice.createdAt, open, actions,
+            avatar: { picture: person?.picture, initial: displayName, person, profileHref, profileLabel: feedFormat("Open {name} profile", { name: displayName }) } });
+          rows.push({ node, unread });
         }
+        kit.place(list, rows);
         if (!notificationSourcesComplete) appendAvailabilityWarning();
         if (engagement.length) {
           postActionFetch("/engagement-notifications/read", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" })

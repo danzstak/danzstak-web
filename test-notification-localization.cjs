@@ -44,20 +44,20 @@ assert.match(feed, /feedFormat\(safeCount === 1 \? "\{label\}, \{count\} new not
 assert.match(feed, /feedFormat\(safeCount === 1 \? "\{count\} new notification\." : "\{count\} new notifications\."/, "live notification announcements should use localized singular and plural text");
 assert.match(feed, /feedTranslate\("No new notifications\."\)/, "cleared notification counts should announce in the selected language");
 assert.match(feed, /list\.setAttribute\("aria-label", feedTranslate\("Notifications"\)\)/, "the notification region label should use the selected language");
-assert.match(feed, /loading\.textContent = feedTranslate\("Loading notifications…"\)/, "the notification loading state should use the selected language");
+assert.match(feed, /skeleton\(list, feedTranslate\("Loading notifications…"\)\)/, "the notification loading state (read by screen readers) should use the selected language");
 assert.match(feed, /empty\.textContent = feedTranslate\("No new notifications\."\)/, "the notification empty state should use the selected language");
 assert.match(feed, /notificationDrawer\.setAttribute\("aria-label", feedTranslate\("Notifications"\)\)/, "the notification dialog label should use the selected language");
 assert.match(feed, /setAttribute\("aria-label", feedTranslate\("Close notifications"\)\)/, "the notification close control should use the selected language");
 assert.match(feed, /error\.textContent = feedTranslate\("Notifications could not be loaded\."\)/, "the notification failure state should use the selected language");
 assert.match(feed, /retry\.textContent = feedTranslate\("Retry"\)/, "the notification retry action should use the selected language");
-for (const action of ["Open Tribe", "View post", "Open chat"]) assert.match(feed, new RegExp(`open\\.textContent = feedTranslate\\(\"${action}\"\\)`), `${action} should use the selected language`);
-assert.match(feed, /button\.textContent = feedTranslate\(label\)/, "friend-request actions should use the selected language");
-assert.match(feed, /return feedFormat\(templates\[label\] \|\| "\{name\} reacted to your post\.", \{ name: displayName \}\)/, "reaction notices should use parameterized translated templates");
-assert.match(feed, /feedFormat\("\{name\} notified @everyone in \{group\}: \{preview\}"/, "Tribe announcements should use a parameterized translated template");
-assert.match(feed, /feedFormat\("\{name\} tagged you in a post\."/, "tag notices should use a parameterized translated template");
-assert.match(feed, /feedFormat\("\{name\} replied to you: \{preview\}"/, "reply notices should use a parameterized translated template");
-assert.match(feed, /feedFormat\("\{name\} commented: \{preview\}"/, "comment notices should use a parameterized translated template");
-assert.match(feed, /feedFormat\("\{name\} sent you a friend request\."/, "friend-request notices should use a parameterized translated template");
+// UI kit rows (spec 39 screen 1): no "View post" / "Open chat" buttons, the whole row opens; every sentence is translated.
+assert.doesNotMatch(feed, /feedTranslate\("(View post|Open chat|Open Tribe|View profile|Open booking thread)"\)/, "no per-row text buttons on Notifications");
+assert.match(feed, /kit\.action\(feedTranslate\(label\), tone/, "friend-request actions should use the selected language");
+assert.match(feed, /say\(REACTION_NOTIFICATION_TEMPLATES\[[^\]]+\] \|\| "\{name\} reacted to your post\."\)/, "reaction notices should use parameterized translated templates");
+const say = /const say = \(template, values = \{\}, bold = \["name"\]\) => kit\.sentence\(feedTranslate\(template\)/;
+assert.match(feed, say, "every sentence template goes through the translation layer");
+for (const template of ["{name} notified @everyone in {group}: {preview}", "{name} tagged you in a post.", "{name} replied to you: {preview}", "{name} commented: {preview}", "{name} sent you a friend request."])
+  assert.ok(feed.includes(`say(${JSON.stringify(template)}`), `${template} uses a parameterized translated template`);
 assert.match(feed, /feedFormat\("Open \{name\} profile"/, "notification profile links should have a localized accessible name");
 assert.doesNotMatch(feed, /`\$\{displayName\} (?:tagged you|replied to you|commented|sent you a friend request)/, "activity notices must not bypass the translation layer");
 assert.match(feed, /typeof MutationObserver === "function"[\s\S]{0,40}new MutationObserver\(\(\) => \{ if \(lastNotificationCount !== null\) updateNotificationCount\(lastNotificationCount\); \}\)/, "language changes should immediately refresh notification labels without announcing a false count change");

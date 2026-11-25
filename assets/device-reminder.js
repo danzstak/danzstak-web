@@ -34,27 +34,24 @@
   const unread = () => Date.now() - seenAt() > AGAIN_MS;
   const markSeen = () => { try { localStorage.setItem(SEEN_KEY, String(Date.now())); } catch { /* optional */ } };
 
+  // One kit list row (assets/notifications.js): the whole row opens SYNC's "verify your number"; the DS number is offered
+  // right under it. Returns { node, after, unread } for Notifications' New / Earlier sections.
   function row() {
-    const link = document.createElement("a");
-    link.className = "notification-row notification-row--device";
-    link.href = "/sync/?device=register";
-    link.classList.toggle("is-read", !unread());
-    const icon = document.createElement("span"); icon.className = "notification-avatar";
-    const image = document.createElement("img"); image.src = "assets/sync-icon-192.png?v=1"; image.alt = ""; image.width = 44; image.height = 44;
-    icon.append(image);
+    const kit = window.danzstakNotifications;
     const text = document.createElement("p");
+    text.className = "ds-row__text";
     const title = document.createElement("strong"); title.textContent = t("Verify this device for SYNC calls");
-    const line = document.createElement("span"); line.textContent = t("Calls and voice messages need it. Texting already works.");
-    text.append(title, line);
-    link.append(icon, text);
+    const line = document.createElement("span"); line.className = "ds-row__sub"; line.textContent = t("Calls and voice messages need it. Texting already works.");
+    text.append(title, " ", line);
+    const isUnread = unread();
+    const node = kit.row({ kind: "device", unread: isUnread, text, open: { href: "/sync/?device=register" }, extraClass: "notification-row--device",
+      avatar: { picture: "assets/sync-icon-192.png?v=1" } });
     // Owner 2026-11-19: "if they don't wish to put their phone number in [they] can get a ds- number … they have to buy
     // the ds- number … just offer it in the notification" ($3, the existing Stripe checkout in SYNC's device panel).
     const ds = document.createElement("a");
-    ds.className = "notification-ds-link"; ds.href = "/sync/?device=register&ds=1";
+    ds.className = "notification-ds-link ds-row__link"; ds.href = "/sync/?device=register&ds=1";
     ds.textContent = t("No phone number? Get a DS number");
-    const both = document.createDocumentFragment();
-    both.append(link, ds);
-    return both;
+    return { node, after: [ds], unread: isUnread };
   }
   window.danzstakDeviceReminder = Object.freeze({ needed, unread, markSeen, row });
 })();

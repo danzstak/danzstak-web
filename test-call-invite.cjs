@@ -188,7 +188,7 @@ const call = async (method, rawPath, { session, body, query } = {}) => {
   assert.match(onboarding, /if \(!\/\[\?&\]\(invite\|invited\)=\/\.test\(location\.search\)\) deviceStep\(\);/, "invitees are not asked twice to register");
   assert.match(messages, /assets\/call-invite\.js\?v=4/); assert.match(messages, /assets\/call-invite\.css\?v=1/);
   for (const asset of ["/answer.html", "/assets/answer.js", "/assets/answer.css", "/assets/call-invite.js", "/assets/call-invite.css"]) assert.ok(worker.includes(`"${asset}"`), `${asset} in the offline shell`);
-  assert.match(worker, /danzstak-shell-v1063/);
+  assert.match(worker, /danzstak-shell-v1064/);
 
   console.log("Call invite checks passed: hashed one-time tokens, 24h ring window, private preview, friendship on redeem, cancel, blocks, limits, safe return path, no storage.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

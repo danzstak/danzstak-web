@@ -183,6 +183,13 @@
   ar:["تفاصيل جهة الاتصال","العودة إلى المحادثة","عرض الملف الشخصي","مكالمة صوتية","الخصوصية والأمان","يمنع الحظر هذا العضو من العثور عليك أو مراسلتك أو الاتصال بك، ولن يتم إشعاره.","لا يمكن حظر جهة الاتصال هذه من هذه المحادثة المحفوظة.","حظر {name}؟","يمنع الحظر هذا العضو من العثور عليك أو التواصل معك، ولن يتم إشعاره."]
  };
  for(const [language,values] of Object.entries(contactDetailGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(contactDetailKeys.map((key,index)=>[key,values[index]])));
+ // Notifications sections (UI kit, spec 39 screen 1). "New" is already translated elsewhere; it is added only where missing.
+ const notificationSections={
+  es:["Nuevo","Anteriores"],fr:["Nouveau","Plus anciennes"],de:["Neu","Früher"],pt:["Novo","Anteriores"],it:["Nuovo","Precedenti"],
+  ko:["새 알림","이전"],ja:["新着","以前"],"zh-Hans":["新通知","更早"],"zh-Hant":["新通知","更早"],fil:["Bago","Mas maaga"],
+  hi:["नई","पहले की"],vi:["Mới","Trước đó"],th:["ใหม่","ก่อนหน้านี้"],id:["Baru","Sebelumnya"]
+ };
+ for(const [language,[fresh,earlier]] of Object.entries(notificationSections)){const dict=dictionaries[language]||(dictionaries[language]={});if(!dict.New)dict.New=fresh;dict.Earlier=earlier;}
  const messageCopyKeys=["Copy message","Copied.","Select the message text and copy it."];
  const messageCopyActions={
   es:["Copiar mensaje","Copiado.","Selecciona el texto del mensaje y cópialo."],
