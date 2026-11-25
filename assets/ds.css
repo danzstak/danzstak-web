@@ -1,0 +1,2 @@
+/*! tailwindcss v4.1.11 | MIT License | https://tailwindcss.com */
+@layer theme{:root,:host{--tw-leading-tight:1.25;--tw-text-xs:12px}}@layer base;@layer components{.ds-icon{fill:none;stroke:currentColor;stroke-width:2px;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;flex:none;width:24px;height:24px}.ds-icon--sm{width:20px;height:20px}.ds-icon--bar{width:28px;height:28px}.ds-icon--filled{fill:currentColor}.ds :focus-visible{outline:2px solid var(--ds-focus);outline-offset:2px}}@layer utilities;
