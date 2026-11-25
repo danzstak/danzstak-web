@@ -4,6 +4,13 @@
 // tap opens one, ✕ leaves to the landing page. No shop (or not published) → the landing page.
 (() => {
   const API = "https://api.danzstak.com";
+  // The shop front at the seller's Move to fit position (F12/F21; same meaning as image-position.js apply()).
+  const placeFront = (image, position) => {
+    if (!image || !position) return;
+    const clamp = (value, low, high, start) => { const n = Number(value); return Math.min(high, Math.max(low, Number.isFinite(n) ? n : start)); };
+    const x = clamp(position.x, 0, 100, 50), y = clamp(position.y, 0, 100, 50), zoom = clamp(position.zoom, 1, 3, 1);
+    image.style.objectPosition = `${x}% ${y}%`; image.style.transformOrigin = `${x}% ${y}%`; if (zoom > 1) image.style.transform = `scale(${zoom})`;
+  };
   const byId = id => document.getElementById(id);
   const t = value => window.danzstakTranslate?.(value) || value;
   const member = new URLSearchParams(location.search).get("member") || "";
@@ -31,7 +38,7 @@
     document.title = `${shop.name} | DanzStak`;
     byId("shopName").textContent = shop.name;
     const about = byId("shopAbout"); about.textContent = shop.description || ""; about.hidden = !shop.description;
-    const cover = byId("shopCover"); if (shop.coverUrl) { cover.replaceChildren(picture(shop.coverUrl)); cover.hidden = false; }
+    const cover = byId("shopCover"); if (shop.coverUrl) { const front = picture(shop.coverUrl); placeFront(front, shop.coverPosition); cover.replaceChildren(front); cover.hidden = false; }
     const grid = byId("shopGrid"); grid.replaceChildren();
     const items = (shop.products || []).filter(item => item.available);
     for (const item of items) {

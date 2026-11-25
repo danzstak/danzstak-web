@@ -112,6 +112,8 @@ const geometry = page => page.evaluate(() => ({
         await sheet.waitFor({ state: "hidden" });
         assert.match(await page.locator("#shopDescription").inputValue(), /Ships in a stiff mailer within 3 days/);
         // A listing from a photo picked on the phone.
+        await tap(page.locator("#addProduct")); // My shop (UI kit): the listing form is its own screen
+        await page.locator("#productScreen:not([hidden])").waitFor();
         await tap(page.locator("#shopAiListing"));
         await sheet.waitFor({ state: "visible" });
         assert.match(await sheet.textContent(), /DanzStak doesn't keep it, and it's never used to train AI/);
