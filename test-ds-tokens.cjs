@@ -28,7 +28,7 @@ const textPairs = [];
 for (const ink of ["--ds-ink", "--ds-ink-soft", "--ds-muted"])
   for (const ground of ["--ds-surface", "--ds-canvas", "--ds-surface-subtle"]) textPairs.push([ink, ground]);
 // Unread rows (Notifications) sit on accent-soft: their sentence, sub-line and time must read there too.
-textPairs.push(["--ds-ink", "--ds-accent-soft"], ["--ds-ink-soft", "--ds-accent-soft"], ["--ds-muted", "--ds-accent-soft"], ["--ds-btn-go-ink", "--ds-btn-go"], ["--ds-danger-ink", "--ds-danger"]);
+textPairs.push(["--ds-ink", "--ds-accent-soft"], ["--ds-ink-soft", "--ds-accent-soft"], ["--ds-muted", "--ds-accent-soft"], ["--ds-btn-go-ink", "--ds-btn-go"], ["--ds-danger-ink", "--ds-danger"], ["--ds-online", "--ds-surface"], ["--ds-online", "--ds-surface-subtle"]);
 
 const failures = [];
 for (const [name, set] of [["Day", day], ["Night", night]]) {

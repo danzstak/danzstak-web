@@ -1,7 +1,9 @@
 "use strict";
 // Queue 5a3 (owner 2026-11-18): the one Friends screen. The profile's friends row, its Friends tab and Menu → Friends
 // all open this page: ← back, the member's name, search, then Friends · Following · Things in common. On your own
-// screen a small row on top holds friend requests, Find friends and Invite. No nagging, no infinite list.
+// screen friend requests sit on top as list rows, Find friends is the first row and Invite is the bar's person icon.
+// UI kit screen 4a (docs/tasks/39-modern-look.md, CLAUDE.md F9): kit list rows (56px photo, name, one grey line, the
+// whole row opens the profile), Message behind ⋯ in a sheet. No nagging, no infinite list.
 (() => {
   const API = "https://api.danzstak.com";
   const MEMBER = /^[a-f0-9-]{36}$/;
@@ -16,9 +18,10 @@
   const profileUrl = memberId => `profile.html?member=${encodeURIComponent(memberId)}`;
   const initials = name => String(name || "?").trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "?";
   const hue = text => [...String(text || "")].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) % 360, 7);
-  function avatar(person, size = "") {
-    const holder = el("span", `friends-avatar ${size}`.trim());
-    const fallback = () => { holder.textContent = initials(person.name); holder.style.setProperty("--friend-hue", String(hue(person.memberId || person.name))); holder.classList.add("is-initials"); };
+  const icon = (name, size) => window.danzstakIcon ? window.danzstakIcon(name, size ? { size } : undefined) : document.createElement("span");
+  function photo(person, className) {
+    const holder = el("span", className);
+    const fallback = () => { holder.textContent = initials(person.name); holder.style.background = `hsl(${hue(person.memberId || person.name)} 45% 38%)`; holder.style.color = "#fff"; };
     if (person.picture) {
       const img = document.createElement("img");
       img.src = person.picture; img.alt = ""; img.loading = "lazy"; img.decoding = "async"; img.referrerPolicy = "no-referrer";
@@ -26,6 +29,28 @@
       holder.append(img);
     } else fallback();
     return holder;
+  }
+  // One kit list row: the whole row opens `href`; the avatar is decoration (the row already opens the profile).
+  function personRow(person, { href, sub = "", subClass = "", more = null, actions = null }) {
+    const row = el("article", `ds-row${more ? " ds-row--more" : ""} friends-row`);
+    const target = el("a", "ds-row__target"); target.href = href; target.setAttribute("aria-label", person.name);
+    const face = el("span", "ds-row__avatar"); face.setAttribute("aria-hidden", "true"); face.append(photo(person, "ds-row__photo"));
+    const body = el("span", "ds-row__body"); body.append(el("strong", "ds-row__name", person.name));
+    if (sub) body.append(el("span", `ds-row__sub ${subClass}`.trim(), sub));
+    if (actions) { const holder = el("span", "ds-row__actions"); actions(holder); body.append(holder); }
+    row.append(target, face, body);
+    if (more) row.append(more);
+    return row;
+  }
+  function skeleton(count = 4) {
+    const rows = [];
+    for (let i = 0; i < count; i += 1) {
+      const row = el("div", "ds-row ds-row--skeleton"); row.setAttribute("aria-hidden", "true");
+      const face = el("span", "ds-row__avatar"); face.append(el("span", "ds-row__photo ds-shimmer"));
+      const body = el("span", "ds-row__body"); body.append(el("span", "ds-shimmer ds-shimmer--line"), el("span", "ds-shimmer ds-shimmer--short"));
+      row.append(face, body); rows.push(row);
+    }
+    return rows;
   }
   async function api(path, options = {}) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
@@ -72,26 +97,26 @@
     if (state && !state.isOwner && person.mutual) return t("Mutual friend");
     return "";
   }
+  // ⋯ on a row: Message (only for my own friends) and View profile, in a kit sheet.
+  function moreButton(person) {
+    const button = el("button", "ds-icon-btn ds-row__more"); button.type = "button";
+    button.setAttribute("aria-label", t("More options for {name}", { name: person.name })); button.append(icon("ellipsis"));
+    button.addEventListener("click", () => {
+      const list = el("div");
+      const choice = (iconName, label, href) => { const link = el("a", "ds-choice"); link.href = href; link.append(icon(iconName), el("span", "ds-choice__text", label)); list.append(link); };
+      if (state?.isOwner || viewerFriends.has(person.memberId)) choice("message-circle", t("Message {name}", { name: person.name }), `feed.html?messageMember=${encodeURIComponent(person.memberId)}`);
+      choice("users", t("View profile"), profileUrl(person.memberId));
+      window.danzstakSheet?.open({ title: person.name, content: list, opener: button });
+    });
+    return button;
+  }
   function renderFriends() {
     const list = byId("friendsList"), term = search.value.trim().toLocaleLowerCase();
     const shown = term ? people.filter(person => person.name.toLocaleLowerCase().includes(term)) : people;
-    list.replaceChildren();
-    for (const person of shown) {
-      const row = el("li", "friends-row"), link = el("a", "friends-person");
-      link.href = profileUrl(person.memberId);
-      const copy = el("span", "friends-copy");
-      copy.append(el("strong", "", person.name));
+    list.replaceChildren(...shown.map(person => {
       const line = nowLine(person);
-      if (line) copy.append(el("small", presence.get(person.memberId)?.online ? "is-online" : "", line));
-      link.append(avatar(person), copy);
-      row.append(link);
-      if (state?.isOwner || viewerFriends.has(person.memberId)) {
-        const message = el("a", "friends-message button"); message.href = `feed.html?messageMember=${encodeURIComponent(person.memberId)}`;
-        message.dataset.icon = "chat"; message.setAttribute("aria-label", t("Message {name}", { name: person.name })); message.title = message.getAttribute("aria-label"); message.textContent = t("Message");
-        row.append(message);
-      }
-      list.append(row);
-    }
+      return personRow(person, { href: profileUrl(person.memberId), sub: line, subClass: presence.get(person.memberId)?.online ? "is-online" : "", more: moreButton(person) });
+    }));
     const friendsCount = count => t(count === 1 ? "1 friend" : "{count} friends", { count });
     if (!people.length) status.textContent = t(state?.isOwner ? "No friends yet. Find friends or invite your people." : state && !state.listVisible ? "No mutual friends yet." : "No friends to show yet.");
     else if (!shown.length) status.textContent = t("No friends match \"{term}\".", { term: search.value.trim() });
@@ -109,16 +134,16 @@
   function renderCommon(items) {
     const list = byId("commonList");
     list.replaceChildren();
-    if (!items.length) { list.append(el("li", "friends-empty", t("Nothing in common yet. A city on your profile and the Tribes you join show up here."))); return; }
+    if (!items.length) { list.append(el("p", "ds-empty", t("Nothing in common yet. A city on your profile and the Tribes you join show up here."))); return; }
     for (const item of items) {
-      const row = el("li", "friends-common-item"), icon = el("span", "friends-common-icon"); icon.dataset.kind = item.kind; icon.setAttribute("aria-hidden", "true");
-      const copy = el("span", "friends-copy");
-      copy.append(el("strong", "", item.kind === "place" ? t("Lives in {place}", { place: item.label }) : t("{name} Tribe", { name: item.label })));
-      const faces = el("span", "friends-faces"); faces.setAttribute("aria-hidden", "true");
-      for (const friend of item.friends || []) faces.append(avatar(friend, "is-small"));
-      const also = el("small", "", alsoLine(item));
-      copy.append(also);
-      row.append(icon, copy, faces);
+      const row = el("article", "ds-row friends-common-item"); row.dataset.kind = item.kind;
+      const face = el("span", "ds-row__avatar"); face.setAttribute("aria-hidden", "true");
+      const badge = el("span", "ds-row__photo is-icon"); badge.append(icon(item.kind === "place" ? "map-pin" : "users")); face.append(badge);
+      const body = el("span", "ds-row__body");
+      body.append(el("strong", "ds-row__name", item.kind === "place" ? t("Lives in {place}", { place: item.label }) : t("{name} Tribe", { name: item.label })));
+      body.append(el("span", "ds-row__sub", alsoLine(item)));
+      if ((item.friends || []).length) { const faces = el("span", "ds-facepile"); faces.setAttribute("aria-hidden", "true"); for (const friend of item.friends.slice(0, 5)) faces.append(photo(friend, "ds-facepile__face")); body.append(faces); }
+      row.append(face, body);
       list.append(row);
     }
   }
@@ -138,49 +163,44 @@
     catch (error) { button.disabled = false; window.danzstakShowFeedback?.(error.message, { urgent: true }); }
   }
   function renderRequests(incoming, outgoing) {
-    const toggle = byId("friendsRequestsToggle"), box = byId("friendsRequests");
-    toggle.hidden = !incoming.length && !outgoing.length;
-    toggle.textContent = incoming.length ? t(incoming.length === 1 ? "1 friend request" : "{count} friend requests", { count: incoming.length }) : t("Requests sent · {count}", { count: outgoing.length });
-    toggle.classList.toggle("is-alert", incoming.length > 0);
+    const box = byId("friendsRequests");
     box.replaceChildren();
+    box.hidden = !incoming.length && !outgoing.length;
     const group = (title, list, actions) => {
       if (!list.length) return;
-      box.append(el("h2", "friends-subhead", t(title)));
-      const ul = el("ul", "friends-list");
+      box.append(el("h2", "ds-section__title", t(title)));
       for (const person of list) {
-        const row = el("li", "friends-row"), link = el("a", "friends-person"); link.href = MEMBER.test(person.memberId || "") ? profileUrl(person.memberId) : "#";
-        const copy = el("span", "friends-copy"); copy.append(el("strong", "", person.name || "DanzStak member"));
-        link.append(avatar(person), copy);
-        const buttons = el("span", "friends-actions"); actions(person, buttons);
-        row.append(link, buttons); ul.append(row);
+        const named = { ...person, name: person.name || t("DanzStak member") };
+        box.append(personRow(named, { href: MEMBER.test(person.memberId || "") ? profileUrl(person.memberId) : "#", actions: holder => actions(named, holder) }));
       }
-      box.append(ul);
     };
     group("Friend requests", incoming, (person, holder) => {
-      const accept = el("button", "primary", t("Accept")), remove = el("button", "", t("Delete"));
+      const accept = el("button", "ds-btn ds-btn--go", t("Accept")), remove = el("button", "ds-btn ds-btn--quiet", t("Delete"));
       accept.type = remove.type = "button";
       accept.addEventListener("click", () => respond(accept, person, true));
       remove.addEventListener("click", () => respond(remove, person, false));
       holder.append(accept, remove);
     });
     group("Requests sent", outgoing, (person, holder) => {
-      const undo = el("button", "", t("Cancel")); undo.type = "button"; undo.setAttribute("aria-label", t("Cancel friend request to {name}", { name: person.name }));
+      const undo = el("button", "ds-btn ds-btn--quiet", t("Cancel")); undo.type = "button"; undo.setAttribute("aria-label", t("Cancel friend request to {name}", { name: person.name }));
       undo.addEventListener("click", () => cancel(undo, person)); holder.append(undo);
     });
-    if (incoming.length && !box.dataset.opened) { box.hidden = false; toggle.setAttribute("aria-expanded", "true"); box.dataset.opened = "1"; }
   }
-  byId("friendsRequestsToggle").addEventListener("click", event => { const box = byId("friendsRequests"); box.hidden = !box.hidden; event.currentTarget.setAttribute("aria-expanded", String(!box.hidden)); });
-  byId("friendsFindToggle").addEventListener("click", event => {
-    const box = byId("friendsFind"), button = event.currentTarget;
-    box.hidden = !box.hidden; button.setAttribute("aria-expanded", String(!box.hidden));
-    if (!box.hidden && !box.dataset.mounted && typeof window.danzstakMountPeopleFinder === "function") { window.danzstakMountPeopleFinder(box, { compact: true }); box.dataset.mounted = "1"; }
-    box.querySelector("input")?.focus();
+  byId("friendsFind").addEventListener("click", event => {
+    // The kit search field, handed to the shared people finder (it searches every member by name or @username).
+    const box = el("div", "friends-find"), field = el("label", "ds-search"), input = document.createElement("input");
+    field.append(el("span", "ds-sr-only", t("Find friends")), icon("search", "sm"), input);
+    input.placeholder = t("Search everyone on DanzStak"); input.enterKeyHint = "search";
+    box.append(field);
+    if (typeof window.danzstakMountPeopleFinder === "function") window.danzstakMountPeopleFinder(box, { compact: true, searchInput: input });
+    window.danzstakSheet?.open({ title: t("Find friends"), content: box, opener: event.currentTarget });
+    requestAnimationFrame(() => box.querySelector("input")?.focus());
   });
   byId("friendsInvite").addEventListener("click", event => window.danzstakInvitePeople?.(event.currentTarget));
 
   // ---------- load ----------
   async function load() {
-    status.textContent = t("Loading friends…");
+    status.textContent = ""; byId("friendsList").replaceChildren(...skeleton()); byId("friendsList").setAttribute("aria-busy", "true");
     try {
       const [of, profile] = await Promise.all([
         api(`/friends/of${member ? `?member=${encodeURIComponent(member)}` : ""}`),
@@ -191,8 +211,7 @@
       const record = profile?.profile || profile, name = record?.name || t("Friends");
       byId("friendsTitle").textContent = name; document.title = `${name} · ${t("Friends")} | DanzStak`;
       byId("tab-common").hidden = of.isOwner; // things in common are between you and someone else
-      byId("friendsOwnerRow").hidden = !of.isOwner;
-      byId("friendsMore").hidden = !of.isOwner;
+      byId("friendsFindRow").hidden = byId("friendsInvite").hidden = byId("friendsMore").hidden = !of.isOwner;
       const [mine, directory] = await Promise.all([
         api("/friends").catch(() => null),
         api("/calls/directory").catch(() => null)
@@ -202,10 +221,11 @@
       if (of.isOwner && mine) renderRequests(mine.incoming || [], mine.outgoing || []);
       // Online friends first on your own screen, then real photos, then name.
       if (of.isOwner) people.sort((a, b) => Number(Boolean(presence.get(b.memberId)?.online)) - Number(Boolean(presence.get(a.memberId)?.online)) || Number(Boolean(b.picture)) - Number(Boolean(a.picture)) || a.name.localeCompare(b.name));
+      byId("friendsList").removeAttribute("aria-busy");
       renderFriends();
       renderCommon(of.common || []);
     } catch (error) {
-      people = []; byId("friendsList").replaceChildren();
+      people = []; byId("friendsList").replaceChildren(); byId("friendsList").removeAttribute("aria-busy");
       if (error.status === 401) { status.textContent = t("Sign in to see friends.") + " "; const link = el("a", "", t("Sign in")); link.href = `${API}/auth/login?next=${encodeURIComponent(location.pathname + location.search)}`; status.append(link); }
       else if (error.status === 403) status.textContent = t("Friends are shown to this member's friends and people in their Tribes.");
       else status.textContent = error.message;

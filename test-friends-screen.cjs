@@ -103,7 +103,9 @@ const call = async (fn, user, query = {}, body) => JSON.parse(JSON.stringify(awa
   assert.match(editor, /`friends\.html\?member=\$\{encodeURIComponent\(profile\.memberId\)\}`/, "the facepile and Friends tab open the member's Friends screen");
   assert.match(screen, /assets\/profile-sharing\.js\?v=\d+[\s\S]*assets\/friends-screen\.js\?v=\d+/, "Invite uses the shared, translated invite dialog");
   assert.match(feed, /<a href="friends\.html"><span class="menu-icon" data-menu-icon="users"/, "Menu → Friends opens the same screen");
-  for (const file of ["/friends.html", "/assets/friends-screen.js", "/assets/friends-screen.css"]) assert.ok(sw.includes(`"${file}"`), `${file} is cached offline`);
+  for (const file of ["/friends.html", "/assets/friends-screen.js"]) assert.ok(sw.includes(`"${file}"`), `${file} is cached offline`);
+  assert.ok(!fs.existsSync("assets/friends-screen.css") && !screen.includes("friends-screen.css") && !sw.includes("friends-screen.css"), "Friends is on the UI kit: its old stylesheet is gone (spec 39 screen 4a)");
+  assert.match(screen, /<div class="ds ds-page">/, "the Friends screen is drawn by the kit");
   const sharing = fs.readFileSync("assets/profile-sharing.js", "utf8");
   assert.doesNotMatch(sharing, /dataset\.icon = 'users'/, "no separate people button in the profile action row");
   assert.match(sharing, /window\.danzstakInvitePeople = opener => show\('Invite People'/);
