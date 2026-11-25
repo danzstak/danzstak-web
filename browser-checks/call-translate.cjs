@@ -93,7 +93,10 @@ async function openFromMore(page, tag, label = "Live translation") {
       assert.match(await page.textContent(".call-captions-label"), /Waiting for .* to allow live translation/);
       // Marcel allows (French).
       await page.evaluate(() => window.danzstakCallTranslate.receive(JSON.stringify({ type: "call-translate-ok", lang: "fr" }), "Marcel Dupont"));
-      await page.waitForFunction(() => window.__ws[0]?.audio > 2, null, { timeout: 10000 });
+      await page.waitForFunction(() => window.__ws[0]?.audio > 2, null, { timeout: 10000 }).catch(async error => {
+        const state = await page.evaluate(() => ({ audio: window.danzstakCallTranslate._audioState(), ws: window.__ws.map(w => ({ frames: w.frames, audio: w.audio, state: w.readyState })), band: document.querySelector(".call-captions")?.textContent || "" }));
+        throw new Error(`${tag}: no audio frames reached Transcribe: ${JSON.stringify(state)} ${errors.join(" | ")} (${error.message})`);
+      });
       assert.deepEqual(calls.find(c => c.p === "/call-translate/stream").body, { language: "en" }, `${tag}: only my own language, my own mic`);
       assert.match(await page.evaluate(() => window.__ws[0].url), /^wss:\/\/transcribestreaming\.us-west-1\.amazonaws\.com:8443\//);
       // My own words go to Marcel over the call's channel.

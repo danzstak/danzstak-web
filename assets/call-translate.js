@@ -381,5 +381,5 @@
     if (controls) new MutationObserver(() => { if (controls.hidden) reset(); }).observe(controls, { attributes: true, attributeFilter: ["hidden"] });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watch, { once: true }); else watch();
-  window.danzstakCallTranslate = Object.freeze({ receive, menuItem, reset, isOn: () => on, _eventStream: { encodeEvent, decodeEvent, crc32 } });
+  window.danzstakCallTranslate = Object.freeze({ receive, menuItem, reset, isOn: () => on, _audioState: () => ({ state: audio?.context?.state || "", rate: audio?.context?.sampleRate || 0, worklet: Boolean(audio?.worklet), node: Boolean(audio?.node), track: audio?.track?.readyState || "", socket: socket?.readyState ?? -1 }), _eventStream: { encodeEvent, decodeEvent, crc32 } });
 })();
