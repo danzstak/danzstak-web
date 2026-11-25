@@ -238,11 +238,13 @@ export function createArtistVerification({ db, commands, tableName, authenticate
     return { ok: false, status: view.status, message: view.status === "needs_review" ? REVIEW_MESSAGE : VERIFY_MESSAGE };
   }
 
-  async function placeHold({ ownerId, publicId, reason, at }) {
-    const epkItem = await get(epkKey(ownerId)), name = kitArtistName(epkItem), key = actKey(name);
+  // Spec 47 Train B: an account holds several EPKs; the public copy names its record (epkTourId), older copies mean "main".
+  async function placeHold({ ownerId, publicId, reason, at, epkTourId = "" }) {
+    const holdKey = /^epk#[a-f0-9]{10}$/.test(epkTourId) ? { userId: { S: ownerId }, tourId: { S: epkTourId } } : epkKey(ownerId);
+    const epkItem = await get(holdKey), name = kitArtistName(epkItem), key = actKey(name);
     const transaction = [{ Delete: { TableName: tableName, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } } } }];
     if (!epkItem) { await db.send(new TransactWriteItemsCommand({ TransactItems: transaction })); return; }
-    transaction.push({ Update: { TableName: tableName, Key: epkKey(ownerId), UpdateExpression: "SET published = :false, impersonationHold = :true, holdAt = :at", ExpressionAttributeValues: { ":false": { BOOL: false }, ":true": { BOOL: true }, ":at": { S: at } } } });
+    transaction.push({ Update: { TableName: tableName, Key: holdKey, UpdateExpression: "SET published = :false, impersonationHold = :true, holdAt = :at", ExpressionAttributeValues: { ":false": { BOOL: false }, ":true": { BOOL: true }, ":at": { S: at } } } });
     if (key) {
       transaction.push(
         { Update: { TableName: tableName, Key: recordKey(ownerId, key), UpdateExpression: "SET #status = :review, reviewReason = :reason, actName = if_not_exists(actName, :name), actKey = :key, updatedAt = :at", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":review": { S: "needs_review" }, ":reason": { S: reason }, ":name": { S: name }, ":key": { S: key }, ":at": { S: at } } } },
@@ -368,7 +370,7 @@ export function createArtistVerification({ db, commands, tableName, authenticate
       }
       const editor = await editorFor(userId);
       const count = (await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :partition", ExpressionAttributeValues: { ":partition": { S: `${REPORT_PREFIX}${publicId}` } }, Select: "COUNT", ConsistentRead: true }))).Count || 0;
-      if (editor || count >= REPORTS_TO_HOLD) await placeHold({ ownerId, publicId, reason: editor ? "editor_flag" : "reported", at });
+      if (editor || count >= REPORTS_TO_HOLD) await placeHold({ ownerId, publicId, reason: editor ? "editor_flag" : "reported", at, epkTourId: publicItem.epkTourId?.S || "" });
       return [200, { reported: true, message: "Thanks. A DanzStak editor will look at this EPK." }];
     },
     async reviews({ userId }) {
@@ -391,8 +393,12 @@ export function createArtistVerification({ db, commands, tableName, authenticate
         const keepsMethod = request.autoCheckPassed?.BOOL === true || ["reported", "editor_flag"].includes(attr(request, "reason"));
         const approvedMethod = keepsMethod && attr(record, "method") ? attr(record, "method") : "manual";
         transaction.push({ Update: { TableName: tableName, Key: recordKey(memberId, key), UpdateExpression: "SET #status = :verified, #method = :method, verifiedAt = :at, expiresAt = :expires, reviewerId = :editor, reviewedAt = :at, actName = if_not_exists(actName, :name), actKey = :key REMOVE reviewReason, reviewNote", ExpressionAttributeNames: { "#status": "status", "#method": "method" }, ExpressionAttributeValues: { ":verified": { S: "verified" }, ":method": { S: approvedMethod }, ":at": { S: at }, ":expires": { N: String(nowSeconds() + VERIFIED_FOR_SECONDS) }, ":editor": { S: userId }, ":name": { S: attr(request, "actName") }, ":key": { S: key } } } });
+        // Every EPK of this act comes off hold (spec 47 Train B: an account can hold up to 5 per act).
         const epkItem = await get(epkKey(memberId));
-        if (epkItem?.impersonationHold?.BOOL === true && actKey(kitArtistName(epkItem)) === key) transaction.push({ Update: { TableName: tableName, Key: epkKey(memberId), UpdateExpression: "REMOVE impersonationHold, holdAt" } });
+        const held = [epkItem, ...((await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: memberId }, ":prefix": { S: "epk#" } }, ConsistentRead: true }))).Items || [])];
+        for (const item of held) {
+          if (item?.impersonationHold?.BOOL === true && actKey(item.artistName?.S || kitArtistName(item)) === key) transaction.push({ Update: { TableName: tableName, Key: { userId: { S: memberId }, tourId: item.tourId }, UpdateExpression: "REMOVE impersonationHold, holdAt" } });
+        }
       } else {
         transaction.push({ Update: { TableName: tableName, Key: recordKey(memberId, key), UpdateExpression: "SET #status = :rejected, reviewerId = :editor, reviewedAt = :at, reviewNote = :note REMOVE reviewReason", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":rejected": { S: "rejected" }, ":editor": { S: userId }, ":at": { S: at }, ":note": { S: note || "An editor could not confirm this act. Ask for a review again with a stronger link." } } } });
       }

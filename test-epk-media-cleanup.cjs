@@ -77,7 +77,7 @@ function harness({ failingKey = "", failQueueAck = false } = {}) {
 
   assert.match(source, /existing\.Item\?\.mediaCleanup\?\.SS \|\| \[\]/, "every EPK save reloads unfinished cleanup work");
   assert.match(source, /ADD mediaCleanup :mediaCleanup/, "removed EPK media is committed to a durable cleanup set with the new draft");
-  assert.match(source, /cleanupEpkMediaObjects\(ownerKey, ownerPrefix, pendingMediaCleanup, \[\.\.\.retained\]\)/, "cleanup excludes files retained by the current EPK");
+  assert.match(source, /cleanupEpkMediaObjects\(ownerKey, ownerPrefix, pendingMediaCleanup, \[\.\.\.retained, \.\.\.usedElsewhere\]\)/, "cleanup excludes files retained by the current EPK or used by another of the account's EPKs");
   assert.match(source, /cleanupPending: cleanup\.pending/, "the save response reports unfinished physical cleanup honestly");
   assert.doesNotMatch(source, /const removed = \(previousKit\.media \|\| \[\]\)[\s\S]{0,500}runCleanup/, "EPK updates no longer use unrecoverable best-effort deletion");
 
