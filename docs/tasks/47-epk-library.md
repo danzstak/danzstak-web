@@ -104,6 +104,10 @@ EPKs, several of them can be for the same artist, and each keeps its published v
    card; booking's "Send with" picker; AI build picks the EPK; Music HQ counts across EPKs.
    - Checks: two EPKs for one artist publish to two links; deleting one leaves the other untouched; a pitch sends the
      chosen EPK; a 6th EPK for one artist is refused (server and screen).
+   - **Part 1 (2026-11-25, claude/epk-library-b):** several EPKs, My EPKs, per-EPK link / review link / card / versions,
+     5 per artist (server and screen), files shared by copies kept until no EPK uses them, impersonation holds and
+     editor approvals reach the right EPK (the public copy carries `epkTourId`). Booking, the AI build and Music HQ still
+     use the first EPK ("main"); they move to the chosen EPK in part 2. The AI build fills whichever EPK is open.
 3. Restyle on the UI kit with the rest of week 2.
 
 ## Can the owner's earlier published EPK come back?
