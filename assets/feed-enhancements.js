@@ -2734,9 +2734,11 @@ if (composerActions && publishButton) {
     button.type = "button";
     button.className = "secondary";
     button.classList.add("composer-media-button", `composer-media-${kind}`);
+    // Owner 2026-11-25 ("baby proof": an Italian tester couldn't find how to post a video; "The picture and video icons
+    // need to change as well"): a picture (green) and a video camera (orange), each with its word under it.
     button.innerHTML = kind === "image"
-      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM7 15l3-3 3 3 2-2 3 3M9 9h.01"/></svg><span class="sr-only">Photo</span>'
-      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16v10H4zM4 9l2-4h4L8 9m6 0 2-4h4l-2 4M4 13h16"/></svg><span class="sr-only">Video</span>';
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg><span class="composer-media-word">Photo</span>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg><span class="composer-media-word">Video</span>';
     button.setAttribute("aria-label", label);
     button.title = label;
     const input = document.createElement("input");
@@ -3629,9 +3631,35 @@ function updateCommentPreview(post) {
   roots.forEach((item,index) => appendThread(item,index));
   const expanded = post.dataset.commentsExpanded === "true";
   ordered.forEach(item => { list.appendChild(item); item.hidden = !expanded && (rootIndex.get(item) ?? 0) >= 2; });
+  // The thread line (owner 2026-11-25 reference: replies hang off their comment by a line, like the familiar apps):
+  // a comment with replies draws a line down from its photo, and each reply but the last carries it on.
+  ordered.forEach((item, at) => {
+    if (!item.classList) return;
+    const next = ordered[at + 1], sameThread = next && rootIndex.get(next) === rootIndex.get(item) && next.classList?.contains("comment-reply");
+    item.classList.toggle("comment-has-replies", !item.classList.contains("comment-reply") && Boolean(sameThread));
+    item.classList.toggle("comment-thread-continues", item.classList.contains("comment-reply") && Boolean(sameThread));
+  });
   let more = post.querySelector(".comments-more");
   if (!more) { more = document.createElement("button"); more.type = "button"; more.className = "comments-more"; more.addEventListener("click", () => { post.dataset.commentsExpanded = String(post.dataset.commentsExpanded !== "true"); updateCommentPreview(post); }); list.after(more); }
+  placeReplyComposer(post, list);
   more.hidden = items.length <= 2; const moreLabel = expanded ? "Show fewer comments" : "Show " + (items.length - 2) + " more comments"; more.textContent = expanded ? "−" : "+" + (items.length - 2); more.setAttribute("aria-label", moreLabel); more.title = moreLabel; more.setAttribute("aria-expanded", String(expanded));
+}
+// The reply box sits right under the thread being answered (owner 2026-11-25: "Need replies to comments under the
+// comment that I am replying to", "just reply in the comment"); otherwise it goes back under the list.
+function placeReplyComposer(post, list = post.querySelector(".commentList")) {
+  const section = post.querySelector(".comments"), input = section?.querySelector("input");
+  if (!list || !section) return;
+  const id = input?.dataset.replyToCommentId || "";
+  const target = id ? list.querySelector(`.comment[data-comment-id="${CSS.escape(id)}"]`) : null;
+  if (!target) { section.classList.remove("comments-inline-reply"); if (section.parentElement === list || section.previousElementSibling !== list) list.after(section); return; }
+  const byId = new Map([...list.querySelectorAll(".comment")].map(item => [item.dataset.commentId || "", item]));
+  const rootOf = item => { let at = item, guard = 0; while (at?.dataset.parentCommentId && byId.has(at.dataset.parentCommentId) && guard++ < 20) at = byId.get(at.dataset.parentCommentId); return at; };
+  const root = rootOf(target);
+  let last = root;
+  for (const item of byId.values()) if (rootOf(item) === root && !item.hidden) last = item;
+  section.classList.add("comments-inline-reply");
+  section.hidden = false;
+  last.after(section);
 }
 function attachReactionPicker(container, up, down, current, choose) {
   const palette = document.createElement("div"); palette.className = "reaction-palette"; palette.hidden = true; palette.setAttribute("role", "toolbar"); palette.setAttribute("aria-label", "Choose a reaction");
@@ -3702,6 +3730,8 @@ function clearCommentReply(input) {
   input.placeholder = feedTranslate("Write a comment…");
   const composer = input.closest(".comment-composer");
   composer?.querySelector(".comment-replying")?.remove();
+  const post = input.closest("article, .post");
+  if (post) placeReplyComposer(post);
 }
 
 function beginCommentReply(post, comment, item) {
@@ -3736,7 +3766,8 @@ function beginCommentReply(post, comment, item) {
     composer.prepend(replying);
   }
   post.querySelector(".comments").hidden = false;
-  item?.scrollIntoView?.({ block: "nearest" });
+  placeReplyComposer(post);
+  input.closest(".comments")?.scrollIntoView?.({ block: "nearest" });
   input.focus();
 }
 
@@ -4018,8 +4049,10 @@ function renderPersistentComment(post, comment) {
   formatCommentTimestamp(time);
   const body = document.createElement("div"); body.className = "comment-content"; body.textContent = comment.content;
   item.dataset.reactionTotal = String(comment.reactionTotal || 0); item.dataset.createdAt = comment.createdAt || "";
-  if (comment.replyToName) { const context = document.createElement("span"); context.className = "comment-reply-context"; context.dataset.replyName = comment.replyToName; context.textContent = feedTranslate("Replying to " + comment.replyToName); bubble.appendChild(context); }
-  bubble.append(author, time, body);
+  // A reply starts with the name it answers, in the link colour (owner 2026-11-25 reference), not a "Replying to" line.
+  if (comment.replyToName) { const mention = document.createElement("span"); mention.className = "comment-mention"; mention.textContent = comment.replyToName; body.prepend(mention, " "); }
+  const head = document.createElement("div"); head.className = "comment-head"; head.append(author, time);
+  bubble.append(head, body);
   item.append(avatar, bubble);
   createCommentReactions(post,item,comment);
   const actionRow = document.createElement("div");
@@ -4031,14 +4064,17 @@ function renderPersistentComment(post, comment) {
   const reply = document.createElement("button");
   reply.type = "button";
   reply.className = "comment-reply-button";
-  reply.dataset.icon = "reply";
+  // Owner 2026-11-25 ("Need to change the icons to something users will understand or just reply in the comment"): the
+  // word Reply (Rispondi, Répondre…), never a bare arrow, and the reply box opens right under this comment's thread.
+  reply.dataset.iconLayout = "label";
   reply.dataset.replyName = comment.authorName || "this comment";
   reply.textContent = feedTranslate("Reply");
   reply.setAttribute("aria-label", feedTranslate("Reply to " + (comment.authorName || feedTranslate("this comment"))));
   reply.addEventListener("click", () => beginCommentReply(post, comment, item));
   actionLeft.appendChild(reply);
-  if (reactions) actionLeft.appendChild(reactions);
+  // Reply (and Delete for your own) on the left, like/dislike on the right, as in the familiar apps.
   actionRow.appendChild(actionLeft);
+  if (reactions) actionRow.appendChild(reactions);
   list.appendChild(item);
   addCommentDelete(item);
   updateCommentPreview(post);
@@ -4138,8 +4174,9 @@ function addCommentDelete(comment) {
     comment.remove();
     if (post) updateCommentPreview(post);
   });
-  const actionRow = comment.querySelector(".comment-action-row");
-  if (actionRow) actionRow.appendChild(button);
+  const left = comment.querySelector(".comment-action-left"), actionRow = comment.querySelector(".comment-action-row");
+  if (left) left.appendChild(button);
+  else if (actionRow) actionRow.appendChild(button);
   else comment.appendChild(button);
 }
 
