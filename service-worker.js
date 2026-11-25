@@ -244,7 +244,7 @@ async function ringCallNotification(title, options) {
     await self.registration.showNotification(title, { ...options, renotify: true });
   }
   await new Promise(resolve => setTimeout(resolve, Math.max(0, CALL_RING_LIFETIME_MS - (Date.now() - started))));
-  (await self.registration.getNotifications({ tag: options.tag })).forEach(notification => notification.close());
+  (await self.registration.getNotifications({ tag: options.tag })).forEach(notification => notification.close?.());
 }
 
 // A call answered or declined in an open DanzStak window: close its notification, which also ends the re-ring above.
