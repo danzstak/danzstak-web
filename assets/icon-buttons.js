@@ -128,6 +128,8 @@
 
   function upgrade(control) {
     if (!(control instanceof HTMLElement) || !control.matches("button, a.button, a[role='button'], label[data-icon]")) return;
+    // UI kit screens (class "ds") draw their own icons from the kit sprite (spec 39); never add a second set.
+    if (control.closest(".ds")) return;
     if (control.dataset.musicIcon) return upgradeMusic(control);
     if (control.dataset.iconLayout === "label") return;
     const visible = control.textContent.replace(/\s+/g, " ").trim();

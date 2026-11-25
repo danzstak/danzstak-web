@@ -1,8 +1,8 @@
 "use strict";
 // Events page (task 14-D, owner 2026-11-17): not another HTML form.
 // Fans: search, My tickets (offline), a short "Tonight & this weekend" list (max 5, no feed).
-// Promoters: "Sell tickets to your night" opens a flyer-first creator with a live gig-poster preview,
-// one question at a time, extras under "More options", ticket options as stubs, one orange Publish button.
+// Promoters: + (or "Create event") opens Create event on the UI kit (CLAUDE.md F10): flyer first, one short form,
+// Who can see it? and Tickets as sheets (ticket options as stubs), one green Create event button.
 // Publishing uses the same API calls as before: upload the flyer, create the event, add ticket sections, post to Mix.
 (() => {
   const API = "https://api.danzstak.com";
@@ -21,8 +21,11 @@
   // Fix-it 18 (owner 2026-11-17): the composer is its own screen. Device Back closes it (the draft stays) instead of
   // re-rendering the Events page underneath. feed-enhancements' route restore asks this first.
   let closeCreatorScreen = null;
+  // Back while a sheet (Who can see it? / Tickets) is open closes only the sheet; the screen and the Events page stay.
   function closeCreatorFromHistory() {
-    if (!closeCreatorScreen || history.state?.danzstakEventCreator === true) return false;
+    if (!closeCreatorScreen) return false;
+    window.danzstakSheet?.closeFromHistory?.();
+    if (history.state?.danzstakEventCreator === true) return true;
     return closeCreatorScreen({ fromHistory: true });
   }
 
@@ -152,15 +155,11 @@
   }
 
   // ---------- DOM ----------
+  const icon = name => window.danzstakIcon ? window.danzstakIcon(name) : el("span");
+  let fieldSerial = 0;
+  // datetime-local value for the next full hour on this phone ("2026-11-25T21:00").
+  const nextHourLocal = (now = new Date()) => { const d = new Date(now); d.setMinutes(0, 0, 0); d.setHours(d.getHours() + 1); const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:00`; };
   const videoSeconds = file => new Promise(resolve => { const probe = document.createElement("video"); probe.preload = "metadata"; const url = URL.createObjectURL(file); probe.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(probe.duration); }; probe.onerror = () => { URL.revokeObjectURL(url); resolve(NaN); }; probe.src = url; });
-  const QUESTIONS = [
-    { key: "title", label: "Name of the night", hint: "What's on the poster in big letters." },
-    { key: "when", label: "Date and doors", hint: "When the doors open." },
-    { key: "venue", label: "Venue", hint: "Where it happens. The address helps people find it." },
-    { key: "price", label: "Ticket price", hint: "You keep all of it. Buyers pay the 6% fee on top." },
-    { key: "lineup", label: "Who's playing?", hint: "One act per line. Optional." }
-  ];
-
   function render(host, { isCurrent = () => true, postActionFetch = window.postActionFetch } = {}) {
     host.classList.add("ev-skin");
     const status = el("p", { className: "ev-status", role: "status" });
@@ -199,33 +198,35 @@
       el("li", {}, el("strong", { textContent: "Door list." }), " ", el("span", { textContent: "Print it or check people in from your phone." })),
       el("li", {}, el("strong", { textContent: "Named tickets against scalpers." }), " ", el("span", { textContent: "Turn it off if your door doesn't check names." })),
       el("li", {}, el("strong", { textContent: "Your crowd sees it." }), " ", el("span", { textContent: "Your night goes in Mix and Events." })));
-    const openCreator = el("button", { type: "button", className: "ev-primary", textContent: "Make your poster" });
+    const openCreator = el("button", { type: "button", className: "ev-primary", textContent: "Create event" });
     const promo = el("section", { className: "ev-block ev-promo" }, el("p", { className: "ev-eyebrow", textContent: "For promoters" }), el("h2", { className: "ev-display", textContent: "Sell tickets to your night" }), perks, openCreator);
-    const creatorHost = el("div", { className: "ev-creator-host" });
+    // Create event (UI kit screen 2, CLAUDE.md F10): its own full-screen screen on phones, a centred dialog on
+    // computers, outside the Events page's dark skin. Closing keeps the draft; the phone's Back closes it.
     const yours = el("section", { className: "ev-block ev-yours", hidden: true });
-    // The composer screen: full screen on phones, a centred sheet on computers. Closing keeps the draft.
-    const closeButton = el("button", { type: "button", className: "ev-screen-close" });
+    document.querySelectorAll("body > .ev-creator-screen").forEach(old => old.remove()); // a previous Events visit's screen
+    const creatorHost = el("div", { className: "ev-creator-host" });
+    const footHost = el("div", { className: "ev-creator-foot" });
+    const closeButton = el("button", { type: "button", className: "ds-icon-btn ev-screen-close" }, icon("x"));
     closeButton.setAttribute("aria-label", "Close");
-    closeButton.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" fill="none"/></svg>';
-    const screenTitle = el("h2", { className: "ev-screen-title", id: "evCreatorTitle", textContent: "New event" });
-    const screenBody = el("div", { className: "ev-screen-body" }, creatorHost);
-    const screen = el("div", { className: "ev-creator-screen", role: "dialog", hidden: true }, el("header", { className: "ev-screen-bar" }, closeButton, screenTitle), screenBody);
+    const screenTitle = el("h2", { className: "ds-form-screen__title", id: "evCreatorTitle", textContent: "Create event" });
+    const screenBody = el("div", { className: "ds-form-screen__body" }, creatorHost);
+    const screen = el("div", { className: "ds ds-form-screen ev-creator-screen", role: "dialog", hidden: true },
+      el("div", { className: "ds-form-screen__panel" }, el("header", { className: "ds-form-screen__bar" }, closeButton, screenTitle), screenBody, el("footer", { className: "ds-form-screen__foot" }, footHost)));
     screen.setAttribute("aria-modal", "true"); screen.setAttribute("aria-labelledby", "evCreatorTitle");
     let opener = null;
     function openScreen(from) {
-      if (!creatorHost.firstChild) creatorHost.append(creator());
+      if (!creatorHost.firstChild) { const made = creator(); creatorHost.append(made.body); footHost.append(made.foot); }
       opener = from || null;
-      screen.hidden = false; document.body.classList.add("ev-creator-open");
-      screenBody.append(status);
+      if (!screen.isConnected) document.body.append(screen);
+      screen.hidden = false; document.body.classList.add("ds-form-screen-open");
       if (history.state?.danzstakEventCreator !== true) history.pushState({ ...(history.state && typeof history.state === "object" ? history.state : {}), danzstakEventCreator: true }, "");
       closeCreatorScreen = closeScreen;
-      requestAnimationFrame(() => (creatorHost.querySelector(".ev-drop") || closeButton).focus({ preventScroll: true }));
+      requestAnimationFrame(() => (creatorHost.querySelector(".ev-title") || closeButton).focus({ preventScroll: true }));
     }
     function closeScreen({ fromHistory = false } = {}) {
       if (screen.hidden) return false;
       if (!fromHistory && history.state?.danzstakEventCreator === true) { history.back(); return true; } // popstate closes it
-      screen.hidden = true; document.body.classList.remove("ev-creator-open");
-      host.insertBefore(status, screen);
+      screen.hidden = true; document.body.classList.remove("ds-form-screen-open");
       if (closeCreatorScreen === closeScreen) closeCreatorScreen = null;
       opener?.focus?.({ preventScroll: true });
       return true;
@@ -233,9 +234,9 @@
     openCreator.addEventListener("click", () => openScreen(openCreator));
     addButton.addEventListener("click", () => openScreen(addButton));
     closeButton.addEventListener("click", () => closeScreen());
-    screen.addEventListener("keydown", e => { if (e.key === "Escape") { e.preventDefault(); closeScreen(); } });
+    screen.addEventListener("keydown", e => { if (e.key === "Escape" && !window.danzstakSheet?.isOpen()) { e.preventDefault(); closeScreen(); } });
 
-    host.append(searchForm, results, myTickets, tonight, promo, yours, status, screen);
+    host.append(searchForm, results, myTickets, tonight, promo, yours, status);
 
     // Load upcoming nights (public) and the promoter's own nights (signed in).
     (async () => {
@@ -273,186 +274,224 @@
       }
     }
 
-    // ----- The flyer-first creator -----
+    // ----- Create event: one short form on the UI kit (CLAUDE.md F10) -----
+    // Flyer area at the top with Image / Video over it, the host row, floating-label fields, "Who can see it?" and
+    // "Tickets" as tap-to-pick sheets, and one sticky green Create event button, disabled until the flyer, the name
+    // and the start time are set. Publishing is unchanged (publish() above).
     function creator() {
       const draft = newDraft();
-      let step = 0;
+      draft.startsLocal = nextHourLocal();
       const ids = { event: crypto.randomUUID(), tiers: [crypto.randomUUID()] };
+      const screenStatus = el("p", { className: "ds-form-screen__status ev-screen-status", role: "status" });
+      screenStatus.setAttribute("aria-live", "polite");
 
-      // Live poster preview.
-      const posterMedia = el("div", { className: "ev-poster-media" }, el("span", { className: "ev-poster-placeholder", textContent: "Your flyer here" }));
-      const pTitle = el("h3", { className: "ev-poster-title" }), pWhen = el("p", { className: "ev-poster-when ev-value" }), pVenue = el("p", { className: "ev-poster-venue ev-value" }), pLineup = el("p", { className: "ev-poster-lineup ev-value" });
-      const pStub = el("div", { className: "ev-poster-stub" });
-      const poster = el("figure", { className: "ev-poster", "aria-label": "Poster preview" }, posterMedia, el("figcaption", {}, pTitle, pWhen, pVenue, pLineup, pStub));
-      function refreshPoster() {
-        pTitle.textContent = draft.title.trim() || "Name of the night";
-        pTitle.classList.toggle("is-empty", !draft.title.trim());
-        pWhen.textContent = draft.startsLocal ? when(new Date(draft.startsLocal).toISOString()) : "";
-        pVenue.textContent = [draft.venue.trim(), draft.address.trim()].filter(Boolean).join(" · ");
-        pLineup.textContent = draft.lineup.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 6).join(" · ");
-        const cents = parsePrice(draft.price);
-        pStub.replaceChildren();
-        if (draft.sellTickets && cents >= 50) pStub.append(el("span", { textContent: "Tickets" }), " ", value(money(cents + buyerFees(cents))));
-        else if (!draft.sellTickets) pStub.append(el("span", { textContent: draft.outsideUrl.trim() ? "Outside tickets" : "Free entry" }));
-        refreshPreview();
-      }
-
-      // Big drop zone.
-      const fileInput = el("input", { type: "file", className: "ev-file", accept: "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" });
-      fileInput.setAttribute("aria-label", "Choose a flyer image or a video of 15 seconds or less");
-      const drop = el("label", { className: "ev-drop", tabIndex: 0 }, el("span", { className: "ev-drop-title", textContent: "Drop your flyer" }), el("span", { className: "ev-drop-hint", textContent: "Image, or a video of 15 seconds or less" }), fileInput);
-      drop.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } });
-      drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("is-over"); });
-      drop.addEventListener("dragleave", () => drop.classList.remove("is-over"));
-      drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("is-over"); if (e.dataTransfer?.files?.[0]) takeFile(e.dataTransfer.files[0]); });
-      fileInput.addEventListener("change", () => { if (fileInput.files?.[0]) takeFile(fileInput.files[0]); });
+      // Flyer: the picture fills the area; Image and Video sit over it (videos 15 seconds or less).
+      const media = el("div", { className: "ds-media-pick__media" },
+        el("div", { className: "ds-media-pick__empty" }, icon("image"), el("strong", { textContent: "Add a flyer" }), el("span", { textContent: "Image, or a video of 15 seconds or less" })));
+      const pickButton = (label, iconName, accept) => {
+        const input = el("input", { type: "file", className: "ev-file", accept });
+        const button = el("label", { className: "ds-btn ds-btn--quiet ds-media-pick__btn" }, icon(iconName), el("span", { textContent: label }), input);
+        input.addEventListener("change", () => { if (input.files?.[0]) takeFile(input.files[0]); input.value = ""; });
+        return { button, input };
+      };
+      const imagePick = pickButton("Image", "image", "image/jpeg,image/png,image/webp,image/gif");
+      const videoPick = pickButton("Video", "video", "video/mp4,video/webm,video/quicktime");
+      const flyer = el("div", { className: "ds-media-pick ev-flyer" }, media, el("div", { className: "ds-media-pick__actions" }, imagePick.button, videoPick.button));
+      flyer.addEventListener("dragover", e => { e.preventDefault(); flyer.classList.add("is-over"); });
+      flyer.addEventListener("dragleave", () => flyer.classList.remove("is-over"));
+      flyer.addEventListener("drop", e => { e.preventDefault(); flyer.classList.remove("is-over"); if (e.dataTransfer?.files?.[0]) takeFile(e.dataTransfer.files[0]); });
       async function takeFile(file) {
         const isVideo = file.type.startsWith("video/"), isImage = file.type.startsWith("image/");
-        if (!isVideo && !isImage) { status.textContent = "Flyers are images or short videos."; return; }
+        if (!isVideo && !isImage) { screenStatus.textContent = "Flyers are images or short videos."; return; }
         if (isVideo) {
           const seconds = await videoSeconds(file);
-          if (!(seconds > 0 && seconds <= 15.5)) { fileInput.value = ""; status.textContent = Number.isFinite(seconds) ? "That video is longer than 15 seconds. Trim it and drop it again." : "That video could not be read. Try an MP4."; return; }
+          if (!(seconds > 0 && seconds <= 15.5)) { screenStatus.textContent = Number.isFinite(seconds) ? "That video is longer than 15 seconds. Trim it and drop it again." : "That video could not be read. Try an MP4."; return; }
           draft.media = { file, type: "video", seconds: Math.min(15, Math.round(seconds * 10) / 10) };
         } else draft.media = { file, type: "image" };
         const url = URL.createObjectURL(file);
-        posterMedia.replaceChildren(isVideo ? el("video", { src: url, muted: true, loop: true, autoplay: true, playsInline: true }) : el("img", { src: url, alt: "Your flyer" }));
-        drop.classList.add("has-file");
-        drop.querySelector(".ev-drop-title").textContent = "Change flyer";
-        status.textContent = "";
-        showStep(step);
+        media.replaceChildren(isVideo ? el("video", { src: url, muted: true, loop: true, autoplay: true, playsInline: true }) : el("img", { src: url, alt: "Your flyer" }));
+        flyer.classList.add("has-file");
+        screenStatus.textContent = "";
+        refresh();
       }
 
-      // One question at a time.
-      const field = (label, input) => el("label", { className: "ev-field" }, el("span", { className: "ev-label", textContent: label }), input);
-      const titleIn = el("input", { type: "text", maxLength: 140, placeholder: "e.g. Basement Frequencies", autocomplete: "off" });
-      const startsIn = el("input", { type: "datetime-local", lang: locale() || "" });
+      // Host: your own photo and name.
+      const hostPhoto = el("span", { className: "ds-person__photo" });
+      hostPhoto.setAttribute("aria-hidden", "true");
+      const hostName = el("strong", { className: "ds-person__name ev-value" });
+      const hostRow = el("div", { className: "ds-person ev-host" }, hostPhoto, el("span", {}, hostName, el("span", { className: "ds-person__sub", textContent: "Event host" })));
+      fetch(`${API}/profiles`, { credentials: "include", cache: "no-store" }).then(r => r.ok ? r.json() : {}).then(data => {
+        const p = data?.profile || {}, name = String(p.name || "").trim();
+        hostName.textContent = name;
+        hostPhoto.textContent = name.charAt(0).toUpperCase();
+        if (p.picture) { const img = el("img", { src: p.picture, alt: "", referrerPolicy: "no-referrer", decoding: "async" }); img.onerror = () => img.remove(); img.onload = () => { if (img.naturalWidth) hostPhoto.replaceChildren(img); }; }
+      }).catch(() => {});
+
+      // Floating-label fields.
+      const field = (label, input, note = "") => {
+        const id = `evf${++fieldSerial}`;
+        input.id = id; input.classList.add("ds-field__input"); input.placeholder = " ";
+        const error = el("p", { className: "ds-field__error", id: `${id}e` });
+        input.setAttribute("aria-describedby", error.id);
+        input.addEventListener("input", () => { input.removeAttribute("aria-invalid"); error.textContent = ""; });
+        const box = el("div", { className: "ds-field" }, input, el("label", { className: "ds-field__label", htmlFor: id, textContent: label }));
+        if (note) box.append(note);
+        box.append(error);
+        return box;
+      };
+      const fieldError = (input, message) => { input.setAttribute("aria-invalid", "true"); const error = document.getElementById(input.getAttribute("aria-describedby")); if (error) error.textContent = message; input.focus(); };
+      const titleIn = el("input", { type: "text", className: "ev-title", maxLength: 140, autocomplete: "off" });
+      const startsIn = el("input", { type: "datetime-local", lang: locale() || "", value: draft.startsLocal });
       // The picker's own format follows the browser; the line under it reads the date in the member's language.
-      const startsRead = el("p", { className: "ev-date-read ev-value" });
+      const startsRead = el("p", { className: "ds-field__note ev-date-read ev-value" });
       startsRead.setAttribute("aria-live", "polite");
-      const venueIn = el("input", { type: "text", maxLength: 160, placeholder: "Club or space", autocomplete: "off" });
-      const addressIn = el("input", { type: "text", maxLength: 300, placeholder: "Street, city (optional)", autocomplete: "off" });
-      const priceIn = el("input", { type: "text", inputMode: "decimal", placeholder: "15.00", autocomplete: "off" });
-      const freeIn = el("input", { type: "checkbox" });
-      const payout = el("p", { className: "ev-payout" });
-      const lineupIn = el("textarea", { rows: 4, maxLength: 3000, placeholder: "Headliner\nSupport\nDJ" });
-      const panels = [
-        [field("Name of the night", titleIn)],
-        [field("Doors open", startsIn), startsRead],
-        [field("Venue", venueIn), field("Address", addressIn)],
-        [field("Price per ticket (USD)", priceIn), payout, el("label", { className: "ev-check" }, freeIn, el("span", { textContent: "Free entry, or tickets sold somewhere else" }))],
-        [field("Lineup", lineupIn)]
-      ].map((kids, i) => el("div", { className: "ev-step", hidden: true, role: "group" }, el("p", { className: "ev-step-count" }, value(`${i + 1}/${QUESTIONS.length}`)), el("h3", { className: "ev-question", textContent: QUESTIONS[i].label }), el("p", { className: "ev-hint", textContent: QUESTIONS[i].hint }), ...kids));
-      const back = el("button", { type: "button", className: "ev-secondary", textContent: "Back" });
-      const next = el("button", { type: "button", className: "ev-secondary ev-next", textContent: "Next" });
-      const stepNav = el("div", { className: "ev-step-nav" }, back, next);
-
-      function refreshPreview() {
-        const cents = parsePrice(draft.price);
-        payout.replaceChildren();
-        if (draft.sellTickets && cents >= 50) payout.append(el("span", { textContent: "Buyer pays" }), " ", value(money(cents + buyerFees(cents))), " · ", el("span", { textContent: "You get" }), " ", value(money(cents)));
-        priceIn.disabled = !draft.sellTickets;
-        stubs.querySelectorAll(".ev-stub").forEach(s => s.dispatchEvent(new Event("refresh")));
-      }
-      const bind = (input, key, transform = v => v) => input.addEventListener("input", () => { draft[key] = transform(input.value); refreshPoster(); });
-      bind(titleIn, "title"); bind(startsIn, "startsLocal"); bind(venueIn, "venue"); bind(addressIn, "address"); bind(priceIn, "price"); bind(lineupIn, "lineup");
-      startsIn.addEventListener("change", () => { draft.startsLocal = startsIn.value; refreshPoster(); });
-      const readDate = () => { startsRead.textContent = longDate(startsIn.value); };
+      const endsIn = el("input", { type: "datetime-local", lang: locale() || "" });
+      const endField = field("Ends (optional)", endsIn);
+      endField.hidden = true;
+      const endChip = el("button", { type: "button", className: "ds-chip ev-end-chip" }, icon("plus"), el("span", { textContent: "End time" }));
+      endChip.addEventListener("click", () => { endField.hidden = false; endChip.hidden = true; endsIn.focus(); });
+      const zone = String(Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
+      const zoneChip = el("span", { className: "ds-chip ev-zone" }, el("span", { textContent: "Time zone" }), " ", value(zone.split("/").pop().replace(/_/g, " ")));
+      zoneChip.title = zone;
+      const venueIn = el("input", { type: "text", maxLength: 160, autocomplete: "off" });
+      const addressIn = el("input", { type: "text", maxLength: 300, autocomplete: "off" });
+      const lineupIn = el("textarea", { rows: 3, maxLength: 3000 });
+      const bind = (input, key) => input.addEventListener("input", () => { draft[key] = input.value; refresh(); });
+      bind(titleIn, "title"); bind(startsIn, "startsLocal"); bind(endsIn, "endsLocal"); bind(venueIn, "venue"); bind(addressIn, "address"); bind(lineupIn, "lineup");
+      const readDate = () => { startsRead.textContent = longDate(startsIn.value); draft.startsLocal = startsIn.value; refresh(); };
       startsIn.addEventListener("input", readDate); startsIn.addEventListener("change", readDate);
-      freeIn.addEventListener("change", () => { draft.sellTickets = !freeIn.checked; stubsWrap.hidden = !draft.sellTickets; refreshPoster(); });
+      startsRead.textContent = longDate(startsIn.value);
 
-      // More options: ticket stubs (sections), named tickets, delivery, outside link, end time, audience.
-      const stubs = el("div", { className: "ev-stubs" });
+      // "Who can see it?" sheet.
+      const AUDIENCES = [["public", "Public", "Anyone on DanzStak"], ["friends", "Friends", "Your friends only"], ["private", "Just me", "Saved as a draft only you can see"]];
+      const pickRow = (iconName, label) => { const v = el("span", { className: "ds-pick__value" }); return { row: el("button", { type: "button", className: "ds-pick" }, icon(iconName), el("span", { className: "ds-pick__label", textContent: label }), v, icon("chevron-right")), v }; };
+      const audiencePick = pickRow("users", "Who can see it?");
+      audiencePick.row.classList.add("ev-audience");
+      const audienceError = el("p", { className: "ds-field__error" });
+      audiencePick.row.addEventListener("click", () => {
+        audienceError.textContent = "";
+        const list = el("div", { className: "ev-audience-list" });
+        list.setAttribute("role", "radiogroup");
+        let sheet = null;
+        for (const [key, label, sub] of AUDIENCES) {
+          const choice = el("button", { type: "button", className: "ds-choice" }, icon(key === "public" ? "users" : key === "friends" ? "user-plus" : "lock"), el("span", { className: "ds-choice__text" }, el("strong", { textContent: label }), el("small", { textContent: sub })), el("span", { className: "ds-choice__check" }, icon("check")));
+          choice.setAttribute("role", "radio"); choice.setAttribute("aria-checked", String(draft.audience === key));
+          choice.addEventListener("click", () => { draft.audience = key; refresh(); sheet?.close(); });
+          list.append(choice);
+        }
+        sheet = window.danzstakSheet.open({ title: "Who can see it?", content: list });
+      });
+
+      // "Tickets" sheet: sell on DanzStak (ticket stubs, named tickets, delivery) or link an outside service.
+      const ticketsPick = pickRow("ticket", "Tickets");
+      ticketsPick.row.classList.add("ev-tickets");
+      const toggle = (checked = false) => { const input = el("input", { type: "checkbox", className: "ds-switch", checked }); input.setAttribute("role", "switch"); return input; };
+      const sellIn = toggle(true), namedIn = toggle(true);
+      const payout = el("p", { className: "ds-note ev-payout" });
+      const stubs = el("div", { className: "ds-stack ev-stubs" });
+      const outsideIn = el("input", { type: "url", inputMode: "url", autocomplete: "off" });
+      const ticketsError = el("p", { className: "ds-field__error ev-tickets-error" });
+      const switchRow = (input, text, small) => el("label", { className: "ds-switch-row" }, el("span", { className: "ds-switch-row__text" }, el("span", { textContent: text }), small ? el("small", { textContent: small }) : null), input);
       function stub(index) {
         const section = draft.sections[index];
         const nameIn = el("input", { type: "text", maxLength: 80, value: section.name || "" });
-        nameIn.setAttribute("aria-label", "Ticket name");
-        const priceBox = el("input", { type: "text", inputMode: "decimal", placeholder: "15.00", value: index === 0 ? draft.price : section.price || "" });
-        priceBox.setAttribute("aria-label", "Ticket price (USD)");
-        const sizeIn = el("input", { type: "number", min: 1, max: 100000, step: 1, value: index === 0 ? draft.sectionSize : section.size || "50" });
-        sizeIn.setAttribute("aria-label", "How many tickets");
-        const node = el("div", { className: "ev-stub" },
-          el("div", { className: "ev-stub-main" }, field("Ticket", nameIn), field("Price", priceBox), field("How many", sizeIn)),
-          el("div", { className: "ev-stub-tear" }, el("span", { className: "ev-stub-admit", textContent: "Admit one" })));
+        const priceBox = el("input", { type: "text", inputMode: "decimal", value: index === 0 ? draft.price : section.price || "" });
+        const sizeIn = el("input", { type: "number", min: 1, max: 100000, step: 1, inputMode: "numeric", value: index === 0 ? draft.sectionSize : section.size || "50" });
+        const tear = el("div", { className: "ds-stub__tear" }, el("span", { className: "ds-stub__admit", textContent: "Admit one" }));
+        const node = el("div", { className: "ds-stub ev-stub" }, el("div", { className: "ds-stub__main" }, field("Ticket", nameIn), field("Price", priceBox), field("How many", sizeIn)), tear);
         nameIn.addEventListener("input", () => { section.name = nameIn.value; });
-        priceBox.addEventListener("input", () => { if (index === 0) { draft.price = priceBox.value; priceIn.value = priceBox.value; refreshPoster(); } else section.price = priceBox.value; });
+        priceBox.addEventListener("input", () => { if (index === 0) draft.price = priceBox.value; else section.price = priceBox.value; refresh(); });
         sizeIn.addEventListener("input", () => { if (index === 0) draft.sectionSize = sizeIn.value; else section.size = sizeIn.value; });
-        node.addEventListener("refresh", () => { if (index === 0 && document.activeElement !== priceBox) priceBox.value = draft.price; });
         if (index > 0) {
-          const remove = el("button", { type: "button", className: "ev-stub-remove", textContent: "Remove" });
+          const remove = el("button", { type: "button", className: "ds-icon-btn ds-stub__remove" }, icon("trash-2"));
+          remove.setAttribute("aria-label", "Remove");
           remove.addEventListener("click", () => { draft.sections.splice(index, 1); ids.tiers.splice(index, 1); drawStubs(); });
-          node.querySelector(".ev-stub-tear").append(remove);
+          tear.append(remove);
         }
         return node;
       }
       function drawStubs() { stubs.replaceChildren(...draft.sections.map((_, i) => stub(i))); }
       draft.sections = [{ name: "General admission" }];
       drawStubs();
-      const addSection = el("button", { type: "button", className: "ev-secondary", textContent: "Add a ticket section" });
+      const addSection = el("button", { type: "button", className: "ds-btn ds-btn--quiet ev-add-section" }, icon("plus"), el("span", { textContent: "Add a ticket section" }));
       addSection.addEventListener("click", () => { draft.sections.push({ name: "", price: "", size: "50" }); ids.tiers.push(crypto.randomUUID()); drawStubs(); stubs.lastChild?.querySelector("input")?.focus(); });
-      const stubsWrap = el("div", { className: "ev-stubs-wrap" }, el("p", { className: "ev-label", textContent: "Tickets and seating sections" }), stubs, addSection);
-      const namedIn = el("input", { type: "checkbox", checked: true });
+      const selling = el("div", { className: "ds-stack ev-selling" }, stubs, payout, addSection,
+        switchRow(namedIn, "Named tickets", "Each ticket carries the buyer's legal name and can't be resold. Turn it off if your door doesn't check names."),
+        el("p", { className: "ds-note", textContent: "Every buyer gets an email with a QR code and a plain-text ticket code. You get a printable door list." }));
+      const doneButton = el("button", { type: "button", className: "ds-btn ds-btn--go ds-btn--block" }, el("span", { textContent: "Done" }));
+      const ticketsBody = el("div", { className: "ds-stack ev-tickets-sheet" }, ticketsError,
+        switchRow(sellIn, "Sell tickets on DanzStak", "You keep the full ticket price. Buyers pay the 6% fee (+$1 under $30)."),
+        selling, field("Outside ticket link (optional)", outsideIn), doneButton);
+      sellIn.addEventListener("change", () => { draft.sellTickets = sellIn.checked; refresh(); });
       namedIn.addEventListener("change", () => { draft.namedTickets = namedIn.checked; });
-      const outsideIn = el("input", { type: "url", placeholder: "https://", inputMode: "url" });
-      outsideIn.addEventListener("input", () => { draft.outsideUrl = outsideIn.value === "https://" ? "" : outsideIn.value; refreshPoster(); });
-      const endsIn = el("input", { type: "datetime-local" });
-      endsIn.addEventListener("input", () => { draft.endsLocal = endsIn.value; });
-      const audienceIn = el("select", {}, ...[["public", "Public"], ["friends", "Friends"], ["private", "Just me"]].map(([v, l]) => el("option", { value: v, textContent: l })));
-      audienceIn.addEventListener("change", () => { draft.audience = audienceIn.value; });
-      const more = el("details", { className: "ev-more" }, el("summary", { textContent: "More options" }),
-        stubsWrap,
-        el("label", { className: "ev-check" }, namedIn, el("span", { textContent: "Named tickets: each ticket carries the buyer's legal name and can't be resold. Untick if your door doesn't check names." })),
-        el("div", { className: "ev-delivery" }, el("p", { className: "ev-label", textContent: "Ticket delivery" }), el("p", { textContent: "Every buyer gets an email with a QR code and a plain-text ticket code. You get a printable door list." })),
-        field("Outside ticket link (optional)", outsideIn),
-        field("Ends (optional)", endsIn),
-        field("Who can see it", audienceIn));
+      outsideIn.addEventListener("input", () => { draft.outsideUrl = outsideIn.value; refresh(); });
+      let ticketsSheet = null;
+      const openTickets = (message = "") => {
+        ticketsError.textContent = message;
+        ticketsSheet = window.danzstakSheet.open({ title: "Tickets", content: ticketsBody, onClose: () => { ticketsSheet = null; } });
+      };
+      ticketsPick.row.addEventListener("click", () => openTickets());
+      doneButton.addEventListener("click", () => ticketsSheet?.close());
 
-      // Publish.
-      const certIn = el("input", { type: "checkbox" });
-      certIn.addEventListener("change", () => { draft.certified = certIn.checked; });
-      const publishButton = el("button", { type: "button", className: "ev-primary ev-publish", textContent: "Publish event" });
-      const finish = el("div", { className: "ev-finish", hidden: true }, el("label", { className: "ev-check" }, certIn, el("span", { textContent: "I made this event post and DanzStak may share it." })), publishButton);
+      // Made it yourself (required), then the one button.
+      const certIn = toggle(false);
+      certIn.addEventListener("change", () => { draft.certified = certIn.checked; certIn.removeAttribute("aria-invalid"); });
+      const publishButton = el("button", { type: "button", className: "ds-btn ds-btn--go ds-btn--block ev-publish", disabled: true }, el("span", { textContent: "Create event" }));
 
-      function showStep(i) {
-        step = Math.max(0, Math.min(QUESTIONS.length - 1, i));
-        panels.forEach((p, n) => { p.hidden = !draft.media || n !== step; });
-        stepNav.hidden = !draft.media;
-        back.disabled = step === 0;
-        next.hidden = step === QUESTIONS.length - 1;
-        finish.hidden = !draft.media || step !== QUESTIONS.length - 1;
-        more.hidden = !draft.media;
+      function refresh() {
+        const cents = parsePrice(draft.price);
+        payout.replaceChildren();
+        if (cents >= 50) payout.append(el("span", { textContent: "Buyer pays" }), " ", value(money(cents + buyerFees(cents))), " · ", el("span", { textContent: "You get" }), " ", value(money(cents)));
+        selling.hidden = !draft.sellTickets;
+        ticketsPick.v.replaceChildren(draft.sellTickets
+          ? (cents >= 50 ? el("span", {}, el("span", { textContent: "From" }), " ", value(money(cents + buyerFees(cents)))) : el("span", { textContent: "Set a price" }))
+          : el("span", { textContent: draft.outsideUrl.trim() ? "Outside tickets" : "Free entry" }));
+        audiencePick.v.replaceChildren(el("span", { textContent: AUDIENCES.find(a => a[0] === draft.audience)[1] }));
+        publishButton.disabled = !(draft.media && draft.title.trim() && draft.startsLocal);
       }
-      back.addEventListener("click", () => showStep(step - 1));
-      next.addEventListener("click", () => { showStep(step + 1); panels[step].querySelector("input,textarea")?.focus(); });
-      for (const p of panels) p.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type !== "checkbox" && step < QUESTIONS.length - 1) { e.preventDefault(); next.click(); } });
 
       publishButton.addEventListener("click", async () => {
         const check = validate(draft);
         if (!check.ok) {
-          status.textContent = check.message;
-          if (check.step === "flyer") drop.focus();
-          else if (check.step === "more") { more.open = true; more.querySelector("summary").focus(); }
-          else if (check.step === "publish") certIn.focus();
-          else { showStep(check.step); panels[check.step].querySelector("input,textarea")?.focus(); }
+          screenStatus.textContent = check.message;
+          if (check.step === "flyer") imagePick.input.focus();
+          else if (check.step === 0) fieldError(titleIn, check.message);
+          else if (check.step === 1) fieldError(startsIn, check.message);
+          else if (check.step === 2) fieldError(venueIn, check.message);
+          else if (check.step === "publish") { certIn.setAttribute("aria-invalid", "true"); certIn.focus(); }
+          else if (/after doors/.test(check.message)) { endField.hidden = false; endChip.hidden = true; fieldError(endsIn, check.message); }
+          else if (/Public/.test(check.message)) { audienceError.textContent = check.message; audiencePick.row.focus(); }
+          else openTickets(check.message);
           return;
         }
         publishButton.disabled = true;
-        const result = await publish(draft, { postActionFetch, fetchWithDeadline: window.fetchWithDeadline, mediaUploadDeadline: window.mediaUploadDeadline, discardUploadedMedia: window.discardUploadedMedia, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", onStatus: text => { if (isCurrent()) status.textContent = text; } }, ids);
+        const result = await publish(draft, { postActionFetch, fetchWithDeadline: window.fetchWithDeadline, mediaUploadDeadline: window.mediaUploadDeadline, discardUploadedMedia: window.discardUploadedMedia, timezone: zone, onStatus: text => { if (isCurrent()) screenStatus.textContent = text; } }, ids);
         publishButton.disabled = false;
         if (!isCurrent()) return;
-        if (!result.ok) { status.textContent = result.message; return; }
-        status.replaceChildren(el("span", { textContent: "Your night is live." }), " ", el("a", { href: `event.html?id=${encodeURIComponent(result.eventId)}`, textContent: "Open the event page" }));
+        if (!result.ok) { screenStatus.textContent = result.message; return; }
         if (typeof window.loadPosts === "function") window.loadPosts().catch?.(() => {});
         // Close the screen (its Back entry is consumed first), then show the success line on the Events page.
-        const done = status.cloneNode(true);
-        closeScreen(); creatorHost.replaceChildren(); status.replaceChildren(...done.childNodes);
+        closeScreen(); creatorHost.replaceChildren(); footHost.replaceChildren();
+        status.replaceChildren(el("span", { textContent: "Your night is live." }), " ", el("a", { href: `event.html?id=${encodeURIComponent(result.eventId)}`, textContent: "Open the event page" }));
       });
 
-      refreshPoster();
-      showStep(0);
-      const steps = el("div", { className: "ev-steps" }, drop, ...panels, stepNav, more, finish);
-      return el("section", { className: "ev-creator", "aria-label": "Sell tickets to your night" }, poster, steps);
+      refresh();
+      const fields = el("div", { className: "ds-fields" },
+        field("Event name", titleIn),
+        field("Start date and time", startsIn, startsRead),
+        el("div", { className: "ds-chips" }, endChip, zoneChip),
+        endField,
+        field("Venue", venueIn),
+        field("Address (optional)", addressIn),
+        el("div", {}, audiencePick.row, audienceError),
+        ticketsPick.row,
+        field("Lineup", lineupIn, el("p", { className: "ds-field__note", textContent: "One act per line. Optional." })),
+        switchRow(certIn, "I made this event post and DanzStak may share it."));
+      startsIn.closest(".ds-field").classList.add("ds-field--fixed");
+      endsIn.closest(".ds-field").classList.add("ds-field--fixed");
+      return { body: el("section", { className: "ev-creator", "aria-label": "Create event" }, flyer, hostRow, fields), foot: el("div", { className: "ev-creator-actions" }, screenStatus, publishButton) };
     }
   }
 
-  window.danzstakEvents = Object.freeze({ render, closeCreatorFromHistory, longDate, readTickets, saveTickets, search, tonightAndWeekend, newDraft, validate, publish, parsePrice, buyerFees });
+  window.danzstakEvents = Object.freeze({ render, closeCreatorFromHistory, longDate, readTickets, saveTickets, search, tonightAndWeekend, newDraft, validate, publish, parsePrice, buyerFees, nextHourLocal });
 })();

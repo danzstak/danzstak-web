@@ -1,5 +1,6 @@
 "use strict";
-// Task 14-D: Events page, flyer-first creator and poster event page in a real browser (Edge), 320-1366px.
+// Task 14-D: Events page, Create event (UI kit screen 2, CLAUDE.md F10) and poster event page in a real browser (Edge),
+// 320-1366px, taps at the centre of each control.
 // Run with a local server: DANZSTAK_BASE_URL=http://127.0.0.1:8132 node browser-checks/events-page.cjs
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -62,10 +63,23 @@ function fixture(pathname, method) {
           catch (error) { if (attempt >= 3) throw error; await page.waitForTimeout(500); }
         }
       };
+      // Taps land on the centre of the control, and the control must be the thing drawn there (nothing covers it).
+      const tap = async locator => {
+        await locator.evaluate(node => node.scrollIntoView({ block: "center" })); // a person scrolls it into view, clear of the tab bar
+        await page.waitForTimeout(50);
+        const box = await locator.boundingBox();
+        assert.ok(box, `${width}px tap target is on screen`);
+        const x = box.x + box.width / 2, y = box.y + box.height / 2;
+        const hit = await locator.evaluate((node, [px, py]) => { const top = document.elementFromPoint(px, py); return !!top && (node === top || node.contains(top) || (node.tagName === "INPUT" && top.closest("label") === node.closest("label"))); }, [x, y]);
+        assert.ok(hit, `${width}px something covers the centre of ${await locator.evaluate(n => n.getAttribute("aria-label") || n.textContent.trim().slice(0, 30) || n.className)}`);
+        await page.mouse.click(x, y);
+      };
+      // A sheet slides up in 220 ms; measure and tap once it has settled.
+      const sheetReady = () => page.waitForFunction(() => { const panel = document.querySelector(".ds-sheet.is-open .ds-sheet__panel"); return !!panel && getComputedStyle(panel).transform === "none" && getComputedStyle(panel).opacity === "1"; });
       const layout = async label => {
         const state = await page.evaluate(() => {
           const visible = n => { const r = n.getBoundingClientRect(), s = getComputedStyle(n); return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none"; };
-          const small = [...document.querySelectorAll(".ev-skin :is(button,input:not([type=checkbox]):not([type=file]),select,textarea,summary,a.ev-night,a.ev-my-ticket), .event-poster :is(button,select,a.event-map), .event-poster .ticket-buy-button")]
+          const small = [...document.querySelectorAll(".ev-skin :is(button,input:not([type=checkbox]):not([type=file]),select,textarea,summary,a.ev-night,a.ev-my-ticket), .event-poster :is(button,select,a.event-map), .event-poster .ticket-buy-button, .ev-creator-screen:not([hidden]) :is(button,input:not([type=checkbox]):not([type=file]),textarea,label.ds-btn,label.ds-switch-row), .ds-sheet.is-open .ds-sheet__panel :is(button,input:not([type=checkbox]),textarea,label.ds-switch-row)")]
             .filter(visible).map(n => ({ label: n.textContent.trim().slice(0, 30) || n.getAttribute("aria-label") || n.tagName, h: Math.round(n.getBoundingClientRect().height) })).filter(t => t.h < 44);
           return { overflow: document.documentElement.scrollWidth > innerWidth, small };
         });
@@ -89,74 +103,115 @@ function fixture(pathname, method) {
       await page.locator(".ev-search-input").fill("");
       assert.match(await page.locator(".ev-own").first().innerText(), /23\/60[\s\S]*tickets sold/, "promoter sees sales so far");
 
-      // Fix-it 18: nothing of the composer is printed on the page; + beside search opens it as its own screen.
-      assert.equal(await page.locator(".ev-creator-screen").isHidden(), true, "composer closed on arrival");
+      // Fix-it 18: nothing of the composer is printed on the page; + beside search opens Create event as its own
+      // screen (UI kit screen 2, CLAUDE.md F10).
+      assert.equal(await page.locator(".ev-creator-screen").count(), 0, "Create event is not in the page until opened");
       assert.equal(await page.locator(".ev-skin input[type=file]:visible, .ev-skin input[type=datetime-local]:visible").count(), 0, "no form fields printed on Events");
       const add = page.getByRole("button", { name: "Post an event" });
       const addBox = await add.boundingBox();
       assert.ok(addBox.width >= 44 && addBox.height >= 44, `${width}px + is a 44px target`);
       const historyBefore = await page.evaluate(() => history.length);
-      await add.click();
-      const screenBox = await page.locator(".ev-creator-screen").boundingBox();
-      if (width < 760) assert.deepEqual([screenBox.x, screenBox.y, Math.round(screenBox.width)], [0, 0, width], `${width}px composer fills the screen`);
-      assert.equal(await page.locator(".ev-screen-title").innerText(), "NEW EVENT");
+      await tap(add);
+      const screen = page.locator(".ev-creator-screen");
+      await screen.waitFor({ state: "visible" });
+      const screenBox = await screen.locator(".ds-form-screen__panel").boundingBox();
+      if (width < 760) assert.deepEqual([screenBox.x, screenBox.y, Math.round(screenBox.width), Math.round(screenBox.height)], [0, 0, width, 844], `${width}px Create event fills the screen`);
+      assert.equal(await page.locator(".ds-form-screen__title").innerText(), "Create event");
+      const create = screen.locator(".ev-publish");
+      assert.equal(await create.isDisabled(), true, "Create event waits for the flyer, the name and the time");
+      assert.match(await screen.getByLabel("Start date and time").inputValue(), /^\d{4}-\d\d-\d\dT\d\d:00$/, "start prefilled to the next hour");
+      assert.equal(await screen.locator(".ds-person__name").innerText(), "Test Promoter", "the host row shows you");
+      const footBox = await screen.locator(".ds-form-screen__foot").boundingBox();
+      assert.ok(Math.abs(footBox.y + footBox.height - (width === 1366 ? screenBox.y + screenBox.height : 844)) <= 1, `${width}px the button sits at the bottom of the screen`);
       await shot("composer-open", null);
       // Device Back closes the screen and the draft survives.
-      await page.locator(".ev-file").setInputFiles(path.resolve("assets/danzstak-share-fb-v2.jpg"));
-      await page.locator(".ev-poster-media img").waitFor();
-      await page.locator(".ev-step:not([hidden]) input").fill("Back Test Night");
+      await screen.locator(".ev-flyer input[accept^=image]").setInputFiles(path.resolve("assets/danzstak-share-fb-v2.jpg"));
+      await screen.locator(".ds-media-pick__media img").waitFor();
+      await screen.getByLabel("Event name").fill("Back Test Night");
+      assert.equal(await create.isDisabled(), false, "flyer + name + time: Create event is ready");
       await page.goBack();
-      await page.locator(".ev-creator-screen").waitFor({ state: "hidden" });
+      await screen.waitFor({ state: "hidden" });
       assert.equal(await page.locator(".ev-skin .ev-night").count() > 0, true, "Back lands on the Events list, not Mix");
       assert.match(page.url(), /feed\.html\?view=events$/, "Back stays on Events");
-      // Close (the ✕/back arrow) behaves the same.
-      await add.click();
-      assert.equal(await page.locator(".ev-step:not([hidden]) input").inputValue(), "Back Test Night", "the draft is kept after Back");
-      await page.getByRole("button", { name: "Close" }).click();
-      await page.locator(".ev-creator-screen").waitFor({ state: "hidden" });
+      // Close (the ← in the bar) behaves the same.
+      await tap(add);
+      assert.equal(await screen.getByLabel("Event name").inputValue(), "Back Test Night", "the draft is kept after Back");
+      await tap(screen.getByRole("button", { name: "Close" }));
+      await screen.waitFor({ state: "hidden" });
       assert.equal(await page.evaluate(() => history.length), historyBefore + 1, "closing does not stack history entries");
 
-      // Promoter: pitch, then the flyer-first creator.
+      // Promoter: the pitch's button opens the same screen.
       await page.locator(".ev-promo").scrollIntoViewIfNeeded();
       await shot("promoter-pitch", page.locator(".ev-promo"));
-      await page.getByRole("button", { name: "Make your poster" }).click();
-      await page.locator(".ev-creator-screen").waitFor({ state: "visible" });
-      await page.locator(".ev-step:not([hidden]) input").fill("");
-      await page.locator(".ev-poster-media img").waitFor();
-      await shot("creator-flyer", page.locator(".ev-creator"));
-      assert.equal(await page.locator(".ev-step:not([hidden])").count(), 1, "one question at a time");
-      await page.locator(".ev-step:not([hidden]) input").fill("Basement Frequencies");
-      assert.equal(await page.locator(".ev-poster-title").innerText(), "BASEMENT FREQUENCIES", "the poster fills in as they type");
-      await page.getByRole("button", { name: "Next" }).click();
-      await page.locator(".ev-step:not([hidden]) input").fill("2027-02-06T22:00");
-      assert.match(await page.locator(".ev-date-read").innerText(), /Saturday, February 6, 2027/, "the date reads back in words");
-      await shot("composer-date", null);
-      await page.getByRole("button", { name: "Next" }).click();
-      const venueInputs = page.locator(".ev-step:not([hidden]) input");
-      await venueInputs.nth(0).fill("The Pit"); await venueInputs.nth(1).fill("1 Main St, Oakland");
-      await page.getByRole("button", { name: "Next" }).click();
-      await page.locator(".ev-step:not([hidden]) input[inputmode=decimal]").fill("15");
-      assert.equal((await page.locator(".ev-payout").innerText()).replace(/\s+/g, " "), "Buyer pays $16.90 · You get $15.00");
-      await layout("creator");
-      await shot("creator-price", page.locator(".ev-step:not([hidden])"));
-      await page.getByRole("button", { name: "Next" }).click();
-      await page.locator(".ev-step:not([hidden]) textarea").fill("Ghost Rider\nDJ Tarmac");
-      assert.equal(await page.getByRole("button", { name: "Publish event" }).count(), 1, "one Publish button");
-      await page.locator(".ev-more summary").click();
-      await page.getByRole("button", { name: "Add a ticket section" }).click();
-      const stub = page.locator(".ev-stub").nth(1);
-      await stub.locator("input").nth(0).fill("Balcony"); await stub.locator("input").nth(1).fill("25"); await stub.locator("input").nth(2).fill("20");
-      await layout("more options");
-      await shot("creator-more", page.locator(".ev-more"));
-      // Close the keyboard first, as a phone user would: the field losing focus reflows the page.
+      await tap(page.locator(".ev-promo .ev-primary"));
+      await screen.waitFor({ state: "visible" });
+      await screen.getByLabel("Event name").fill("Basement Frequencies");
+      await screen.getByLabel("Start date and time").fill("2027-02-06T22:00");
+      assert.match(await screen.locator(".ev-date-read").innerText(), /Saturday, February 6, 2027/, "the date reads back in words");
+      await tap(screen.locator(".ev-end-chip"));
+      assert.equal(await screen.getByLabel("Ends (optional)").isVisible(), true, "+ End time shows the end field");
+      assert.match(await screen.locator(".ev-zone").innerText(), /Time zone/, "time zone chip");
+      await screen.getByLabel("Venue").fill("The Pit");
+      await screen.getByLabel("Address (optional)").fill("1 Main St, Oakland");
+      await shot("composer-date", screen.locator(".ev-host"));
+
+      // Who can see it?: a sheet; Back closes only the sheet.
+      await tap(screen.locator(".ev-audience"));
+      const sheet = page.locator(".ds-sheet.is-open");
+      await sheet.waitFor();
+      await sheetReady();
+      assert.equal(await sheet.getByRole("radio").count(), 3);
+      assert.equal(await sheet.getByRole("radio", { name: /Public/ }).getAttribute("aria-checked"), "true", "Public by default");
+      await layout("who can see it");
+      await shot("composer-audience", null);
+      await page.goBack();
+      await page.locator(".ds-sheet").waitFor({ state: "detached" });
+      assert.equal(await screen.isVisible(), true, "Back closed the sheet, not the screen");
+      assert.equal(await screen.getByLabel("Event name").inputValue(), "Basement Frequencies");
+      await tap(screen.locator(".ev-audience"));
+      await sheetReady();
+      await tap(page.locator(".ds-sheet.is-open").getByRole("radio", { name: /Friends/ }));
+      await page.locator(".ds-sheet").waitFor({ state: "detached" });
+      assert.match(await screen.locator(".ev-audience .ds-pick__value").innerText(), /Friends/, "the row shows the pick");
+
+      // Tickets: a sheet with ticket stubs, the buyer price and the payout.
+      await tap(screen.locator(".ev-tickets"));
+      const tickets = page.locator(".ds-sheet.is-open");
+      await tickets.waitFor();
+      await sheetReady();
+      await tickets.locator(".ev-stub").first().getByLabel("Price").fill("15");
+      assert.equal((await tickets.locator(".ev-payout").innerText()).replace(/\s+/g, " "), "Buyer pays $16.90 · You get $15.00");
+      await tap(tickets.locator(".ev-add-section"));
+      const stub = tickets.locator(".ev-stub").nth(1);
+      await stub.getByLabel("Ticket").fill("Balcony"); await stub.getByLabel("Price").fill("25"); await stub.getByLabel("How many").fill("20");
       await page.evaluate(() => document.activeElement?.blur());
-      await page.getByRole("button", { name: "Publish event" }).click();
-      assert.match(await page.locator(".ev-status").innerText(), /Confirm that you made this event post/, "confirmation required");
-      await page.locator(".ev-finish input[type=checkbox]").check();
-      await page.getByRole("button", { name: "Publish event" }).click();
-      await page.locator(".ev-status").filter({ hasText: "Your night is live." }).waitFor({ timeout: 15000 }).catch(async error => { throw new Error(`${width}px publish did not finish: ${await page.locator(".ev-status").textContent()} / posted ${posted.join(",")}`); });
-      await page.locator(".ev-creator-screen").waitFor({ state: "hidden" });
-      assert.equal(await page.locator(".ev-skin > .ev-status").innerText().then(t => /Your night is live\./.test(t)), true, "success shows on the Events page after the screen closes");
+      await layout("tickets");
+      await shot("composer-tickets", null);
+      await tap(tickets.getByRole("button", { name: "Done" }));
+      await page.locator(".ds-sheet").waitFor({ state: "detached" });
+      assert.match((await screen.locator(".ev-tickets .ds-pick__value").innerText()).replace(/\s+/g, " "), /From \$16\.90/, "the row shows the all-in price");
+      await screen.getByLabel("Lineup").fill("Ghost Rider\nDJ Tarmac");
+      await page.evaluate(() => document.activeElement?.blur());
+      await layout("creator");
+
+      // Ticketed nights must be Public: the row says so.
+      await tap(create);
+      assert.match(await screen.locator(".ev-screen-status").innerText(), /must be Public/);
+      await tap(screen.locator(".ev-audience"));
+      await sheetReady();
+      await tap(page.locator(".ds-sheet.is-open").getByRole("radio", { name: /Public/ }));
+      await page.locator(".ds-sheet").waitFor({ state: "detached" });
+      // The made-it-yourself switch is required.
+      await tap(create);
+      assert.match(await screen.locator(".ev-screen-status").innerText(), /Confirm that you made this event post/, "confirmation required");
+      const cert = screen.getByRole("switch", { name: /I made this event post/ });
+      assert.equal(await cert.getAttribute("aria-invalid"), "true", "the switch is marked");
+      await tap(cert);
+      assert.equal(await cert.isChecked(), true);
+      await shot("composer-ready", screen.locator(".ev-audience"));
+      await tap(create);
+      await page.locator(".ev-skin > .ev-status").filter({ hasText: "Your night is live." }).waitFor({ timeout: 15000 }).catch(async () => { throw new Error(`${width}px publish did not finish: ${await screen.locator(".ev-screen-status").textContent()} / posted ${posted.join(",")}`); });
+      await screen.waitFor({ state: "hidden" });
       await shot("composer-published", page.locator(".ev-skin > .ev-status"));
       assert.deepEqual(posted.filter(p => /stories|marketplace|secure-posts/.test(p)), ["/stories", "/marketplace/events", "/marketplace/events/99999999-9999-4999-8999-999999999999/tiers", "/marketplace/events/99999999-9999-4999-8999-999999999999/tiers", "/secure-posts"], `${width}px publish sequence`);
 
@@ -172,6 +227,39 @@ function fixture(pathname, method) {
       assert.equal(errors.length, 0, `${width}px page errors: ${errors.join(" | ")}`);
       await context.close();
     }
-    console.log(`Events page browser checks passed at ${widths.join(", ")}px: search, offline My tickets, max-5 tonight list, flyer-first creator with live poster, stubs, one Publish, and the poster event page.`);
+    // Create event in Night (the phone's dark mode) and in Italian, at phone widths: the kit's tokens apply, every word
+    // on the screen and in the Tickets sheet is translated, and nothing overflows. Screenshots for spec 39 step 2.
+    fs.mkdirSync("docs/screenshots/launch", { recursive: true });
+    for (const [width, dark, italian] of [[360, false, true], [390, true, false], [390, false, false], [360, true, false]]) {
+      const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block", colorScheme: dark ? "dark" : "light" });
+      if (italian) await context.addInitScript(() => { try { localStorage.setItem("danzstak_language", "it"); } catch {} });
+      const page = await context.newPage(), errors = [];
+      page.on("pageerror", error => errors.push(error.message));
+      await page.route("https://api.danzstak.com/**", route => { const url = new URL(route.request().url()); route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(url.pathname, route.request().method())) }); });
+      await page.goto(`${baseUrl}/feed.html?view=events`, { waitUntil: "load" });
+      await page.locator(".ev-skin .ev-night").first().waitFor({ timeout: 20000 });
+      await page.locator(".ev-add").tap();
+      const screen = page.locator(".ev-creator-screen");
+      await screen.waitFor({ state: "visible" });
+      const colours = await screen.evaluate(node => [getComputedStyle(node.querySelector(".ds-form-screen__panel")).backgroundColor, getComputedStyle(node.querySelector(".ds-form-screen__title")).color]);
+      assert.deepEqual(colours, dark ? ["rgb(21, 21, 23)", "rgb(237, 237, 234)"] : ["rgb(255, 255, 255)", "rgb(11, 11, 12)"], `${width}px ${dark ? "Night" : "Day"} tokens`);
+      if (italian) {
+        await page.waitForTimeout(300);
+        assert.equal(await page.locator(".ds-form-screen__title").innerText(), "Crea evento");
+        assert.equal(await screen.locator(".ev-publish").innerText(), "Crea evento");
+        assert.match(await screen.locator(".ds-media-pick__empty").innerText(), /Aggiungi un flyer/);
+        assert.match(await screen.locator(".ev-audience").innerText(), /Chi può vederlo\?/);
+      }
+      await page.screenshot({ path: `docs/screenshots/launch/event-create-${width}-${italian ? "it" : dark ? "night" : "day"}.png` });
+      await screen.locator(".ev-tickets").tap();
+      await page.locator(".ds-sheet.is-open").waitFor();
+      await page.waitForTimeout(400);
+      if (italian) assert.match(await page.locator(".ds-sheet.is-open").innerText(), /Vendi i biglietti su DanzStak[\s\S]*Biglietti nominativi[\s\S]*Fatto/, "the Tickets sheet is in Italian");
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${width}px no sideways scroll`);
+      await page.screenshot({ path: `docs/screenshots/launch/event-create-tickets-${width}-${italian ? "it" : dark ? "night" : "day"}.png` });
+      assert.equal(errors.length, 0, errors.join(" | "));
+      await context.close();
+    }
+    console.log(`Events page browser checks passed at ${widths.join(", ")}px (+ Night and Italian at 360/390px): search, offline My tickets, max-5 tonight list, Create event on the UI kit (flyer, host, fields, Who can see it? and Tickets sheets, Back closes a sheet first, one green Create event), and the poster event page.`);
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
