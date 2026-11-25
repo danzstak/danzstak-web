@@ -185,8 +185,13 @@
     audio.track = track;
     audio.source = context.createMediaStreamSource(new MediaStream([track]));
     const send = buffer => { if (socket?.readyState === WebSocket.OPEN) socket.send(audioEvent(new Uint8Array(buffer))); };
-    if (context.audioWorklet) {
-      if (!audio.worklet) { await context.audioWorklet.addModule(new URL("assets/call-translate-worklet.js?v=1", document.baseURI).href); audio.worklet = true; }
+    // The worklet keeps the 16 kHz conversion off the page's thread. Some browsers (Edge on a computer without a sound card,
+    // seen in CI) never finish loading it, so after 3 s the same conversion runs on the page instead.
+    if (context.audioWorklet && audio.worklet !== "failed" && !audio.worklet) {
+      const loaded = context.audioWorklet.addModule(new URL("assets/call-translate-worklet.js?v=1", document.baseURI).href).then(() => true, () => false);
+      audio.worklet = await Promise.race([loaded, new Promise(resolve => setTimeout(() => resolve(false), 3000))]) ? true : "failed";
+    }
+    if (audio.worklet === true) {
       audio.node = new AudioWorkletNode(context, "danzstak-pcm16");
       audio.node.port.onmessage = event => send(event.data);
       audio.source.connect(audio.node);

@@ -16,10 +16,12 @@ const assert = require("node:assert/strict");
 const base = String(process.env.DANZSTAK_BASE_URL || process.env.DANZSTAK_LOCAL_URL || "http://127.0.0.1:8017").replace(/\/$/, "");
 const LANGS = [{ code: "en", label: "English" }, { code: "it", label: "Italiano" }, { code: "fr", label: "Français" }, { code: "he", label: "עברית", rtl: true }];
 
-async function open(browser, width, { locale = "en-US", available = true, minutesOut = false } = {}) {
+async function open(browser, width, { locale = "en-US", available = true, minutesOut = false, hangWorklet = false } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 800 }, isMobile: true, hasTouch: true, serviceWorkers: "block", locale });
   const page = await context.newPage(), errors = [], calls = [];
   page.on("pageerror", error => errors.push(error.message));
+  // A browser that never finishes loading the audio worklet (Edge in CI): the page's own converter takes over after 3 s.
+  if (hangWorklet) await page.addInitScript(() => { if (window.AudioWorklet) AudioWorklet.prototype.addModule = () => new Promise(() => {}); });
   await page.addInitScript(() => {
     window.__ws = [];
     class FakeSocket {
@@ -79,7 +81,7 @@ async function openFromMore(page, tag, label = "Live translation") {
   const browser = await chromium.launch({ ...(process.env.DANZSTAK_BROWSER_CHANNEL === "bundled" ? {} : { channel: process.env.DANZSTAK_BROWSER_CHANNEL || "msedge" }), headless: true, args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", "--autoplay-policy=no-user-gesture-required"] });
   try {
     for (const width of [320, 360, 390, 430]) {
-      const tag = `${width}px`, { context, page, errors, calls } = await open(browser, width);
+      const tag = `${width}px`, { context, page, errors, calls } = await open(browser, width, { hangWorklet: width === 360 });
       const gridBefore = await page.evaluate(() => { const r = document.getElementById("videoGrid").getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: r.height }; });
       // Shawn turns it on.
       await openFromMore(page, tag);
