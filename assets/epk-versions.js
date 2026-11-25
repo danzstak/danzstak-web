@@ -8,6 +8,7 @@
   "use strict";
   const byId = id => document.getElementById(id);
   const builder = () => window.danzstakEpkBuilder || {};
+  const library = () => window.danzstakEpkLibrary || { id: "main", path: url => url };
   const when = iso => {
     const date = new Date(iso);
     if (!iso || Number.isNaN(date.getTime())) return "";
@@ -39,7 +40,7 @@
       title: "Bring back this version?", confirmLabel: "Bring it back", cancelLabel: "Cancel"
     });
     if (confirmed === false) return false;
-    const data = await load(`/epk?version=${encodeURIComponent(id)}`);
+    const data = await load(library().path(`/epk?version=${encodeURIComponent(id)}`));
     builder().fill?.(data.kit || {});
     const status = byId("epkStatus"), date = when(data.publishedAt || publishedAt);
     if (status) status.textContent = date ? `Brought back the version you published on ${date}. Save the draft, or publish it to make it live again.` : "Brought back a published version. Save the draft, or publish it to make it live again.";
@@ -60,7 +61,7 @@
     }
     const view = document.createElement("a");
     view.className = "epk-version__view";
-    view.href = `epk.html?version=${encodeURIComponent(version.id)}`;
+    view.href = library().path(`epk.html?version=${encodeURIComponent(version.id)}`);
     view.textContent = "View";
     const back = document.createElement("button");
     back.type = "button";
@@ -87,7 +88,7 @@
     status.textContent = "Loading your published versions...";
     if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
     try {
-      const { versions = [] } = await load("/epk?versions=1");
+      const { versions = [] } = await load(library().path("/epk?versions=1"));
       list.replaceChildren(...versions.map(versionRow));
       status.textContent = versions.length ? "" : "Nothing published yet. Each time you publish, that version is kept here.";
     } catch (error) { status.textContent = error.message; }
@@ -99,7 +100,7 @@
     if (!id) return;
     try { await bringBack(id, ""); }
     catch (error) { const status = byId("epkStatus"); if (status) status.textContent = error.message; }
-    history.replaceState(history.state, "", "epk.html");
+    history.replaceState(history.state, "", library().id === "main" ? "epk.html?epk=main" : library().path("epk.html"));
   }
 
   document.addEventListener("DOMContentLoaded", () => {

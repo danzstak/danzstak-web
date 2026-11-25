@@ -23,7 +23,7 @@
 <link rel="stylesheet" href="assets/epk-hometown.css?v=2">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
-<script src="assets/i18n-music.js?v=33" defer></script>
+<script src="assets/i18n-music.js?v=35" defer></script>
 <script src="assets/i18n-people.js?v=38" defer></script>
 <script src="assets/i18n-sync.js?v=40" defer></script>
 <script src="assets/i18n.js?v=428" defer></script>
@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="assets/buttons.css?v=9">
 <link rel="stylesheet" href="assets/epk-ai.css?v=4">
 <link rel="stylesheet" href="assets/epk-verify.css?v=1">
+<link rel="stylesheet" href="assets/epk-library.css?v=1">
 <link rel="stylesheet" href="assets/app-bar.css?v=10">
 <link rel="stylesheet" href="assets/site-chrome.css?v=1">
 <link rel="stylesheet" href="assets/app-tabs.css?v=1">
@@ -43,7 +44,7 @@
   <a class="skip-link" href="#epkMain">Skip to EPK</a>
   <header><a href="feed.html"><img src="assets/danzstak-d-icon.png" alt="DanzStak"></a><nav><a href="feed.html">Your Mix</a><a href="booking.html">Booking Agent</a><a href="record-stores.html">Record Stores</a></nav></header>
   <main id="epkMain" tabindex="-1">
-    <section class="intro" id="builderIntro"><div><h1>EPK Builder</h1><p>Build it in 5 minutes. Private until you publish.</p></div><div class="epk-laminate" aria-hidden="true"><span class="epk-laminate__band">ALL ACCESS</span><span class="epk-laminate__photo" id="laminatePhoto"></span><span class="epk-laminate__name" id="laminateName">Your act</span><span class="epk-laminate__meta" id="laminateMeta">Genre · Home town</span><span class="epk-laminate__barcode"></span></div></section>
+    <section class="intro" id="builderIntro"><div><button type="button" id="epkSwitch" class="epk-switch" data-icon-layout="label" aria-haspopup="dialog" hidden><span class="epk-switch__text">My EPKs</span><span class="epk-switch__caret" aria-hidden="true">▾</span></button><h1>EPK Builder</h1><p>Build it in 5 minutes. Private until you publish.</p></div><div class="epk-laminate" aria-hidden="true"><span class="epk-laminate__band">ALL ACCESS</span><span class="epk-laminate__photo" id="laminatePhoto"></span><span class="epk-laminate__name" id="laminateName">Your act</span><span class="epk-laminate__meta" id="laminateMeta">Genre · Home town</span><span class="epk-laminate__barcode"></span></div></section>
     <section id="epkGuide" class="epk-guide" aria-labelledby="epkGuideTitle">
       <div class="epk-guide-heading"><h2 id="epkGuideTitle" class="epk-sr-only">Build your EPK</h2><p id="epkGuideProgressText" class="epk-guide-progress-text">Step 1 of 5</p><button type="button" id="toggleMobilePreview" class="epk-preview-toggle">Preview</button></div>
       <progress id="epkGuideProgress" max="5" value="0" aria-label="EPK essentials completed"></progress>
@@ -81,7 +82,7 @@
         </section>
         <details class="epk-private-share"><summary>Private review link</summary><p class="hint">Save your latest changes first. Anyone with this secret link can review every EPK file and private booking detail. Create a replacement link or revoke it at any time.</p><div class="form-actions"><button type="button" id="createPrivateLink">Create private link</button><button type="button" id="revokePrivateLink" hidden>Revoke private link</button></div><p id="privateLinkRow" hidden>Private link: <a id="privateLink" target="_blank" rel="noopener noreferrer"></a> <button type="button" id="copyPrivateLink">Copy link</button></p><p id="privateShareStatus" role="status" aria-live="polite"></p></details>
       </form>
-      <dialog id="epkVersionsDialog" class="epk-versions-dialog" aria-labelledby="epkVersionsTitle"><div class="epk-versions-head"><h2 id="epkVersionsTitle">Published versions</h2><button type="button" id="epkVersionsClose" data-icon="close" aria-label="Close">Close</button></div><p class="hint">What venues saw each time you published. The newest 20 are kept.</p><ol id="epkVersionsList" class="epk-versions-list"></ol><p id="epkVersionsStatus" class="hint" role="status" aria-live="polite"></p></dialog>
+      <dialog id="epkLibraryDialog" class="epk-versions-dialog epk-lib-dialog" aria-labelledby="epkLibraryTitle"><div class="epk-versions-head"><h2 id="epkLibraryTitle">My EPKs</h2><button type="button" id="epkLibraryClose" data-icon="close" aria-label="Close">Close</button></div><p class="hint">Up to 5 EPKs per artist name, for example a club set and a festival set. Each one has its own link.</p><div id="epkLibraryList" class="epk-lib-list"></div><p id="epkLibraryStatus" class="epk-lib-status" role="status" aria-live="polite"></p><button type="button" id="epkLibraryNewOpen" class="epk-lib-new" data-icon-layout="label">+ New EPK</button><form id="epkLibraryNew" class="epk-lib-form" hidden><fieldset class="epk-lib-start"><legend>Start from</legend><label class="epk-choice"><input type="radio" name="epkStart" value="blank" checked><span>A blank EPK</span></label><label class="epk-choice"><input type="radio" name="epkStart" value="copy"><span>A copy of this EPK</span></label></fieldset><label id="epkLibraryArtistRow">Artist name<input id="epkLibraryArtist" maxlength="120" autocomplete="off" required></label><label>Name this EPK<input id="epkLibraryLabel" maxlength="40" autocomplete="off" placeholder="Live set, Festival, Italia" required></label><p id="epkLibraryNewStatus" class="epk-lib-status" role="status" aria-live="polite"></p><div class="epk-lib-actions"><button type="button" id="epkLibraryNewCancel" data-icon-layout="label">Cancel</button><button type="submit" id="epkLibraryCreate" class="primary" data-icon-layout="label">Create EPK</button></div></form></dialog><dialog id="epkVersionsDialog" class="epk-versions-dialog" aria-labelledby="epkVersionsTitle"><div class="epk-versions-head"><h2 id="epkVersionsTitle">Published versions</h2><button type="button" id="epkVersionsClose" data-icon="close" aria-label="Close">Close</button></div><p class="hint">What venues saw each time you published. The newest 20 are kept.</p><ol id="epkVersionsList" class="epk-versions-list"></ol><p id="epkVersionsStatus" class="hint" role="status" aria-live="polite"></p></dialog>
       <article id="epkPreview" class="epk-preview" aria-label="EPK preview"></article>
     </div>
     <section id="epkReviews" class="epk-reviews" aria-labelledby="epkReviewsTitle" hidden>
@@ -106,10 +107,11 @@
   <script src="assets/epk-production.js?v=2" defer></script>
   <script src="assets/epk-reviews.js?v=3" defer></script>
   <script src="assets/share-card-tools.js?v=1" defer></script>
-  <script src="assets/epk-share-card.js?v=1" defer></script>
+  <script src="assets/epk-share-card.js?v=2" defer></script>
   <script src="assets/epk-video-check.js?v=2" defer></script>
-  <script src="assets/epk-versions.js?v=1" defer></script>
-  <script src="assets/epk.js?v=33" defer></script>
+  <script src="assets/epk-library.js?v=1" defer></script>
+  <script src="assets/epk-versions.js?v=2" defer></script>
+  <script src="assets/epk.js?v=34" defer></script>
   <script src="assets/epk-ai.js?v=3" defer></script>
   <script src="assets/epk-verify.js?v=2" defer></script>
   <script src="assets/responsive-media.js?v=3" defer></script>

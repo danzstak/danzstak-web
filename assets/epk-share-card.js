@@ -81,7 +81,7 @@
   }
 
   async function post(body) {
-    const response = await fetch(API + "/epk/share-card", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const response = await fetch(API + "/epk/share-card", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(window.danzstakEpkLibrary?.body(body) || body) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "The link preview couldn't be saved.");
     return data;
