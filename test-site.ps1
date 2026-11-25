@@ -262,7 +262,7 @@ foreach ($presenceAnnouncement in @('dot.setAttribute("aria-hidden","true")', 'a
 if (-not $feed.Contains('event.data?.type === "danzstak-call-mode"') -or -not $feed.Contains('.message-drawer.is-video-call')) {
   Add-Failure 'Calls: the message drawer does not expand exclusively for video calls'
 }
-if (-not $incomingCalls.Contains('answer.focus()') -or -not $incomingCalls.Contains('event.key === "Escape"') -or -not $incomingCalls.Contains('previousFocus?.focus()')) {
+if (-not $incomingCalls.Contains('answer.focus({ focusVisible: false })') -or -not $incomingCalls.Contains('event.key === "Escape"') -or -not $incomingCalls.Contains('previousFocus?.focus()')) {
   Add-Failure 'Calls: global incoming-call dialog does not manage keyboard focus'
 }
 $inlineScripts = [regex]::Matches(
