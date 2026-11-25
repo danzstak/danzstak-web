@@ -54,7 +54,7 @@ for (const [file, expected] of [
   ["messages.html", "assets/soft-ui.css?v=431"],
   ["profile.html", "assets/soft-ui.css?v=431"],
   ["feed.html", "assets/mobile-design-system.css?v=24"],
-  ["feed.html", "assets/danzstak-original-feed.css?v=36"],
+  ["feed.html", "assets/danzstak-original-feed.css?v=37"],
   ["messages.html", "assets/mobile-design-system.css?v=24"],
   ["booking.html", "assets/mobile-design-system.css?v=24"],
   ["epk.html", "assets/mobile-design-system.css?v=24"],

@@ -543,6 +543,10 @@ body.danzstak-original .right :is(h3,h2) {
     border-radius:0;
     box-sizing:border-box;
   }
+  /* Owner 2026-11-25 ("the top is double spacing and the bottom is single"): the post above The Roll ends on its 44px
+     like/comment row, whose 24px icons leave about 10px blank under them, so The Roll drops its own top padding and sits
+     the same single gap below those icons as the next post sits below its videos (browser-checks/roll-spacing.cjs). */
+  body.danzstak-original #feed > .post + .reels-rail.post:not(.roll-fullscreen) {padding-top:0!important}
   body.danzstak-original #feed .post > :is(.post-media,.feed-media-gallery,.danzstak-media-shell,.post-media-recovery) {
     width:100vw!important;
     max-width:100vw!important;
