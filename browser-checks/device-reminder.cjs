@@ -65,10 +65,11 @@ async function openNotifications(page) {
       assert.equal(await bellCount(run.page), "1", `${label}: the bell counts the reminder`);
       await openNotifications(run.page);
       const row = await run.page.evaluate(() => {
-        const link = document.querySelector(".notification-list .notification-row--device"); if (!link) return null;
-        const r = link.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
-        return { tag: link.tagName, href: link.getAttribute("href"), title: link.querySelector("strong")?.textContent, line: link.querySelector("p span")?.textContent, buttons: link.querySelectorAll("button").length,
-          tall: r.height >= 44, fits: r.left >= -0.5 && r.right <= innerWidth + 0.5, hit: Boolean(document.elementFromPoint(x, y)?.closest(".notification-row--device")), x, y, empty: [...document.querySelectorAll(".notification-list p.muted")].some(p => /No new notifications/.test(p.textContent)) };
+        // UI kit row (assets/notifications.js): the row's own target covers it; a tap on the sentence opens SYNC.
+        const row = document.querySelector(".notification-list .notification-row--device"); if (!row) return null;
+        const link = row.querySelector(".ds-row__target"), r = row.getBoundingClientRect(), t = row.querySelector(".ds-row__text").getBoundingClientRect(), x = t.left + t.width / 2, y = t.top + t.height / 2;
+        return { tag: link.tagName, href: link.getAttribute("href"), title: row.querySelector(".ds-row__text strong")?.textContent, line: row.querySelector(".ds-row__sub")?.textContent, buttons: row.querySelectorAll("button").length,
+          tall: r.height >= 44, fits: r.left >= -0.5 && r.right <= innerWidth + 0.5, hit: document.elementFromPoint(x, y) === link, x, y, empty: [...document.querySelectorAll(".notification-list p.muted")].some(p => /No new notifications/.test(p.textContent)) };
       });
       assert.ok(row, `${label}: Notifications shows the reminder`);
       assert.deepEqual({ tag: row.tag, href: row.href, title: row.title, line: row.line, buttons: row.buttons }, { tag: "A", href: "/sync/?device=register", title: "Verify this device for SYNC calls", line: "Calls and voice messages need it. Texting already works.", buttons: 0 }, `${label}: one tappable row, no extra button`);

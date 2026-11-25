@@ -6,7 +6,10 @@
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme) prefix(tw);
 @import "tailwindcss/utilities.css" layer(utilities) prefix(tw) source(none);
-@import "./components.css" layer(components);
+/* Kit components are NOT in a cascade layer: layered rules lose to every unlayered rule, so the old global rules
+   (soft-ui.css "button{background:#f0f2f5}", inline "h3{margin…}") would beat them on a moved screen. Unlayered, a
+   ".ds .ds-x" selector (0,2,0) wins by specificity without !important, and only inside .ds. */
+@import "./components.css";
 @source "../../*.html";
 @source "../../assets/*.js";
 

@@ -159,7 +159,7 @@ const call = async (fn, user, query = {}, body) => JSON.parse(JSON.stringify(awa
   assert.deepEqual(notices.map(notice => [notice.type, notice.email]).sort(), [["friend_accepted", "theo@example.com"], ["friend_request", "lee@example.com"]]);
   const feedScript = fs.readFileSync("assets/feed-enhancements.js", "utf8");
   assert.match(feedScript, /notices\.filter\(notice => notice\.type !== "friend_accepted"\)\.length/, "the accepted notice never keeps the badge lit");
-  assert.match(feedScript, /notice\.type === "friend_accepted"\s*\? feedFormat\("\{name\} accepted your friend request\."/);
+  assert.match(feedScript, /kind === "friend_accepted" \? say\("\{name\} accepted your friend request\."\)/);
 
   // Service worker: Accept / Delete on the friend-request notification answer without opening the app.
   const worker = fs.readFileSync("service-worker.js", "utf8");

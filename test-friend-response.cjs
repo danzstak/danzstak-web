@@ -3,7 +3,7 @@ const source=fs.readFileSync('assets/feed-enhancements.js','utf8');
 const a=source.indexOf('async function respondToNotificationRequest('),b=source.indexOf('function renderWorkspace(name)',a);
 const buttons=[{},{}], requests=[], messages=[], badges=[], feedback=[];let removed=false, emptyState='';
 const list={querySelector:()=>null,appendChild:node=>{emptyState=node.textContent;}};
-const row={parentElement:list,querySelectorAll:()=>buttons,querySelector:()=>null,appendChild:node=>messages.push({text:node.textContent,role:node.role}),remove:()=>removed=true};
+const row={parentElement:list,closest:selector=>selector==='.notification-list'?list:null,querySelectorAll:()=>buttons,querySelector:()=>null,appendChild:node=>messages.push({text:node.textContent,role:node.role}),remove:()=>removed=true};
 const context=vm.createContext({row,notificationSourceCounts:{social:1,engagement:2},feedTranslate:value=>value,updateNotificationCount:value=>badges.push(value),document:{createElement:()=>({setAttribute(name,value){this[name]=value;}})},refreshNotificationCount:async()=>{throw Error('badge unavailable');},friendActionFetch:(_,options)=>new Promise((resolve,reject)=>requests.push({resolve,reject,body:JSON.parse(options.body)})),danzstakShowFeedback:value=>feedback.push(value)});
 vm.runInContext(source.slice(a,b),context);
 (async()=>{
