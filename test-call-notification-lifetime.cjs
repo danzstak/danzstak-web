@@ -6,7 +6,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const worker = fs.readFileSync("service-worker.js", "utf8");
-const source = worker.match(/const CALL_RING_REPEATS[\s\S]*?\nasync function ringCallNotification[\s\S]*?\n\}\n/)[0];
+const source = worker.match(/const CALL_RING_REPEATS[\s\S]*?\r?\nasync function ringCallNotification[\s\S]*?\r?\n\}\r?\n/)[0];
 
 async function run({ handledAfterMs = Infinity, closedByTapAfterMs = Infinity } = {}) {
   let now = 0;
