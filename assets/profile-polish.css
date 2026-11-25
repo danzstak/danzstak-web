@@ -11,12 +11,6 @@
 .profile-actions .ds-action-icon{width:20px;height:20px}
 .profile-name-edit-hint{display:none!important}
 
-/* Tabs fit one row on a phone. */
-.profile-tabs{display:flex!important;overflow-x:auto;scrollbar-width:none;gap:0}
-.profile-tabs::-webkit-scrollbar{display:none}
-.profile-tabs > button{flex:1 0 auto;min-height:44px;padding:0 10px!important;font-weight:700;white-space:nowrap}
-.profile-tabs > button[hidden]{display:none!important}
-
 /* Composer shortcuts: three icons in one row. */
 .profile-create-shortcuts{display:flex!important;gap:4px;justify-content:space-around}
 .profile-create-shortcut.ds-icon-button{display:grid!important;place-items:center;min-width:44px;min-height:40px;padding:0 14px!important;border-radius:10px}
@@ -25,9 +19,6 @@
 .profile-create-shortcut:nth-child(2) .ds-action-icon{color:#16a34a}
 .profile-create-shortcut:nth-child(3) .ds-action-icon{color:#ff5a1f}
 
-/* Friends tab: friends, then who is online now. */
-.profile-friends-heading{margin:12px 0 8px;font-size:1rem;font-weight:800}
-.profile-friends-heading:first-child{margin-top:4px}
 .post-share-socials-label{margin:12px 0 6px;font:600 11px/1.3 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#626b78}
 .post-share-socials{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .post-share-social{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border:1px solid #e7e9ee;border-radius:999px;background:#fff;color:#121418;font:inherit;font-weight:700;font-size:13px;text-decoration:none;cursor:pointer}
@@ -129,8 +120,6 @@ body.profile-page{background:#fff!important}
 .profile-story-text::before{content:"\201C";display:block;height:.55em;color:#ff5a1f;font-size:2.4em;line-height:1}
 .profile-story-edit{position:absolute;top:4px;right:0;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:#4b5563}
 .profile-story-add{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:1px dashed #ff5a1f;border-radius:22px;background:#fff7f2;color:#c2410c;font:inherit;font-weight:700}
-.details .detail{padding:12px 0!important;border:0!important;border-bottom:1px solid #eef0f3!important;border-radius:0!important;background:transparent!important}
-.details .detail .label{font-size:12px;letter-spacing:.06em}
 /* Owner 2026-11-18: "+ bio" sits as the 5th icon in the profile action row, same size as its neighbours. */
 .profile-actions .profile-add-bio--icon{order:99;display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:center;gap:1px;margin:0;padding:0 8px;min-width:44px;border-radius:12px;font-size:13px;font-weight:800;letter-spacing:-.01em}
 .profile-actions .profile-add-bio--icon svg{width:14px;height:14px}
@@ -139,13 +128,6 @@ body.profile-page{background:#fff!important}
 /* Owner 2026-11-19 (A12): no @username line under the profile name. */
 #profileHandle[hidden]{display:none!important}
 
-/* Owner 2026-11-19: Location and Work side by side on one line; one hairline under the pair. */
-.details .detail-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;border-bottom:1px solid #eef0f3}
-.details .detail-pair>.detail{min-width:0;border-bottom:0!important}
-.details .detail-pair>.detail .value{overflow-wrap:anywhere}
-.details .detail-pair>.detail[hidden]{display:none!important}
-.details .detail-pair:has(>.detail[hidden]){grid-template-columns:minmax(0,1fr)}
-.details .detail-pair:not(:has(>.detail:not([hidden]))){display:none}
 
 /* T2a (owner 2026-11-18): a post author's photo and name open their profile. 36px look, 44px tap target. */
 .profile-page .profile-post-avatar-link,.profile-post-avatar-link{position:relative;display:block;flex:0 0 36px;width:36px;height:36px;border-radius:50%;-webkit-tap-highlight-color:transparent}
@@ -185,3 +167,6 @@ body.profile-page{background:#fff!important}
 .profile-actions .profile-facepile[hidden]{display:none}
 .profile-facepile-face{display:grid;place-items:center;width:36px;height:36px;margin-left:-18px;overflow:hidden;border:2px solid #fff;border-radius:50%;background:#2c3036;color:#fff;font-weight:800;font-size:.9rem}
 .profile-facepile-face img{display:block;width:100%;height:100%;object-fit:cover}
+
+/* UIKIT 4b: on a phone the pill row runs to both screen edges (it scrolls sideways), its first pill on the content line. */
+@media(max-width:600px){.profile-page .profile-tabs{margin-inline:-16px;padding-inline:16px}}

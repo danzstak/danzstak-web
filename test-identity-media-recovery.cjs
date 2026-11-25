@@ -26,7 +26,7 @@ assert.match(feedPage, /danzstakIdentityMedia\?\.install\(image, \{ memberId: au
 assert.ok(feedPage.indexOf("assets/identity-media.js?v=2") < feedPage.indexOf("function createPostElement"), "post author recovery must load before the inline post renderer can run");
 assert.match(search, /danzstakIdentityMedia\?\.install\(image, person\)/, "member search avatars must recover");
 assert.match(messages, /danzstakIdentityMedia\?\.install\(avatar, conversation\)/, "saved-chat avatars must recover");
-assert.match(profile, /danzstakIdentityMedia\?\.install\(avatar, friend\)/, "profile friend avatars must recover");
+assert.match(fs.readFileSync("assets/friends-screen.js", "utf8"), /img\.addEventListener\("error", \(\) => \{ img\.remove\(\); fallback\(\); \}/, "Friends screen photos fall back to initials (the profile no longer draws its own friend list, UIKIT 4b)");
 assert.match(worker, /"\/assets\/identity-media\.js"/, "the installable app must cache identity recovery");
 
 for (const page of ["feed.html", "messages.html", "profile.html"]) {

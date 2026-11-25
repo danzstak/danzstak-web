@@ -164,7 +164,7 @@ const engagement = {
 
       assert.equal(errors.length, 0, `${width}px Profile errors: ${errors.join(" | ")}`);
       assert.equal(geometry.overflow, false, `${width}px Profile interactions overflow horizontally`);
-      assert.equal(Math.round(geometry.tabs.height), 44, `${width}px profile tabs are not 44px high`);
+      assert.equal(Math.round(geometry.tabs.height), 60, `${width}px profile tabs are not the kit pill row (44px pills, 8px above and below)`);
       assert.deepEqual(geometry.tabs.labels, ["Posts", "About", "Friends", "Photos", "Videos", "More"]);
       // Fix-it 18 (owner 2026-11-17, assets/profile-polish.css): on a phone the composer is part of one continuous wall,
       // edge to edge with no gaps; wider screens keep the 8px rhythm.

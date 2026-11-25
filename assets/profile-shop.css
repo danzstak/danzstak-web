@@ -27,7 +27,6 @@
 #profileContent.profile>#profileName{grid-column:2;grid-row:1;align-self:start;margin:0;padding-top:8px;line-height:1.15;overflow-wrap:anywhere}
 #profileContent.profile>.profile-bio{margin:0 0 10px}
 /* Grid items do not collapse margins: each gap is set once (12px or less). */
-#profileContent.profile>.profile-tabs{margin-top:12px}
 #profileContent.profile>p:not([class]):not(:has(>:not([hidden]))){display:none} /* the empty line that only holds the hidden Message link */
 
 /* The band: full content width. Shop preview = label + three square items; showcase = one 16:7 photo. */

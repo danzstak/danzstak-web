@@ -72,6 +72,22 @@
   --ds-shadow-float:0 8px 24px rgb(0 0 0 / .5);
 }
 
+/* A kit block on a page that hasn't moved yet (.ds--day, e.g. the profile's tabs and About during UIKIT 4b) keeps Day,
+   so it never turns dark on a light page. It goes away when that page moves onto the kit as a whole. */
+:root .ds.ds--day{
+  color-scheme:light;
+  --ds-canvas:#F4F4F2;
+  --ds-surface:#FFFFFF;
+  --ds-surface-subtle:#F4F4F2;
+  --ds-ink:#0B0B0C;
+  --ds-ink-soft:#3A3B3F;
+  --ds-muted:#62656C;
+  --ds-hairline:rgb(201 204 209 / .6);
+  --ds-accent-soft:#FFF0E8;
+  --ds-online:#15803D;
+  --ds-shadow-float:0 8px 24px rgb(0 0 0 / .12);
+}
+
 @media (prefers-reduced-motion:reduce){
   .ds{--ds-motion-press:0ms;--ds-motion-sheet:0ms;--ds-motion-fade:0ms}
 }

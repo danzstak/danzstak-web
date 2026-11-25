@@ -461,20 +461,21 @@ foreach ($privateKey in @('danzstak_dev_sections', 'danzstak-post-preferences', 
 }
 if ($sessionActivityJs.Contains('logoutIfIdle') -or $sessionActivityJs.Contains('/auth/logout')) { Add-Failure 'Sessions: inactivity still signs users out' }
 if (-not $sessionActivityJs.Contains('/auth/refresh')) { Add-Failure 'Sessions: persistent session refresh is missing' }
-foreach ($profileFeature in @('loadProfilePosts(false)', 'loadProfilePosts(true)', 'loadProfileFriends()', 'profile-friend-card', 'profile-post-card')) {
+foreach ($profileFeature in @('loadProfilePosts(false)', 'loadProfilePosts(true)', 'showProfileFriendsLink()', 'profile-post-card')) {
   if (-not $profileEditorJs.Contains($profileFeature)) { Add-Failure "Profile tabs are not functional: $profileFeature" }
 }
 foreach ($accessibilityFeature in @('tabs.setAttribute("role", "tablist")', 'button.setAttribute("aria-selected"', 'ArrowLeft', 'ArrowRight')) {
   if (-not $profileEditorJs.Contains($accessibilityFeature)) { Add-Failure "Profile tab keyboard accessibility is missing: $accessibilityFeature" }
 }
+# UIKIT 4b: the friends list (with who is online) lives on the one Friends screen, which the profile's Friends tab opens.
+$friendsScreenJs = Get-Content -LiteralPath (Join-Path $root 'assets\friends-screen.js') -Raw -Encoding utf8
 foreach ($profilePresenceFeature in @(
-  'const [friendsResult, directoryResult, everyoneResult] = await Promise.allSettled([',
-  'user.online === true',
-  'profile-friend-presence online',
-  'status.setAttribute("aria-hidden", "true")'
+  'api("/calls/directory").catch(() => null)',
+  'if (live?.online) return t("Online now");',
+  'subClass: presence.get(person.memberId)?.online ? "is-online" : ""'
 )) {
-  if (-not ($profileEditorJs + $profileStyles).Contains($profilePresenceFeature)) {
-    Add-Failure "Profile friends lack resilient accessible online status: $profilePresenceFeature"
+  if (-not $friendsScreenJs.Contains($profilePresenceFeature)) {
+    Add-Failure "Friends screen lacks resilient online status: $profilePresenceFeature"
   }
 }
 

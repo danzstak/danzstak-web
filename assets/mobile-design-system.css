@@ -90,7 +90,7 @@ body:not(.public-mode) :where(.panel,.card){
 }
 .messages-page .chat-sidebar{background:transparent!important}
 .messages-page .sync-sections{border:0!important;background:transparent!important}
-.profile-page :where(.edit-profile-panel,.profile-wall-composer,.profile-friend-card){
+.profile-page :where(.edit-profile-panel,.profile-wall-composer){
   border:0!important;
   background:transparent!important;
   box-shadow:none!important;
@@ -159,45 +159,6 @@ body:not(.public-mode) :where(.panel,.card){
     font-size:12px;
     line-height:1.15;
     white-space:normal;
-  }
-  .profile-tabs{
-    display:flex;
-    flex-wrap:nowrap;
-    gap:3px;
-    width:100%;
-    margin-top:14px;
-    padding-top:8px;
-    overflow-x:auto;
-    overscroll-behavior-inline:contain;
-    scrollbar-width:none;
-    -webkit-overflow-scrolling:touch;
-  }
-  .profile-tabs::-webkit-scrollbar{display:none}
-  .profile-tabs button{
-    flex:1 0 auto;
-    min-width:50px;
-    min-height:44px;
-    padding:8px 7px;
-    font-size:11px;
-    line-height:1.15;
-    white-space:nowrap;
-  }
-}
-
-/* Keep all five public profile destinations fully visible at the narrowest
-   supported phone width instead of clipping the final tab. */
-@media(max-width:360px){
-  .profile-tabs{
-    display:grid;
-    grid-template-columns:repeat(5,minmax(0,1fr));
-    gap:2px;
-    overflow:visible;
-  }
-  .profile-tabs button{
-    min-width:0;
-    padding-inline:1px;
-    font-size:10px;
-    letter-spacing:-.015em;
   }
 }
 

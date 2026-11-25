@@ -8,7 +8,7 @@ const mobile = fs.readFileSync("assets/mobile-design-system.css", "utf8");
 const profileHeader = fs.readFileSync("assets/profile-app-header.css", "utf8");
 const feedEnhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 
-assert.match(profile, /assets\/mobile-design-system\.css\?v=22/,
+assert.match(profile, /assets\/mobile-design-system\.css\?v=23/,
   "the profile must load the shared mobile application shell");
 // Audit 36 B2: the six destinations come from the one tab bar component (app-tabs.js), not a copy in each page.
 assert.match(profile, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"><\/nav>/, "the profile keeps the tab bar placeholder");
@@ -27,15 +27,14 @@ assert.match(mobile, /body\.profile-page>header \.brand span,body\.profile-page>
   "desktop account actions must not consume the phone profile header");
 assert.match(mobile, /body\.profile-page>header \.brand img\{width:34px;height:34px;/,
   "the phone profile header must use the compact official brand mark");
-assert.match(mobile, /@media\(max-width:360px\)[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/,
-  "all five Profile tabs must fit at the narrowest supported phone width");
+assert.doesNotMatch(mobile, /\.profile-tabs/, "the profile tabs are the kit pill row; no old tab rules fight it (UIKIT 4b)");
 assert.doesNotMatch(profile, /\.header-actions\{display:grid;grid-template-columns:repeat\(3/,
   "the retired three-text-button phone header must not remain as a competing layout");
 assert.match(profile, /html,body\{max-width:100%;overflow-x:hidden;overflow-x:clip\}/,
   "profile content must not create a browser-level horizontal scrollbar on phones");
 assert.match(profile, /main,\.card,\.profile\{min-width:0;max-width:100%\}/,
   "profile containers must shrink within the phone viewport");
-assert.match(fs.readFileSync("assets/profile-editor.css", "utf8"), /\.profile-tabs\{[^}]*overflow-x:auto/,
+assert.match(fs.readFileSync("tools/ui-kit/components.css", "utf8"), /\.ds\.ds-pills\{[^}]*overflow-x:auto/,
   "profile tabs must keep their own intentional horizontal scrolling");
 
 console.log("Profile mobile-header checks passed: the compact shared app shell replaces desktop text navigation on phones.");

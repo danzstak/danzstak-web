@@ -36,17 +36,17 @@ assert.match(chatCss, /body\.is-conversation-open \.conversation-avatar\{display
 assert.match(chatCss, /body\.is-conversation-open #minimizeConversation\{display:none!important\}/, "phone Chat must override the shared icon display when hiding desktop-only minimize");
 assert.doesNotMatch(chatCss, /body\.is-conversation-open #headerVideo\{display:none!important\}/, "video calling must remain discoverable on very narrow phones");
 assert.match(syncCss, /@media\(min-width:761px\) and \(max-width:900px\)\{[\s\S]*grid-template-columns:minmax\(250px,290px\) minmax\(0,1fr\)!important/, "tablet Chat must leave enough room for the contact name and header actions");
-assert.match(profileCss, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/, "phone profile tabs must render complete labels without horizontal clipping");
+assert.match(fs.readFileSync("assets/profile-editor.js", "utf8"), /tabs\.className = "ds ds--day ds-pills profile-tabs";/, "phone profile tabs are the kit pill row (scroll with a fade, UIKIT 4b)");
 assert.match(feedCss, /\.settings-row input\[type=checkbox\]\{accent-color:#121418/, "settings controls must use the shared application styling");
 assert.match(feedCss, /mobile-menu-open>\.install-app-button,[^{]*mobile-menu-open>\.app-update-button\{display:none!important\}/, "install shortcuts must not compete with an open mobile menu");
 assert.match(css, /body\{padding-bottom:calc\(50px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "the shared shell must clear fixed navigation despite fractional layout rounding");
 assert.match(css, /body\.profile-page\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "Profile must clear its fixed mobile navigation");
 assert.match(css, /\.messages-page:not\(\.is-conversation-open\)\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "the SYNC inbox must clear its fixed mobile navigation");
 assert.match(require("node:fs").readFileSync("tools/ui-kit/components.css", "utf8"), /\.ds \.ds-btn\{[^}]*min-height:44px;min-width:44px/, "notification actions (kit buttons) keep 44px phone targets");
-assert.match(worker, /danzstak-shell-v1067/);
+assert.match(worker, /danzstak-shell-v1068/);
 assert.match(worker, /\/assets\/mobile-design-system\.css/, "the installed PWA must cache the shared mobile system");
 
-for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=22/, `${file} must load the same mobile design system`);
+for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=23/, `${file} must load the same mobile design system`);
 for (const file of ["messages.html", "booking.html", "record-stores.html", "epk.html", "profile.html"]) {
   const html = pages.find(([name]) => name === file)[1];
   assert.match(html, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"><\/nav>/, `${file} keeps only the placeholder; app-tabs.js draws the tabs`);
