@@ -63,46 +63,6 @@
 .ds .ds-shimmer--short{width:30%;height:10px;margin-top:6px}
 @keyframes ds-shimmer{from{background-position:100% 0}to{background-position:-100% 0}}
 /* Screen head: the big title with one action on the right (My shop · View on profile). */
-.ds .ds-form-screen__bar .ds-icon-btn{flex:none}
-.ds .ds-form-screen__bar .ds-form-screen__title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ds .ds-head{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-space-8);padding:var(--ds-space-16) var(--ds-space-16) var(--ds-space-4)}
-.ds .ds-head__title{margin:0;min-width:0;font-size:var(--ds-text-28);font-weight:800;font-stretch:110%;line-height:34px;letter-spacing:-.01em;color:var(--ds-ink);overflow-wrap:anywhere}
-.ds .ds-head .ds-btn{flex:none;padding:0 16px}
-/* Section head: a section title with its one action (Products · Add a product). */
-.ds .ds-section-head{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-space-8);padding:var(--ds-space-16) var(--ds-space-16) var(--ds-space-8) 0}
-.ds .ds-section-head .ds-section__title{padding-top:0;padding-bottom:0}
-.ds .ds-section-head .ds-btn{flex:none;padding:0 16px}
-/* One status line under a screen's title ("Shop saved."); empty takes no room. */
-.ds .ds-status{margin:0;padding:var(--ds-space-4) var(--ds-space-16);font-size:var(--ds-text-13);line-height:18px;font-weight:700;color:var(--ds-ink)}
-.ds .ds-status:empty{display:none}
-/* Media pick shapes: wide 16:7 (shop front, the profile band) and square (product photo); both fill their box. */
-.ds .ds-media-pick--wide{height:auto;aspect-ratio:16/7}
-.ds .ds-media-pick--square{height:auto;aspect-ratio:1;max-height:420px}
-.ds .ds-media-pick--wide .ds-media-pick__media :is(img,video),.ds .ds-media-pick--square .ds-media-pick__media :is(img,video){position:absolute;inset:0;object-fit:cover;background:var(--ds-surface-subtle)}
-.ds .ds-media-pick--wide .ds-media-pick__empty{padding-bottom:56px}
-.ds .ds-media-pick--wide .ds-media-pick__empty .ds-icon{width:28px;height:28px}
-.ds .ds-media-pick--wide .ds-media-pick__empty span{display:none}
-.ds .ds-media-pick .ds-icon-btn{background:var(--ds-surface);box-shadow:var(--ds-shadow-float)}
-.ds .ds-media-pick__corner{position:absolute;top:var(--ds-space-8);right:var(--ds-space-8);flex:none}
-.ds .ds-media-pick--wide .ds-media-pick__actions{flex-wrap:wrap;bottom:var(--ds-space-8)}
-.ds .ds-media-pick--wide .ds-media-pick__btn{padding:0 14px}
-/* Photo grid (shop album): square tiles edge to edge, 2px apart; the owner's remove sits in the corner. */
-.ds .ds-thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px}
-.ds .ds-thumb{position:relative;margin:0;aspect-ratio:1;overflow:hidden;background:var(--ds-surface-subtle)}
-.ds .ds-thumb img{display:block;width:100%;height:100%;object-fit:cover}
-.ds .ds-thumb .ds-icon-btn{position:absolute;top:2px;right:2px;background:var(--ds-surface);box-shadow:var(--ds-shadow-float)}
-/* List rows with a square picture (products) and quiet text actions in the danger colour. */
-.ds .ds-row--square .ds-row__photo{border-radius:8px;background:var(--ds-surface-subtle);color:var(--ds-muted)}
-.ds .ds-row--square .ds-row__photo .ds-icon{width:24px;height:24px;font-size:0}
-.ds .ds-row__chev{position:relative;z-index:1;color:var(--ds-muted);pointer-events:none}
-.ds .ds-row--square{grid-template-columns:56px minmax(0,1fr) 20px}
-.ds .ds-row--square+.ds-row--square::before{left:84px}
-.ds .ds-btn--danger{background:var(--ds-surface);border-color:var(--ds-hairline);color:var(--ds-danger)}
-/* Two stacked choices at the end of a sheet (Replace / Keep shop only). */
-.ds .ds-actions{display:grid;gap:var(--ds-space-8);margin-top:var(--ds-space-16)}
-.ds .ds-actions--sticky{position:sticky;bottom:calc(-1 * var(--ds-space-16));margin:var(--ds-space-8) calc(-1 * var(--ds-space-16)) calc(-1 * var(--ds-space-16));padding:var(--ds-space-12) var(--ds-space-16) var(--ds-space-16);border-top:1px solid var(--ds-hairline);background:var(--ds-surface)}
-.ds .ds-sheet__preview{display:block;width:100%;aspect-ratio:16/7;margin:0 0 var(--ds-space-12);overflow:hidden;border-radius:12px;background:var(--ds-surface-subtle)}
-.ds .ds-sheet__preview img{display:block;width:100%;height:100%;object-fit:cover}
 @media (prefers-reduced-motion:reduce){.ds .ds-shimmer{animation:none}.ds .ds-btn,.ds .ds-row__target{transition:none}}
 
 /* Screen: a page area that has moved onto the kit (spec 39 section 4). Edge to edge on phones, the title in the kit's
@@ -231,3 +191,45 @@ body.ds-form-screen-open{overflow:hidden}
 .ds .ds-note strong{color:var(--ds-ink)}
 .ds .ds-stack{display:grid;gap:var(--ds-space-12)}
 @media (prefers-reduced-motion:reduce){.ds .ds-sheet__panel,.ds .ds-sheet__backdrop,.ds .ds-switch,.ds .ds-switch::after,.ds .ds-field__label{transition:none}}
+
+/* My shop (screen 3) and shared pieces it brought in. Last in the file: they refine earlier components. */
+.ds .ds-form-screen__bar .ds-icon-btn{flex:none}
+.ds .ds-form-screen__bar .ds-form-screen__title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ds .ds-head{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-space-8);padding:var(--ds-space-16) var(--ds-space-16) var(--ds-space-4)}
+.ds .ds-head__title{margin:0;min-width:0;font-size:var(--ds-text-28);font-weight:800;font-stretch:110%;line-height:34px;letter-spacing:-.01em;color:var(--ds-ink);overflow-wrap:anywhere}
+.ds .ds-head .ds-btn{flex:none;padding:0 16px}
+/* Section head: a section title with its one action (Products · Add a product). */
+.ds .ds-section-head{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-space-8);padding:var(--ds-space-16) var(--ds-space-16) var(--ds-space-8) 0}
+.ds .ds-section-head .ds-section__title{padding-top:0;padding-bottom:0}
+.ds .ds-section-head .ds-btn{flex:none;padding:0 16px}
+/* One status line under a screen's title ("Shop saved."); empty takes no room. */
+.ds .ds-status{margin:0;padding:var(--ds-space-4) var(--ds-space-16);font-size:var(--ds-text-13);line-height:18px;font-weight:700;color:var(--ds-ink)}
+.ds .ds-status:empty{display:none}
+/* Media pick shapes: wide 16:7 (shop front, the profile band) and square (product photo); both fill their box. */
+.ds .ds-media-pick--wide{height:auto;aspect-ratio:16/7}
+.ds .ds-media-pick--square{height:auto;aspect-ratio:1;max-height:420px}
+.ds .ds-media-pick--wide .ds-media-pick__media :is(img,video),.ds .ds-media-pick--square .ds-media-pick__media :is(img,video){position:absolute;inset:0;object-fit:cover;background:var(--ds-surface-subtle)}
+.ds .ds-media-pick--wide .ds-media-pick__empty{padding-bottom:56px}
+.ds .ds-media-pick--wide .ds-media-pick__empty .ds-icon{width:28px;height:28px}
+.ds .ds-media-pick--wide .ds-media-pick__empty span{display:none}
+.ds .ds-media-pick .ds-icon-btn{background:var(--ds-surface);box-shadow:var(--ds-shadow-float)}
+.ds .ds-media-pick__corner{position:absolute;top:var(--ds-space-8);right:var(--ds-space-8);flex:none}
+.ds .ds-media-pick--wide .ds-media-pick__actions{flex-wrap:wrap;bottom:var(--ds-space-8)}
+.ds .ds-media-pick--wide .ds-media-pick__btn{padding:0 14px}
+/* Photo grid (shop album): square tiles edge to edge, 2px apart; the owner's remove sits in the corner. */
+.ds .ds-thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px}
+.ds .ds-thumb{position:relative;margin:0;aspect-ratio:1;overflow:hidden;background:var(--ds-surface-subtle)}
+.ds .ds-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.ds .ds-thumb .ds-icon-btn{position:absolute;top:2px;right:2px;background:var(--ds-surface);box-shadow:var(--ds-shadow-float)}
+/* List rows with a square picture (products) and quiet text actions in the danger colour. */
+.ds .ds-row--square .ds-row__photo{border-radius:8px;background:var(--ds-surface-subtle);color:var(--ds-muted)}
+.ds .ds-row--square .ds-row__photo .ds-icon{width:24px;height:24px;font-size:0}
+.ds .ds-row__chev{position:relative;z-index:1;color:var(--ds-muted);pointer-events:none}
+.ds .ds-row--square{grid-template-columns:56px minmax(0,1fr) 20px}
+.ds .ds-row--square+.ds-row--square::before{left:84px}
+.ds .ds-btn--danger{background:var(--ds-surface);border-color:var(--ds-hairline);color:var(--ds-danger)}
+/* Two stacked choices at the end of a sheet (Replace / Keep shop only). */
+.ds .ds-actions{display:grid;gap:var(--ds-space-8);margin-top:var(--ds-space-16)}
+.ds .ds-actions--sticky{position:sticky;bottom:calc(-1 * var(--ds-space-16));margin:var(--ds-space-8) calc(-1 * var(--ds-space-16)) calc(-1 * var(--ds-space-16));padding:var(--ds-space-12) var(--ds-space-16) var(--ds-space-16);border-top:1px solid var(--ds-hairline);background:var(--ds-surface)}
+.ds .ds-sheet__preview{display:block;width:100%;aspect-ratio:16/7;margin:0 0 var(--ds-space-12);overflow:hidden;border-radius:12px;background:var(--ds-surface-subtle)}
+.ds .ds-sheet__preview img{display:block;width:100%;height:100%;object-fit:cover}

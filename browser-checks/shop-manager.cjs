@@ -124,9 +124,11 @@ const runs = [
       assert.equal(calls.filter(c => c.p === "/marketplace/shop" && c.method === "PUT").at(-1).body.status, "published", `${label}: Save shop sends the picked visibility`);
 
       // Shop front: upload → Move to fit → saved with its position → offer to the profile.
-      const chooser = page.waitForEvent("filechooser");
+      const chooser = page.waitForEvent("filechooser").catch(error => error);
       await tap(page.locator("#chooseShopCover"));
-      await (await chooser).setFiles({ name: "front.jpg", mimeType: "image/jpeg", buffer: jpeg });
+      const picker = await chooser;
+      assert.ok(!(picker instanceof Error), `${label}: Upload opened no photo picker`);
+      await picker.setFiles({ name: "front.jpg", mimeType: "image/jpeg", buffer: jpeg });
       const fitSheet = page.locator("dialog.ds-fit-sheet, dialog:has(.ds-fit-box)");
       await fitSheet.waitFor({ state: "visible" });
       await shot("3-move-to-fit");
