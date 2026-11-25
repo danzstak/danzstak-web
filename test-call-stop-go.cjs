@@ -1,0 +1,30 @@
+"use strict";
+// Owner 2026-11-25 ("make it very stop go kinda thing. these user will be all over the world"; "baby proof"): answering
+// or refusing a call reads without words, in any language. Green = go (Accept/Answer), red = stop (Decline).
+// - the lock-screen notification: Android draws its buttons, so each title starts with a green or red dot;
+// - the incoming-call pop-up on every page: Answer is solid green, Decline solid red (it was a blue/purple gradient);
+// - the SYNC call screen already uses green Accept and red Decline.
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+
+const worker = fs.readFileSync("service-worker.js", "utf8");
+assert.match(worker, /action: "answer", title: callButton\("🟢"/, "lock-screen Accept starts with a green dot");
+assert.match(worker, /action: "decline", title: callButton\("🔴"/, "lock-screen Decline starts with a red dot");
+const helper = new Function(`${worker.match(/function callButton\(mark, words\) \{[\s\S]*?\n\}/)[0]}; return callButton;`)();
+assert.equal(helper("🟢", "Accetta"), "🟢 Accetta");
+assert.equal(helper("🔴", "🔴 Rifiuta"), "🔴 Rifiuta", "a mark is never doubled");
+assert.ok(helper("🟢", "x".repeat(80)).length <= 40, "titles stay short enough for the phone");
+
+const css = fs.readFileSync("assets/incoming-calls.css", "utf8");
+const rule = selector => (css.match(new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\{([^}]*)\\}`)) || [])[1] || "";
+assert.match(rule(".global-call-actions button"), /background:#15803d/, "Answer on the pop-up is green");
+assert.match(rule(".global-call-actions .global-call-decline"), /background:#c62828/, "Decline on the pop-up is red");
+assert.doesNotMatch(rule(".global-call-actions button"), /gradient/, "no blue/purple gradient on Answer");
+// White text on both stays readable (WCAG 4.5:1).
+const lum = hex => { const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+for (const hex of ["#15803d", "#c62828"]) assert.ok(1.05 / (lum(hex) + 0.05) >= 4.5, `white on ${hex} reads at 4.5:1`);
+
+const screen = fs.readFileSync("assets/sync-call-ui.css", "utf8");
+assert.match(screen, /#acceptCall\{background:var\(--ds-btn-go/, "the SYNC call screen's Accept is green");
+assert.match(screen, /#declineCall\{background:#df3347/, "the SYNC call screen's Decline is red");
+console.log("Stop/go call buttons: green dot on Accept and red dot on Decline on the lock screen, a green Answer and red Decline on the pop-up, readable white text.");
