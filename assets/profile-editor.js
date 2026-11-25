@@ -1377,26 +1377,31 @@ function renderProfileShowcase(shop, profile = {}) {
     frame.append(image);
     box.append(frame);
     if (owner) {
-      // One ⋯ on the photo (directive F4/F9: no floating edit/delete circles over the picture).
-      const menu = document.createElement("details"); menu.className = "profile-showcase-menu";
-      const toggle = document.createElement("summary"); toggle.setAttribute("aria-label", profileTranslate("Photo options")); toggle.title = toggle.getAttribute("aria-label"); toggle.textContent = "⋯";
-      const tools = document.createElement("span"); tools.className = "profile-showcase-tools";
-      const change = document.createElement("button"); change.type = "button"; change.className = "profile-showcase-change";
-      change.textContent = profileTranslate("Change this photo"); change.setAttribute("aria-label", change.textContent);
-      change.addEventListener("click", () => { menu.open = false; picker.click(); });
-      const move = document.createElement("button"); move.type = "button"; move.className = "profile-showcase-move";
-      move.textContent = profileTranslate("Move to fit"); move.setAttribute("aria-label", move.textContent); move.hidden = !fitPictures();
-      move.addEventListener("click", async () => {
-        menu.open = false;
-        const position = await fitPictures().open({ src: photo, aspect: showcaseAspect(), position: profilePlace(profile, "showcase"), title: "Move your photo" });
-        if (position) await savePlace(position);
+      // One ⋯ on the photo (directive F4/F9: no floating edit/delete circles over the picture). It opens a kit sheet
+      // (spec 39 "Sheet"): Move to fit, Change this photo, Remove this photo. Back, ✕, Escape or the backdrop close it.
+      const more = document.createElement("button"); more.type = "button"; more.className = "profile-showcase-more";
+      window.danzstakIconButton(more, "ellipsis", profileTranslate("Photo options"), "quiet");
+      more.setAttribute("aria-haspopup", "dialog");
+      const holder = document.createElement("span"); holder.className = "ds ds--day profile-showcase-more-holder";
+      holder.append(more);
+      more.addEventListener("click", () => {
+        const list = document.createElement("div");
+        const row = (className, icon, words, act) => {
+          const item = document.createElement("button"); item.type = "button"; item.className = `ds-choice ${className}`;
+          const text = document.createElement("span"); text.className = "ds-choice__text"; text.textContent = profileTranslate(words);
+          item.append(window.danzstakIcon(icon), text);
+          item.addEventListener("click", () => { sheet?.close(); setTimeout(act, 0); });
+          list.append(item);
+        };
+        if (fitPictures()) row("profile-showcase-move", "move", "Move to fit", async () => {
+          const position = await fitPictures().open({ src: photo, aspect: showcaseAspect(), position: profilePlace(profile, "showcase"), title: "Move your photo" });
+          if (position) await savePlace(position);
+        });
+        row("profile-showcase-change", "image", "Change this photo", () => picker.click());
+        row("ds-choice--danger profile-showcase-remove", "trash-2", "Remove this photo", () => void save({ showcaseKey: "" }));
+        const sheet = window.danzstakSheet?.open({ title: profileTranslate("Photo options"), content: list, opener: more, className: "ds--day" });
       });
-      const remove = document.createElement("button"); remove.type = "button"; remove.className = "profile-showcase-remove";
-      remove.textContent = profileTranslate("Remove this photo"); remove.setAttribute("aria-label", remove.textContent);
-      remove.addEventListener("click", () => { menu.open = false; void save({ showcaseKey: "" }); });
-      tools.append(move, change, remove);
-      menu.append(toggle, tools);
-      box.append(menu); // menu rows read as words, so no icon-only conversion here
+      box.append(holder);
     }
   } else {
     const add = document.createElement("button"); add.type = "button"; add.className = "profile-showcase-add";
@@ -1829,8 +1834,4 @@ if (window.danzstakCurrentProfile) applyLoadedProfile(window.danzstakCurrentProf
   window.addEventListener("danzstak:profile-loaded", refit);
   if (name && typeof MutationObserver === "function") new MutationObserver(refit).observe(name, { childList: true, characterData: true, subtree: true });
   refit();
-  // The ⋯ on the showcase photo closes on a tap outside it or on Escape, like any familiar menu.
-  const openMenus = () => document.querySelectorAll(".profile-showcase-menu[open]");
-  document.addEventListener("click", event => openMenus().forEach(menu => { if (!menu.contains(event.target)) menu.open = false; }));
-  document.addEventListener("keydown", event => { if (event.key === "Escape") openMenus().forEach(menu => { menu.open = false; menu.querySelector("summary")?.focus(); }); });
 })();
