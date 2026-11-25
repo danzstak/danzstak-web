@@ -41,7 +41,11 @@
 
 /* Comments: two shown, the rest behind a small "+N" chip. */
 #feed > .post .commentList{margin:2px 0 0!important}
-#feed > .post .comment{margin-top:6px!important;margin-bottom:6px!important} /* left margin free: replies sit indented under their comment */
+/* Left margin free: replies sit indented under their comment. Owner 2026-11-25 (phone screenshot): "Make it a little
+   tighter between the comment and the reply": inside a thread only the list's own gap separates a comment from its reply
+   (and one reply from the next); the 6px stays around whole threads. */
+#feed > .post .comment:not(.comment-reply){margin-top:6px!important}
+#feed > .post .comment:not(.comment-has-replies):not(.comment-thread-continues){margin-bottom:6px!important}
 #feed > .post .comment-bubble{border-radius:14px}
 #feed > .post .comments-more{
   display:inline-flex;align-items:center;justify-content:center;
