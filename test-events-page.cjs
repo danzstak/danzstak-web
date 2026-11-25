@@ -76,35 +76,46 @@ assert.match(eventJs, /openstreetmap\.org\/search\?query=\$\{encodeURIComponent\
 assert.match(eventJs, /"ticket-tier-tear"\); tear\.append\(text\("span", "Admit one"\)\)/, "ticket types are stubs");
 assert.match(eventJs, /event details are temporarily unavailable/i);
 
-// The creator: flyer first, one question at a time, More options, one orange Publish.
+// Create event (UI kit screen 2, CLAUDE.md F10): flyer area with Image / Video, host row, floating fields, start
+// prefilled to the next hour, "+ End time" and time zone chips, Who can see it? and Tickets as sheets, one sticky green
+// Create event button that stays disabled until the flyer, the name and the start time are set.
 const page = read("assets/events-page.js");
-for (const required of ['"Drop your flyer"', '"Sell tickets to your night"', '"Keep the full ticket price."', '"Buyers pay the 6% fee (+$1 under $30)."', '"QR + plain-text tickets."', '"Door list."', '"Named tickets against scalpers."', '"More options"', '"Publish event"', '"Night, artist, venue or city"', '"My tickets"', '"Tonight & this weekend"', '"Ticket delivery"', '"Add a ticket section"', '"Admit one"'])
+for (const required of ['"Sell tickets to your night"', '"Keep the full ticket price."', '"Buyers pay the 6% fee (+$1 under $30)."', '"QR + plain-text tickets."', '"Door list."', '"Named tickets against scalpers."', '"Create event"', '"Add a flyer"', '"Event host"', '"Who can see it?"', '"Tickets"', '"End time"', '"Time zone"', '"Night, artist, venue or city"', '"My tickets"', '"Tonight & this weekend"', '"Add a ticket section"', '"Admit one"'])
   assert.ok(page.includes(required), `creator copy: ${required}`);
-assert.equal((page.match(/className: "ev-primary ev-publish"/g) || []).length, 1, "one Publish button");
+assert.equal((page.match(/className: "ds-btn ds-btn--go ds-btn--block ev-publish", disabled: true/g) || []).length, 1, "one Create event button, disabled at first");
+assert.match(page, /publishButton\.disabled = !\(draft\.media && draft\.title\.trim\(\) && draft\.startsLocal\)/, "enabled once flyer, name and start time are set");
 assert.match(page, /seconds > 0 && seconds <= 15\.5/, "videos must be 15 seconds or less");
 assert.match(page, /MAX_TONIGHT = 5/, "short list, not a feed");
+assert.match(page, /window\.danzstakSheet\.open\(\{ title: "Who can see it\?"/, "Who can see it? is a sheet");
+assert.match(page, /window\.danzstakSheet\.open\(\{ title: "Tickets"/, "Tickets is a sheet");
+assert.doesNotMatch(page, /el\("select"|type: "checkbox", className: "ev-|<details|"More options"|"Next"/, "no raw select, plain checkbox, More options box or step wizard");
+assert.equal(ev.nextHourLocal(new Date(2027, 1, 6, 21, 37)), "2027-02-06T22:00", "start prefilled to the next full hour");
+assert.equal(ev.nextHourLocal(new Date(2027, 11, 31, 23, 5)), "2028-01-01T00:00", "next hour rolls over the year");
 
-// Skin: EPK-builder tokens, square edges, 44px targets.
+// Events home keeps the EPK Techno skin (it moves onto the kit in spec 39 step 8): tokens, square edges, 44px targets.
 const css = read("assets/events-page.css");
 for (const token of ["#0b0b0c", "#ededea", "#ff5a1f", "Archivo", "JetBrains Mono", "font-stretch:125%"]) assert.ok(css.includes(token), `skin token ${token}`);
 assert.match(css, /\.ev-skin :is\(button,input,select,textarea,summary\)\{min-height:44px/, "44px touch targets");
-assert.doesNotMatch(css, /border-radius:(?!0)[1-9]/, "square edges in the creator skin");
+assert.doesNotMatch(css, /border-radius:(?!0)[1-9]/, "square edges in the Events skin");
+assert.doesNotMatch(css, /ev-creator|ev-poster|ev-drop|ev-step|ev-question|ev-screen/, "the old creator CSS is gone (the screen is on the kit)");
+const kit = read("tools/ui-kit/components.css");
+assert.match(kit, /\.ds\.ds-form-screen\{position:fixed;inset:0;z-index:10050/, "Create event fills the screen on phones");
+assert.match(kit, /\.ds \.ds-icon-btn\{[^}]*width:44px;height:44px/, "44px back button");
+assert.doesNotMatch(kit, /!important/, "no !important in the kit");
 
 // Fix-it 18 (owner 2026-11-17): the composer is not printed on the Events page. A + next to search (and
-// "Make your poster") opens it as its own screen; device Back closes it and keeps the draft; the date reads back
+// "Create event") opens it as its own screen; device Back closes it and keeps the draft; the date reads back
 // in the member's language under the picker.
 assert.match(page, /className: "ev-add"[\s\S]*?"aria-label", "Post an event"/, "+ button with an accessible name");
 assert.match(page, /el\("form", \{ className: "ev-search", role: "search" \}, searchInput, addButton\)/, "+ sits beside search");
-assert.match(page, /className: "ev-creator-screen", role: "dialog", hidden: true/, "the composer is its own screen, closed at first");
-assert.match(page, /host\.append\(searchForm, results, myTickets, tonight, promo, yours, status, screen\)/, "no composer printed inline on the page");
+assert.match(page, /className: "ds ds-form-screen ev-creator-screen", role: "dialog", hidden: true/, "the composer is its own screen, closed at first");
+assert.match(page, /host\.append\(searchForm, results, myTickets, tonight, promo, yours, status\);/, "no composer printed inline on the page");
 assert.match(page, /danzstakEventCreator: true/, "opening the composer adds a history entry");
 assert.match(page, /if \(!fromHistory && history\.state\?\.danzstakEventCreator === true\) \{ history\.back\(\); return true; \}/, "close goes back through history");
 assert.doesNotMatch(page, /creatorHost\.replaceChildren\(\); creatorHost\.hidden = true/, "closing never throws the draft away");
 assert.match(enhancements, /function restoreWorkspaceRoute\(\) \{\r?\n  \/\/ Back from the Events composer[^\n]*\r?\n  if \(globalThis\.danzstakEvents\?\.closeCreatorFromHistory\?\.\(\)\) return;/, "Back closes the composer before the Events page re-renders");
-assert.match(page, /\[field\("Doors open", startsIn\), startsRead\]/, "the date reads back under the picker");
+assert.match(page, /field\("Start date and time", startsIn, startsRead\)/, "the date reads back under the picker");
 assert.match(css, /\.ev-add\{[^}]*width:44px;height:44px/, "44px + button");
-assert.match(css, /\.ev-creator-screen\{position:fixed;inset:0;z-index:10050/, "full screen on phones");
-assert.match(css, /\.ev-screen-close\{[^}]*width:44px;height:44px/, "44px close");
 {
   // Behaviour: the Back hook only closes when the creator's history entry was popped.
   const hist = { state: null };
@@ -129,6 +140,12 @@ collect(page, /el\("option", \{ value: v, textContent: l \}\)\)\)|\["(?:public|f
 collect(page, /onStatus\("([^"]+)"\)/g);
 collect(page, /status\.textContent = "([^"]+)"/g);
 collect(page, /field\("([^"]+)"/g);
+collect(page, /screenStatus\.textContent = "([^"]+)"/g);
+collect(page, /pickRow\("[a-z-]+", "([^"]+)"/g);
+collect(page, /pickButton\("([^"]+)"/g);
+collect(page, /danzstakSheet\.open\(\{ title: "([^"]+)"/g);
+for (const m of page.matchAll(/switchRow\([a-zA-Z]+, "([^"]+)"(?:, "([^"]+)")?/g)) { literals.add(m[1]); if (m[2]) literals.add(m[2]); }
+for (const m of page.matchAll(/\["(?:public|friends|private)", "([^"]+)", "([^"]+)"\]/g)) { literals.add(m[1]); literals.add(m[2]); }
 collect(eventJs, /text\("(?:p|span|h2)", "([^"$]+)"/g);
 collect(eventJs, /status\.textContent = "([^"]+)"/g);
 for (const extra of ["Doors", "Map", "Lineup", "Tickets", "DanzStak event", "Checking event details.", "Loading event…"]) literals.add(extra);

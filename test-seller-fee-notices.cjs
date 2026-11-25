@@ -24,7 +24,7 @@ assert.match(storeJs, /if \(managing\) \{\s*window\.DanzStakFees\?\.feeChangeBan
 assert.doesNotMatch(storeJs, /Math\.round\(price \* 0\.06\)/, "old seller-deducted math is gone");
 
 const composer = read("assets/events-page.js");
-assert.match(composer, /You keep all of it\. Buyers pay the 6% fee on top\./, "event composer says buyers pay the fee on top");
+assert.match(composer, /You keep the full ticket price\. Buyers pay the 6% fee \(\+\$1 under \$30\)\./, "event composer (Tickets sheet) says buyers pay the fee on top");
 assert.match(composer, /"Buyer pays"[\s\S]*money\(cents \+ buyerFees\(cents\)\)[\s\S]*"You get"[\s\S]*money\(cents\)/, "event composer shows a live Buyer pays / You get preview");
 assert.doesNotMatch(read("assets/feed-enhancements.js") + composer, /comes out of your payout after the show|DanzStak keeps 6%/, "old promoter-paid copy is gone");
 assert.match(read("assets/event-tickets.js"), /feeChangeBanner\(holder\.parentElement, window\.DanzStakFees\.PROMOTER_NOTICE\)/, "one-time banner in the promoter's event view");

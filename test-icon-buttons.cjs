@@ -33,7 +33,7 @@ assert.match(css, /disabled[^{]*\{[^}]*opacity/, "disabled state must remain vis
 for (const page of pages) {
   const html = fs.readFileSync(page, "utf8");
   assert.match(html, /assets\/icon-buttons\.css\?v=5/, `${page} must load the current shared icon styles`);
-  assert.match(html, /assets\/icon-buttons\.js\?v=19/, `${page} must load the current shared icon behavior`);
+  assert.match(html, /assets\/icon-buttons\.js\?v=20/, `${page} must load the current shared icon behavior`);
 }
 
 const feedPage = fs.readFileSync("feed.html", "utf8");
