@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v1073";
+const CACHE = "danzstak-shell-v1076";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/time-label.js", "/assets/page-missing.js", "/assets/scramble-by-seller.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -235,14 +235,23 @@ async function callWasHandled(callId) {
 // answered, declined or ended, which close it), show it again every few seconds with renotify, so the phone sounds and
 // vibrates again, for about as long as an in-app ring (25 s).
 const CALL_RING_REPEATS = 6, CALL_RING_EVERY_MS = 4000;
+// A platform that refuses the dots in the button words must still show the call (plain words).
+async function showCall(title, options) {
+  try { await self.registration.showNotification(title, options); }
+  catch (error) {
+    console.warn("Call notification refused, showing plain buttons:", error?.name || error);
+    const actions = (options.actions || []).map(item => ({ ...item, title: String(item.title).replace(/^[\u{1F7E2}\u{1F534}]\s*/u, "") }));
+    await self.registration.showNotification(title, { ...options, actions });
+  }
+}
 async function ringCallNotification(title, options) {
-  await self.registration.showNotification(title, options);
+  await showCall(title, options);
   for (let i = 0; i < CALL_RING_REPEATS; i++) {
     await new Promise(resolve => setTimeout(resolve, CALL_RING_EVERY_MS));
     const open = await self.registration.getNotifications({ tag: options.tag });
     if (!open.length) return; // answered, declined, dismissed or the call ended (call-resolved push)
     if (await callWasHandled(options.data.callId)) { open.forEach(notification => notification.close()); return; }
-    await self.registration.showNotification(title, { ...options, renotify: true });
+    await showCall(title, { ...options, renotify: true });
   }
 }
 
