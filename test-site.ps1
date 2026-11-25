@@ -412,7 +412,8 @@ $profileEditorJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile-edi
 if ($feedEnhancements.Contains('presence.setAttribute("aria-label", status.textContent)') -or $feedEnhancements.Contains('presenceDot.setAttribute("aria-label", detail.textContent)') -or -not ($feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true")') -or $feedEnhancements.Contains('presenceDot.setAttribute("aria-hidden", "true")'))) {
   Add-Failure 'Friends: workspace presence indicator duplicates the visible Online or Offline screen-reader announcement'
 }
-if ($profileEditorJs.Contains('status.setAttribute("aria-label", status.title)') -or -not $profileEditorJs.Contains('status.setAttribute("aria-hidden", "true")')) {
+# UIKIT 4b: the profile draws no friends list of its own (the Friends screen does), so no presence dot to announce twice.
+if ($profileEditorJs.Contains('status.setAttribute("aria-label", status.title)') -or $profileEditorJs.Contains('profile-friend-presence')) {
   Add-Failure 'Profiles: friend presence indicator duplicates the visible Online or Offline screen-reader announcement'
 }
 if (-not $profileEditorJs.Contains('purpose: "profile"') -or $profileEditorJs.Contains('await discardCloudMedia(')) {
