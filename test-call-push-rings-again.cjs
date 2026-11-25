@@ -23,7 +23,8 @@ async function run(payload, openFor) {
   const call = { type: "call", tag: "call-11111111-1111-4111-8111-111111111111", title: "Incoming DanzStak call", body: "x" };
   let r = await run(call, 99);
   assert.equal(r.shown.length, 7, "an unanswered call rings 7 times (first + 6 repeats)");
-  assert.ok(r.waits.every(ms => ms === 4000), "repeats every 4 seconds (about 25 s in all)");
+  assert.ok(r.waits.slice(0, 6).every(ms => ms === 4000), "repeats every 4 seconds (about 25 s in all)");
+  assert.equal(r.waits.length, 7, "then one last wait before the notification goes (owner 2026-11-25: it never stays on the lock screen)");
   assert.ok(r.shown.every(o => o.renotify === true && o.requireInteraction === true && o.vibrate.length === 5));
   r = await run(call, 2);
   assert.equal(r.shown.length, 3, "stops as soon as the call notification is gone (answered, declined or ended)");
