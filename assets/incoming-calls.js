@@ -22,10 +22,46 @@
   popup.setAttribute("role", "dialog");
   popup.setAttribute("aria-modal", "true");
   popup.setAttribute("aria-labelledby", "globalIncomingTitle");
-  popup.innerHTML = '<span class="global-call-icon" aria-hidden="true">📞</span><div data-ringer-slot><strong id="globalIncomingTitle">Incoming call</strong><p id="globalIncomingLabel"></p></div><div class="global-call-actions"><button type="button" data-answer>Answer</button><button type="button" class="global-call-decline" data-decline>Decline</button></div>';
+  // Owner 2026-11-25: full screen like the phone ringing, with Answer / Decline (incoming-calls.css).
+  const icon = name => `<span class="gic-circle" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="/assets/icons.svg#${name}"></use></svg></span>`;
+  popup.innerHTML = '<div class="gic-bg" aria-hidden="true"></div><p class="gic-brand" translate="no">SYNC Mobile</p><div class="gic-middle"><span class="gic-photo" aria-hidden="true"></span><p class="gic-name" translate="no"></p><div data-ringer-slot><strong id="globalIncomingTitle">Incoming call</strong><p id="globalIncomingLabel"></p></div></div><div class="global-call-actions"><button type="button" data-answer>' + icon("phone") + '<span data-answer-text>Answer</span></button><button type="button" class="global-call-decline" data-decline>' + icon("phone-off") + '<span>Decline</span></button></div>';
   document.body.appendChild(popup);
 
   const label = popup.querySelector("#globalIncomingLabel");
+  const nameLine = popup.querySelector(".gic-name");
+  const photo = popup.querySelector(".gic-photo");
+  const backdrop = popup.querySelector(".gic-bg");
+  const answerText = popup.querySelector("[data-answer-text]");
+  const answerIcon = popup.querySelector("[data-answer] use");
+  const declineText = popup.querySelector("[data-decline] span:last-child");
+
+  // The caller's own photo, read from their profile; the first letter of their name until it loads (or when there is none).
+  let photoFor = "";
+  function showPhoto(call) {
+    const key = call.senderMemberId || call.senderEmail || call.callId;
+    if (photoFor === key) return;
+    photoFor = key;
+    photo.textContent = String(call.senderName || "D").trim().charAt(0).toUpperCase() || "D";
+    backdrop.removeAttribute("data-photo");
+    backdrop.style.removeProperty("--gic-photo");
+    const query = /^[a-f0-9-]{36}$/.test(String(call.senderMemberId || "")) ? "member=" + encodeURIComponent(call.senderMemberId) : call.senderEmail ? "email=" + encodeURIComponent(call.senderEmail) : "";
+    if (!query) return;
+    fetch(API + "/profiles?" + query, { credentials: "include", cache: "no-store" }).then(response => response.ok ? response.json() : null).then(data => {
+      const picture = String((data?.profile || data)?.picture || "");
+      if (photoFor !== key || !/^https:\/\//.test(picture)) return;
+      const image = new Image();
+      image.alt = "";
+      image.referrerPolicy = "no-referrer";
+      image.onload = () => {
+        if (photoFor !== key) return;
+        photo.replaceChildren(image);
+        backdrop.style.setProperty("--gic-photo", `url("${picture.replace(/["\\]/g, "")}")`);
+        backdrop.dataset.photo = "";
+      };
+      image.src = picture;
+    }).catch(() => {});
+  }
+
   const answer = popup.querySelector("[data-answer]");
   const decline = popup.querySelector("[data-decline]");
 
@@ -95,7 +131,11 @@
       mode: t(current.mode === "video" ? "video" : "phone")
     });
     // L1: this device isn't registered, so the call can't be answered here yet. Say how, instead of staying silent.
-    answer.textContent = t(current.register ? "Register this device to answer" : "Answer");
+    nameLine.textContent = current.senderName || t("DanzStak member");
+    answerText.textContent = t(current.register ? "Register this device to answer" : "Answer");
+    answerIcon?.setAttribute("href", `/assets/icons.svg#${current.mode === "video" && !current.register ? "video" : "phone"}`);
+    declineText.textContent = t("Decline");
+    showPhoto(current);
     popup.classList.toggle("needs-registration", Boolean(current.register));
   }
 
@@ -155,7 +195,7 @@
     renderCurrentCall();
     popup.hidden = false;
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    answer.focus();
+    answer.focus({ focusVisible: false });
     if (!window.danzstakSyncTones && !window.danzstakCallRinger) navigator.vibrate?.([400, 180, 400, 180, 400]);
     startRingtone();
     desktopNotice(call);
@@ -180,7 +220,7 @@
     renderCurrentCall();
     popup.hidden = false;
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    answer.focus();
+    answer.focus({ focusVisible: false });
     if (!window.danzstakSyncTones && !window.danzstakCallRinger) navigator.vibrate?.([400, 180, 400, 180, 400]); // 16-B2: the tone module vibrates per the member's Vibrate setting
     startRingtone();
     // The service worker owns background notifications; polling only updates this page.

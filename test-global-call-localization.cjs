@@ -31,7 +31,8 @@ const popup = control();
 const answer = control();
 const decline = control();
 const label = {};
-popup.querySelector = selector => selector === "[data-answer]" ? answer : selector === "[data-decline]" ? decline : label;
+const parts = new Map(), part = () => ({textContent:'',style:{setProperty(){},removeProperty(){}},dataset:{},setAttribute(){},removeAttribute(){},replaceChildren(){}});
+popup.querySelector = selector => selector === "[data-answer]" ? answer : selector === "[data-decline]" ? decline : selector === "#globalIncomingLabel" ? label : (parts.get(selector) || parts.set(selector, part()).get(selector));
 const offer = { eventId: "offer-1", callId: "11111111-1111-4111-a111-111111111111", senderName: "Liana", senderEmail: "internal@example.com", mode: "phone", signalType: "offer" };
 const translations = {
   "{name} is calling by {mode}.": "{name} chiama tramite {mode}.",
