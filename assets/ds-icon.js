@@ -16,4 +16,16 @@
     svg.append(use);
     return svg;
   };
+  // A round 44px kit icon button (spec 39 "Button"): kind "go" (green, the screen's one primary action), "quiet"
+  // (surface + hairline) or "" (bare). The words stay as the accessible name and tooltip, never on screen.
+  //   window.danzstakIconButton(button, "pencil", "Edit profile", "go")   (call again to change icon or words)
+  window.danzstakIconButton = function danzstakIconButton(control, name, label, kind) {
+    control.classList.remove("ds-icon-btn--go", "ds-icon-btn--quiet");
+    control.classList.add("ds-icon-btn");
+    if (kind) control.classList.add(`ds-icon-btn--${kind}`);
+    control.setAttribute("aria-label", label);
+    control.title = label;
+    control.replaceChildren(window.danzstakIcon(name));
+    return control;
+  };
 })();

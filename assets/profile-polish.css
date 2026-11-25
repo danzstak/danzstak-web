@@ -1,14 +1,5 @@
 /* Profile polish (owner directive 2026-11-16): familiar Facebook-style profile, icons instead of words,
    mobile first and tight. Loaded last on profile.html. */
-.profile-actions{display:flex!important;flex-wrap:nowrap!important;gap:8px!important;justify-content:flex-start;margin:0!important} /* F4: the header sets every gap once (profile-shop.css) */
-.profile-actions > :is(button,a).ds-icon-button:not([hidden]){
-  display:grid!important;place-items:center;flex:0 0 auto;
-  width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;
-  border:1px solid #e7e9ee!important;border-radius:12px!important;background:#fff!important;color:#121418!important;
-}
-.profile-actions > :is(button,a).ds-icon-button:first-child{background:var(--ds-btn-go,#15803d)!important;border-color:var(--ds-btn-go,#15803d)!important;color:#fff!important}
-.profile-actions > :is(button,a).ds-icon-button:focus-visible{outline:2px solid #ff5a1f;outline-offset:2px}
-.profile-actions .ds-action-icon{width:20px;height:20px}
 .profile-name-edit-hint{display:none!important}
 
 /* Composer shortcuts: three icons in one row. */
@@ -69,18 +60,7 @@ body.profile-page{background:#fff!important}
 .profile-daily-viewer button:focus-visible{outline:2px solid #ff5a1f;outline-offset:2px}
 .profile-daily-viewer .ds-action-icon{width:24px;height:24px}
 
-/* Fix-it 18 (owner 2026-11-17): hidden owner-only controls (Edit, Open my shop, Invite) stay hidden for visitors.
-   The display:grid above used to override the hidden attribute. */
-.profile-actions > [hidden],.profile-actions > :is(button,a).ds-icon-button.profile-share-hidden{display:none!important}
 
-/* Visitor row: Add friend / Message / more, one compact line. */
-.profile-actions > a#profileMessage{color:#121418!important}
-.profile-more-wrap{position:relative;display:inline-flex}
-.profile-actions .profile-more.ds-icon-button{display:grid!important;place-items:center;width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;border:1px solid #e7e9ee!important;border-radius:12px!important;background:#fff!important;color:#121418!important}
-.profile-more-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:180px;padding:6px;border-radius:12px;background:#fff;box-shadow:0 8px 24px rgba(16,24,40,.18)}
-.profile-more-menu[hidden]{display:none}
-.profile-more-menu button{display:flex;align-items:center;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#121418;font:inherit;font-weight:600;text-align:left;white-space:nowrap;cursor:pointer}
-.profile-more-menu button:hover,.profile-more-menu button:focus-visible{background:#f2f3f5;outline:none}
 
 /* Phone top bar like the profile screen members know: back, the member's name, search, Pivot (directive F15j), bell. */
 .profile-app-header .profile-header-name{display:none}
@@ -107,10 +87,7 @@ body.profile-page{background:#fff!important}
 .profile-post-card .profile-post-media{cursor:zoom-in}
 .profile-post-card .profile-post-media:focus-visible{outline:3px solid #ff5a1f;outline-offset:-3px}
 
-/* Fix-it 18 (owner 2026-11-17): "+ bio" for the owner instead of instructional copy; one-line empty wall. */
-.profile-add-bio{display:inline-flex;align-items:center;gap:4px;min-height:44px;margin:4px 0 0;padding:0 12px;border:0;border-radius:999px;background:rgba(239,108,32,.12);color:#9a3412;font:inherit;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.profile-add-bio[hidden]{display:none!important}
-.profile-add-bio:active{background:rgba(239,108,32,.22)}
+/* Fix-it 18 (owner 2026-11-17): one-line empty wall. */
 .profile-empty-wall{margin:0;padding:24px 16px;color:#5b6472;text-align:center;font-size:15px}
 /* About = vanity wall (owner 2026-11-18): the long-form story first, big; details as plain lines, no grey boxes. */
 .details:not([hidden]){display:block!important;gap:0!important}
@@ -120,10 +97,6 @@ body.profile-page{background:#fff!important}
 .profile-story-text::before{content:"\201C";display:block;height:.55em;color:#ff5a1f;font-size:2.4em;line-height:1}
 .profile-story-edit{position:absolute;top:4px;right:0;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:#4b5563}
 .profile-story-add{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:1px dashed #ff5a1f;border-radius:22px;background:#fff7f2;color:#c2410c;font:inherit;font-weight:700}
-/* Owner 2026-11-18: "+ bio" sits as the 5th icon in the profile action row, same size as its neighbours. */
-.profile-actions .profile-add-bio--icon{order:99;display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:center;gap:1px;margin:0;padding:0 8px;min-width:44px;border-radius:12px;font-size:13px;font-weight:800;letter-spacing:-.01em}
-.profile-actions .profile-add-bio--icon svg{width:14px;height:14px}
-.profile-actions .profile-add-bio--icon[hidden],.profile-add-bio[hidden]{display:none!important} /* owner 2026-11-18: owner-only controls never show for visitors */
 
 /* Owner 2026-11-19 (A12): no @username line under the profile name. */
 #profileHandle[hidden]{display:none!important}
@@ -162,11 +135,6 @@ body.profile-page{background:#fff!important}
 .profile-past-delete:focus-visible{outline:2px solid #ff5a1f;outline-offset:1px}
 .profile-past-delete .ds-action-icon{width:20px;height:20px}
 .profile-photo-sheet button:focus-visible{outline:3px solid #ff5a1f;outline-offset:2px}
-/* Owner 2026-11-19: friends' photos stacked by half at the right end of the action row (like Facebook's). */
-.profile-actions .profile-facepile{order:9;display:flex;align-items:center;margin-left:auto;min-width:44px;min-height:44px;padding:0 0 0 18px;border:0;background:none;cursor:pointer}
-.profile-actions .profile-facepile[hidden]{display:none}
-.profile-facepile-face{display:grid;place-items:center;width:36px;height:36px;margin-left:-18px;overflow:hidden;border:2px solid #fff;border-radius:50%;background:#2c3036;color:#fff;font-weight:800;font-size:.9rem}
-.profile-facepile-face img{display:block;width:100%;height:100%;object-fit:cover}
 
 /* UIKIT 4b: on a phone the pill row runs to both screen edges (it scrolls sideways), its first pill on the content line. */
 @media(max-width:600px){.profile-page .profile-tabs{margin-inline:-16px;padding-inline:16px}}

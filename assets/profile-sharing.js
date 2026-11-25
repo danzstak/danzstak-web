@@ -69,7 +69,10 @@
   window.danzstakInvitePeople = opener => show('Invite People', new URL('./', location.href).href, 'Join me on DanzStak. Create an account to connect and share your original content.', opener);
   function start() {
     const actions = document.querySelector('.profile-actions'); if (!actions) return;
-    const share = document.createElement('button'); share.type = 'button'; share.textContent = 'Share Profile'; share.dataset.icon = 'share'; share.setAttribute('aria-label', 'Share Profile'); share.hidden = true;
+    // UIKIT 4b part 2: a quiet kit icon button in the profile's action row (ds-icon.js).
+    const share = document.createElement('button'); share.type = 'button'; share.dataset.icon = 'share'; share.hidden = true;
+    const label = window.danzstakTranslate?.('Share profile') || 'Share profile';
+    if (window.danzstakIconButton) window.danzstakIconButton(share, 'share', label, 'quiet'); else { share.textContent = label; share.setAttribute('aria-label', label); }
     share.addEventListener('click', () => {
       const profile = window.danzstakCurrentProfile || {}, member = profile.memberId; if (!/^[a-f0-9-]{36}$/.test(member || '')) return;
       const fallback = profileLink(member), own = profile.isOwner === true ? ownPreview(fallback) : null;
@@ -80,7 +83,7 @@
     const inviteSheet = () => window.danzstakInvitePeople(share);
     shareExtra = () => window.danzstakCurrentProfile?.isOwner === true ? { label: 'Invite People', run: inviteSheet } : null;
     actions.append(share);
-    const update = () => { share.hidden = !/^[a-f0-9-]{36}$/.test(window.danzstakCurrentProfile?.memberId || ''); };
+    const update = () => { share.hidden = share.classList.contains('profile-share-hidden') || !/^[a-f0-9-]{36}$/.test(window.danzstakCurrentProfile?.memberId || ''); }; // a visitor's Share lives in ⋯ (profile-nav.js)
     window.addEventListener('danzstak:profile-loaded', update); update();
   }
   if (document.readyState !== 'complete') document.addEventListener('DOMContentLoaded', start, {once:true}); else start();

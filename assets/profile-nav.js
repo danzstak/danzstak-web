@@ -82,8 +82,8 @@
   }
 
   // ---- visitor action row: Add friend / Message / ⋯ ----
-  let menu = null;
-  function closeMenu() { if (menu) { menu.hidden = true; menu.previousElementSibling?.setAttribute("aria-expanded", "false"); } }
+  // UIKIT 4b part 2: kit icon buttons (ds-icon.js); ⋯ opens a kit sheet (ds-sheet.js), Back closes it.
+  const kit = (control, icon, label, kind) => window.danzstakIconButton ? window.danzstakIconButton(control, icon, label, kind) : control;
   function mountVisitorActions(profile) {
     if (!profile || profile.isOwner === true) return;
     const actions = document.querySelector(".profile-actions:not(.profile-locked-friend)");
@@ -91,42 +91,31 @@
     if (!actions) return;
     if (message && !message.hidden && message.parentElement !== actions) {
       const holder = message.parentElement;
-      message.dataset.icon = "chat";
-      message.setAttribute("role", "button");
-      const label = fmt("Message {name}", { name: profile.name || t("this member") });
-      message.setAttribute("aria-label", label); message.title = label;
+      message.className = ""; message.dataset.icon = "chat";
+      kit(message, "message-circle", fmt("Message {name}", { name: profile.name || t("this member") }), "quiet");
       const friend = actions.querySelector(".profile-friend-action");
       if (friend) friend.after(message); else actions.prepend(message);
       if (holder && holder.tagName === "P" && !holder.childElementCount && !holder.textContent.trim()) holder.remove();
-      window.danzstakIcons?.upgrade?.(message);
     }
     const share = [...actions.querySelectorAll("button")].find(button => button.dataset.icon === "share");
     if (!share || actions.querySelector(".profile-more")) return;
     // Share moves into ⋯ for visitors, so the row stays Add friend / Message / more.
-    share.classList.add("profile-share-hidden");
+    share.classList.add("profile-share-hidden"); share.hidden = true;
     const more = document.createElement("button");
     more.type = "button"; more.className = "profile-more"; more.dataset.icon = "more";
-    more.setAttribute("aria-label", t("More")); more.title = t("More");
-    more.setAttribute("aria-haspopup", "menu"); more.setAttribute("aria-expanded", "false");
-    menu = document.createElement("div");
-    menu.className = "profile-more-menu"; menu.setAttribute("role", "menu"); menu.hidden = true;
-    const item = document.createElement("button");
-    item.type = "button"; item.setAttribute("role", "menuitem"); item.textContent = t("Share profile");
-    item.addEventListener("click", () => { closeMenu(); share.click(); });
-    menu.appendChild(item);
-    more.addEventListener("click", event => {
-      event.stopPropagation();
-      const open = menu.hidden;
-      menu.hidden = !open; more.setAttribute("aria-expanded", String(open));
-      if (open) item.focus();
+    kit(more, "ellipsis", t("More"), "quiet");
+    more.setAttribute("aria-haspopup", "dialog");
+    more.addEventListener("click", () => {
+      const list = document.createElement("div");
+      const item = document.createElement("button");
+      item.type = "button"; item.className = "ds-choice profile-more-share";
+      const words = document.createElement("span"); words.className = "ds-choice__text"; words.textContent = t("Share profile");
+      item.append(window.danzstakIcon ? window.danzstakIcon("share") : "", words);
+      list.append(item);
+      const sheet = window.danzstakSheet?.open({ title: profile.name || t("More"), content: list, opener: more, className: "ds--day" });
+      item.addEventListener("click", () => { sheet?.close(); setTimeout(() => share.click(), 0); });
     });
-    menu.addEventListener("keydown", event => { if (event.key === "Escape") { closeMenu(); more.focus(); } });
-    document.addEventListener("click", event => { if (menu && !menu.hidden && !menu.contains(event.target)) closeMenu(); });
-    const wrap = document.createElement("span");
-    wrap.className = "profile-more-wrap";
-    wrap.append(more, menu);
-    actions.appendChild(wrap);
-    window.danzstakIcons?.enhance?.(wrap);
+    actions.appendChild(more);
   }
 
   // Defer scripts run after parsing but before DOMContentLoaded, so start there: the action row exists by then.

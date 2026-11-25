@@ -37,7 +37,7 @@ const FRIENDS = ["#ff5a1f", "#3366ff", "#22aa66", "#aa22aa", "#999999"].map((col
         const row = document.querySelector(".profile-actions"), pile = row.querySelector(".profile-facepile");
         const box = el => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
         const buttons = [...row.children].filter(el => el !== pile && !el.hidden && el.getBoundingClientRect().width > 0).map(box);
-        const faces = [...pile.querySelectorAll(".profile-facepile-face")].map(box), p = box(pile);
+        const faces = [...pile.querySelectorAll(".ds-facepile__face")].map(box), p = box(pile);
         const hit = document.elementFromPoint(p.l + p.w / 2, p.t + p.h / 2);
         return { buttons, faces, pile: p, label: pile.getAttribute("aria-label"), vw: innerWidth, hit: Boolean(hit?.closest(".profile-facepile")) };
       });

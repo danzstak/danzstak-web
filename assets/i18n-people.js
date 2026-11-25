@@ -4,6 +4,7 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Respond in Friends": "Rispondi in Amici",
 "Following": "Seguiti",
 "Things in common": "Cose in comune",
 "Invite": "Invita",
@@ -262,6 +263,7 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"Respond in Friends": "Répondre dans Amis",
 "Following": "Abonnements",
 "Things in common": "Points communs",
 "Invite": "Inviter",
@@ -520,6 +522,7 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"Respond in Friends": "Responder en Amigos",
 "Following": "Siguiendo",
 "Things in common": "Cosas en común",
 "Invite": "Invitar",

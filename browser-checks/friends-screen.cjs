@@ -59,7 +59,7 @@ async function tapCentre(page, locator) {
       const row = page.locator(".profile-actions .profile-facepile:not([hidden])");
       await row.waitFor();
       assert.equal(await row.getAttribute("aria-label"), "3 mutual friends");
-      assert.equal(await page.locator(".profile-facepile-face").count(), 4, "up to 4 small friend photos, an initial when a photo is missing");
+      assert.equal(await page.locator(".profile-facepile .ds-facepile__face").count(), 4, "up to 4 small friend photos, an initial when a photo is missing");
       assert.equal(await page.locator('.profile-actions [data-icon="users"]').count(), 0, "no separate people button in the action row");
       assert.ok((await row.boundingBox()).height >= 44);
       await page.screenshot({ path: path.join(output, `profile-visitor-${width}.png`) });

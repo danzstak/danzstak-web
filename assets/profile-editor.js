@@ -220,19 +220,21 @@ detail("Work", "profileWork", locationWork, "briefcase");
 detail("Website", "profileWebsite", details, "globe");
 details.classList.add("ds", "ds--day", "ds-facts");
 
+// UIKIT 4b part 2 (spec 39, F9): the action row is kit icon buttons. One primary action in green (Edit on your own
+// profile, Add friend on someone else's), the rest quiet round buttons; icons from the kit sprite, words as the
+// accessible name (owner 2026-11-16: icons instead of words). The row stays Day until the whole profile moves.
 const actions = document.createElement("div");
-actions.className = "profile-actions";
+actions.className = "profile-actions ds ds--day ds-actions";
+const kitButton = (control, icon, label, kind) => window.danzstakIconButton ? window.danzstakIconButton(control, icon, profileTranslate(label), kind) : (control.textContent = profileTranslate(label), control);
 const editButton = document.createElement("button");
 editButton.type = "button";
-editButton.className = "button";
-editButton.textContent = profileEditorWords.edit;
-editButton.dataset.icon = "edit"; editButton.setAttribute("aria-label", profileEditorWords.edit);
+editButton.dataset.icon = "edit";
+kitButton(editButton, "pencil", profileEditorWords.edit, "go");
 actions.appendChild(editButton);
 const shopManagementLink = document.createElement("a");
-shopManagementLink.className = "button";
 shopManagementLink.href = "store.html?manage=1";
-shopManagementLink.textContent = "Open my shop";
-shopManagementLink.setAttribute("role", "button"); shopManagementLink.dataset.icon = "store"; shopManagementLink.setAttribute("aria-label", "Open my shop");
+shopManagementLink.dataset.icon = "store";
+kitButton(shopManagementLink, "store", "Open my shop", "quiet");
 shopManagementLink.hidden = viewingOtherProfile;
 actions.appendChild(shopManagementLink);
 // Owner 2026-11-19 (screenshot next to Facebook's profile): "Friends should be a 50% stacked to the right of the 3
@@ -245,7 +247,7 @@ const friendsScreenUrl = () => {
   return viewingOtherProfile && !profile.isOwner && MEMBER_ID.test(profile.memberId || "") ? `friends.html?member=${encodeURIComponent(profile.memberId)}` : "friends.html";
 };
 const facepile = document.createElement("button");
-facepile.type = "button"; facepile.className = "profile-facepile"; facepile.hidden = true; facepile.dataset.iconLayout = "label";
+facepile.type = "button"; facepile.className = "profile-facepile ds-facepile"; facepile.hidden = true;
 facepile.addEventListener("click", () => location.assign(friendsScreenUrl()));
 actions.appendChild(facepile);
 // The profile's Friends tab opens the same screen on a real tap or Enter (trusted click); arrow keys move through the
@@ -271,7 +273,7 @@ async function loadFacepile(shown) {
     const friends = (data.friends || []).filter(Boolean);
     if (!friends.length) { facepile.hidden = true; return; }
     facepile.replaceChildren(...friends.slice(0, 4).map(friend => {
-      const face = document.createElement("span"); face.className = "profile-facepile-face";
+      const face = document.createElement("span"); face.className = "ds-facepile__face";
       if (friend.picture) { const image = document.createElement("img"); image.src = friend.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; face.append(image); }
       else face.textContent = String(friend.name || "").trim().charAt(0).toUpperCase() || "•"; // never from an email (privacy)
       return face;
@@ -1478,7 +1480,7 @@ async function configureProfileShop(profile = {}) {
         shopManagementLink.dataset.visitorShop = "true";
         shopManagementLink.addEventListener("click", event => { event.preventDefault(); (moreTab || tabs.querySelector('[data-profile-tab="More"]'))?.click(); tabs.scrollIntoView({ behavior: "smooth", block: "start" }); });
       }
-      const row = shopManagementLink.parentElement, moreWrap = row?.querySelector(".profile-more-wrap");
+      const row = shopManagementLink.parentElement, moreWrap = row?.querySelector(".profile-more");
       if (row && moreWrap) row.insertBefore(shopManagementLink, moreWrap);
     }
     renderProfileShopPreview(profileShop, profile, moreTab);

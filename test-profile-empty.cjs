@@ -17,7 +17,7 @@ console.log("Profile empty-state checks passed.");
   // Owner 2026-11-18: "navigating the site as SFScoop I can edit the Eroticon profile". Owner-only controls never show
   // or open on someone else's profile (the server already only ever saves the signed-in member's own profile).
   const polish = fs.readFileSync("assets/profile-polish.css", "utf8");
-  assert.match(polish, /\.profile-actions \.profile-add-bio--icon\[hidden\],\.profile-add-bio\[hidden\]\{display:none!important\}/);
+  assert.doesNotMatch(polish, /\.profile-actions/, "UIKIT 4b part 2: no old rule can show a hidden owner control (kit row, [hidden] stays hidden)");
   const template = fs.readFileSync("infrastructure/call-signaling/template.yaml", "utf8");
   assert.match(template, /async function updateProfileUnique\(event,user\)[\s\S]*?Key:\{userEmail:\{S:user\.email\}\}/, "profile saves are always the caller's own record");
   console.log("Owner-only profile editing checks passed.");

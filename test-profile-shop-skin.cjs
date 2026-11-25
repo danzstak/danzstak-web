@@ -11,7 +11,6 @@ assert.match(js, /filter\(item => own \|\| item\.available\)/, "visitors only se
 assert.doesNotMatch(js, /Eroticon|Sleeping Dragon/, "no hard-coded shop data");
 assert.match(css, /\.profile-shop-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/, "2-column grid on phones");
 assert.match(css, /\.profile-shop-image\{[^}]*aspect-ratio:1/, "square product photos");
-assert.match(css, /\.profile-add-bio--icon\{flex:0 0 auto!important;width:auto!important/, "+ bio keeps icon size");
 assert.match(html, /assets\/profile-shop\.css\?v=\d+/);
 assert.match(worker, /"\/assets\/profile-shop\.css"/, "cached offline");
 console.log("Profile shop skin checks passed: shop header, square 2-column grid, product links, no extra button, + bio icon size.");

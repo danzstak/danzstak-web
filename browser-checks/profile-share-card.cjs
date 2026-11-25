@@ -191,7 +191,10 @@ const linkValue = page => page.$eval(".profile-share-dialog input[type=url]", in
         await page.waitForFunction(() => { const more = document.querySelector(".profile-actions .profile-more"); return more && more.getBoundingClientRect().width > 0 && window.danzstakCurrentProfile?.memberId; }, null, { timeout: 20000, polling: 200 });
         const more = await centre(page, ".profile-actions .profile-more");
         await page.touchscreen.tap(more.x, more.y);
-        const item = await centre(page, '.profile-more-menu [role="menuitem"]');
+        // UIKIT 4b part 2: ⋯ opens a kit sheet; wait for it to finish sliding up before the centre tap.
+        await page.locator(".ds-sheet.is-open .profile-more-share").waitFor({ timeout: 5000 });
+        await page.waitForTimeout(400);
+        const item = await centre(page, ".ds-sheet.is-open .profile-more-share");
         await page.touchscreen.tap(item.x, item.y);
         await page.waitForFunction(() => document.querySelector(".profile-share-dialog")?.open, null, { timeout: 5000 });
         await page.waitForTimeout(500);
