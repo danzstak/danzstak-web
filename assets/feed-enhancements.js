@@ -3230,8 +3230,9 @@ function addPostDeleteButton(post) {
     const preferences = readPostPreferences()[String(post.dataset.postId || "")] || {};
     const owner = post.dataset.isOwner === "true";
     const audienceBadge = post.querySelector(".post-audience");
-    const audienceText = audienceBadge?.textContent || "Public";
-    post.dataset.privacySetting = String(/(?:Just|Only) me/i.test(audienceText) ? 0 : /Friends/i.test(audienceText) ? 1 : 2);
+    // The badge's text is in the member's language, so read the audience from its data attribute (LANG sweep).
+    const audienceKey = audienceBadge?.dataset.audience || post.dataset.audience || "public";
+    post.dataset.privacySetting = String(audienceKey === "private" ? 0 : audienceKey === "friends" ? 1 : 2);
   post.dataset.pinned = String(preferences.pinned === true);
   post.dataset.saved = String(preferences.saved === true);
   paintPostSaveButton(post);
@@ -3430,8 +3431,12 @@ function addPostDeleteButton(post) {
       updateLoadedPost(postId, { audience: audiences[next] });
       button.querySelector("small").textContent = values[next];
       if (audienceBadge) {
-        audienceBadge.textContent = ["🔒 "+(window.danzstakTranslate?.("Just me")||"Just me"), "👥 "+(window.danzstakTranslate?.("Friends")||"Friends"), "🌎 "+(window.danzstakTranslate?.("Public")||"Public")][next];
-        audienceBadge.setAttribute("aria-label", "Post audience: " + values[next]);
+        const word = ["Just me", "Friends", "Public"][next], text = document.createElement("span");
+        text.dataset.i18n = word;
+        text.textContent = window.danzstakTranslate?.(word) || word;
+        audienceBadge.dataset.audience = audiences[next];
+        audienceBadge.replaceChildren(["🔒", "👥", "🌎"][next] + " ", text);
+        audienceBadge.setAttribute("aria-label", "Post audience: " + word);
       }
       button.disabled = false;
       showAppFeedback(`Post privacy changed to ${values[next]}.`);
