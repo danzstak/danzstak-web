@@ -299,6 +299,7 @@ function addProfileImageButton(label, target, field) {
   input.type = "file";
   input.accept = "image/jpeg,image/png,image/webp";
   input.hidden = true;
+  input.dataset.trimScreenshots = ""; // spec 46
   button.addEventListener("click", async () => {
     if (await window.danzstakConfirm("Confirm that you created this image and it contains no third-party copyrighted material.", { title: "Use this image?", confirmLabel: "Choose image" })) input.click();
   });
@@ -986,6 +987,7 @@ function profileWallComposer(profile) {
   if (!profile.isOwner) { audience.value = "public"; audience.hidden = true; }
   const mediaInput = document.createElement("input");
   mediaInput.type = "file";
+  mediaInput.dataset.trimScreenshots = ""; // spec 46 (videos pass through untouched)
   mediaInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime";
   mediaInput.multiple = true; // owner 2026-11-22: several photos at once, up to 20 in one post (post-photos.js)
   mediaInput.hidden = true;
@@ -1336,7 +1338,7 @@ function renderProfileShowcase(shop, profile = {}) {
   const box = document.createElement("div");
   box.className = "profile-shop-preview profile-showcase";
   const picker = document.createElement("input");
-  picker.type = "file"; picker.accept = "image/jpeg,image/png,image/webp,image/gif"; picker.hidden = true;
+  picker.type = "file"; picker.accept = "image/jpeg,image/png,image/webp,image/gif"; picker.hidden = true; picker.dataset.trimScreenshots = "";
   picker.setAttribute("aria-label", profileTranslate("Choose a photo for this space"));
   const save = async changes => {
     box.setAttribute("aria-busy", "true");

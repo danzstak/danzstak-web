@@ -134,6 +134,7 @@ jobs:
             '.\browser-checks\mix-portrait-preview.cjs'
             '.\browser-checks\original-feed-art-direction.cjs'
             '.\browser-checks\post-photos.cjs'
+            '.\browser-checks\screenshot-trim.cjs'
             '.\browser-checks\share-target.cjs'
             '.\browser-checks\post-menu-fit.cjs'
             '.\browser-checks\photo-frame.cjs'
