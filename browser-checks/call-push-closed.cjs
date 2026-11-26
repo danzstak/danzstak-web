@@ -78,6 +78,15 @@ function serverPushCopy() {
     const cdp = await context.newCDPSession(blank);
     const registrations = [];
     cdp.on("ServiceWorker.workerRegistrationUpdated", event => registrations.push(...event.registrations));
+    // CI-FLAKE part 3 (2026-11-26, docs-only PR #781): the worker was running but no call notification showed in 30 s.
+    // These lines go into the failure so the next one says whether the browser started the worker for the push, stopped
+    // it, or the worker threw.
+    const workerLog = [];
+    const stamp = () => `+${((Date.now() - checkStart) / 1000).toFixed(1)}s`;
+    const checkStart = Date.now();
+    cdp.on("ServiceWorker.workerVersionUpdated", event => event.versions.forEach(v => workerLog.push(`${stamp()} version ${v.versionId} ${v.status}/${v.runningStatus}`)));
+    cdp.on("ServiceWorker.workerErrorReported", event => workerLog.push(`${stamp()} worker error: ${event.errorMessage?.errorMessage} (${event.errorMessage?.sourceURL}:${event.errorMessage?.lineNumber})`));
+    context.on("serviceworker", candidate => candidate.on("console", message => { if (/error|warn/.test(message.type())) workerLog.push(`${stamp()} worker ${message.type()}: ${message.text()}`); }));
     await cdp.send("ServiceWorker.enable");
     await app.close();
     assert.deepEqual(context.pages().map(page => page.url()), ["about:blank"], "no DanzStak page is open");
@@ -110,10 +119,11 @@ function serverPushCopy() {
           if (last.length === want) return last;
         } catch { /* that worker stopped; the next one comes with its own event */ }
       }
-      assert.fail(`${label} (worker ${worker ? "running" : "not running"}): ${JSON.stringify(last)}`);
+      assert.fail(`${label} (worker ${worker ? "running" : "not running"}): ${JSON.stringify(last)}\nService worker events:\n  ${workerLog.slice(-25).join("\n  ") || "(none)"}`);
     };
 
     // 3. A call comes in while the app is closed: the push wakes the worker and the call shows with Accept and Decline.
+    workerLog.push(`${stamp()} call push delivered`);
     await cdp.send("ServiceWorker.deliverPushMessage", { origin, registrationId: registration.registrationId, data: JSON.stringify(callPush) });
     const [call] = await waitForCount(1, "the call notification shows with every page closed");
     assert.equal(call.title, copy.title, "the server's own title, in the member's language");
