@@ -56,6 +56,7 @@ import { createMarketplace } from "./marketplace.mjs";
 import { createTicketing } from "./ticketing.mjs";
 import { createPayouts } from "./payouts.mjs";
 import { createTicketOrders } from "./ticket-orders.mjs";
+import { memberLanguage, signInAlertEmail, ticketEmailWords, ticketWhen, cognitoLanguage } from "./member-emails.mjs";
 import { createPersonalPhoneService } from "./personal-phone-service.mjs";
 import { createTwilioVerifyClient, twilioCredentialsFromEnv, twilioCredentialsFromSecret, verifyLocale } from "./personal-phone-twilio.mjs";
 import { createPersonalPhoneDynamoAdapter } from "./personal-phone-dynamodb.mjs";
@@ -451,16 +452,23 @@ async function marketplaceWebhookSecret() {
   return marketplaceWebhookPromise;
 }
 const mimeSafe = value => String(value || "").replace(/[\r\n]/g, " ").trim();
-async function sendTicketEmail({ to, event, tier, named, orderId, tickets }) {
-  const when = new Intl.DateTimeFormat("en-US", { dateStyle: "full", timeStyle: "short", timeZone: event.timezone }).format(new Date(event.startsAt));
+// LANG 4d: the member's own language (saved setting, else the language they bought in), never English by default.
+async function savedLanguage(accountEmail) {
+  if (!accountEmail) return "";
+  try { return (await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: accountEmail } }, ConsistentRead: true, ProjectionExpression: "#language", ExpressionAttributeNames: { "#language": "language" } }))).Item?.language?.S || ""; }
+  catch (error) { console.error("Saved language unavailable", { errorName: error?.name || "Error" }); return ""; }
+}
+async function sendTicketEmail({ to, event, tier, named, orderId, tickets, language = "" }) {
+  const words = ticketEmailWords(memberLanguage({ saved: await savedLanguage(to), acceptLanguage: language })), t = words.fill;
+  const when = ticketWhen(event.startsAt, event.timezone, words.language), tierName = words.tier(tier);
   const boundary = "ds-" + randomUUID(), related = "dsr-" + randomUUID();
-  const lines = tickets.map((t, i) => `Ticket ${i + 1}: ${t.code}${t.name ? `  —  ${t.name}` : ""}`).join("\n");
-  const rule = named ? "Named ticket: non-transferable. Bring photo ID that matches the name." : "This ticket is transferable.";
-  const text = `Your tickets for ${event.title}\n${when}\n${event.venue}\n${tier}\n\n${lines}\n\n${rule}\nShow the QR code or tell the door your ticket code.\nOrder ${orderId}\n\nSold through DanzStak. The promoter runs the event.`;
+  const lines = tickets.map((ticket, i) => `${t("ticket", { n: i + 1 })}: ${ticket.code}${ticket.name ? `  —  ${ticket.name}` : ""}`).join("\n");
+  const rule = named ? t("named") : t("transferable");
+  const text = `${t("heading", { title: event.title })}\n${when}\n${event.venue}\n${tierName}\n\n${lines}\n\n${rule}\n${t("door")}\n${t("order", { id: orderId })}\n\n${t("sold")}`;
   const esc = v => String(v || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const html = `<div style="font-family:Arial,sans-serif;color:#121418;max-width:560px"><p style="font:700 12px monospace;letter-spacing:.08em;color:#d9480f;text-transform:uppercase">DanzStak ticket</p><h1 style="margin:0 0 4px">${esc(event.title)}</h1><p style="margin:0">${esc(when)}<br>${esc(event.venue)}<br>${esc(tier)}</p>${tickets.map((t, i) => `<div style="border-top:1px dashed #999;margin-top:16px;padding-top:12px"><img src="cid:qr${i}" width="200" height="200" alt="QR code for ticket ${esc(t.code)}"><p style="font:700 22px monospace;margin:6px 0">${esc(t.code)}</p>${t.name ? `<p style="margin:0">${esc(t.name)}</p>` : ""}</div>`).join("")}<p style="margin-top:16px">${esc(rule)}<br>Show the QR code or tell the door your ticket code.</p><p style="color:#626b78;font-size:12px">Order ${esc(orderId)}. Sold through DanzStak; the promoter runs the event.</p></div>`;
-  const parts = [`From: "DanzStak Tickets" <tickets@danzstak.com>`, `To: ${mimeSafe(to)}`, `Subject: =?UTF-8?B?${Buffer.from(`Your tickets: ${mimeSafe(event.title)}`).toString("base64")}?=`, "MIME-Version: 1.0", `Content-Type: multipart/alternative; boundary="${boundary}"`, "", `--${boundary}`, "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", Buffer.from(text).toString("base64"), `--${boundary}`, `Content-Type: multipart/related; boundary="${related}"`, "", `--${related}`, "Content-Type: text/html; charset=UTF-8", "Content-Transfer-Encoding: base64", "", Buffer.from(html).toString("base64")];
-  tickets.forEach((t, i) => parts.push(`--${related}`, "Content-Type: image/png", "Content-Transfer-Encoding: base64", `Content-ID: <qr${i}>`, `Content-Disposition: inline; filename="ticket-${t.code}.png"`, "", t.qrPng.toString("base64")));
+  const html = `<div lang="${words.language}" style="font-family:Arial,sans-serif;color:#121418;max-width:560px"><p style="font:700 12px monospace;letter-spacing:.08em;color:#d9480f;text-transform:uppercase">${esc(t("label"))}</p><h1 style="margin:0 0 4px">${esc(event.title)}</h1><p style="margin:0">${esc(when)}<br>${esc(event.venue)}<br>${esc(tierName)}</p>${tickets.map((ticket, i) => `<div style="border-top:1px dashed #999;margin-top:16px;padding-top:12px"><img src="cid:qr${i}" width="200" height="200" alt="${esc(t("qr", { code: ticket.code }))}"><p style="font:700 22px monospace;margin:6px 0">${esc(ticket.code)}</p>${ticket.name ? `<p style="margin:0">${esc(ticket.name)}</p>` : ""}</div>`).join("")}<p style="margin-top:16px">${esc(rule)}<br>${esc(t("door"))}</p><p style="color:#626b78;font-size:12px">${esc(t("order", { id: orderId }))} · ${esc(t("sold"))}</p></div>`;
+  const parts = [`From: "DanzStak Tickets" <tickets@danzstak.com>`, `To: ${mimeSafe(to)}`, `Subject: =?UTF-8?B?${Buffer.from(t("subject", { title: mimeSafe(event.title) })).toString("base64")}?=`, `Content-Language: ${words.language}`, "MIME-Version: 1.0", `Content-Type: multipart/alternative; boundary="${boundary}"`, "", `--${boundary}`, "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", Buffer.from(text).toString("base64"), `--${boundary}`, `Content-Type: multipart/related; boundary="${related}"`, "", `--${related}`, "Content-Type: text/html; charset=UTF-8", "Content-Transfer-Encoding: base64", "", Buffer.from(html).toString("base64")];
+  tickets.forEach((ticket, i) => parts.push(`--${related}`, "Content-Type: image/png", "Content-Transfer-Encoding: base64", `Content-ID: <qr${i}>`, `Content-Disposition: inline; filename="ticket-${ticket.code}.png"`, "", ticket.qrPng.toString("base64")));
   parts.push(`--${related}--`, `--${boundary}--`, "");
   await ses.send(new SendEmailCommand({ ConfigurationSetName: "DanzStakTourManager", Content: { Raw: { Data: Buffer.from(parts.join("\r\n")) } } }));
 }
@@ -701,6 +709,8 @@ function getSessionId(event) {
     : null;
 }
 
+const requestLanguage = event => String(event?.headers?.["accept-language"] || event?.headers?.["Accept-Language"] || "").slice(0, 200);
+
 function sessionDeviceLabel(event) {
   const value = String(event?.headers?.["user-agent"] || event?.headers?.["User-Agent"] || "");
   const browser = /Edg\//.test(value) ? "Edge" : /Firefox\//.test(value) ? "Firefox" : /CriOS\//.test(value) ? "Chrome" : /Chrome\//.test(value) ? "Chrome" : /Safari\//.test(value) ? "Safari" : "Browser";
@@ -853,7 +863,7 @@ function safeReturnPath(value) {
   return /^\/messages\.html\?invite=[A-Za-z0-9_-]{43}$/.test(path) ? path : "";
 }
 
-async function startLogin(mode = "login", legalAcceptanceId = "", returnPath = "") {
+async function startLogin(mode = "login", legalAcceptanceId = "", returnPath = "", acceptLanguage = "") {
   const state = randomValue();
   const verifier = randomValue();
   const nonce = randomValue();
@@ -904,6 +914,9 @@ async function startLogin(mode = "login", legalAcceptanceId = "", returnPath = "
   // login. Members must always receive a fresh credential prompt so they can
   // correct an address, switch accounts, or recover from a failed attempt.
   if (mode === "login" || mode === "reauth") url.searchParams.set("prompt", "login");
+  // LANG 4d: Cognito's sign-in, sign-up and reset pages in the browser's language (managed login's own `lang`).
+  const pageLanguage = cognitoLanguage(acceptLanguage);
+  if (pageLanguage) url.searchParams.set("lang", pageLanguage);
 
   const browserCookie = secureCookie(
     oauthCookieName,
@@ -948,7 +961,7 @@ async function startSignup(event) {
   if (acceptance?.type?.S !== "legal_pending" || acceptance.legalVersion?.S !== legalVersion || Number(acceptance.expiresAt?.N || 0) <= now()) {
     return redirect(siteUrl + "/?legal=required", [clearCookie(legalCookieName)]);
   }
-  return startLogin("signup", acceptanceId, event.queryStringParameters?.next);
+  return startLogin("signup", acceptanceId, event.queryStringParameters?.next, requestLanguage(event));
 }
 
 // COMPLETE SECURE LOGIN
@@ -1173,12 +1186,13 @@ async function completeLogin(event) {
   if (hasExistingDevice) {
     try {
       const accountEmail = await accountForSub(user.sub);
-      if (accountEmail) await ses.send(new SendEmailCommand({
+      const alert = accountEmail ? signInAlertEmail(memberLanguage({ saved: await savedLanguage(accountEmail), acceptLanguage: requestLanguage(event) }), deviceLabel) : null;
+      if (alert) await ses.send(new SendEmailCommand({
         FromEmailAddress: "DanzStak Support <support@danzstak.com>",
         Destination: { ToAddresses: [accountEmail] },
         Content: { Simple: {
-          Subject: { Data: "New DanzStak sign-in", Charset: "UTF-8" },
-          Body: { Text: { Data: `A new sign-in to your DanzStak account was completed using ${deviceLabel}.\n\nReview signed-in devices in DanzStak Settings. If this was not you, sign out that device and change your password.\n\nDanzStak never asks for your password or verification code by email.`, Charset: "UTF-8" } }
+          Subject: { Data: alert.subject, Charset: "UTF-8" },
+          Body: { Text: { Data: alert.text, Charset: "UTF-8" } }
         } }
       }));
     } catch (error) {
@@ -6172,7 +6186,7 @@ async function routeRequest(event) {
     }
 
     if (method === "GET" && path === "/auth/login") {
-      return await startLogin("login", "", event.queryStringParameters?.next);
+      return await startLogin("login", "", event.queryStringParameters?.next, requestLanguage(event));
     }
 
     if (method === "GET" && path === "/auth/signup") {
@@ -6180,7 +6194,7 @@ async function routeRequest(event) {
     }
 
     if (method === "GET" && path === "/auth/reset-password") {
-      return await startLogin("reset");
+      return await startLogin("reset", "", "", requestLanguage(event));
     }
 
     if (method === "POST" && path === "/auth/legal-acceptance") {
@@ -6198,7 +6212,7 @@ async function routeRequest(event) {
     if (method === "GET" && path === "/auth/reauth") {
       const authenticated = await getAuthenticatedSession(event, { touch: false });
       if (!authenticated) return redirect(siteUrl + "/?signin=required");
-      return await startLogin("reauth");
+      return await startLogin("reauth", "", "", requestLanguage(event));
     }
 
     if (method === "GET" && path === "/auth/sessions") {
