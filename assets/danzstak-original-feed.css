@@ -97,30 +97,9 @@ body.danzstak-original .menu a.active {
 body.danzstak-original .menu :is(a,.menu-action):hover {
   background:var(--ds-brand-soft);
 }
-body.danzstak-original .post-header {
-  padding-bottom:8px;
-  border-bottom:1px solid var(--ds-border);
-}
-body.danzstak-original .post-avatar,
 body.danzstak-original .composer-avatar {
   border:2px solid #fff;
   box-shadow:0 0 0 1px var(--ds-border-strong);
-}
-body.danzstak-original .post .post-author-details strong {
-  color:var(--ds-ink);
-  letter-spacing:-.01em;
-}
-body.danzstak-original .post-author {
-  color:var(--ds-ink);
-  font-size:15px;
-  font-weight:600;
-  line-height:20px;
-}
-body.danzstak-original .post :is(.post-time,.post-audience) {
-  color:#65676b;
-  font-size:13px;
-  font-weight:400;
-  line-height:16px;
 }
 body.danzstak-original .post-content {
   margin:12px 0;

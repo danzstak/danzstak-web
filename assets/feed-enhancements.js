@@ -3366,7 +3366,7 @@ function addPostDeleteButton(post) {
         updateLoadedPost(postId, { content: updated, location: updatedLocation, editHistory: history });
         post.dataset.location = updatedLocation;
         let place = post.querySelector(".post-location");
-        if (updatedLocation) { if (!place) { place = document.createElement("span"); place.className = "post-location"; post.querySelector(".post-header")?.appendChild(place); } place.textContent = "Location: " + updatedLocation; }
+        if (updatedLocation) { const fresh = window.danzstakPostPlace?.(updatedLocation); if (fresh) { if (place) place.replaceWith(fresh); else post.querySelector(".post-author-details")?.appendChild(fresh); } }
         else place?.remove();
         post.dataset.edited = "true";
         editor.hidden = true;

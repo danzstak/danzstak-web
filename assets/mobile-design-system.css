@@ -195,10 +195,7 @@ body:not(.public-mode) :where(.panel,.card){
   #feed>.post{margin:0!important}
   .panel,.post,.content-only .panel,.content-only .post{padding:10px!important;margin-bottom:8px;border-radius:10px}
   .post{--post-inline-padding:10px!important}
-  .post-header{grid-template-columns:36px minmax(0,1fr);gap:8px;padding-right:38px}
-  .post-avatar{width:36px;height:36px;font-size:14px}
   .post-menu-toggle{top:6px;right:6px;width:36px;min-width:36px;height:36px;min-height:36px}
-  .post-time{margin-top:1px;font-size:11px}
   .post-content{margin:8px 0;line-height:1.42}
   .post-view-count{margin:3px 0;font-size:11px}
   #postComposer .composer-title{gap:8px}
