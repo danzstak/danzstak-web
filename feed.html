@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#121418">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-84O0deHtdiy7i70rZWzSt0fYnFTq+HSCJYbI1nvaA9Q='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; script-src 'self' 'sha256-iln9k2xZ57XR3JxDeRvKLnFVj/V4QVTX43xQqT5mbnw='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com https://dk7kawr758jtd.cloudfront.net; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -186,28 +186,6 @@ textarea {
   gap: 10px;
 }
 
-.post-header {
-  font-weight: bold;
-  margin-bottom: 12px;
-}
-
-.post-author {
-  color: inherit;
-  text-decoration: none;
-}
-
-.post-author:hover,
-.post-author:focus-visible {
-  text-decoration: underline;
-}
-
-.post-time {
-  font-size: 12px;
-  color: var(--ds-muted,#667085);
-  font-weight: normal;
-  margin-top: 5px;
-}
-
 .post-content {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -338,7 +316,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 }
 </style>
 <link rel="stylesheet" href="assets/soft-ui.css?v=431">
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=535">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=536">
 <link rel="stylesheet" href="assets/events-page.css?v=3">
 <link rel="stylesheet" href="assets/image-position.css?v=1">
 <link rel="stylesheet" href="assets/facebook-import.css?v=342">
@@ -351,10 +329,10 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <link rel="stylesheet" href="assets/call-ringer.css?v=7">
 <link rel="stylesheet" href="assets/call-setup.css?v=2">
 <link rel="stylesheet" href="assets/responsive-media.css?v=10">
-<link rel="stylesheet" href="assets/mobile-design-system.css?v=24">
+<link rel="stylesheet" href="assets/mobile-design-system.css?v=25">
 <link rel="stylesheet" href="assets/ds-tokens.css?v=3">
-<link rel="stylesheet" href="assets/ds.css?v=10">
-<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=37">
+<link rel="stylesheet" href="assets/ds.css?v=11">
+<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=38">
 <link rel="stylesheet" href="assets/artist-hq.css?v=6">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=8" defer></script>
@@ -374,7 +352,7 @@ a.composer-avatar { text-decoration: none; } /* audit A9: the composer photo ope
 <link rel="stylesheet" href="assets/post-photos.css?v=3">
 <script src="assets/post-photos.js?v=3"></script>
 <link rel="stylesheet" href="assets/link-preview-cards.css?v=5">
-<link rel="stylesheet" href="assets/mix-polish.css?v=29">
+<link rel="stylesheet" href="assets/mix-polish.css?v=30">
 <link rel="stylesheet" href="assets/tribes-polish.css?v=4">
 <link rel="stylesheet" href="assets/tribes-home.css?v=2">
 <link rel="stylesheet" href="assets/tribe-create.css?v=2">
@@ -805,6 +783,26 @@ async function loadFriends() {
 }
 
 // CREATE THE VISUAL DISPLAY OF A POST
+// UIKIT: an outline icon from assets/icons.svg (ds-icon.js is deferred, so its markup is made here when it hasn't run).
+window.danzstakPostIcon = function (name) {
+  if (window.danzstakIcon) return window.danzstakIcon(name, { size: "xs" });
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "ds-icon ds-icon--xs"); svg.setAttribute("aria-hidden", "true"); svg.setAttribute("focusable", "false");
+  const use = document.createElementNS("http://www.w3.org/2000/svg", "use"); use.setAttribute("href", "assets/icons.svg#" + name);
+  svg.append(use);
+  return svg;
+};
+// The place a post was made from, under the author's line: a map pin and the place (no English "Location:" prefix).
+window.danzstakPostPlace = function (label) {
+  const place = document.createElement("span");
+  place.className = "post-location ds-post-head__line";
+  const name = document.createElement("span");
+  name.className = "post-location__name";
+  name.textContent = label;
+  place.append(window.danzstakPostIcon("map-pin"), name);
+  return place;
+};
+
 // Familiar feed timestamps: "now", "5m", "3h", "2d", then "Oct 25" (year only when different).
 function createPostElement(content, author = "DanzStak member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorMemberId = "", commentPolicy = "everyone", editHistory = [], locationLabel = "", authorPicture = "", groupId = "", groupName = "", moreMediaUrls = []) {
 
@@ -825,23 +823,27 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   const normalizedPostContent = String(content || "").trim();
   if (normalizedPostContent.length > 0 && normalizedPostContent.length <= 35) article.classList.add("is-short-text");
 
+  // UIKIT screen 5 part 1 (docs/tasks/39-modern-look.md "Post"): the post header is the kit's: 40px round photo, the
+  // name, then one small line "5h · (globe)" with the audience as an outline icon (its word stays for screen readers,
+  // in the member's language). The header block carries .ds so the kit's tokens apply while Mix hasn't moved as a whole.
   const header = document.createElement("div");
-  header.className = "post-header";
+  header.className = "post-header ds ds--day ds-post-head";
+  const postIcon = window.danzstakPostIcon;
   const validAuthorMember = /^[a-f0-9-]{36}$/.test(String(authorMemberId || ""));
   const authorProfileUrl = isOwner === true ? "profile.html" : validAuthorMember ? "profile.html?member=" + encodeURIComponent(authorMemberId) : "";
   const avatar = document.createElement(authorProfileUrl ? "a" : "span");
-  avatar.className = "post-avatar";
+  avatar.className = "post-avatar ds-post-head__avatar";
   if (authorProfileUrl) { avatar.href = authorProfileUrl; avatar.setAttribute("aria-label", "Open " + (author || "member") + " profile"); }
   if (authorPicture) { const image = document.createElement("img"); image.src = authorPicture; image.alt = ""; image.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(image, { memberId: authorMemberId, name: author, picture: authorPicture }); avatar.appendChild(image); }
   else { avatar.textContent = String(author || "D").charAt(0).toUpperCase(); if (!authorProfileUrl) avatar.setAttribute("aria-hidden", "true"); }
-  const authorDetails = document.createElement("div"); authorDetails.className = "post-author-details";
+  const authorDetails = document.createElement("div"); authorDetails.className = "post-author-details ds-post-head__text";
   const authorLabel = isOwner === true || validAuthorMember ? document.createElement("a") : document.createElement("span");
-  authorLabel.className = "post-author";
+  authorLabel.className = "post-author ds-post-head__name";
   authorLabel.textContent = author;
   if (authorLabel.tagName === "A") authorLabel.href = authorProfileUrl;
 
   const translateInterface = value => window.danzstakTranslate?.(value) || value;
-  const time = document.createElement("div");
+  const time = document.createElement("span");
   time.className = "post-time";
   if (!createdAt || !window.danzstakTimeLabel.paint(time, createdAt)) time.textContent = translateInterface("now"); // B4: one time label everywhere
   // LANG (owner 2026-11-25): the word sits in a data-i18n span, so i18n.js shows it in the member's language even
@@ -852,23 +854,27 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   audienceBadge.className = "post-audience";
   audienceBadge.dataset.audience = audienceKey;
   const audienceText = document.createElement("span");
+  audienceText.className = "ds-sr-only";
   audienceText.dataset.i18n = audienceWord;
   audienceText.textContent = translateInterface(audienceWord);
-  audienceBadge.append({ public: "🌎", friends: "👥", private: "🔒" }[audienceKey] + " ", audienceText);
-  audienceBadge.setAttribute("aria-label", "Post audience: " + audienceWord);
+  audienceBadge.append(postIcon({ public: "globe", friends: "users", private: "lock" }[audienceKey]), audienceText);
+  const meta = document.createElement("span");
+  meta.className = "post-meta-line ds-post-head__meta"; // post-views.js adds "· N views" to this line
+  meta.append(time, audienceBadge);
 
-  authorDetails.append(authorLabel, time, audienceBadge);
+  authorDetails.append(authorLabel, meta);
   if (groupId) {
     const tribe = document.createElement("button");
     tribe.type = "button";
-    tribe.className = "post-tribe-link";
-    tribe.textContent = "👥 " + (groupName || "Tribe");
+    tribe.className = "post-tribe-link ds-post-head__line";
+    const tribeName = document.createElement("span"); tribeName.textContent = groupName || "Tribe";
+    tribe.append(postIcon("users"), tribeName);
     tribe.setAttribute("aria-label", "Open Tribe " + (groupName || "Tribe"));
     tribe.addEventListener("click", () => { window.danzstakPendingTribeId = groupId; location.hash = "groups"; setTimeout(() => window.dispatchEvent(new CustomEvent("danzstak:open-tribe", { detail: { groupId } })), 0); });
     authorDetails.appendChild(tribe);
   }
   header.append(avatar, authorDetails);
-  if (locationLabel) { const place = document.createElement("span"); place.className = "post-location"; place.textContent = "Location: " + locationLabel; authorDetails.appendChild(place); }
+  if (locationLabel) authorDetails.appendChild(window.danzstakPostPlace(locationLabel));
 
   const body = document.createElement("p");
   body.className = "post-content";
@@ -1471,7 +1477,7 @@ async function loadPosts() {
       if (Date.parse(post.pinnedUntil || "") > Date.now()) {
         article.classList.add("is-pinned");
         const pin = document.createElement("span");
-        pin.className = "post-pinned";
+        pin.className = "post-pinned ds-post-head__pin";
         pin.textContent = feedTranslate("Pinned");
         article.querySelector(".post-author-details")?.appendChild(pin);
         const body = article.querySelector(".post-content");
@@ -1992,7 +1998,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/notifications.js?v=1" defer></script>
 <script src="assets/device-reminder.js?v=4" defer></script>
 <script src="assets/image-position.js?v=1" defer></script>
-<script src="assets/feed-enhancements.js?v=606" defer></script>
+<script src="assets/feed-enhancements.js?v=607" defer></script>
 <script src="assets/share-receive.js?v=5" defer></script>
 <script src="assets/profile-onboarding.js?v=12" defer></script>
 <script src="assets/session-activity.js?v=298" defer></script>

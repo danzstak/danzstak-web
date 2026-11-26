@@ -4,6 +4,7 @@
 /* Icons from assets/icons.svg (Lucide, ISC): outline by default, .ds-icon--filled for the active tab (39a). */
 .ds-icon{width:24px;height:24px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
 .ds-icon--sm{width:20px;height:20px}
+.ds-icon--xs{width:14px;height:14px}
 .ds-icon--bar{width:28px;height:28px}
 .ds-icon--filled{fill:currentColor}
 
@@ -317,3 +318,26 @@ body:has(>.ds.ds-page){margin:0;padding:0}
    profile card, not the kit canvas. */
 .ds.ds-profile-name{margin:0;background:transparent;font-size:var(--ds-text-28);font-weight:800;font-stretch:110%;line-height:1.15;letter-spacing:-.01em;color:var(--ds-ink);overflow-wrap:anywhere}
 .ds.ds-profile-bio{max-width:68ch;margin:0 0 var(--ds-space-8);background:transparent;font-size:var(--ds-text-15);line-height:22px;color:var(--ds-ink-soft);overflow-wrap:anywhere}
+
+/* UIKIT screen 5 part 1: the post header (Mix, Saved, Tribes: one post component). 40px round photo, the name, then
+   one small line "5h · (globe) · 12 views"; a Tribe, the place and the pinned label are lines under it. The header
+   block carries .ds (Day) while Mix hasn't moved as a whole; the ⋯ button sits at the post's top right (48px kept). */
+.ds.ds-post-head{display:grid;grid-template-columns:40px minmax(0,1fr);align-items:center;column-gap:var(--ds-space-12);row-gap:var(--ds-space-4);min-height:40px;margin:0 0 var(--ds-space-8);padding:0 48px 0 0;border:0;background:transparent;color:var(--ds-ink);font-family:var(--ds-font);font-weight:400}
+.ds.ds-post-head>:not(.ds-post-head__avatar):not(.ds-post-head__text){grid-column:1/-1}
+.ds .ds-post-head__avatar{display:grid;place-items:center;width:40px;height:40px;overflow:hidden;border:0;border-radius:50%;background:var(--ds-ink);color:var(--ds-accent);font-size:var(--ds-text-17);font-weight:800;text-decoration:none;box-shadow:none}
+.ds .ds-post-head__avatar>img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}
+.ds a.ds-post-head__avatar{position:relative;overflow:visible}
+.ds a.ds-post-head__avatar::after{content:"";position:absolute;inset:-2px;border-radius:50%} /* a 44px tap target */
+.ds .ds-post-head__text{display:block;min-width:0}
+.ds .ds-post-head__name{display:block;overflow:hidden;color:var(--ds-ink);font-size:var(--ds-text-15);font-weight:700;line-height:20px;letter-spacing:-.01em;text-decoration:none;text-overflow:ellipsis;white-space:nowrap}
+.ds a.ds-post-head__name:hover,.ds a.ds-post-head__name:focus-visible{text-decoration:underline}
+.ds .ds-post-head__meta{display:flex;flex-wrap:wrap;align-items:center;min-width:0;margin:0;color:var(--ds-muted);font-family:var(--ds-font-mono);font-size:var(--ds-text-12);font-weight:500;line-height:16px;letter-spacing:0;text-transform:none}
+.ds .ds-post-head__meta>*{display:inline-flex;align-items:center;margin:0;color:inherit;font:inherit;letter-spacing:inherit;white-space:nowrap}
+.ds .ds-post-head__meta>*+*::before{content:"·";margin:0 6px}
+.ds .ds-post-head__meta .ds-icon{stroke-width:2.25}
+.ds .ds-post-head__line{display:flex;align-items:center;gap:var(--ds-space-4);min-width:0;min-height:20px;margin:2px 0 0;padding:0;border:0;background:transparent;color:var(--ds-ink-soft);font:inherit;font-size:var(--ds-text-13);font-weight:600;line-height:18px;text-align:left;text-transform:none;box-shadow:none}
+.ds .ds-post-head__line>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ds .ds-post-head__line>.ds-icon{color:var(--ds-muted)}
+.ds button.ds-post-head__line{cursor:pointer}
+.ds button.ds-post-head__line:hover>span,.ds button.ds-post-head__line:focus-visible>span{text-decoration:underline}
+.ds .ds-post-head__pin{display:inline-block;justify-self:start;width:max-content;margin:2px 0 0;padding:1px 6px;border-radius:4px;background:var(--ds-accent-soft);color:#9a3412;font-family:var(--ds-font-mono);font-size:var(--ds-text-12);font-weight:600;line-height:16px;letter-spacing:.04em;text-transform:uppercase}

@@ -197,7 +197,7 @@ function englishIn(text, lang) {
       } catch (error) { found.push({ lang, screen: name, words: "(page did not open)", text: error.message.split("\n")[0], where: "", kind: "error" }); }
       await context.close();
     }
-    // The post's audience ("🌎 Public") is drawn by Mix's own script, which can run before i18n.js has loaded; it must
+    // The post's audience (an icon whose word "Public" is there for screen readers) is drawn by Mix's own script, which can run before i18n.js has loaded; it must
     // still end up in the member's language (it stayed "Public" about one load in four before this check).
     if (langs.includes("it") && only.includes("feed")) {
       const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block", locale: "it-IT" });
@@ -210,7 +210,7 @@ function englishIn(text, lang) {
       const audience = await page.locator(".post .post-audience").first().textContent({ timeout: 15000 }).catch(() => "");
       await page.waitForTimeout(1500);
       const after = await page.locator(".post .post-audience").first().textContent().catch(() => "");
-      if (after.trim() !== "🌎 Pubblico") found.push({ lang: "it", screen: "feed", words: "(slow i18n.js)", text: `audience reads "${after.trim()}" (first drawn as "${audience.trim()}")`, where: ".post-audience", kind: "text" });
+      if (after.trim() !== "Pubblico") found.push({ lang: "it", screen: "feed", words: "(slow i18n.js)", text: `audience reads "${after.trim()}" (first drawn as "${audience.trim()}")`, where: ".post-audience", kind: "text" });
       await context.close();
     }
     // Part 4: a reply from the server whose words have no translation (most of the API's 500 error lines) must still

@@ -17,21 +17,10 @@
   color:var(--mix-ink);
 }
 
-/* Header: 40px avatar, name over a small mono timestamp. */
-#feed > .post .post-header{min-height:0!important;margin:0 0 8px!important;padding:0!important;border:0!important;gap:10px;align-items:center}
-#feed > .post .post-avatar img{width:40px!important;height:40px!important;border-radius:50%;object-fit:cover}
-#feed > .post .post-author{font-weight:800;letter-spacing:-.01em;line-height:1.2}
-#feed > .post .post-time{
-  margin:0!important;
-  font:600 .72rem/1.3 ui-monospace,"JetBrains Mono",SFMono-Regular,Menlo,monospace;
-  letter-spacing:.04em;text-transform:uppercase;color:var(--mix-muted);
-}
-#feed > .post .post-audience{font-size:.72rem;color:var(--mix-muted)}
 #feed > .post .post-content{margin:0 0 8px!important;line-height:1.4}
 
 /* Media sits flush between text and actions. */
 #feed > .post > .danzstak-media-shell,#feed > .post > img.post-media,#feed > .post > .feed-media-gallery{margin-top:0!important;margin-bottom:0!important}
-#feed > .post .post-view-count{margin:6px 0 0!important;font-size:.72rem;color:var(--mix-muted);text-align:right}
 
 /* Action row: one tight line over a crisp rule. */
 #feed > .post .post-actions{margin:4px 0 0!important;padding:2px 0 0!important;border-top:1px solid var(--mix-rule);gap:0}
@@ -63,7 +52,6 @@
 .feed-more-marker{height:96px;margin:0 var(--mix-pad,12px) 12px;border-radius:12px;background:linear-gradient(90deg,#ececea 25%,#f6f6f4 50%,#ececea 75%) 0 0/200% 100%;animation:feed-skeleton 1.2s linear infinite}
 @keyframes feed-skeleton{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.feed-more-marker{animation:none}}
-.post-pinned{grid-column:1/-1;justify-self:start;margin-top:2px;padding:1px 6px;border-radius:4px;background:rgba(255,90,31,.12);color:#9a3412;font:600 11px/1.4 var(--ds-mono,"JetBrains Mono",ui-monospace,monospace);letter-spacing:.04em;text-transform:uppercase} /* F15b */
 .feed-caught-up{margin:0;padding:20px 16px 28px;color:var(--mix-muted,#667085);font:600 12px/1.4 var(--ds-mono,"JetBrains Mono",ui-monospace,monospace);letter-spacing:.06em;text-align:center;text-transform:uppercase}
 .roll-add-toggle.ds-icon-button{width:40px;min-width:40px;height:40px;padding:0;border-radius:50%;display:grid;place-items:center}
 
@@ -117,14 +105,8 @@ body:has(#feed){background:var(--mix-surface)!important}
    Vertical only: the side padding stays 12px on phones and 14px above 700px (rules above), matching each width's
    --post-inline-padding so photos and videos bleed exactly to the card edge (they stuck out 2px per side above 700px). */
 #feed > .post{padding-top:10px!important;padding-bottom:0!important}
-#feed > .post .post-header{margin:0 0 6px!important;gap:8px!important}
-#feed > .post .post-avatar img{width:36px!important;height:36px!important}
-#feed > .post .post-author-details{display:grid!important;grid-template-columns:auto 1fr;column-gap:6px;row-gap:0;align-items:baseline}
-#feed > .post .post-author{grid-column:1/-1;line-height:1.2}
-#feed > .post .post-time,#feed > .post .post-audience{line-height:1.25!important;margin:0!important}
 #feed > .post .post-content{margin:0 0 6px!important}
 #feed > .post .link-preview-card{margin-top:0!important}
-#feed > .post .post-view-count{margin:4px 0 0!important;line-height:1.2}
 #feed > .post .post-actions{margin:0!important;padding:0!important}
 #feed > .post .commentList:empty{margin:0!important}
 #feed > .post .comments[hidden]{display:none!important}
@@ -177,12 +159,11 @@ body:has(#feed){background:var(--mix-surface)!important}
 
 /* Fix-it 18 (owner 2026-11-17): no gradient placeholder avatars. A member without a photo shows their initial on the
    DanzStak colours (orange on near-black, as on profiles); a real photo always covers it. */
-.post-avatar,.feed-online-avatar,.friend-avatar,.comment-avatar,.comment-composer-avatar{background:#121418!important;color:#ff5a1f!important;font-weight:900}
-img.post-avatar,img.feed-online-avatar,img.friend-avatar,img.comment-avatar,img.comment-composer-avatar{background:#121418!important}
-/* Views ride in the post header line: "1D · Public · 42 views". */
-.post-view-count.is-inline{display:inline!important;margin:0!important;font-size:11.52px!important;font-weight:400!important;line-height:1.3!important;color:#626b78!important;text-align:left!important;white-space:nowrap}
-.post-view-count.is-inline::before{content:"·";margin:0 5px}
-.post-meta-line{display:inline-flex;align-items:center;flex-wrap:wrap;gap:0;min-width:0}
+.feed-online-avatar,.friend-avatar,.comment-avatar,.comment-composer-avatar{background:#121418!important;color:#ff5a1f!important;font-weight:900}
+img.feed-online-avatar,img.friend-avatar,img.comment-avatar,img.comment-composer-avatar{background:#121418!important}
+/* Views ride in the profile post line: "1D · Public · 42 views" (Mix: the kit post header, components.css). */
+.profile-post-meta .post-view-count.is-inline{display:inline!important;margin:0!important;font-size:11.52px!important;font-weight:400!important;line-height:1.3!important;color:#626b78!important;text-align:left!important;white-space:nowrap}
+.profile-post-meta .post-view-count.is-inline::before{content:"·";margin:0 5px}
 /* Owner 2026-11-18: an empty status line between the post box and Mix added a 15px gap above the first post; hide it so post 1 sits like post 2. */
 #feedStatus:empty,.feed-search-feedback:empty{display:none!important;margin:0!important}
 /* Owner 2026-11-18: The Roll runs from the far left edge to the far right edge, like post media. */

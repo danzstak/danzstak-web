@@ -23,8 +23,10 @@ assert.match(originalFeedCss, /#newsFeedView \.post-composer,[\s\S]*?#feedStatus
 assert.match(originalFeedCss, /#feed \{gap:16px!important\}[\s\S]*?#feed > \.post \{[\s\S]*?--post-inline-padding:12px!important;[\s\S]*?width:100vw;[\s\S]*?padding:12px!important;/, "standard and large phones must use a 16px post gap with 12px internal padding");
 assert.match(originalFeedCss, /@media\(max-width:375px\)\s*\{[\s\S]*?#feed \{gap:12px!important\}/, "compact phones must reduce the inter-post gap to 12px");
 assert.match(originalFeedCss, /#feed \.post > :is\(\.post-media,\.feed-media-gallery,\.danzstak-media-shell,\.post-media-recovery\)\s*\{[\s\S]*?width:100vw!important;[\s\S]*?margin-inline:-12px!important;/, "phone media must break through card padding to exactly 100vw");
-assert.match(originalFeedCss, /\.post-author\s*\{[\s\S]*?font-size:15px;[\s\S]*?font-weight:600;[\s\S]*?line-height:20px;/, "post names must use the familiar 15px semibold hierarchy");
-assert.match(originalFeedCss, /\.post :is\(\.post-time,\.post-audience\)[\s\S]*?font-size:13px;[\s\S]*?font-weight:400;[\s\S]*?line-height:16px;/, "post metadata must use the compact 13px hierarchy");
+// UIKIT screen 5 part 1: the post header type lives in the kit (name 15/20, the meta line 12/16 mono).
+const kitCss = fs.readFileSync("tools/ui-kit/components.css", "utf8");
+assert.match(kitCss, /\.ds \.ds-post-head__name\{[^}]*font-size:var\(--ds-text-15\);font-weight:700;line-height:20px/, "post names use the familiar 15px bold");
+assert.match(kitCss, /\.ds \.ds-post-head__meta\{[^}]*font-size:var\(--ds-text-12\);font-weight:500;line-height:16px/, "post metadata uses the compact 12px mono line");
 assert.match(originalFeedCss, /\.post-content\s*\{[\s\S]*?font-size:15px;[\s\S]*?line-height:21px;/, "post copy must use the readable 15px body hierarchy");
 assert.match(originalFeedCss, /\.post\.is-short-text \.post-content\s*\{[\s\S]*?font-size:17px;[\s\S]*?line-height:22px;/, "short text posts must receive the familiar modest size boost");
 assert.match(originalFeedCss, /\.post-content\.is-collapsed\s*\{[\s\S]*?-webkit-line-clamp:7;/, "long post previews must clamp to seven lines");
@@ -39,9 +41,9 @@ assert.match(source, /function setReelFormOpen\(open\)/, "The Roll must expose o
 assert.match(source, /reelsRail\.classList\.toggle\("has-reels", reels\.length > 0\)/, "empty and populated Roll layouts must have explicit state");
 assert.match(css, /\.reels-rail:not\(\.has-reels\):not\(\.is-adding\)[^{]*\{padding:10px 12px!important\}/, "the empty Roll must remain compact");
 assert.match(css, /\.reel-import-form\[hidden\],\.roll-close\[hidden\],\.roll-open\[hidden\]\{display:none!important\}/, "hidden Roll controls must not be revived by shared icon styles");
-assert.match(html, /assets\/feed-enhancements\.css\?v=535/);
-assert.match(html, /assets\/feed-enhancements\.js\?v=606/);
-assert.match(html, /assets\/danzstak-original-feed\.css\?v=37/);
-assert.match(worker, /danzstak-shell-v1103/);
+assert.match(html, /assets\/feed-enhancements\.css\?v=536/);
+assert.match(html, /assets\/feed-enhancements\.js\?v=607/);
+assert.match(html, /assets\/danzstak-original-feed\.css\?v=38/);
+assert.match(worker, /danzstak-shell-v1104/);
 
 console.log("Feed density checks passed: Dailies-first order, compact recovery, collapsed Roll authoring, and PWA refresh.");

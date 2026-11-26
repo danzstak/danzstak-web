@@ -33,7 +33,7 @@ for (const required of [
 ]) assert.ok(sharing.includes(required), `Share-to-Tribe flow missing: ${required}`);
 
 assert.ok(feed.includes('article.dataset.groupId = groupId'));
-assert.ok(feed.includes('className = "post-tribe-link"'));
+assert.ok(feed.includes('className = "post-tribe-link ds-post-head__line"'));
 assert.match(feed, /post-sharing\.js\?v=\d+/);
 
 (async () => {

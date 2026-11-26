@@ -145,6 +145,7 @@ jobs:
             '.\browser-checks\language-sweep.cjs'
             '.\browser-checks\share-target.cjs'
             '.\browser-checks\post-menu-fit.cjs'
+            '.\browser-checks\mix-post-header.cjs'
             '.\browser-checks\photo-frame.cjs'
             '.\browser-checks\profile-post-layout.cjs'
             '.\browser-checks\profile-interactions.cjs'

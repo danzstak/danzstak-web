@@ -13,7 +13,7 @@ assert.match(html, /id="pivotButton" class="ds-app-bar-icon ds-app-bar-pivot" ty
 assert.match(html, /assets\/facebook-import\.js\?v=343/);
 assert.match(html, /assets\/pivot\.js\?v=6/);
 assert.match(html, /assets\/pivot\.css\?v=3/);
-assert.match(html, /assets\/danzstak-original-feed\.css\?v=37/);
+assert.match(html, /assets\/danzstak-original-feed\.css\?v=38/);
 assert.match(source, /if \(query\.get\("pivot"\) === "open"\) \{\s*query\.delete\("pivot"\);\s*const rest = String\(query\);[^\n]*\s*history\.replaceState/, "?pivot=open (the bar on other pages) opens Moving Day once and leaves the address");
 assert.match(source, /facebook:[\s\S]*ready: true/);
 assert.match(source, /window\.openDanzStakFacebookImport\?\.\(activeTrigger\)/, "Facebook Pivot must open the real selective importer from either entry point");
@@ -31,7 +31,7 @@ assert.match(source, /Your imported content is trackable inside DanzStak/);
 assert.match(source, /DanzStak tracks content, not people/);
 assert.match(source, /Independent screenshots or copies uploaded to another platform may not be traceable or removable/);
 assert.match(source, /Nothing imports automatically/);
-assert.match(worker, /danzstak-shell-v1103/);
+assert.match(worker, /danzstak-shell-v1104/);
 assert.match(worker, /\/assets\/pivot\.js/);
 assert.match(worker, /\/assets\/pivot\.css/);
 assert.match(profile, /assets\/pivot\.css\?v=3/);

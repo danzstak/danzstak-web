@@ -18,7 +18,7 @@ assert.match(dm, /if \(rowProfileHref && event\.target\?\.closest\?\.\("\.conver
 assert.match(fe, /const avatarWrap = document\.createElement\(personHref \? "a" : "span"\);/);
 assert.match(feed, /const avatarWrap = document\.createElement\(\/\^\[a-f0-9-\]\{36\}\$\/\.test\(memberId\) \? "a" : "span"\);/);
 // 44px tap areas around the small photos, without changing their look.
-assert.match(feCss, /a\.post-avatar::after\{content:"";position:absolute;inset:-6px;border-radius:50%\}/);
+assert.match(fs.readFileSync("tools/ui-kit/components.css", "utf8"), /\.ds a\.ds-post-head__avatar::after\{content:"";position:absolute;inset:-2px;border-radius:50%\}/, "post photos (40px): a 44px tap area");
 assert.match(feCss, /a\.comment-avatar::after\{content:"";position:absolute;inset:-6px;border-radius:50%\}/);
 assert.match(feCss, /a\.feed-online-avatar-wrap::after\{content:"";position:absolute;inset:min\(0px,calc\(50% - 22px\)\);border-radius:50%\}/);
 assert.match(profileCss, /\.profile-post-avatar-link::after\{content:"";position:absolute;inset:-4px;border-radius:50%\}/);
