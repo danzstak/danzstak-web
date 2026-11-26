@@ -4918,8 +4918,9 @@ async function cleanupEpkMediaObjects(ownerKey, ownerPrefix, keys, retainedKeys 
   return { cleaned: candidates.length - pending.length, pending: pending.length };
 }
 
-async function deleteEpkOutreachShares(userId) {
-  const mappings = await queryAll({ TableName: toursTable, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: userId }, ":prefix": { S: epkOutreachPrefix } }, ConsistentRead: true }, 500);
+// Venue links of one EPK (spec 47 part 2: each link names its EPK; links made before that carry the original, "main").
+async function deleteEpkOutreachShares(userId, epkId = "main") {
+  const mappings = (await queryAll({ TableName: toursTable, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: userId }, ":prefix": { S: epkOutreachPrefix } }, ConsistentRead: true }, 500)).filter(item => (item.epkId?.S || "main") === epkId);
   for (let offset = 0; offset < mappings.length; offset += 50) {
     const batch = mappings.slice(offset, offset + 50), transaction = [];
     for (const item of batch) {
@@ -4985,8 +4986,8 @@ async function epkWorkspace(event, method) {
       console.error("EPK media deletion remains pending", { userId, cleanupPending });
       return reply(503, { error: "EPK files could not be removed yet. Try again.", deleted: false });
     }
-    // Venue links are made from the main EPK (booking picks the EPK in a later train).
-    if (epkId === "main") await deleteEpkOutreachShares(userId);
+    // Deleting an EPK stops the venue links that carry it; links of the other EPKs keep working.
+    await deleteEpkOutreachShares(userId, epkId);
     await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
     return reply(200, { deleted: true, cleanupPending: false, epkId });
   }
@@ -5288,7 +5289,9 @@ async function outreachEpkShare(event, method, shareId = "") {
     item = result.Item;
     if (!item || Number(item.expiresAt?.N || 0) <= now() || !epkOutreachTokenMatches(token, item.shareHash?.S || "")) return reply(404, { error: "This booking EPK link is invalid or has expired." });
     // Task 20: venue links stop working while the artist's EPK is on an impersonation hold.
-    const ownerEpk = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: item.ownerId?.S || "-" }, tourId: { S: epkWorkspaceId } }, ConsistentRead: true }));
+    // Spec 47 part 2: the hold is read from the EPK this link carries (older links carry the original EPK).
+    const linkEpk = /^epk#[a-f0-9]{10}$/.test(item.epkTourId?.S || "") ? item.epkTourId.S : epkWorkspaceId;
+    const ownerEpk = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: item.ownerId?.S || "-" }, tourId: { S: linkEpk } }, ConsistentRead: true }));
     if (ownerEpk.Item?.impersonationHold?.BOOL === true) return reply(404, { error: "This EPK is under review and not available right now." });
     return reply(200, {
       verified: verifiedMark(item),
@@ -5306,11 +5309,14 @@ async function outreachEpkShare(event, method, shareId = "") {
   if (!userId) return reply(401, { error: "Authentication required." });
   if (method === "GET") {
     const items = await queryAll({ TableName: toursTable, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: userId }, ":prefix": { S: epkOutreachPrefix } }, ConsistentRead: true }, 500);
-    return reply(200, { shares: items.map(item => ({ outreachId: String(item.outreachId?.S || item.tourId?.S?.slice(epkOutreachPrefix.length) || ""), venueKey: item.venueKey?.S || "", venueName: item.venueName?.S || "Venue", shareId: item.shareId?.S || "", openCount: Number(item.openCount?.N || 0), firstOpenedAt: item.firstOpenedAt?.S || "", lastOpenedAt: item.lastOpenedAt?.S || "", expiresAt: item.expiresAt?.N ? new Date(Number(item.expiresAt.N) * 1000).toISOString() : "", revoked: item.revoked?.BOOL === true, creditReturnedAt: item.creditReturnedAt?.S || "" })) });
+    return reply(200, { shares: items.map(item => ({ outreachId: String(item.outreachId?.S || item.tourId?.S?.slice(epkOutreachPrefix.length) || ""), venueKey: item.venueKey?.S || "", venueName: item.venueName?.S || "Venue", shareId: item.shareId?.S || "", openCount: Number(item.openCount?.N || 0), firstOpenedAt: item.firstOpenedAt?.S || "", lastOpenedAt: item.lastOpenedAt?.S || "", expiresAt: item.expiresAt?.N ? new Date(Number(item.expiresAt.N) * 1000).toISOString() : "", revoked: item.revoked?.BOOL === true, creditReturnedAt: item.creditReturnedAt?.S || "", epkId: item.epkId?.S || "main" })) });
   }
   const data = parseJsonBody(event), action = String(data?.action || "create"), venueKey = String(data?.venueKey || "").trim(), outreachId = String(data?.outreachId || "").trim();
   if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !venueKey || venueKey.length > 240) return reply(400, { error: "Choose a saved venue and a valid outreach draft." });
-  const ownerKey = { userId: { S: userId }, tourId: { S: epkWorkspaceId } }, mapKey = { userId: { S: userId }, tourId: { S: `${epkOutreachPrefix}${outreachId}` } };
+  // Spec 47 part 2 ("Send with"): the pitch carries the EPK the artist picked; none means the original EPK (older pages).
+  const epkId = epkIdOf(data?.epkId);
+  if (!epkId) return reply(400, { error: "Choose one of your EPKs." });
+  const ownerKey = { userId: { S: userId }, tourId: { S: epkRecordId(epkId) } }, mapKey = { userId: { S: userId }, tourId: { S: `${epkOutreachPrefix}${outreachId}` } };
   const [epkResult, workspaceResult, priorResult] = await Promise.all([
     db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true })),
     db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: bookingWorkspaceId } }, ConsistentRead: true })),
@@ -5337,15 +5343,15 @@ async function outreachEpkShare(event, method, shareId = "") {
   }
   if (action !== "create") return reply(400, { error: "Choose create or revoke." });
   const token = randomValue(), newShareId = randomBytes(16).toString("hex"), shareHash = sha256(`epk-outreach:${token}`), createdAt = new Date().toISOString(), expiresAt = now() + 45 * 86400, allowPdf = data?.allowPdf === true;
-  const publicItem = { userId: { S: epkOutreachPartition }, tourId: { S: newShareId }, ownerId: { S: userId }, outreachId: { S: outreachId }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, plan: { S: publishedCopy.plan.S }, shareHash: { S: shareHash }, epkUpdatedAt: { S: publishedCopy.updatedAt?.S || epkResult.Item.updatedAt?.S || createdAt }, allowPdf: { BOOL: allowPdf }, openCount: { N: "0" }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) }, ...(verified.verifiedAt ? { verifiedAt: { S: verified.verifiedAt }, verifiedMethod: { S: verified.method || "" } } : {}) };
-  const ownerItem = { ...mapKey, outreachId: { S: outreachId }, shareId: { S: newShareId }, venueKey: { S: venueKey }, venueName: publicItem.venueName, allowPdf: { BOOL: allowPdf }, openCount: { N: "0" }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } };
+  const publicItem = { userId: { S: epkOutreachPartition }, tourId: { S: newShareId }, ownerId: { S: userId }, outreachId: { S: outreachId }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, plan: { S: publishedCopy.plan.S }, shareHash: { S: shareHash }, epkUpdatedAt: { S: publishedCopy.updatedAt?.S || epkResult.Item.updatedAt?.S || createdAt }, allowPdf: { BOOL: allowPdf }, openCount: { N: "0" }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) }, epkId: { S: epkId }, epkTourId: { S: epkRecordId(epkId) }, ...(verified.verifiedAt ? { verifiedAt: { S: verified.verifiedAt }, verifiedMethod: { S: verified.method || "" } } : {}) };
+  const ownerItem = { ...mapKey, outreachId: { S: outreachId }, shareId: { S: newShareId }, venueKey: { S: venueKey }, venueName: publicItem.venueName, allowPdf: { BOOL: allowPdf }, openCount: { N: "0" }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) }, epkId: { S: epkId } };
   const transaction = [
     { Put: { TableName: toursTable, Item: publicItem } },
     { Put: { TableName: toursTable, Item: ownerItem } }
   ];
   if (/^[a-f0-9]{32}$/.test(oldShareId) && oldShareId !== newShareId) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: oldShareId } } } });
   await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
-  return reply(200, { outreachId, venueKey, shareId: newShareId, shareUrl: `https://danzstak.com/epk.html?outreach=${newShareId}#token=${token}`, expiresAt: new Date(expiresAt * 1000).toISOString(), permissions: { allowPdf } });
+  return reply(200, { outreachId, venueKey, epkId, shareId: newShareId, shareUrl: `https://danzstak.com/epk.html?outreach=${newShareId}#token=${token}`, expiresAt: new Date(expiresAt * 1000).toISOString(), permissions: { allowPdf } });
 }
 
 function reviewTargetsFromPublishedEpk(item) {
@@ -5695,6 +5701,30 @@ async function bookingAcceptDate(userId, data, reply) {
 }
 
 // Booking sends are the real events behind pipeline stages (pitched, replied) and the email-credit count.
+// Spec 47 part 2 ("Send with"): the published EPKs a pitch can carry, each with its own booking gate (task 02). `epk`
+// stays one gate for older pages: the original EPK's, or the first EPK that is ready when the original isn't.
+async function bookingEpkChoices(userId) {
+  const [main, others] = await Promise.all([
+    db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: EPK_WORKSPACE_KEY } }, ConsistentRead: true })).then(result => result.Item || null),
+    (async () => {
+      const items = [];
+      let start;
+      do {
+        const page = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: epkRecordPrefix } }, ConsistentRead: true, ...(start ? { ExclusiveStartKey: start } : {}) }));
+        items.push(...(page.Items || [])); start = page.LastEvaluatedKey;
+      } while (start && items.length < 200);
+      return items;
+    })()
+  ]);
+  const rows = [...(main ? [["main", main]] : []), ...others.map(item => [item.tourId.S.slice(epkRecordPrefix.length), item]).filter(([id]) => epkIdPattern.test(id))];
+  const epks = rows.filter(([, item]) => item.published?.BOOL === true).map(([epkId, item]) => {
+    const gate = epkGate(item);
+    return { epkId, label: item.label?.S || "", artistName: item.artistName?.S || epkKitOf(item)?.artistName || "", publishedAt: item.publishedAt?.S || "", ready: gate.ready, gate };
+  });
+  const mainGate = epkGate(main || undefined), firstReady = epks.find(item => item.ready);
+  return { epk: mainGate.ready || !firstReady ? mainGate : firstReady.gate, epks: epks.map(({ gate: _gate, ...item }) => item) };
+}
+
 async function bookingSendItems(userId) {
   const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#EMAIL_SEND#" } }, ProjectionExpression: "tourId, venueKey, #status, sentAt, providerAcceptedAt, createdAt, followUpTo, repliedAt", ExpressionAttributeNames: { "#status": "status" }, ConsistentRead: true, Limit: 500 }));
   return result.Items || [];
@@ -5720,12 +5750,12 @@ async function bookingWorkspace(event, method) {
   if (!userId) return reply(401, { error: "Authentication required." });
   const Key = { userId: { S: userId }, tourId: { S: bookingWorkspaceId } };
   if (method === "GET") {
-    const [result, epkRecord] = await Promise.all([
+    const [result, { epk, epks }] = await Promise.all([
       db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true })),
-      db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: EPK_WORKSPACE_KEY } }, ConsistentRead: true }))
+      bookingEpkChoices(userId)
     ]);
-    const [sends, opened] = await Promise.all([bookingSendItems(userId), openedOutreachIds(userId)]), bookingEmailCount = sentEmailCount(sends), epk = epkGate(epkRecord?.Item);
-    if (!result.Item) return reply(200, { venues: [], artist: {}, tour: cleanTourBudget({}), estimate: tourBudgetEstimate(cleanTourBudget({}), bookingEmailCount), revision: "", epk, stats: withOpens(pitchStats(sends, opened || new Set(), []), opened) });
+    const [sends, opened] = await Promise.all([bookingSendItems(userId), openedOutreachIds(userId)]), bookingEmailCount = sentEmailCount(sends);
+    if (!result.Item) return reply(200, { venues: [], artist: {}, tour: cleanTourBudget({}), estimate: tourBudgetEstimate(cleanTourBudget({}), bookingEmailCount), revision: "", epk, epks, stats: withOpens(pitchStats(sends, opened || new Set(), []), opened) });
     const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour), venues = await withVenueFreshness(withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(sends)), { sort: false }), clubs = await clubRecords();
     for (const venue of venues) { const club = clubs.get(venue.venueKey); if (club) venue.club = { ...club, label: clubLabel(club) }; }
     return reply(200, { ...saved, venues, tour, estimate: tourBudgetEstimate(tour, bookingEmailCount, venues), revision: result.Item.revision?.S || "", epk, stats: withOpens(pitchStats(sends, opened || new Set(), venues), opened) });
@@ -5749,7 +5779,7 @@ async function bookingWorkspace(event, method) {
     const status = bookingPipelineStatuses.has(requestedStatus) ? requestedStatus : "Not contacted";
     const showDate = date(b.showDate), confirmationEvidence = text(b.confirmationEvidence, 3000);
     if (status === "Confirmed" && (!showDate || !confirmationEvidence)) invalidConfirmation = true;
-    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateOptions: cleanDateOptions(b.dateOptions), ...(date(b.acceptedDate) ? { acceptedDate: date(b.acceptedDate), acceptedAt: typeof b.acceptedAt === "string" && !Number.isNaN(Date.parse(b.acceptedAt)) ? new Date(b.acceptedAt).toISOString() : "" } : {}), ...(/^[a-zA-Z0-9_-]{16,100}$/.test(String(b.acceptedReplyId || "")) ? { acceptedReplyId: String(b.acceptedReplyId) } : {}), ...(date(b.confirmFollowUpAt) ? { confirmFollowUpAt: date(b.confirmFollowUpAt) } : {}), dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000), payToPlay: ["tickets", "fee"].includes(String(b.payToPlay)) ? String(b.payToPlay) : "" } };
+    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateOptions: cleanDateOptions(b.dateOptions), ...(date(b.acceptedDate) ? { acceptedDate: date(b.acceptedDate), acceptedAt: typeof b.acceptedAt === "string" && !Number.isNaN(Date.parse(b.acceptedAt)) ? new Date(b.acceptedAt).toISOString() : "" } : {}), ...(/^[a-zA-Z0-9_-]{16,100}$/.test(String(b.acceptedReplyId || "")) ? { acceptedReplyId: String(b.acceptedReplyId) } : {}), ...(date(b.confirmFollowUpAt) ? { confirmFollowUpAt: date(b.confirmFollowUpAt) } : {}), dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000), payToPlay: ["tickets", "fee"].includes(String(b.payToPlay)) ? String(b.payToPlay) : "", ...(/^(?:main|[a-f0-9]{10})$/.test(String(b.sendWithEpk || "")) ? { sendWithEpk: String(b.sendWithEpk) } : {}) } };
   });
   if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
   if (invalidConfirmation) return reply(400, { error: "A confirmed performance requires a show date and written confirmation evidence." });
