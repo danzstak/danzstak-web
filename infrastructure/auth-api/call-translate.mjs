@@ -58,6 +58,14 @@ export function presignUrl({ method = "GET", protocol = "https", host, path, ser
   return `${protocol}://${host}${path}?${canonicalQuery}&X-Amz-Signature=${signature}`;
 }
 
+// Owner 2026-11-26 ("It starts up but crashes right away"): Amazon Transcribe has no streaming in us-west-1 (batch only,
+// docs.aws.amazon.com/transcribe/latest/dg/what-is.html), so the address handed to the phone pointed at a host that
+// doesn't exist and every stream closed at once. The stream goes to the nearest region that has streaming; the words
+// are still translated in the Auth API's own region. Audio is not stored in either.
+export const TRANSCRIBE_STREAMING_REGIONS = Object.freeze(["af-south-1", "ap-northeast-1", "ap-northeast-2", "ap-south-1", "ap-southeast-1", "ap-southeast-2", "ca-central-1", "eu-central-1", "eu-central-2", "eu-west-1", "eu-west-2", "sa-east-1", "us-east-1", "us-east-2", "us-west-2"]);
+const NEAREST_STREAMING_REGION = Object.freeze({ "us-west-1": "us-west-2", "eu-west-3": "eu-west-1", "eu-north-1": "eu-central-1", "me-south-1": "eu-central-1", "ap-east-1": "ap-southeast-1" });
+export const streamingRegion = region => (TRANSCRIBE_STREAMING_REGIONS.includes(region) ? region : NEAREST_STREAMING_REGION[region] || "us-east-1");
+
 export function transcribeStreamUrl({ region, credentials, language, now = new Date() }) {
   return presignUrl({
     protocol: "wss", host: `transcribestreaming.${region}.amazonaws.com:8443`, path: "/stream-transcription-websocket",
@@ -108,7 +116,7 @@ export function createCallTranslate({ db, commands, tableName, authenticate, cor
         const used = await usage(userId);
         if (used.minutes >= FREE_MINUTES_PER_DAY) return reply(429, { error: "Today's free translation minutes are used up. They come back tomorrow.", code: "minutes" });
         if (!await spend(userId, "streams", 1, STREAMS_PER_DAY)) return reply(429, { error: "Today's free translation minutes are used up. They come back tomorrow.", code: "minutes" });
-        return reply(200, { url: transcribeStreamUrl({ region, credentials: credentials(), language, now: new Date(clock()) }), language: language.code, sampleRate: 16000, minutesLeft: FREE_MINUTES_PER_DAY - used.minutes });
+        return reply(200, { url: transcribeStreamUrl({ region: streamingRegion(region), credentials: credentials(), language, now: new Date(clock()) }), language: language.code, sampleRate: 16000, minutesLeft: FREE_MINUTES_PER_DAY - used.minutes });
       }
       if (method === "POST" && path === "/call-translate/minute") {
         if (!await spend(userId, "minutes", 1, FREE_MINUTES_PER_DAY)) return reply(429, { error: "Today's free translation minutes are used up. They come back tomorrow.", code: "minutes", minutesLeft: 0 });

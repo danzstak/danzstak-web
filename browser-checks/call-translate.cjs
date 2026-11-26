@@ -42,7 +42,7 @@ async function open(browser, width, { locale = "en-US", available = true, minute
     if (p === "/auth/session") return reply({ authenticated: true, user: { sub: "me", email: "me@danzstak.invalid" } });
     if (!available && p.startsWith("/call-translate")) return reply({ error: "Live translation isn't available right now.", code: "unavailable" }, 503);
     if (p === "/call-translate") return reply({ available: true, languages: LANGS, minutesLeft: 60 });
-    if (p === "/call-translate/stream") return minutesOut ? reply({ error: "Today's free translation minutes are used up. They come back tomorrow.", code: "minutes" }, 429) : reply({ url: "wss://transcribestreaming.us-west-1.amazonaws.com:8443/stream-transcription-websocket?language-code=en-US&X-Amz-Signature=x", language: body.language });
+    if (p === "/call-translate/stream") return minutesOut ? reply({ error: "Today's free translation minutes are used up. They come back tomorrow.", code: "minutes" }, 429) : reply({ url: "wss://transcribestreaming.us-west-2.amazonaws.com:8443/stream-transcription-websocket?language-code=en-US&X-Amz-Signature=x", language: body.language });
     if (p === "/call-translate/text") return reply({ texts: body.texts.map(text => text === "On se voit vendredi au club" ? "See you Friday at the club" : `[${body.to}] ${text}`) });
     if (p === "/call-translate/minute") return reply({ minutesLeft: 59 });
     return reply({});
@@ -102,7 +102,7 @@ async function openFromMore(page, tag, label = "Live translation") {
         throw new Error(`${tag}: no audio frames reached Transcribe: ${JSON.stringify(state)} ${errors.join(" | ")} (${error.message})`);
       });
       assert.deepEqual(calls.find(c => c.p === "/call-translate/stream").body, { language: "en" }, `${tag}: only my own language, my own mic`);
-      assert.match(await page.evaluate(() => window.__ws[0].url), /^wss:\/\/transcribestreaming\.us-west-1\.amazonaws\.com:8443\//);
+      assert.match(await page.evaluate(() => window.__ws[0].url), /^wss:\/\/transcribestreaming\.us-west-2\.amazonaws\.com:8443\//);
       // My own words go to Marcel over the call's channel.
       await page.evaluate(() => {
         const { encodeEvent } = window.danzstakCallTranslate._eventStream;
