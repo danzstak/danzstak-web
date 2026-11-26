@@ -86,6 +86,10 @@ jobs:
       - name: Install browser test dependency
         shell: pwsh
         run: npm install --no-save --ignore-scripts playwright@1.55.0
+      - name: Give the runner enough network ports
+        shell: pwsh
+        # Browsers leave closed connections in TIME_WAIT; the default 16,384 ports ran out mid-job (scripts/ci-network.ps1).
+        run: .\scripts\ci-network.ps1 -Prepare
       - name: Keep browser checks off the live API
         shell: pwsh
         # Unmocked calls fail on the runner instead of reaching api.danzstak.com (scripts/block-live-api.ps1).
@@ -153,6 +157,10 @@ jobs:
             '.\browser-checks\dailies-empty-clapper.cjs'
             '.\browser-checks\dailies-feed-ux.cjs'
           )
+      - name: Report the runner's network
+        if: always()
+        shell: pwsh
+        run: .\scripts\ci-network.ps1 -Report
       - name: Stop local review server
         if: always()
         shell: pwsh
@@ -190,7 +198,7 @@ jobs:
 
   browser-account-security:
     runs-on: windows-latest
-    timeout-minutes: 45 # about 31–35 minutes of checks now (#747 took 30; #751 was stopped at 35 in its last check with every check before it passing)
+    timeout-minutes: 30 # the first half of the signed-in checks, about 17 minutes (CI-FLAKE 2026-11-26: one job of 92 checks ran 35 minutes and ran the runner out of ports)
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -199,6 +207,10 @@ jobs:
       - name: Install browser-check dependency
         shell: pwsh
         run: npm install --no-save --ignore-scripts playwright@1.56.1
+      - name: Give the runner enough network ports
+        shell: pwsh
+        # Browsers leave closed connections in TIME_WAIT; the default 16,384 ports ran out mid-job (scripts/ci-network.ps1).
+        run: .\scripts\ci-network.ps1 -Prepare
       - name: Keep browser checks off the live API
         shell: pwsh
         # Unmocked calls fail on the runner instead of reaching api.danzstak.com (scripts/block-live-api.ps1).
@@ -272,6 +284,61 @@ jobs:
             '.\browser-checks\events-page.cjs'
             '.\browser-checks\bazaar-mix.cjs'
             '.\browser-checks\mix-flows.cjs'
+          )
+      - name: Report the runner's network
+        if: always()
+        shell: pwsh
+        run: .\scripts\ci-network.ps1 -Report
+      - name: Stop static review server
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:DANZSTAK_SERVER_PID) {
+            Stop-Process -Id $env:DANZSTAK_SERVER_PID -Force -ErrorAction SilentlyContinue
+          }
+
+  browser-account-security-2:
+    runs-on: windows-latest
+    timeout-minutes: 30 # the second half, about 17 minutes, on its own runner
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install browser-check dependency
+        shell: pwsh
+        run: npm install --no-save --ignore-scripts playwright@1.56.1
+      - name: Give the runner enough network ports
+        shell: pwsh
+        # Browsers leave closed connections in TIME_WAIT; the default 16,384 ports ran out mid-job (scripts/ci-network.ps1).
+        run: .\scripts\ci-network.ps1 -Prepare
+      - name: Keep browser checks off the live API
+        shell: pwsh
+        # Unmocked calls fail on the runner instead of reaching api.danzstak.com (scripts/block-live-api.ps1).
+        run: .\scripts\block-live-api.ps1
+      - name: Start static review server
+        shell: pwsh
+        run: |
+          # Node static server (HTTP/1.1 keep-alive, backlog 511, fixed content types), not python -m http.server (directive F0).
+          $process = Start-Process node -ArgumentList '.\scripts\static-server.cjs','8132' -WorkingDirectory $PWD -WindowStyle Hidden -PassThru
+          "DANZSTAK_SERVER_PID=$($process.Id)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          for ($attempt = 0; $attempt -lt 20; $attempt++) {
+            try {
+              Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8132/feed.html | Out-Null
+              exit 0
+            } catch {
+              Start-Sleep -Milliseconds 250
+            }
+          }
+          throw 'Static review server did not start.'
+      - name: Verify signed-in account flows in real browsers
+        shell: pwsh
+        env:
+          DANZSTAK_BASE_URL: http://127.0.0.1:8132
+          # A failing check prints the browser's failed requests and errors (scripts/check-diagnostics.cjs).
+          NODE_OPTIONS: --require ./scripts/check-diagnostics.cjs
+        run: |
+          .\scripts\run-checks.ps1 -Checks @(
             '.\browser-checks\pinned-welcome.cjs'
             '.\browser-checks\media-viewer-all.cjs'
             '.\browser-checks\photo-viewer-fit.cjs'
@@ -319,6 +386,10 @@ jobs:
             '.\browser-checks\app-shortcuts.cjs'
             '.\browser-checks\media-scale.cjs'
           )
+      - name: Report the runner's network
+        if: always()
+        shell: pwsh
+        run: .\scripts\ci-network.ps1 -Report
       - name: Stop static review server
         if: always()
         shell: pwsh

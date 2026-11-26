@@ -75,10 +75,15 @@
   // setBack(label, onBack, screen): the arrow sits first in the Mix bar while `screen` is on show and goes when it does
   // (a ResizeObserver sees the screen leave: closed, another tab, another workspace). System Back should do the same as
   // the arrow; that is the caller's history.
-  let screenBack = null, screenWatch = null;
+  // CI-FLAKE (2026-11-26, tribe-page.cjs): a Tribe opened straight from a link is drawn before this bar is mounted
+  // (this script loads after feed-enhancements.js and mounts only after its session check), so setBack found no bar and
+  // the ← never came. A request made too early is kept and applied when the bar mounts; feed-enhancements.js leaves one
+  // in window.danzstakAppBarPending when this script hasn't run yet.
+  let screenBack = null, screenWatch = null, pendingBack = null;
   function setBack(label, onBack, screen) {
     const bar = document.querySelector("header.topbar.ds-feed-bar");
-    if (!bar) return;
+    if (!bar) { pendingBack = { label, onBack, screen }; return; }
+    pendingBack = null;
     if (!screenBack) {
       screenBack = document.createElement("button"); screenBack.type = "button";
       screenBack.className = "ds-app-bar-icon ds-app-bar-back ds-app-bar-screen-back"; screenBack.innerHTML = icons.back;
@@ -92,8 +97,15 @@
     if (screen) { screenWatch = new ResizeObserver(paint); screenWatch.observe(screen); }
   }
   function clearBack() {
+    pendingBack = null;
     screenWatch?.disconnect(); screenWatch = null;
     screenBack?.parentElement?.classList.remove("ds-has-screen-back"); screenBack?.remove();
+  }
+  // Called once the Mix bar exists: a ← asked for before it (here or by a page script that ran first) goes on now.
+  function applyPendingBack() {
+    const early = pendingBack || window.danzstakAppBarPending;
+    window.danzstakAppBarPending = null;
+    if (early) setBack(early.label, early.onBack, early.screen);
   }
   window.danzstakAppBar = Object.freeze({ setBack, clearBack });
 
@@ -153,7 +165,7 @@
     if (signedInOnly && !(await signedIn())) return;
     document.body.classList.add("ds-has-app-bar");
     const topbar = document.querySelector("header.topbar");
-    if (topbar) { mountFeedBar(topbar); mountMenu(); return; }
+    if (topbar) { mountFeedBar(topbar); applyPendingBack(); mountMenu(); return; }
     const header = document.querySelector("body > header");
     if (header) mountToolBar(header);
   }
