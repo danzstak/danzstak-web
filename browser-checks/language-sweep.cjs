@@ -33,6 +33,7 @@ const screens = {
   shop: "store.html?manage=1",
   hq: "feed.html?view=hq",
   booking: "booking.html",
+  bookingSelections: "booking-selections.html",
   epk: "epk.html",
   sync: "messages.html",
   settings: "feed.html?view=settings",
@@ -43,6 +44,16 @@ const screens = {
   syncDevice: "messages.html?device=register",
   profileEdit: "profile.html?edit=1",
   createEvent: { url: "feed.html?view=events", tap: [".ev-primary"] },
+  // Part 3: the EPK builder's steps, reached with Next like a member would, and the private review link opened.
+  epkStep2: { url: "epk.html", tap: ["#guideNext"] },
+  epkStep3: { url: "epk.html", tap: ["#guideNext", "#guideNext"] },
+  epkStep4: { url: "epk.html", tap: ["#guideNext", "#guideNext", "#guideNext"] },
+  epkStep5: { url: "epk.html", tap: ["#guideNext", "#guideNext", "#guideNext", "#guideNext", "#epkTypeInstead > summary"] },
+  epkShare: { url: "epk.html", tap: [".epk-private-share > summary"] },
+  // The purchase pop-up every paid product shows first (owner 2026-11-15), and the refund pop-up.
+  buyPopup: { url: "messages.html", run: "window.danzstakConfirmPurchase({ kind: 'network', priceCents: 300 })" },
+  buyContactPopup: { url: "booking-selections.html", run: "window.danzstakConfirmPurchase({ kind: 'contact', priceCents: 75 })" },
+  refundPopup: { url: "messages.html", run: "window.danzstakConfirmRefund({ paidCents: 365, feeCents: 41, refundCents: 324, quantity: 1 })" },
 };
 
 // English words that never appear in Italian, French or Spanish UI. Words the three languages share with English
@@ -167,6 +178,7 @@ function englishIn(text, lang) {
           if (box) await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2); else await target.click({ force: true });
           await page.waitForTimeout(800);
         }
+        if (screen.run) { await page.evaluate(code => { (0, eval)(code); }, screen.run); await page.waitForTimeout(800); }
         const seen = new Set();
         for (const item of await page.evaluate(collect)) {
           const words = englishIn(item.text, lang);

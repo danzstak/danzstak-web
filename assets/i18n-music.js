@@ -6499,3 +6499,53 @@
 };
  for(const [lang,list] of Object.entries(pats))(p[lang]||(p[lang]=[])).push(...list);
 })();
+
+// LANG part 3: the booking list and Tour Manager page (booking-selections.html).
+(() => {
+ const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
+ const add={
+"it": {
+"No purchases yet.": "Ancora nessun acquisto.",
+"Private account workspace loaded.": "Il tuo spazio privato è caricato.",
+"Fuel, lodging, meals and profit are estimates in your selected currency. Booking-email spend uses actual successfully sent DanzStak emails at $1.50 each. It is included in the total only when the selected currency is USD; DanzStak does not invent an exchange rate.": "Carburante, alloggio, pasti e guadagno sono stime nella valuta che hai scelto. La spesa per le email di booking conta le email DanzStak davvero inviate, a $1.50 l'una. Entra nel totale solo se la valuta scelta è USD; DanzStak non inventa un tasso di cambio.",
+"Pitching with your EPK": "Proponiti con il tuo EPK",
+"Pitches are built from your published EPK.": "Le proposte partono dal tuo EPK pubblicato.",
+"Pitching as": "Ti proponi come",
+"No clubs are selected yet. Return to the map, open a club pin, and add it to the booking list.": "Non hai ancora scelto nessun locale. Torna alla mappa, apri un locale e aggiungilo alla lista di booking.",
+"← Back to venue map": "← Torna alla mappa dei locali",
+"Back to venue map": "Torna alla mappa dei locali",
+"Choose venues from the worldwide venue map": "Scegli i locali dalla mappa mondiale",
+"Add more venues from the worldwide venue map": "Aggiungi altri locali dalla mappa mondiale"
+},
+"fr": {
+"No purchases yet.": "Aucun achat pour l'instant.",
+"Private account workspace loaded.": "Ton espace privé est chargé.",
+"Fuel, lodging, meals and profit are estimates in your selected currency. Booking-email spend uses actual successfully sent DanzStak emails at $1.50 each. It is included in the total only when the selected currency is USD; DanzStak does not invent an exchange rate.": "Carburant, hébergement, repas et bénéfice sont des estimations dans la devise choisie. Les dépenses en e-mails de booking comptent les e-mails DanzStak vraiment envoyés, à 1,50 $ chacun. Elles entrent dans le total seulement si la devise choisie est l'USD ; DanzStak n'invente pas de taux de change.",
+"Pitching with your EPK": "Démarcher avec ton EPK",
+"Pitches are built from your published EPK.": "Les propositions partent de ton EPK publié.",
+"Pitching as": "Tu démarches en tant que",
+"No clubs are selected yet. Return to the map, open a club pin, and add it to the booking list.": "Aucun club choisi pour l'instant. Retourne sur la carte, ouvre un club et ajoute-le à la liste de booking.",
+"← Back to venue map": "← Retour à la carte des salles",
+"Back to venue map": "Retour à la carte des salles",
+"Choose venues from the worldwide venue map": "Choisis des salles sur la carte mondiale",
+"Add more venues from the worldwide venue map": "Ajoute d'autres salles depuis la carte mondiale"
+},
+"es": {
+"No purchases yet.": "Todavía no hay compras.",
+"Private account workspace loaded.": "Tu espacio privado está cargado.",
+"Fuel, lodging, meals and profit are estimates in your selected currency. Booking-email spend uses actual successfully sent DanzStak emails at $1.50 each. It is included in the total only when the selected currency is USD; DanzStak does not invent an exchange rate.": "Combustible, alojamiento, comidas y beneficio son estimaciones en la moneda elegida. El gasto en correos de contratación cuenta los correos de DanzStak enviados de verdad, a 1,50 $ cada uno. Solo entra en el total si la moneda elegida es USD; DanzStak no se inventa un tipo de cambio.",
+"Pitching with your EPK": "Propuestas con tu EPK",
+"Pitches are built from your published EPK.": "Las propuestas salen de tu EPK publicado.",
+"Pitching as": "Te propones como",
+"No clubs are selected yet. Return to the map, open a club pin, and add it to the booking list.": "Todavía no has elegido ninguna sala. Vuelve al mapa, abre una sala y añádela a la lista de contratación.",
+"← Back to venue map": "← Volver al mapa de salas",
+"Back to venue map": "Volver al mapa de salas",
+"Choose venues from the worldwide venue map": "Elige salas en el mapa mundial",
+"Add more venues from the worldwide venue map": "Añade más salas desde el mapa mundial"
+}
+};
+ for(const [lang,words] of Object.entries(add))Object.assign(t[lang]||(t[lang]={}),words);
+ const p=window.danzstakPatterns||(window.danzstakPatterns={});
+ const pats={"it": [["{} purchased · {} sent · {} sending · {} remaining", "{0} acquistati · {1} inviati · {2} in invio · {3} rimasti"], ["{} selected clubs · {} confirmed · {} follow-ups due", "{0} locali scelti · {1} confermati · {2} promemoria"], ["{} selected club · {} confirmed · {} follow-ups due", "{0} locale scelto · {1} confermati · {2} promemoria"]], "fr": [["{} purchased · {} sent · {} sending · {} remaining", "{0} achetés · {1} envoyés · {2} en cours d'envoi · {3} restants"], ["{} selected clubs · {} confirmed · {} follow-ups due", "{0} clubs choisis · {1} confirmés · {2} relances à faire"], ["{} selected club · {} confirmed · {} follow-ups due", "{0} club choisi · {1} confirmés · {2} relances à faire"]], "es": [["{} purchased · {} sent · {} sending · {} remaining", "{0} comprados · {1} enviados · {2} enviándose · {3} restantes"], ["{} selected clubs · {} confirmed · {} follow-ups due", "{0} salas elegidas · {1} confirmadas · {2} seguimientos pendientes"], ["{} selected club · {} confirmed · {} follow-ups due", "{0} sala elegida · {1} confirmadas · {2} seguimientos pendientes"]]};
+ for(const [lang,list] of Object.entries(pats))(p[lang]||(p[lang]=[])).push(...list);
+})();
