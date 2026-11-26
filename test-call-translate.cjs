@@ -14,7 +14,7 @@ const vm = require("node:vm");
 
 (async () => {
   const mod = await import("./infrastructure/auth-api/call-translate.mjs");
-  const { presignUrl, transcribeStreamUrl, createCallTranslate, LANGUAGES, FREE_MINUTES_PER_DAY, languageOf } = mod;
+  const { presignUrl, transcribeStreamUrl, createCallTranslate, LANGUAGES, FREE_MINUTES_PER_DAY, languageOf, streamingRegion, TRANSCRIBE_STREAMING_REGIONS } = mod;
 
   // AWS's published query-string signing example (S3 GET test.txt, 2013-05-24).
   const example = presignUrl({ host: "examplebucket.s3.amazonaws.com", path: "/test.txt", service: "s3", region: "us-east-1", expires: 86400, now: new Date("2013-05-24T00:00:00Z"), payloadHash: "UNSIGNED-PAYLOAD", credentials: { accessKeyId: "AKIAIOSFODNN7EXAMPLE", secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" } });
@@ -65,7 +65,16 @@ const vm = require("node:vm");
   assert.ok(result.data.languages.find(language => language.code === "fr"));
   result = await call("POST", "/call-translate/stream", { language: "fr" });
   assert.equal(result.status, 200);
-  assert.match(result.data.url, /^wss:\/\/transcribestreaming\.us-west-1\.amazonaws\.com:8443\/stream-transcription-websocket\?.*language-code=fr-FR/);
+  assert.match(result.data.url, /^wss:\/\/transcribestreaming\.us-west-2\.amazonaws\.com:8443\/stream-transcription-websocket\?.*language-code=fr-FR/);
+  // Owner 2026-11-26 ("It starts up but crashes right away"): Transcribe has no streaming in us-west-1, so the phone is
+  // sent to a region that has it, and the signature is made for that region.
+  assert.match(new URL(result.data.url).searchParams.get("X-Amz-Credential"), /\/us-west-2\/transcribe\/aws4_request$/);
+  // The same screenshot: the Italian phone's prompt said "Allow". The word is translated wherever "Not now" is.
+  { const words = require("node:fs").readFileSync(require("node:path").join(__dirname, "assets", "i18n-sync.js"), "utf8");
+    for (const word of ["Consenti", "Autoriser", "Permitir", "Erlauben"]) assert.ok(words.includes(`"Allow": "${word}"`), `Allow is translated (${word})`); }
+  assert.equal(streamingRegion("us-west-1"), "us-west-2");
+  assert.equal(streamingRegion("eu-central-1"), "eu-central-1");
+  assert.ok(!TRANSCRIBE_STREAMING_REGIONS.includes("us-west-1"));
   assert.equal((await call("POST", "/call-translate/stream", { language: "klingon" })).status, 400);
 
   // The cousin speaks French; Shawn reads English.
@@ -137,7 +146,7 @@ const vm = require("node:vm");
   assert.match(fs.readFileSync(path.join(__dirname, "assets/sync-call-ui.js"), "utf8"), /danzstakCallTranslate\?\.menuItem/, "More offers Live translation");
   for (const page of ["messages.html", "sync/index.html"]) {
     const html = fs.readFileSync(path.join(__dirname, page), "utf8");
-    assert.match(html, /connect-src [^;]*wss:\/\/transcribestreaming\.us-west-1\.amazonaws\.com:8443/, `${page}: CSP allows the Transcribe stream`);
+    assert.match(html, /connect-src [^;]*wss:\/\/transcribestreaming\.us-west-2\.amazonaws\.com:8443/, `${page}: CSP allows the Transcribe stream`);
     assert.match(html, /assets\/call-translate\.js\?v=\d+/);
     assert.match(html, /assets\/call-translate\.css\?v=\d+/);
   }
