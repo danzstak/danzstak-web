@@ -4,6 +4,8 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+"Loading posts…": "Carico i post…",
+"Loading media…": "Carico foto e video…",
 "Respond in Friends": "Rispondi in Amici",
 "Following": "Seguiti",
 "Things in common": "Cose in comune",
@@ -263,6 +265,8 @@
 "Choose your own username.": "Scegli il tuo username."
 },
 "fr": {
+"Loading posts…": "Chargement des publications…",
+"Loading media…": "Chargement des photos et vidéos…",
 "Respond in Friends": "Répondre dans Amis",
 "Following": "Abonnements",
 "Things in common": "Points communs",
@@ -522,6 +526,8 @@
 "Choose your own username.": "Choisis ton propre nom d’utilisateur."
 },
 "es": {
+"Loading posts…": "Cargando publicaciones…",
+"Loading media…": "Cargando fotos y vídeos…",
 "Respond in Friends": "Responder en Amigos",
 "Following": "Siguiendo",
 "Things in common": "Cosas en común",

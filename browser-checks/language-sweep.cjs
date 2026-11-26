@@ -204,6 +204,35 @@ function englishIn(text, lang) {
       if (after.trim() !== "🌎 Pubblico") found.push({ lang: "it", screen: "feed", words: "(slow i18n.js)", text: `audience reads "${after.trim()}" (first drawn as "${audience.trim()}")`, where: ".post-audience", kind: "text" });
       await context.close();
     }
+    // Part 4: a reply from the server whose words have no translation (most of the API's 500 error lines) must still
+    // reach the member in their language, never in English. Support is sent with a reply the server really gives
+    // (429, the 10-minute wait), then with our side failing (500), and the line under the form is read.
+    if (only.includes("support")) for (const lang of langs) for (const [status, error] of [[429, "A support request was already submitted recently. Please wait up to 10 minutes before sending another."], [500, "Authentication service error"]]) {
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block", locale: locales[lang] });
+      await context.addInitScript(value => { Object.defineProperty(navigator, "language", { get: () => value }); Object.defineProperty(navigator, "languages", { get: () => [value] }); }, locales[lang]);
+      const page = await context.newPage();
+      await serve(page); await mockApi(page, lang);
+      // Registered last so it runs first (Playwright tries the newest route first).
+      await page.route("https://api.danzstak.com/support-tickets", route => route.request().method() === "OPTIONS" ? route.fulfill({ status: 204, headers: cors }) : route.fulfill({ status, contentType: "application/json", headers: cors, body: JSON.stringify({ error }) }));
+      const fail = text => found.push({ lang, screen: "support", words: `(server ${status})`, text, where: "#supportStatus", kind: "server error" });
+      try {
+        await page.goto(`${origin}/support.html`, { waitUntil: "load", timeout: 30000 });
+        await page.waitForTimeout(1500);
+        await page.selectOption("#supportCategory", "technical");
+        await page.fill("#supportSubject", "Video");
+        await page.fill("#supportMessage", { it: "Il video non parte quando lo apro dal telefono.", fr: "La vidéo ne démarre pas quand je l'ouvre sur mon téléphone.", es: "El vídeo no arranca cuando lo abro en el teléfono." }[lang]);
+        const send = page.locator("#supportForm button[type=submit]");
+        await send.evaluate(el => el.scrollIntoView({ block: "center" })); // clear of the tab bar, like a thumb would
+        const box = await send.boundingBox();
+        await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+        await page.waitForFunction(() => !/…$/.test(document.getElementById("supportStatus").textContent.trim()) && document.getElementById("supportStatus").textContent.trim(), null, { timeout: 10000 });
+        await page.waitForTimeout(400);
+        const line = (await page.locator("#supportStatus").textContent()).trim();
+        const words = englishIn(line, lang);
+        if (words.length || line === error) fail(`"${line}" [${words.join(",")}]`);
+      } catch (error) { fail(`${error.message.split("\n")[0]} (${page.url()})`); }
+      await context.close();
+    }
     // Baby-proof (owner 2026-11-25: "It really has got to be baby proof… they don't know what they're doing"): a brand-new
     // Italian member finds each first-time action by its visible word, on screen without scrolling, and a thumb on the
     // centre of that word's button reaches it. Registering the phone then shows "Invia codice" after that one tap.
