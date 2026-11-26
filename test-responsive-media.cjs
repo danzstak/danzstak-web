@@ -51,10 +51,10 @@ assert.match(visibilityScript, /const shell=video\.closest\?\.\('\.danzstak-medi
 
 for (const file of ["feed.html", "messages.html", "profile.html", "epk.html"]) {
   const html = fs.readFileSync(file, "utf8");
-  assert.match(html, /assets\/responsive-media\.css\?v=9/, `${file} must load the shared responsive-media styles`);
+  assert.match(html, /assets\/responsive-media\.css\?v=10/, `${file} must load the shared responsive-media styles`);
   assert.match(html, /assets\/responsive-media\.js\?v=3/, `${file} must load the shared responsive-media behavior`);
 }
-assert.match(worker, /danzstak-shell-v1088/);
+assert.match(worker, /danzstak-shell-v1090/);
 assert.match(worker, /\/assets\/responsive-media\.js/);
 assert.match(worker, /\/assets\/responsive-media\.css/);
 

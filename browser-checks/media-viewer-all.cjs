@@ -84,7 +84,7 @@ const count = page => page.evaluate(() => document.querySelector(".ds-media-view
 const shown = page => page.evaluate(() => { const slides = document.querySelectorAll(".ds-media-viewer-slide"), slide = slides[globalThis.danzstakMediaViewer.index()]; return (slide?.querySelector("img,video")?.getAttribute("src") || "").split("/").pop(); });
 
 (async () => {
-  const browser = await chromium.launch({ channel: "msedge", headless: true });
+  const browser = await chromium.launch({ channel: process.env.DANZSTAK_BROWSER_CHANNEL || "msedge", headless: true });
   try {
     const clip = await recordClip(browser);
     for (const width of [360, 390]) {
@@ -103,6 +103,17 @@ const shown = page => page.evaluate(() => { const slides = document.querySelecto
       assert.equal(await shown(run.page), "__p1.svg", `${label}: the second photo is that member's second photo`);
       await run.page.keyboard.press("Escape");
       await run.page.waitForSelector(".ds-media-viewer", { state: "detached", timeout: 5000 });
+      // Owner 2026-11-25 (screenshot: two mute buttons on a Mix video, DanzStak's over the browser's ⋮): a Mix video has
+      // no browser controls and exactly one mute button, in the video's lower-right corner, like profile videos.
+      const vid = run.page.locator(`#feed article.post[data-post-id="${id(100)}"] video.post-media`);
+      await vid.evaluate(element => element.scrollIntoView({ block: "center" }));
+      await run.page.waitForTimeout(400);
+      const mute = await vid.evaluate(video => { const post = video.closest("article.post"), toggles = post.querySelectorAll(".danzstak-audio-toggle"), r = video.getBoundingClientRect(), b = toggles[0]?.getBoundingClientRect(), hit = b && document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return { controls: video.controls || video.hasAttribute("controls"), toggles: toggles.length, bottom: b ? Math.round(r.bottom - b.bottom) : null, right: b ? Math.round(r.right - b.right) : null, hit: Boolean(hit && toggles[0].contains(hit)), focusable: video.tabIndex === 0 }; });
+      assert.equal(mute.controls, false, `${label}: a Mix video shows no browser controls`);
+      assert.equal(mute.toggles, 1, `${label}: a Mix video has exactly one mute button`);
+      assert.ok(mute.bottom >= 0 && mute.bottom <= 16 && mute.right >= 0 && mute.right <= 16, `${label}: the mute button sits in the video's lower-right corner (${JSON.stringify(mute)})`);
+      assert.ok(mute.hit, `${label}: a tap on the centre of the mute button reaches it`);
+      assert.ok(mute.focusable, `${label}: the video can still be reached by keyboard`);
       // A video opens on that member's videos only.
       await tapCentre(run.page, run.page.locator(`#feed article.post[data-post-id="${id(100)}"] .post-media`).first());
       assert.equal(await count(run.page), "1 / 3", `${label}: a video opens on that member's 3 videos`);
