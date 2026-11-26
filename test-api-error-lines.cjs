@@ -7,8 +7,9 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
-const i18n = fs.readFileSync("assets/i18n.js", "utf8");
-const guard = fs.readFileSync("assets/session-guard.js", "utf8");
+const read = file => fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n"); // Windows checkouts use CRLF
+const i18n = read("assets/i18n.js");
+const guard = read("assets/session-guard.js");
 const languages = JSON.parse(fs.readFileSync("assets/languages.js", "utf8").match(/window\.danzstakLanguages=(\[.*?\]\]);/)[1]).map(([code]) => code);
 
 const start = i18n.indexOf("const apiErrorLines={"), end = i18n.indexOf("\n };", start);
