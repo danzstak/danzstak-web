@@ -230,6 +230,8 @@ function englishIn(text, lang) {
         const line = (await page.locator("#supportStatus").textContent()).trim();
         const words = englishIn(line, lang);
         if (words.length || line === error) fail(`"${line}" [${words.join(",")}]`);
+        // Part 4b: the 10-minute wait has its own words, not the plain "too many tries" line.
+        if (status === 429 && !/10/.test(line)) fail(`"${line}" lost the 10-minute wait`);
       } catch (error) { fail(`${error.message.split("\n")[0]} (${page.url()})`); }
       await context.close();
     }
