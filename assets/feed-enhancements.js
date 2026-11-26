@@ -1201,7 +1201,10 @@ function renderWorkspace(name) {
       const aboutCard = document.createElement("div"); aboutCard.className = "tribe-about-card"; const aboutTitle = document.createElement("h5"); aboutTitle.textContent = "About this Tribe"; const description = document.createElement("p"); description.textContent = group.description; const standard = document.createElement("p"); standard.textContent = "Community standards: no hate speech, harassment, threats, or targeted abuse."; aboutCard.append(aboutTitle, description, standard); about.appendChild(aboutCard);
       panels.append(discussion, crew, about); detail.append(hero, nav, panels); detail.scrollIntoView({ block: "start" });
       // The bar's ← goes back to the Tribes list: the same step as system Back when opening the Tribe added one.
-      window.danzstakAppBar?.setBack("Back to Tribes", () => { if (tribePushedFor === group.id && history.state?.tribe === group.id) history.back(); else showTribeDirectory(); }, detail);
+      const tribeBack = () => { if (tribePushedFor === group.id && history.state?.tribe === group.id) history.back(); else showTribeDirectory(); };
+      // app-bar.js may not have run yet (it loads after this file): leave the request for it to apply when the bar mounts.
+      if (window.danzstakAppBar) window.danzstakAppBar.setBack("Back to Tribes", tribeBack, detail);
+      else window.danzstakAppBarPending = { label: "Back to Tribes", onBack: tribeBack, screen: detail };
     }
 
     if (window.danzstakOpenTribeHandler) window.removeEventListener("danzstak:open-tribe", window.danzstakOpenTribeHandler);

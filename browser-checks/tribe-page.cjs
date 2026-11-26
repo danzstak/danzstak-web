@@ -124,13 +124,20 @@ const screen = page => page.evaluate(() => {
       label = `${width}px member`;
       run = await open(browser, width, "member");
       try {
+        // CI-FLAKE (2026-11-26): the ← went missing now and then when the Tribe was drawn before app-bar.js mounted the
+        // bar. Holding app-bar.js back makes that order happen every time, so the check fails without the fix.
+        await run.page.route(/\/assets\/app-bar\.js/, async route => { await new Promise(resolve => setTimeout(resolve, 1500)); await route.continue(); });
         await run.page.goto(`${base}/feed.html?view=groups&tribe=${tribeId}#groups`, { waitUntil: "domcontentloaded" });
         await run.page.locator(".tribe-hero").waitFor({ timeout: 15000 });
         await run.page.waitForTimeout(400);
         let state = await screen(run.page);
         expect(!state.coverTools, `${label}: cover tools show to someone who isn't an Elder`);
         expect(state.chip && state.chip.tag === "SUMMARY" && state.chip.text === "Joined" && state.chip.height >= 44 && state.chip.width < width / 2, `${label}: no small "Joined ▾" chip ${JSON.stringify(state.chip)}`);
-        expect(state.back, `${label}: no ← in the bar on a Tribe opened from a link`);
+        if (!state.back) {
+          await run.page.locator(".ds-app-bar-screen-back:not([hidden])").waitFor({ timeout: 6000 }).catch(() => {});
+          state = await screen(run.page);
+        }
+        expect(state.back, `${label}: no ← in the bar on a Tribe opened from a link (the bar mounted after the Tribe was drawn)`);
         await centreTap(run.page, run.page.locator("summary.tribe-joined-chip"));
         const leave = await centreTap(run.page, run.page.locator(".tribe-leave"));
         expect(leave.hit && leave.box.height >= 44, `${label}: Leave Tribe isn't a reachable 44px row`);
