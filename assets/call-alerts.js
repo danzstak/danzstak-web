@@ -116,7 +116,28 @@
   window.danzstakSyncSettings?.add?.({ id: "test-ringer", label: "Test ringer", hint: "Plays your ringtone and sends a test call to this phone", icon: "bell", order: 31, run: testRinger });
   // Turning notifications on answers "off"; "unlinked" stays until the server says this phone is linked.
   addEventListener("danzstak:push-enabled", () => document.querySelector('.call-alerts-prompt[data-reason="off"]')?.remove());
-  addEventListener("danzstak:call-device-ready", event => { if (event.detail?.registered === true) prompt(); });
+  // LANG baby-proof (owner 2026-11-25: "It really has got to be baby proof"): on SYNC, a phone that isn't verified for calls
+  // says so in words, with one green Verify that opens "verify your number" (L2: the slim SYNC line instead of a pop-up).
+  // Closing it lasts for this visit only: calls stay locked until the phone is verified.
+  const VERIFY_LATER = "danzstak_sync_verify_line_closed";
+  function verifyLine() {
+    if (!document.body.classList.contains("messages-page") || document.querySelector('.call-alerts-prompt[data-reason="unregistered"]')) return;
+    if (window.danzstakSyncDeviceRegistered?.() !== false || typeof window.danzstakOpenCallingDevices !== "function") return;
+    try { if (sessionStorage.getItem(VERIFY_LATER)) return; } catch {}
+    const before = anchor(); if (!before) return;
+    const bar = document.createElement("aside"), text = document.createElement("span"), go = document.createElement("button"), close = document.createElement("button");
+    bar.className = "call-alerts-prompt"; bar.setAttribute("role", "status"); bar.dataset.reason = "unregistered";
+    text.textContent = t("Calls and voice messages need this phone verified. Texting already works.");
+    go.type = "button"; go.className = "primary"; go.dataset.iconLayout = "label"; go.textContent = t("Verify");
+    go.addEventListener("click", () => window.danzstakOpenCallingDevices());
+    close.type = "button"; close.className = "call-alerts-close"; close.textContent = "×";
+    close.setAttribute("aria-label", t("Not now")); close.title = t("Not now");
+    close.addEventListener("click", () => { try { sessionStorage.setItem(VERIFY_LATER, "1"); } catch {} bar.remove(); });
+    bar.append(text, go, close);
+    before.before(bar);
+  }
+  addEventListener("danzstak:call-device-ready", event => { if (event.detail?.registered === true) prompt(); else if (event.detail?.registered === false) verifyLine(); });
+  addEventListener("danzstak:call-device-registered", () => document.querySelector('.call-alerts-prompt[data-reason="unregistered"]')?.remove());
   // A phone just registered for calls: if it still can't ring with SYNC closed, say so now, even if an earlier line was closed.
   addEventListener("danzstak:call-device-registered", () => setTimeout(() => prompt(true), 1500));
   setTimeout(() => prompt(), 2500);
