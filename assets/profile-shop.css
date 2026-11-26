@@ -23,8 +23,7 @@
 #profileContent.profile{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:14px;align-items:center}
 #profileContent.profile>*{grid-column:1/-1;min-width:0}
 #profileContent.profile>.avatar{grid-column:1;grid-row:1;margin-bottom:10px}
-#profileContent.profile>#profileName{grid-column:2;grid-row:1;align-self:start;margin:0;padding-top:8px;line-height:1.15;overflow-wrap:anywhere}
-#profileContent.profile>.profile-bio{margin:0 0 10px}
+#profileContent.profile>#profileName{grid-column:2;grid-row:1;align-self:start;padding-top:8px} /* type: the kit (.ds-profile-name) */
 /* Grid items do not collapse margins: each gap is set once (12px or less). */
 #profileContent.profile>p:not([class]):not(:has(>:not([hidden]))){display:none} /* the empty line that only holds the hidden Message link */
 

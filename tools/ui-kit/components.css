@@ -311,3 +311,9 @@ body:has(>.ds.ds-page){margin:0;padding:0}
 .ds.ds-actions>.ds-facepile{order:1;flex:none;align-items:center;min-height:44px;margin:0;padding:0 0 0 var(--ds-space-4);border:0;background:none;cursor:pointer}
 .ds.ds-actions .ds-facepile__face{width:36px;height:36px;font-size:14px}
 .ds.ds-actions .ds-facepile__face+.ds-facepile__face{margin-left:-18px}
+
+/* UIKIT screen 4b part 2c: the profile header's type. The name is the screen's title (28px, 800, width 110%; profile-editor.js
+   fitProfileName scales it down to fit its column beside the avatar, F4); the bio is body text. Transparent: they sit on the
+   profile card, not the kit canvas. */
+.ds.ds-profile-name{margin:0;background:transparent;font-size:var(--ds-text-28);font-weight:800;font-stretch:110%;line-height:1.15;letter-spacing:-.01em;color:var(--ds-ink);overflow-wrap:anywhere}
+.ds.ds-profile-bio{max-width:68ch;margin:0 0 var(--ds-space-8);background:transparent;font-size:var(--ds-text-15);line-height:22px;color:var(--ds-ink-soft);overflow-wrap:anywhere}

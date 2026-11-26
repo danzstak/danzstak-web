@@ -152,7 +152,7 @@ async function placeProfilePicture(source, extra = {}) {
 }
 
 const bioElement = document.createElement("p");
-bioElement.className = "profile-bio";
+bioElement.className = "profile-bio ds ds--day ds-profile-bio";
 // Fix-it 18 (owner 2026-11-17): no instructional placeholder. Visitors see nothing until there is a bio; the owner
 // gets one small "+ bio" icon that opens the editor.
 bioElement.hidden = true;

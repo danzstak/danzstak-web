@@ -359,6 +359,7 @@ jobs:
             '.\browser-checks\profile-showcase-fit.cjs'
             '.\browser-checks\profile-kit.cjs'
             '.\browser-checks\profile-actions-kit.cjs'
+            '.\browser-checks\profile-header-type.cjs'
             '.\browser-checks\image-position.cjs'
             '.\browser-checks\tribe-page.cjs'
             '.\browser-checks\sync-own-app.cjs'
