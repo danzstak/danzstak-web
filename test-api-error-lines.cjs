@@ -45,4 +45,22 @@ assert.match(guard, /window\.danzstakApiErrors \|\| \(window\.danzstakApiErrors 
 assert.match(guard, /const response = await guarded\(input, init\);\n    return apiPath\(input\) === null \? response : note\(response\);/, "only DanzStak's own API replies are noted");
 assert.match(guard, /response\.status < 400/, "successful replies are never noted");
 assert.match(guard, /response\.clone\(\)\.json\(\)/, "the page still reads the reply itself");
-console.log("API error lines: every language has its plain lines; only untranslated API errors use them.");
+
+// Part 4b: the server's most-seen error lines have their own words in it/fr/es. Every key is a line the server really
+// sends (so a reworded server line can't silently fall back), and no translation is empty or English.
+const tableStart = i18n.indexOf("const serverErrorLines={"), tableEnd = i18n.indexOf("\n };", tableStart);
+assert.ok(tableStart > 0 && tableEnd > tableStart, "i18n.js keeps the server error lines table");
+const table = vm.runInNewContext(`(${i18n.slice(tableStart + "const serverErrorLines=".length, tableEnd + 3)})`);
+const serverText = ["infrastructure/call-signaling/template.yaml", ...fs.readdirSync("infrastructure/auth-api").filter(file => file.endsWith(".mjs")).map(file => `infrastructure/auth-api/${file}`)]
+  .map(file => read(file).replace(/\\'/g, "'")).join("\n");
+assert.ok(Object.keys(table).length >= 140, "the most-seen lines are all there");
+for (const [line, translated] of Object.entries(table)) {
+  assert.ok(serverText.includes(`"${line}"`) || serverText.includes(`'${line}'`), `"${line}" is not a line the server sends`);
+  assert.equal(translated.length, 3, `"${line}": it, fr, es`);
+  for (const text of translated) {
+    assert.ok(text.trim().length > 3 && text !== line, `"${line}": a translation is missing`);
+    assert.ok(!english.test(text), `"${line}": "${text}" reads as English`);
+  }
+}
+assert.match(i18n, /for\(const \[english,lines\] of Object\.entries\(serverErrorLines\)\)\['it','fr','es'\]\.forEach\(\(code,index\)=>\{const dictionary=dictionaries\[code\]\|\|\(dictionaries\[code\]=\{\}\);if\(!dictionary\[english\]\)dictionary\[english\]=lines\[index\];\}\);/, "an existing translation is never replaced");
+console.log("API error lines: every language has its plain lines; the most-seen server lines have their own words in it/fr/es.");
