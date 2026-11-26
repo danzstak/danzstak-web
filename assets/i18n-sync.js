@@ -1409,7 +1409,9 @@
 "Live translation needs your microphone in the call.": "La traduzione dal vivo ha bisogno del tuo microfono nella chiamata.",
 "Sign in again to use live translation.": "Accedi di nuovo per usare la traduzione dal vivo.",
 "Wait until the call is connected.": "Aspetta che la chiamata sia collegata.",
-"The other person": "L'altra persona"
+"The other person": "L'altra persona",
+"call-key:Mute": "Muto",
+"call-key:Unmute": "Riattiva"
 },
 "fr": {
 "Live translation": "Traduction en direct",
@@ -1428,7 +1430,9 @@
 "Live translation needs your microphone in the call.": "La traduction en direct a besoin de ton micro dans l'appel.",
 "Sign in again to use live translation.": "Reconnecte-toi pour utiliser la traduction en direct.",
 "Wait until the call is connected.": "Attends que l'appel soit connecté.",
-"The other person": "L'autre personne"
+"The other person": "L'autre personne",
+"call-key:Mute": "Muet",
+"call-key:Unmute": "Réactiver"
 },
 "es": {
 "Live translation": "Traducción en directo",
@@ -1447,7 +1451,9 @@
 "Live translation needs your microphone in the call.": "La traducción en directo necesita tu micrófono en la llamada.",
 "Sign in again to use live translation.": "Vuelve a iniciar sesión para usar la traducción en directo.",
 "Wait until the call is connected.": "Espera a que la llamada esté conectada.",
-"The other person": "La otra persona"
+"The other person": "La otra persona",
+"call-key:Mute": "Silenciar",
+"call-key:Unmute": "Activar"
 },
 "de": {
 "Live translation": "Live-Übersetzung",
@@ -1466,7 +1472,9 @@
 "Live translation needs your microphone in the call.": "Die Live-Übersetzung braucht dein Mikrofon im Anruf.",
 "Sign in again to use live translation.": "Melde dich wieder an, um die Live-Übersetzung zu nutzen.",
 "Wait until the call is connected.": "Warte, bis der Anruf verbunden ist.",
-"The other person": "Die andere Person"
+"The other person": "Die andere Person",
+"call-key:Mute": "Stumm",
+"call-key:Unmute": "Ton an"
 },
 "he": {
 "Live translation": "תרגום חי",
@@ -1491,7 +1499,9 @@
 "Live translation needs your microphone in the call.": "תרגום חי צריך את המיקרופון שלך בשיחה.",
 "Sign in again to use live translation.": "צריך להתחבר שוב כדי להשתמש בתרגום חי.",
 "Wait until the call is connected.": "חכו עד שהשיחה תתחבר.",
-"The other person": "הצד השני"
+"The other person": "הצד השני",
+"call-key:Mute": "השתק",
+"call-key:Unmute": "בטל"
 }
 };
  for(const [lang,words] of Object.entries(add))Object.assign(t[lang]||(t[lang]={}),words);

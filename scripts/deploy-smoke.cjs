@@ -18,6 +18,18 @@ const checks = [
     status: 401,
     body: json => json && json.authenticated === false,
   },
+  // One signed-out route per route family that only the deploy script creates: API Gateway answers 500 (never 401)
+  // when it has no permission to invoke the function for that path. Owner 2026-11-26: live translation said
+  // "isn't available right now" on two phones for exactly that reason.
+  ...[["Live translation", "/call-translate"], ["AI profile", "/profile/ai"], ["AI shop", "/shop/ai"], ["Albums", "/albums"]].map(([label, path]) => ({
+    name: `Auth API (${label} route reaches the function)`,
+    path,
+    // Our own code answers a signed-out visitor (401, or 403/400 from a guard) with {"error": …}; API Gateway's own
+    // answers ({"message": "Internal Server Error"} / "Not Found") mean the route or its permission is missing.
+    status: code => code >= 400 && code < 500 && code !== 404,
+    expected: "our own 4xx",
+    body: json => Boolean(json && json.error),
+  })),
   {
     name: "Call-signaling (signed-out directory)",
     path: "/calls/directory",
@@ -37,7 +49,8 @@ async function once(check) {
     });
     let json = null;
     try { json = await response.json(); } catch { json = null; }
-    const ok = response.status === check.status && check.body(json);
+    const statusOk = typeof check.status === "function" ? check.status(response.status) : response.status === check.status;
+    const ok = statusOk && check.body(json);
     return { ok, status: response.status, ms: Date.now() - started };
   } catch (error) {
     return { ok: false, status: error.name === "AbortError" ? "timeout" : "network error", ms: Date.now() - started };
@@ -57,7 +70,7 @@ async function main() {
       if (attempt < attempts) await new Promise(resolve => setTimeout(resolve, pauseMs));
     }
     if (!result.ok) failed++;
-    const line = `${result.ok ? "PASS" : "FAIL"}  ${check.name}: GET ${check.path} -> ${result.status} (expected ${check.status}), ${result.ms} ms`;
+    const line = `${result.ok ? "PASS" : "FAIL"}  ${check.name}: GET ${check.path} -> ${result.status} (expected ${check.expected || check.status}), ${result.ms} ms`;
     console.log(line);
     lines.push(`| ${result.ok ? "pass" : "**FAIL**"} | ${check.name} | \`GET ${check.path}\` | ${result.status} | ${result.ms} ms |`);
   }

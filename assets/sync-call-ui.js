@@ -22,12 +22,16 @@
   const callKind = () => document.body.dataset.callMode || "";
 
   function icon(button, name) { button.dataset.icon = name; window.danzstakIcons?.upgrade?.(button); }
+  // The word under a call button has one short line (F15k): a language whose full phrase doesn't fit ("Disattiva
+  // microfono" was cut to "Disattiva microf…") gives a short word under "call-key:<label>"; the button's own name
+  // (aria-label, title) keeps the full phrase.
+  function keyWord(label) { const short = `call-key:${label}`, word = t(short); return word && word !== short ? word : t(label); }
   function key(button, label, extra = "") {
     const cell = document.createElement("div");
     cell.className = `ds-call-key ${extra}`.trim();
     const text = document.createElement("span");
     text.className = "ds-call-label";
-    text.textContent = t(label);
+    text.textContent = keyWord(label);
     text.setAttribute("aria-hidden", "true");
     cell.append(button, text);
     return cell;
@@ -42,7 +46,7 @@
   function setLabel(button, label) {
     button.setAttribute("aria-label", t(label)); button.title = t(label);
     const span = button.closest(".ds-call-key")?.querySelector(".ds-call-label");
-    if (span) span.textContent = t(label);
+    if (span) span.textContent = keyWord(label);
   }
 
   function toast(text) {

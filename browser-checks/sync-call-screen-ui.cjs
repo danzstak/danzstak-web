@@ -16,8 +16,8 @@ const { chromium } = require("playwright");
 const base = String(process.env.DANZSTAK_BASE_URL || process.env.DANZSTAK_LOCAL_URL || "http://127.0.0.1:8017").replace(/\/$/, "");
 const output = path.resolve("docs/screenshots/sync-call-screen");
 const json = (route, body) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
-async function setup(browser, width, picture = "") {
-  const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block", permissions: ["camera", "microphone"] });
+async function setup(browser, width, picture = "", locale = "en-US") {
+  const context = await browser.newContext({ locale, viewport: { width, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block", permissions: ["camera", "microphone"] });
   const page = await context.newPage(); page.errors = [];
   page.on("pageerror", e => page.errors.push(e.message));
   await page.route("https://api.danzstak.com/**", route => { const p = new URL(route.request().url()).pathname;
@@ -149,6 +149,22 @@ const overlap = (a, b) => a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 
       if (!incoming.full || !incoming.top) failures.push(`${label}: the incoming screen must cover the whole screen (${JSON.stringify(incoming)})`);
       if (incoming.name !== "Dee" || incoming.keys.map(k => k.label).join(",") !== "Decline,Accept" || incoming.keys.some(k => k.w < 44)) failures.push(`${label}: ${JSON.stringify(incoming)}`);
       if (width === 360 || width === 390) await page.screenshot({ path: path.join(output, `incoming-${width}.png`) });
+      await context.close();
+    }
+    // Owner 2026-11-26 (Italian phone): the word under Mute read "Disattiva microf…". No word under a call button is
+    // cut off in Italian, French or Spanish, muted or not, 
+    for (const locale of ["it-IT", "fr-FR", "es-ES"]) for (const width of [320, 360]) {
+      const label = `${locale} ${width}px`;
+      const { context, page } = await setup(browser, width, "", locale);
+      await call(page, "phone");
+      const cut = () => page.evaluate(() => [...document.querySelectorAll(".ds-call-keys .ds-call-label")].filter(el => el.scrollWidth > el.clientWidth + 1).map(el => el.textContent));
+      let labels = await cut();
+      if (labels.length) failures.push(`${label}: cut-off words under the call buttons: ${labels.join(", ")}`);
+      await page.evaluate(() => document.querySelectorAll(".ds-call-keys button")[2]?.click());
+      await page.waitForTimeout(250);
+      labels = await cut();
+      if (labels.length) failures.push(`${label} muted: cut-off words under the call buttons: ${labels.join(", ")}`);
+      if (width === 360) await page.screenshot({ path: path.join(output, `keys-${locale.slice(0, 2)}-${width}.png`) });
       await context.close();
     }
   } finally { await browser.close(); }
