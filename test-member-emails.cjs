@@ -6,9 +6,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");
+const { pathToFileURL } = require("node:url");
 
 (async () => {
-  const mod = await import(path.join(__dirname, "infrastructure/auth-api/member-emails.mjs"));
+  const mod = await import(pathToFileURL(path.join(__dirname, "infrastructure/auth-api/member-emails.mjs")).href);
   const index = fs.readFileSync(path.join(__dirname, "infrastructure/auth-api/index.mjs"), "utf8");
   const orders = fs.readFileSync(path.join(__dirname, "infrastructure/auth-api/ticket-orders.mjs"), "utf8");
 
