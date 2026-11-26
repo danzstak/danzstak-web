@@ -3,8 +3,9 @@
 // the check dispatches the same PushEvent / NotificationEvent the browser would, inside the worker:
 // - a call push shows a sticky notification with Accept and Decline; Decline POSTs /calls/decline with that callId,
 //   without opening a window, and closes the notification;
-// - a booking-reply push opens SYNC on that booking thread (/messages.html?section=bookings&outreach=<id>);
-// - a message push opens that exact chat (/messages.html?member=<id>).
+// - a booking-reply push opens SYNC on that booking thread (/sync/?section=bookings&outreach=<id>);
+// - a message push opens that exact chat (/sync/?member=<id>; task 34: SYNC notifications open SYNC's own address, so
+//   the installed SYNC app takes them when there is one).
 // Phones at 360 and 390 (screenshots of where each tap lands). Run: DANZSTAK_BASE_URL=http://127.0.0.1:8153 node browser-checks/sync-lockscreen-push.cjs
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = "1"; // let context.route see the worker's own fetches
 const { chromium } = require("playwright");
@@ -20,7 +21,8 @@ async function shot(page, name) { try { await page.screenshot({ path: path.join(
 
 (async () => {
   fs.mkdirSync(output, { recursive: true });
-  const browser = await chromium.launch({ channel: "msedge", headless: true });
+  const channel = process.env.DANZSTAK_BROWSER_CHANNEL ?? "msedge";
+  const browser = await chromium.launch(channel && channel !== "bundled" ? { channel, headless: true } : { headless: true });
   const failures = [];
   try {
     for (const width of [360, 390]) {
@@ -54,7 +56,7 @@ async function shot(page, name) { try { await page.screenshot({ path: path.join(
       let worker = context.serviceWorkers()[0] || await context.waitForEvent("serviceworker", { timeout: 10000 }).catch(() => null);
       if (!worker) { failures.push(`${label}: no service worker`); await context.close(); continue; }
       const live = async () => { const all = context.serviceWorkers(); return all[all.length - 1] || await context.waitForEvent("serviceworker", { timeout: 10000 }); };
-      const push = async payload => (await live()).evaluate(async data => { const event = new PushEvent("push", { data: JSON.stringify(data) }); const waits = []; event.waitUntil = p => waits.push(p); self.dispatchEvent(event); await Promise.all(waits); return (await self.registration.getNotifications()).map(n => ({ title: n.title, tag: n.tag, requireInteraction: n.requireInteraction, actions: (n.actions || []).map(a => a.action + ":" + a.title), data: n.data })); }, payload);
+      const push = async payload => (await live()).evaluate(async data => { const event = new PushEvent("push", { data: JSON.stringify(data) }); const waits = []; event.waitUntil = p => waits.push(p); self.dispatchEvent(event); await Promise.race([Promise.all(waits), new Promise(resolve => setTimeout(resolve, 1500))]); /* a call keeps ringing for 25 s: read it while it rings */ return (await self.registration.getNotifications()).map(n => ({ title: n.title, tag: n.tag, requireInteraction: n.requireInteraction, actions: (n.actions || []).map(a => a.action + ":" + a.title), data: n.data })); }, payload);
       const click = async (tag, action = "") => (await live()).evaluate(async ({ tag, action }) => { // A synthetic tap has no user activation, so focus() is stubbed and the window the worker would open/navigate to is recorded.
         if (!self.__focusStub) { self.__focusStub = true; WindowClient.prototype.focus = async function () { return this; }; const navigate = WindowClient.prototype.navigate; WindowClient.prototype.navigate = function (url) { self.__destination = url; return navigate.call(this, url); }; self.clients.openWindow = async url => { self.__destination = url; return null; }; }
         self.__destination = "";
@@ -65,7 +67,7 @@ async function shot(page, name) { try { await page.screenshot({ path: path.join(
       const call = shown.find(n => n.tag === `call-${CALL}`);
       if (!call) failures.push(`${label}: call notification not shown`);
       else {
-        if (call.actions.join("|") !== "answer:Accept|decline:Decline") failures.push(`${label}: call actions are ${call.actions.join("|")}`);
+        if (call.actions.join("|") !== "answer:🟢 Accept|decline:🔴 Decline") failures.push(`${label}: call actions are ${call.actions.join("|")}`);
         if (!call.requireInteraction) failures.push(`${label}: the call notification is not sticky`);
       }
       const pagesBefore = context.pages().length;
@@ -78,7 +80,7 @@ async function shot(page, name) { try { await page.screenshot({ path: path.join(
       // 2. Booking reply → the booking thread.
       await push({ type: "booking", title: "Club Lux answered your pitch", body: "We have the 14th open", tag: `booking-${OUTREACH}`, url: `/messages.html?section=bookings&outreach=${OUTREACH}` });
       const bookingTap = await click(`booking-${OUTREACH}`);
-      if (!String(bookingTap.destination).endsWith(`/messages.html?section=bookings&outreach=${OUTREACH}`)) failures.push(`${label}: booking tap goes to "${bookingTap.destination}"`);
+      if (!String(bookingTap.destination).endsWith(`/sync/?section=bookings&outreach=${OUTREACH}`)) failures.push(`${label}: booking tap goes to "${bookingTap.destination}"`);
       if (bookingTap.destination) await page.goto(bookingTap.destination, { waitUntil: "domcontentloaded" });
       const booking = await settled(page, () => ({ url: location.href, section: document.body.dataset.syncScreen || document.querySelector(".chat-filters .active")?.dataset.chatFilter || "" })) || {};
       if (!/bookings/.test(booking.section)) failures.push(`${label}: booking push did not open the bookings section (${JSON.stringify(booking)})`);
@@ -86,7 +88,7 @@ async function shot(page, name) { try { await page.screenshot({ path: path.join(
       // 3. Message → that chat.
       await push({ type: "message", title: "New DanzStak message", body: "SFScoop sent you a message.", tag: "message-abc", url: `/messages.html?member=${MEMBER}` });
       const messageTap = await click("message-abc");
-      if (!String(messageTap.destination).endsWith(`/messages.html?member=${MEMBER}`)) failures.push(`${label}: message tap goes to "${messageTap.destination}"`);
+      if (!String(messageTap.destination).endsWith(`/sync/?member=${MEMBER}`)) failures.push(`${label}: message tap goes to "${messageTap.destination}"`);
       if (messageTap.destination) await page.goto(messageTap.destination, { waitUntil: "domcontentloaded" });
       await page.waitForTimeout(800);
       const chat = await settled(page, () => ({ url: location.href, open: document.body.classList.contains("is-conversation-open"), name: document.getElementById("conversationName")?.textContent || "" })) || {};

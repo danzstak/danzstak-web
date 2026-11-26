@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v1093";
+const CACHE = "danzstak-shell-v1094";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/time-label.js", "/assets/page-missing.js", "/assets/scramble-by-seller.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -317,16 +317,21 @@ self.addEventListener("notificationclick", event => {
   // reused; computers still bring their open window forward. A step that hangs never swallows the tap either.
   const phone = /Android|iPhone|iPad|iPod/i.test(self.navigator?.userAgent || "");
   const inTime = (promise, ms = 1500) => Promise.race([promise, new Promise(resolve => setTimeout(() => resolve(null), ms))]);
+  // Owner 2026-11-26 (a SYNC notification "does not open the app"): a tap gives the worker ONE go at bringing a window
+  // forward or opening one; Chrome counts focus() and openWindow() against the same allowance. Focusing a window first
+  // and then finding it can't take the address (a page the worker doesn't control, a window that closed) spent that go,
+  // so the openWindow() after it was refused and the tap did nothing. A window is now asked to take the address first
+  // (that needs no allowance) and only focused once it has; trying windows stops after 2.5 s so the app still opens.
+  const giveUpAt = Date.now() + 2500;
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async found => {
     const ours = found.filter(client => new URL(client.url).origin === self.location.origin && client.frameType !== "nested" && (!phone || client.focused || client.visibilityState === "visible"));
     const clients = syncDestination ? ours.sort((a, b) => Number(new URL(b.url).pathname.startsWith("/sync/")) - Number(new URL(a.url).pathname.startsWith("/sync/"))) : ours;
     for (const client of clients) {
+      if (Date.now() >= giveUpAt) break;
       try {
-        // Focus while the notification tap still supplies user activation.
-        await inTime(client.focus());
-        const navigated = await inTime(client.navigate(destination));
-        if (navigated) return navigated;
-      } catch { /* A closed or unavailable window must not swallow the tap. */ }
+        const navigated = await inTime(client.navigate(destination), Math.max(0, Math.min(1500, giveUpAt - Date.now())));
+        if (navigated) return inTime(navigated.focus(), 1500).catch(() => navigated);
+      } catch { /* A closed window, or one the worker doesn't control, must not swallow the tap. */ }
     }
     const opened = await self.clients.openWindow(destination);
     if (opened) return opened.focus().catch(() => opened);
