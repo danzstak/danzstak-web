@@ -10,7 +10,7 @@ assert.match(source,/oauthCookieName,[\s\S]{0,100}browserSecret,[\s\S]{0,100}log
 assert.match(source,/redirect\(siteUrl \+ "\/\?signin=expired", \[expiredBrowserCookie\]\)/,'an expired phone login must return to a retryable DanzStak screen instead of raw API output');
 assert.match(source,/if \(mode === "login" \|\| mode === "reauth"\) url\.searchParams\.set\("prompt", "login"\);/,'explicit login must force fresh email and password fields instead of Cognito remembered-account reuse');
 assert.match(source,/mode === "reset"[\s\S]{0,80}"\/forgotPassword"/,'password recovery must use Cognito managed login instead of trapping members on DanzStak');
-assert.match(source,/path === "\/auth\/reset-password"[\s\S]{0,100}startLogin\("reset"\)/,'the public password-recovery route must open Cognito forgot-password');
+assert.match(source,/path === "\/auth\/reset-password"[\s\S]{0,100}startLogin\("reset", "", "", requestLanguage\(event\)\)/,'the public password-recovery route must open Cognito forgot-password');
 assert.match(deploySource,/"GET \/auth\/reset-password"/,'the Auth API deployment must publish the password-recovery route through API Gateway');
 assert.match(recoveryDeploySource,/\[switch\]\$ConfirmProduction/,'the scoped auth release must require an explicit production switch');
 assert.match(recoveryDeploySource,/GET \/auth\/login[\s\S]+get-integration[\s\S]+IntegrationUri/,'the scoped auth release must derive and verify the live login integration');

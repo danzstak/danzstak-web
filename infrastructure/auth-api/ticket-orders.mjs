@@ -102,7 +102,7 @@ export function createTicketOrders({ db, commands, authenticate, corsHeaders, ta
     try {
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
         { Update: { TableName: tableName, Key: tierKey(eventId, tierId), UpdateExpression: "SET reserved = if_not_exists(reserved, :z) + :q", ConditionExpression: "(attribute_not_exists(sold) OR sold = :sold) AND (attribute_not_exists(reserved) OR reserved <= :max) AND #s = :onsale", ExpressionAttributeNames: { "#s": "status" }, ExpressionAttributeValues: { ":z": N(0), ":q": N(quantity), ":sold": N(sold), ":max": N(capacity - sold - quantity), ":onsale": S("on_sale") } } },
-        { Put: { TableName: tableName, Item: { ...orderKey(orderId), entityType: S("ticket_order"), orderId: S(orderId), eventId: S(eventId), tierId: S(tierId), buyerId: S(userId), organizerId: S(ev.organizerId?.S || ""), quantity: N(quantity), unitCents: N(price), subtotalCents: N(subtotal), feeCents: N(fee), totalCents: N(subtotal + fee), payoutCents: N(subtotal), currency: S("usd"), named: { BOOL: named }, attendees: { L: attendees.map(S) }, status: S("pending"), releaseAfter: S(releaseAfter({ startsAt: ev.startsAt?.S, endsAt: ev.endsAt?.S })), createdAt: S(at), updatedAt: S(at) }, ConditionExpression: "attribute_not_exists(pk)" } }
+        { Put: { TableName: tableName, Item: { ...orderKey(orderId), entityType: S("ticket_order"), orderId: S(orderId), eventId: S(eventId), tierId: S(tierId), buyerId: S(userId), organizerId: S(ev.organizerId?.S || ""), quantity: N(quantity), unitCents: N(price), subtotalCents: N(subtotal), feeCents: N(fee), totalCents: N(subtotal + fee), payoutCents: N(subtotal), currency: S("usd"), named: { BOOL: named }, attendees: { L: attendees.map(S) }, buyerLanguage: S(String(event?.headers?.["accept-language"] || event?.headers?.["Accept-Language"] || "").slice(0, 200)), status: S("pending"), releaseAfter: S(releaseAfter({ startsAt: ev.startsAt?.S, endsAt: ev.endsAt?.S })), createdAt: S(at), updatedAt: S(at) }, ConditionExpression: "attribute_not_exists(pk)" } }
       ] }));
     } catch { return json(409, { error: "Those tickets were just taken. Try again." }, headers); }
     try {
@@ -150,7 +150,7 @@ export function createTicketOrders({ db, commands, authenticate, corsHeaders, ta
     ] }));
     try {
       const email = await emailForUser(order.buyerId.S);
-      if (email) await sendTicketEmail({ to: email, event: { title: ev?.title?.S || "Event", venue: [ev?.venueName?.S, ev?.venueAddress?.S].filter(Boolean).join(", "), startsAt: ev?.startsAt?.S, timezone: ev?.timezone?.S || "UTC" }, tier: tier?.name?.S || "Ticket", named, orderId, tickets: await Promise.all(tickets.map(async t => ({ ...t, qrPng: await renderQr(`DANZSTAK-TICKET:${order.eventId.S}:${t.code}`) }))) });
+      if (email) await sendTicketEmail({ to: email, event: { title: ev?.title?.S || "Event", venue: [ev?.venueName?.S, ev?.venueAddress?.S].filter(Boolean).join(", "), startsAt: ev?.startsAt?.S, timezone: ev?.timezone?.S || "UTC" }, tier: tier?.name?.S || "Ticket", named, orderId, language: order.buyerLanguage?.S || "", tickets: await Promise.all(tickets.map(async t => ({ ...t, qrPng: await renderQr(`DANZSTAK-TICKET:${order.eventId.S}:${t.code}`) }))) });
     } catch (error) { console.error("Ticket email failed", orderId, error?.name || "error"); }
   }
 

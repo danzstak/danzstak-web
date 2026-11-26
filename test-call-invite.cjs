@@ -174,7 +174,7 @@ const call = async (method, rawPath, { session, body, query } = {}) => {
   const safe = vm.runInNewContext(`(${safeSource})`);
   assert.equal(safe(`/messages.html?invite=${token}`), `/messages.html?invite=${token}`);
   for (const bad of ["https://evil.example/", "//evil.example", `/messages.html?invite=${token}&x=1`, "/feed.html", `/messages.html?invite=${token}#`, "/messages.html?invite=short"]) assert.equal(safe(bad), "", `${bad} must be refused`);
-  assert.match(auth, /startLogin\("signup", acceptanceId, event\.queryStringParameters\?\.next\)/);
+  assert.match(auth, /startLogin\("signup", acceptanceId, event\.queryStringParameters\?\.next, requestLanguage\(event\)\)/);
   assert.match(auth, /siteUrl \+ \(returnPath \|\| "\/"\)/);
 
   // ---- Frontend ----
