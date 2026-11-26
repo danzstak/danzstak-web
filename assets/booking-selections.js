@@ -557,7 +557,9 @@
       const chip = document.createElement("button");
       chip.type = "button"; chip.className = `pipeline-chip stage-${stage}`; chip.dataset.stage = stage;
       chip.setAttribute("aria-pressed", String(stageFilter === stage));
-      chip.textContent = `${stage === "all" ? "All" : pipeline.STAGE_LABELS[stage]} ${stage === "all" ? venues.length : counts.get(stage)}`;
+      // The stage word goes through the translation layer on its own: "Found 1" as one line has no translation.
+      const stageWord = stage === "all" ? "All" : pipeline.STAGE_LABELS[stage];
+      chip.textContent = `${window.danzstakTranslate?.(stageWord) || stageWord} ${stage === "all" ? venues.length : counts.get(stage)}`;
       chip.addEventListener("click", () => { stageFilter = stage; render(); document.querySelector(`#pipelineFilters [data-stage="${stage}"]`)?.focus(); });
       bar.append(chip);
     }
