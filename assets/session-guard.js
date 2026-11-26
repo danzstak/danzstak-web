@@ -55,7 +55,28 @@
     } catch { return null; }
   }
 
+  // LANG part 4: every error line the API sends is noted with its status, so i18n.js can show a member reading another
+  // language a plain line in their own language when those words have no translation yet (never English).
+  const apiErrors = window.danzstakApiErrors || (window.danzstakApiErrors = new Map());
+  async function note(response) {
+    if (!response || response.status < 400 || !/json/i.test(response.headers.get("content-type") || "")) return response;
+    try {
+      const data = await response.clone().json();
+      for (const value of [data?.error, data?.message]) {
+        const line = typeof value === "string" ? value.trim() : "";
+        if (!line || line.length > 400) continue;
+        if (apiErrors.size >= 300) apiErrors.delete(apiErrors.keys().next().value);
+        apiErrors.set(line, response.status);
+      }
+    } catch { /* not JSON after all: the page's own handling stands */ }
+    return response;
+  }
+
   window.fetch = async function guardedFetch(input, init) {
+    const response = await guarded(input, init);
+    return apiPath(input) === null ? response : note(response);
+  };
+  async function guarded(input, init) {
     const path = apiPath(input);
     if (path === null || path.startsWith("/auth/")) {
       const response = await nativeFetch(input, init);
@@ -74,7 +95,7 @@
     }
     if (refreshed === 401 && seen()) return expired() ? hold(init) : response;
     return response; // never signed in here, or the network is down: the page's own handling stands
-  };
+  }
 
   // ---- the sheet ----
   let sheet = null, dismissedAt = 0;

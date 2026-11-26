@@ -1248,6 +1248,28 @@
  let queued=false;
  function normalize(code){const raw=String(code||'');if(supported.has(raw))return raw;const lower=raw.toLowerCase();if(/^zh-(?:tw|hk|mo|hant)/.test(lower)&&supported.has('zh-Hant'))return'zh-Hant';if(/^zh/.test(lower)&&supported.has('zh-Hans'))return'zh-Hans';const exact=[...supported].find(value=>value.toLowerCase()===lower);if(exact)return exact;const base=lower.split('-')[0];return supported.has(base)?base:'en';}
  const patternCache={};
+ // LANG part 4 (owner 2026-11-25: "These people really don't understand English not a word"): a reply from the API
+ // whose words have no translation yet must never show English to a member reading another language. session-guard.js
+ // notes every API error line it sees (with its status) in window.danzstakApiErrors; when one of those lines reaches
+ // the screen untranslated, it is shown as the plain line for what happened (wrong input, not allowed, gone, too many
+ // tries, purchase needed, our side). Lines that do have a translation keep their own, more precise words.
+ const apiErrorLines={
+  es:["No se pudo hacer. Revísalo e inténtalo de nuevo.","No puedes hacer eso aquí.","Eso ya no está aquí.","Demasiados intentos. Espera un momento y vuelve a intentarlo.","Esto necesita una compra primero.","Algo falló de nuestro lado. Inténtalo de nuevo en un momento.","Vuelve a iniciar sesión para seguir."],
+  fr:["Ça n’a pas marché. Vérifie et réessaie.","Tu ne peux pas faire ça ici.","Ce n’est plus là.","Trop d’essais. Attends un moment, puis réessaie.","Il faut d’abord un achat.","Un problème est survenu de notre côté. Réessaie dans un instant.","Reconnecte-toi pour continuer."],
+  de:["Das hat nicht geklappt. Prüf es und versuch es noch einmal.","Das kannst du hier nicht tun.","Das gibt es nicht mehr.","Zu viele Versuche. Warte kurz und versuch es dann noch einmal.","Dafür ist zuerst ein Kauf nötig.","Bei uns ist etwas schiefgelaufen. Versuch es gleich noch einmal.","Melde dich erneut an, um weiterzumachen."],
+  pt:["Não foi possível. Verifica e tenta de novo.","Não podes fazer isso aqui.","Isso já não está aqui.","Demasiadas tentativas. Espera um momento e tenta de novo.","Isto precisa primeiro de uma compra.","Algo correu mal do nosso lado. Tenta de novo daqui a pouco.","Entra de novo para continuar."],
+  it:["Non è andato a buon fine. Controlla e riprova.","Non puoi farlo qui.","Non è più qui.","Troppi tentativi. Aspetta un momento e riprova.","Prima serve un acquisto.","Qualcosa è andato storto da parte nostra. Riprova tra un momento.","Accedi di nuovo per continuare."],
+  ko:["처리되지 않았어요. 확인한 뒤 다시 시도해 주세요.","여기서는 할 수 없어요.","더 이상 없어요.","시도가 너무 많아요. 잠시 후 다시 시도해 주세요.","먼저 구매가 필요해요.","저희 쪽에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.","계속하려면 다시 로그인해 주세요."],
+  ja:["うまくいきませんでした。確認して、もう一度お試しください。","ここではそれはできません。","もう見つかりません。","試行回数が多すぎます。少し待ってから、もう一度お試しください。","先に購入が必要です。","こちら側で問題が発生しました。しばらくしてからもう一度お試しください。","続けるには、もう一度サインインしてください。"],
+  "zh-Hans":["没有成功。请检查后再试一次。","你不能在这里这样做。","这已经不在了。","尝试次数过多。请稍等片刻再试。","需要先购买。","我们这边出了点问题。请稍后再试。","请重新登录以继续。"],
+  "zh-Hant":["沒有成功。請檢查後再試一次。","你不能在這裡這樣做。","這已經不在了。","嘗試次數過多。請稍等片刻再試。","需要先購買。","我們這邊出了點問題。請稍後再試。","請重新登入以繼續。"],
+  fil:["Hindi ito natuloy. Suriin at subukan ulit.","Hindi mo iyan magagawa rito.","Wala na iyan dito.","Masyadong maraming subok. Maghintay sandali, saka subukan ulit.","Kailangan muna itong bilhin.","May nagkaproblema sa amin. Subukan ulit maya-maya.","Mag-sign in ulit para magpatuloy."],
+  hi:["यह नहीं हो पाया। जाँचें और फिर से कोशिश करें।","आप यहाँ यह नहीं कर सकते।","यह अब यहाँ नहीं है।","बहुत ज़्यादा कोशिशें। थोड़ा रुकें, फिर कोशिश करें।","इसके लिए पहले खरीदारी ज़रूरी है।","हमारी तरफ़ कुछ गड़बड़ हुई। थोड़ी देर में फिर कोशिश करें।","जारी रखने के लिए फिर से साइन इन करें।"],
+  vi:["Không thực hiện được. Hãy kiểm tra rồi thử lại.","Bạn không thể làm điều đó ở đây.","Nội dung này không còn nữa.","Thử quá nhiều lần. Đợi một chút rồi thử lại.","Cần mua trước.","Có lỗi từ phía chúng tôi. Hãy thử lại sau giây lát.","Hãy đăng nhập lại để tiếp tục."],
+  th:["ทำไม่สำเร็จ ตรวจสอบแล้วลองอีกครั้ง","คุณทำแบบนั้นที่นี่ไม่ได้","ไม่มีสิ่งนี้แล้ว","ลองหลายครั้งเกินไป รอสักครู่แล้วลองใหม่","ต้องซื้อก่อน","เกิดปัญหาจากฝั่งเรา ลองใหม่อีกครั้งในอีกสักครู่","ลงชื่อเข้าใช้อีกครั้งเพื่อดำเนินต่อ"],
+  id:["Tidak berhasil. Periksa lalu coba lagi.","Kamu tidak bisa melakukan itu di sini.","Itu sudah tidak ada.","Terlalu banyak percobaan. Tunggu sebentar, lalu coba lagi.","Ini perlu dibeli dulu.","Ada masalah di pihak kami. Coba lagi sebentar lagi.","Masuk lagi untuk melanjutkan."]
+ };
+ function apiErrorLine(language,status){const lines=apiErrorLines[language];if(!lines)return'';const n=Number(status)||500;return lines[n===401?6:n===402?4:n===403?1:n===404||n===410?2:n===429?3:n>=500?5:0];}
  function translate(raw){
   const source=String(raw),original=source.trim(),language=normalize(document.documentElement.lang),dictionary=dictionaries[language]||{};
   let result=dictionary[original];
@@ -1296,6 +1318,7 @@
   if(!result){const count=trimmed.match(/^(Notifications|Friends|Messages) \((\d+)\)$/);if(count)result=(dictionary[count[1]]||count[1])+' ('+count[2]+')';}
   if(!result){const list=(window.danzstakPatterns||{})[language];if(list){const cache=patternCache[language]||(patternCache[language]=list.map(([en,out])=>[new RegExp('^'+en.split('{}').map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('(.*?)')+'$'),out]));for(const [pattern,out] of cache){const match=trimmed.match(pattern);if(match){result=out.replace(/\{(\d+)\}/g,(_,index)=>{const value=match[Number(index)+1]??'';return dictionary[value]||value;});break;}}}}
   if(!result&&language!=='en'){for(const separator of [' — ',' · ']){if(!trimmed.includes(separator))continue;const parts=trimmed.split(separator),translated=parts.map(part=>translate(part));if(translated.some((part,index)=>part!==parts[index])){result=translated.join(separator);break;}}}
+  if(!result&&language!=='en'){const status=window.danzstakApiErrors?.get?.(trimmed);if(status)result=apiErrorLine(language,status);}
   if(!result)return source;
   return source.slice(0,source.indexOf(original))+result+source.slice(source.indexOf(original)+original.length);
  }
