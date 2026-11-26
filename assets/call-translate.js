@@ -347,7 +347,9 @@
     stage().appendChild(prompt);
     yes.focus();
   }
-  function firstName() { return String(partnerName || "").split(/\s+/)[0] || t("The other person"); }
+  // The person on the call: the name they sent, else the chat's own (chat.js contactName, the name on the call screen).
+  function callName() { try { if (typeof contactName !== "undefined" && contactName) return String(contactName); } catch { /* not on SYNC's page */ } return document.getElementById("conversationName")?.textContent?.trim() || ""; } // eslint-disable-line no-undef
+  function firstName() { return String(partnerName || callName() || "").split(/\s+/)[0] || t("The other person"); }
 
   // ---------- messages from the other phone (chat.js hands every {"type":"call-translate… here) ----------
   function receive(raw, senderName = "") {

@@ -718,6 +718,15 @@ try {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourManagerBillingFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/tour-manager/*" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour Manager billing API invoke permission failed." }
   } }
+  # Owner 2026-11-26 (two phones: "Live translation isn't available right now"): the /call-translate routes were created,
+  # but none of the per-path permissions above lets API Gateway invoke this function for them, so API Gateway answered
+  # 500 before the code ran (the same gap on /profile/ai, /shop/ai and /share/epk). Every route of this API integrates
+  # with this one function, so one permission for the whole API replaces the need to remember a new one per route
+  # family. test-auth-api-route-permissions.cjs fails when a route in the list above has no permission.
+  if ($permission -notmatch "AllowAuthApiRoutesFromApiGateway") { Invoke-Change "Allow API Gateway to invoke the Auth API for every route of its own API (AllowAuthApiRoutesFromApiGateway)" {
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowAuthApiRoutesFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:$($identity.Account):${ApiId}/*" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Auth API invoke permission for its own routes failed." }
+  } }
   if ($DryRun) {
     $summary = "DRY RUN: a real run would make $($script:PlannedChanges.Count) change(s), listed above as PLAN. Nothing was changed."
     Write-Host $summary
