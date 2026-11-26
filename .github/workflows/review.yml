@@ -246,6 +246,7 @@ jobs:
             '.\browser-checks\push-alert-prompt.cjs'
             '.\browser-checks\call-alerts-blocked.cjs'
             '.\browser-checks\call-push-closed.cjs'
+            '.\browser-checks\sync-lockscreen-push.cjs'
             '.\browser-checks\call-alerts-prompt.cjs'
             '.\browser-checks\unregistered-ring.cjs'
             '.\browser-checks\epk-booking-connected-handoff.cjs'
