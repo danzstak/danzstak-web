@@ -37,6 +37,12 @@ const screens = {
   sync: "messages.html",
   settings: "feed.html?view=settings",
   support: "support.html",
+  // Part 2: what opens behind a tap (sheets, dialogs, panels), each tapped at its centre like a thumb would.
+  postMenu: { url: "feed.html", tap: [".post .post-menu-toggle"] },
+  composer: { url: "feed.html", tap: ["#postText", ".post-location-picker > summary"] },
+  syncDevice: "messages.html?device=register",
+  profileEdit: "profile.html?edit=1",
+  createEvent: { url: "feed.html?view=events", tap: [".ev-primary"] },
 };
 
 // English words that never appear in Italian, French or Spanish UI. Words the three languages share with English
@@ -56,14 +62,14 @@ events event tickets ticket price free buy sell sold item items cart checkout or
 help support terms language languages dark light mode theme
 nothing yet empty caught up try again something went wrong error failed couldnt couldn't can't cant
 welcome hello hi thanks thank please sorry
-venue venues gigs dates
+venue venues gigs dates bookings contacts
 not for of is are will be can could would should example examples sale look looks refresh map found web address
 buyers buyer sellers seller receive fee fees under plus shops sections an my our their it its into
 `.split(/\s+/).filter(Boolean));
 // Words that are also everyday words in the member's language ("in", "date", "camera" and "private" are Italian; "on" is
-// French; "post", "home", "booking", "pitch" and "bio" are used as-is in all three).
+// French; "post", "home", "booking", "pitch", "bio" and "line-up" are used as-is in all three).
 const sharedWords = ["post", "posts", "home", "booking", "pitch", "bio", "club", "tour", "online", "live"];
-const alsoLocal = { it: ["in", "camera", "date", "private", "no", "come", "dove", "account", "privacy", "look", "fan", "manager", "web", "shop"], fr: ["on", "date", "dates", "plus", "look", "me", "sections", "section", "comment", "public", "photo", "photos", "message", "messages", "commentaire", "notifications", "notification", "public", "profile", "location", "page", "pages", "code", "minute", "minutes", "ticket", "tickets", "mode", "support", "terms", "venue", "items"], es: ["no", "me", "come", "solo", "online", "web", "fan", "manager", "a", "privacy"] };
+const alsoLocal = { it: ["in", "camera", "date", "private", "no", "come", "dove", "account", "privacy", "look", "fan", "manager", "web", "shop"], fr: ["on", "web", "contacts", "date", "dates", "plus", "look", "me", "sections", "section", "comment", "public", "photo", "photos", "message", "messages", "commentaire", "notifications", "notification", "public", "profile", "location", "page", "pages", "code", "minute", "minutes", "ticket", "tickets", "mode", "support", "terms", "venue", "items"], es: ["no", "me", "come", "solo", "online", "web", "fan", "manager", "a", "privacy"] };
 // The Dailies clapper (SCENE / TAKE) and the empty strip's film set calls ("ROLL CAMERA" … "ACTION!") are the owner's
 // film-set labels, kept as they are (CLAUDE.md "Dailies come from posts"), so they're left out of the sweep.
 // Brand names and words that are names, not English.
@@ -131,7 +137,7 @@ function collect() {
 
 function englishIn(text, lang) {
   const local = new Set([...sharedWords, ...(alsoLocal[lang] || [])]);
-  const clean = text.replace(brand, " ").replace(/@\w+|https?:\S+|\S+@\S+|\S+\.(html|com|it|fr|es)\b/g, " ");
+  const clean = text.replace(brand, " ").replace(/\bline-up\b/gi, " ").replace(/@\w+|https?:\S+|\S+@\S+|\S+\.(html|com|it|fr|es)\b/g, " ");
   return [...new Set((clean.toLowerCase().match(/\p{L}[\p{L}'’]+/gu) || []).map(w => w.replace(/['’]s$/, "")).filter(w => english.has(w) && !local.has(w)))];
 }
 
@@ -150,8 +156,17 @@ function englishIn(text, lang) {
       page.on("pageerror", error => found.push({ lang, screen: name, words: "(script error)", text: error.message.split("\n")[0].slice(0, 140), where: "", kind: "error" }));
       await serve(page); await mockApi(page, lang);
       try {
-        await page.goto(`${origin}/${screens[name]}`, { waitUntil: "load", timeout: 30000 });
+        const screen = typeof screens[name] === "string" ? { url: screens[name] } : screens[name];
+        await page.goto(`${origin}/${screen.url}`, { waitUntil: "load", timeout: 30000 });
         await page.waitForTimeout(2500);
+        for (const selector of screen.tap || []) {
+          const target = page.locator(selector).first();
+          if (!(await target.count())) { found.push({ lang, screen: name, words: "(nothing to tap)", text: selector, where: "", kind: "error" }); continue; }
+          await target.scrollIntoViewIfNeeded().catch(() => {});
+          const box = await target.boundingBox();
+          if (box) await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2); else await target.click({ force: true });
+          await page.waitForTimeout(800);
+        }
         const seen = new Set();
         for (const item of await page.evaluate(collect)) {
           const words = englishIn(item.text, lang);
@@ -176,6 +191,48 @@ function englishIn(text, lang) {
       const after = await page.locator(".post .post-audience").first().textContent().catch(() => "");
       if (after.trim() !== "🌎 Pubblico") found.push({ lang: "it", screen: "feed", words: "(slow i18n.js)", text: `audience reads "${after.trim()}" (first drawn as "${audience.trim()}")`, where: ".post-audience", kind: "text" });
       await context.close();
+    }
+    // Baby-proof (owner 2026-11-25: "It really has got to be baby proof… they don't know what they're doing"): a brand-new
+    // Italian member finds each first-time action by its visible word, on screen without scrolling, and a thumb on the
+    // centre of that word's button reaches it. Registering the phone then shows "Invia codice" after that one tap.
+    if (langs.includes("it")) {
+      const findable = [
+        { action: "post a photo", url: "feed.html", word: "Foto" },
+        { action: "post a video", url: "feed.html", word: "Video" },
+        { action: "send a message", url: "messages.html", word: "Inizia una chat" },
+        { action: "call", url: "messages.html", word: "Chiamate" },
+        { action: "register the phone", url: "messages.html", word: "Verifica", then: "Invia codice" },
+      ];
+      for (const item of findable) {
+        const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: "block", locale: "it-IT" });
+        await context.addInitScript(() => { Object.defineProperty(navigator, "language", { get: () => "it-IT" }); Object.defineProperty(navigator, "languages", { get: () => ["it-IT"] }); });
+        const page = await context.newPage();
+        await serve(page); await mockApi(page, "it");
+        const fail = text => found.push({ lang: "it", screen: "baby-proof", words: `(${item.action})`, text, where: item.url, kind: "findable" });
+        try {
+          await page.goto(`${origin}/${item.url}`, { waitUntil: "load", timeout: 30000 });
+          await page.waitForTimeout(3000);
+          const spot = await page.evaluate(word => {
+            for (const el of document.querySelectorAll("button, a, label, [role=button], [role=tab]")) {
+              const text = (el.innerText || "").replace(/\s+/g, " ").trim(), r = el.getBoundingClientRect();
+              if (text !== word && !text.startsWith(word + " ") && text !== word.toUpperCase()) continue;
+              if (r.width < 2 || r.height < 2 || r.top < 0 || r.bottom > innerHeight || r.left < 0 || r.right > innerWidth) continue;
+              const x = r.left + r.width / 2, y = r.top + r.height / 2, hit = document.elementFromPoint(x, y);
+              return { x, y, hit: Boolean(hit && (el === hit || el.contains(hit))), size: Math.min(r.width, r.height) };
+            }
+            return null;
+          }, item.word);
+          if (!spot) { fail(`no "${item.word}" on screen without scrolling`); continue; }
+          if (!spot.hit) { fail(`"${item.word}" is covered: a tap on its centre lands on something else`); continue; }
+          if (spot.size < 44 && item.word !== "Chiamate") fail(`"${item.word}" is ${Math.round(spot.size)}px: under 44px`);
+          if (item.then) {
+            await page.touchscreen.tap(spot.x, spot.y);
+            const next = await page.getByText(item.then, { exact: true }).first().isVisible({ timeout: 5000 }).catch(() => false);
+            if (!next) fail(`one tap on "${item.word}" doesn't show "${item.then}"`);
+          }
+        } catch (error) { fail(error.message.split("\n")[0]); }
+        await context.close();
+      }
     }
   } finally { await browser.close(); }
   for (const f of found) console.log(`${f.lang} ${f.screen.padEnd(13)} [${f.words}] "${f.text}" (${f.kind} @ ${f.where})`);
