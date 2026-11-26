@@ -87,6 +87,8 @@ async function openFromMore(page, tag, label = "Live translation") {
       await openFromMore(page, tag);
       await page.waitForSelector(".call-translate-sheet #callTranslateLanguage");
       assert.equal(await page.inputValue("#callTranslateLanguage"), "en");
+      // Owner 2026-11-26: the sheet said "The other person's words"; it names who is on the call.
+      { const note = await page.textContent(".call-translate-sheet p"); assert.ok(!/The other person/.test(note) && /'s words/.test(note), `${tag}: the sheet names the person on the call ("${note}")`); }
       await centreTap(page, ".call-translate-go", tag);
       await page.waitForFunction(() => (window.__sent || []).some(m => m.type === "call-translate-ask"));
       assert.deepEqual((await sent(page)).find(m => m.type === "call-translate-ask"), { type: "call-translate-ask", lang: "en" });
