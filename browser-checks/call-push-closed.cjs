@@ -85,13 +85,37 @@ function serverPushCopy() {
     const registration = registrations.find(item => item.scopeURL === `${origin}/` && !item.isDeleted);
     assert.ok(registration, "the app's service worker registration is known to the browser");
 
-    const latestWorker = async () => { const all = context.serviceWorkers(); return all[all.length - 1] || await context.waitForEvent("serviceworker", { timeout: 10000 }); };
-    const shown = async () => (await latestWorker()).evaluate(async tag => (await self.registration.getNotifications({ tag })).map(n => ({ title: n.title, body: n.body, tag: n.tag, requireInteraction: n.requireInteraction, actions: n.actions.map(a => ({ action: a.action, title: a.title })), data: n.data })), callPush.tag);
-    const waitFor = async (test, label) => { let last; for (let i = 0; i < 40; i++) { try { last = await shown(); if (test(last)) return last; } catch { /* the worker is starting */ } await blank.waitForTimeout(250); } assert.fail(`${label}: ${JSON.stringify(last)}`); };
+    // CI-FLAKE (2026-11-26): this used to poll a worker handle for a fixed 10 s, and on a busy Windows runner the handle
+    // could be a worker that had already stopped (the push wakes a new one), so every try failed and the check timed out.
+    // Now the check follows the browser's own events: each new service worker replaces the one it watches, a closed one
+    // is dropped, and the wait for a notification happens inside the live worker until it shows (30 s at most).
+    let worker = context.serviceWorkers().at(-1) || null;
+    const follow = candidate => { worker = candidate; candidate.on("close", () => { if (worker === candidate) worker = null; }); };
+    if (worker) follow(worker);
+    context.on("serviceworker", follow);
+    const latestWorker = async () => worker || await context.waitForEvent("serviceworker", { timeout: 30000 });
+    const shown = async (tag = callPush.tag) => (await latestWorker()).evaluate(async tag => (await self.registration.getNotifications({ tag })).map(n => ({ title: n.title, body: n.body, tag: n.tag, requireInteraction: n.requireInteraction, actions: n.actions.map(a => ({ action: a.action, title: a.title })), data: n.data })), tag);
+    // Waits inside the worker until `tag` has exactly `want` notifications; resolves as soon as it does.
+    const waitForCount = async (want, label, tag = callPush.tag) => {
+      const deadline = Date.now() + 30000;
+      let last;
+      while (Date.now() < deadline) {
+        try {
+          last = await (await latestWorker()).evaluate(async ({ tag, want, ms }) => {
+            const end = Date.now() + ms;
+            let list = await self.registration.getNotifications({ tag });
+            while (list.length !== want && Date.now() < end) { await new Promise(resolve => setTimeout(resolve, 100)); list = await self.registration.getNotifications({ tag }); }
+            return list.map(n => ({ title: n.title, body: n.body, tag: n.tag, requireInteraction: n.requireInteraction, actions: n.actions.map(a => ({ action: a.action, title: a.title })), data: n.data }));
+          }, { tag, want, ms: Math.min(5000, Math.max(0, deadline - Date.now())) });
+          if (last.length === want) return last;
+        } catch { /* that worker stopped; the next one comes with its own event */ }
+      }
+      assert.fail(`${label} (worker ${worker ? "running" : "not running"}): ${JSON.stringify(last)}`);
+    };
 
     // 3. A call comes in while the app is closed: the push wakes the worker and the call shows with Accept and Decline.
     await cdp.send("ServiceWorker.deliverPushMessage", { origin, registrationId: registration.registrationId, data: JSON.stringify(callPush) });
-    const [call] = await waitFor(list => list.length === 1, "the call notification shows with every page closed");
+    const [call] = await waitForCount(1, "the call notification shows with every page closed");
     assert.equal(call.title, copy.title, "the server's own title, in the member's language");
     assert.equal(call.body, copy.body);
     assert.ok(/Tour Friend/.test(call.body), "says who is calling");
@@ -107,7 +131,7 @@ function serverPushCopy() {
 
     // 5. ...until the caller hangs up: call-signaling's cancel push closes it, and the ring stops.
     await cdp.send("ServiceWorker.deliverPushMessage", { origin, registrationId: registration.registrationId, data: JSON.stringify({ type: "call-resolved", tag: callPush.tag, callId: CALL, reason: "cancelled" }) });
-    await waitFor(list => list.length === 0, "the caller hung up: the call notification closes");
+    await waitForCount(0, "the caller hung up: the call notification closes");
     await blank.waitForTimeout(4500);
     assert.equal((await shown()).length, 0, "and it doesn't ring again");
 
@@ -127,8 +151,7 @@ function serverPushCopy() {
 
     // 7. A page the worker doesn't control answers: its notification closes, and the re-ring doesn't bring it back.
     await cdp.send("ServiceWorker.deliverPushMessage", { origin, registrationId: registration.registrationId, data: pushFor(HARD) });
-    for (let i = 0; i < 40 && await count(`call-${HARD}`).catch(() => 0) !== 1; i++) await blank.waitForTimeout(250);
-    assert.equal(await count(`call-${HARD}`), 1, "the second call rings");
+    await waitForCount(1, "the second call rings", `call-${HARD}`);
     const hard = await context.newPage();
     await hard.goto(`${baseUrl}/privacy.html`, { waitUntil: "load" });
     const hardCdp = await context.newCDPSession(hard);
@@ -137,8 +160,7 @@ function serverPushCopy() {
     assert.equal(await hard.evaluate(() => navigator.serviceWorker.controller), null, "a hard reload leaves the page outside the worker");
     await hard.addScriptTag({ url: "/assets/call-ringer.js" });
     await hard.evaluate(id => window.danzstakCallRinger.handled(id), HARD);
-    for (let i = 0; i < 20 && await count(`call-${HARD}`) !== 0; i++) await blank.waitForTimeout(250);
-    assert.equal(await count(`call-${HARD}`), 0, "answering on a page the worker doesn't control closes the call notification");
+    await waitForCount(0, "answering on a page the worker doesn't control closes the call notification", `call-${HARD}`);
     await blank.waitForTimeout(4500);
     assert.equal(await count(`call-${HARD}`), 0, "and the worker's re-ring doesn't bring it back");
     await context.close();

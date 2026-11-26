@@ -18,12 +18,26 @@ const note = (url, line) => {
   list.push(`${stamp()} ${line}`);
   if (list.length > (list === local ? 60 : 20)) list.shift();
 };
+// Socket/network errors from the machine itself; a check's own route.abort() gives net::ERR_FAILED or ERR_ABORTED instead.
+const infrastructureError = /ERR_(NO_BUFFER_SPACE|INSUFFICIENT_RESOURCES|CONNECTION_REFUSED|CONNECTION_RESET|CONNECTION_CLOSED|EMPTY_RESPONSE|ADDRESS_IN_USE|ADDRESS_UNREACHABLE|SOCKET_NOT_CONNECTED|OUT_OF_MEMORY)/;
+const infrastructure = [];
 const short = url => { try { const u = new URL(url); return u.origin + u.pathname.slice(0, 120); } catch { return String(url).slice(0, 140); } };
 
 function watch(context) {
   if (!context || context.__danzstakDiagnostics) return context;
   context.__danzstakDiagnostics = true;
-  context.on("requestfailed", request => note(request.url(), `request failed: ${request.method()} ${short(request.url())} (${request.failure()?.errorText || "unknown"})`));
+  context.on("requestfailed", request => {
+    const error = request.failure()?.errorText || "unknown";
+    note(request.url(), `request failed: ${request.method()} ${short(request.url())} (${error})`);
+    // CI-FLAKE (2026-11-26): events-page.cjs failed with "targets under 44px" because its stylesheet never arrived
+    // (net::ERR_NO_BUFFER_SPACE on the Windows runner). A local page file that fails for a network reason no check ever
+    // causes is said at once, so the first line of the failure names the cause, not the layout assertion after it.
+    if (isLocal(request.url()) && infrastructureError.test(error)) {
+      const line = `page asset failed to load: ${short(request.url())} (${error}) — the runner's network, not the page`;
+      infrastructure.push(line);
+      process.stderr.write(`${line}\n`);
+    }
+  });
   context.on("response", response => { if (response.status() >= 400 && isLocal(response.url())) note(response.url(), `HTTP ${response.status()}: ${short(response.url())}`); });
   context.on("weberror", error => note("", `page error: ${String(error.error()?.message || error.error()).slice(0, 300)}`));
   // "Failed to load resource" repeats a request already listed above.
@@ -45,7 +59,7 @@ for (const browserType of [playwright.chromium, playwright.firefox, playwright.w
 process.on("exit", code => {
   if (!(code || process.exitCode)) return;
   const section = (title, lines) => lines.length ? `${title}\n${lines.map(line => `  ${line}`).join("\n")}\n` : "";
-  process.stderr.write("\nBrowser diagnostics for this failed check:\n" + (local.length || other.length
+  process.stderr.write("\nBrowser diagnostics for this failed check:\n" + (infrastructure.length ? `FIRST CAUSE: ${infrastructure[0]}\n` : "") + (local.length || other.length
     ? section("Local site files that failed:", local) + section(`Latest other events (${other.length}):`, other)
     : "  no failed requests, HTTP errors, page errors or console errors were seen.\n"));
 });

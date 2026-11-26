@@ -79,9 +79,9 @@ assert.ok(fs.existsSync(path.join(root, "test-run-checks.ps1")), "test-run-check
 const text = workflow.join("\n");
 assert.doesNotMatch(text, /Start-Process python|'http\.server'/, "review.yml must serve the site with scripts/static-server.cjs, not python -m http.server");
 const servers = text.match(/Start-Process node -ArgumentList '\.\\scripts\\static-server\.cjs','\d+'/g) || [];
-assert.equal(servers.length, 2, "both browser jobs start scripts/static-server.cjs");
+assert.equal(servers.length, 3, "every browser job starts scripts/static-server.cjs");
 const diagnostics = text.match(/NODE_OPTIONS: --require \.\/scripts\/check-diagnostics\.cjs/g) || [];
-assert.equal(diagnostics.length, 2, "both browser-check steps load scripts/check-diagnostics.cjs");
+assert.equal(diagnostics.length, 3, "every browser-check step loads scripts/check-diagnostics.cjs");
 for (const file of ["scripts/static-server.cjs", "scripts/check-diagnostics.cjs"]) assert.ok(fs.existsSync(path.join(root, file)), `${file} is missing`);
 
 // L1 (2026-11-23): browser checks never reach the live API. A page served from 127.0.0.1 that a check didn't fully mock
@@ -89,13 +89,37 @@ for (const file of ["scripts/static-server.cjs", "scripts/check-diagnostics.cjs"
 // catch. Every job that starts a browser blocks the API host before its server and checks start.
 const jobs = text.split(/\n(?=  [\w-]+:\n)/).filter(job => /^  [\w-]+:\n/.test(job));
 const browserJobs = jobs.filter(job => /npm install[^\n]*\bplaywright@/.test(job));
-assert.equal(browserJobs.length, 2, "two review jobs start a browser");
+assert.equal(browserJobs.length, 3, "three review jobs start a browser");
 for (const job of browserJobs) {
   const name = job.match(/^  ([\w-]+):/)[1];
   const block = job.indexOf(".\\scripts\\block-live-api.ps1");
   assert.ok(block > 0, `${name}: runs scripts/block-live-api.ps1`);
   assert.ok(block < job.indexOf("static-server.cjs") && block < job.indexOf("run-checks.ps1"), `${name}: blocks the live API before the server and the checks start`);
 }
+// CI-FLAKE (2026-11-26): one job of 92 signed-in checks ran ~35 minutes and the Windows runner ran out of ephemeral ports
+// (net::ERR_NO_BUFFER_SPACE, a stylesheet never loaded, a layout assertion failed). The signed-in checks are split over
+// two runners, every browser job widens the port range before its checks and reports connection states afterwards, and
+// a local page file that fails for a network reason is named first (scripts/check-diagnostics.cjs).
+for (const job of browserJobs) {
+  const name = job.match(/^  ([\w-]+):/)[1];
+  const prepare = job.indexOf(".\\scripts\\ci-network.ps1 -Prepare");
+  assert.ok(prepare > 0 && prepare < job.indexOf("run-checks.ps1"), `${name}: widens the runner's ports before the checks (scripts/ci-network.ps1 -Prepare)`);
+  assert.match(job, /name: Report the runner's network\n\s+if: always\(\)\n\s+shell: pwsh\n\s+run: \.\\scripts\\ci-network\.ps1 -Report/, `${name}: reports connection states even when a check failed`);
+  const minutes = Number((job.match(/timeout-minutes: (\d+)/) || [])[1]);
+  assert.ok(minutes > 0 && minutes <= 30, `${name}: a browser job stays under 30 minutes (split it rather than raise the limit)`);
+}
+const accountJobs = browserJobs.filter(job => /^  browser-account-security(-2)?:/.test(job));
+assert.equal(accountJobs.length, 2, "the signed-in checks run on two runners");
+const accountChecks = accountJobs.map(job => (job.match(/^\s*'\.\\browser-checks\\[^']+'\s*$/gm) || []).length);
+assert.ok(accountChecks.every(count => count >= 20 && count <= 60), `each signed-in job runs a fair share of the checks: ${accountChecks.join(" + ")}`);
+const network = fs.readFileSync(path.join(root, "scripts", "ci-network.ps1"), "utf8");
+assert.match(network, /netsh int ipv4 set dynamicport tcp start=10000 num=55536/, "ci-network.ps1 widens the IPv4 ephemeral range");
+assert.match(network, /netsh int ipv6 set dynamicport tcp start=10000 num=55536/, "ci-network.ps1 widens the IPv6 ephemeral range");
+assert.match(network, /throw "The ephemeral TCP port range did not widen/, "ci-network.ps1 fails the step when the range didn't change");
+const diagnosticsSource = fs.readFileSync(path.join(root, "scripts", "check-diagnostics.cjs"), "utf8");
+assert.match(diagnosticsSource, /ERR_\(NO_BUFFER_SPACE\|/, "check-diagnostics.cjs treats ERR_NO_BUFFER_SPACE as the runner's network");
+assert.match(diagnosticsSource, /page asset failed to load: /, "check-diagnostics.cjs names a page file that failed to load");
+
 const blocker = fs.readFileSync(path.join(root, "scripts", "block-live-api.ps1"), "utf8");
 assert.match(blocker, /\$names = @\('api\.danzstak\.com'\)/, "block-live-api.ps1 blocks api.danzstak.com");
 assert.match(blocker, /"0\.0\.0\.0 \$name"; ":: \$name"/, "both IPv4 and IPv6 point at a dead address");
