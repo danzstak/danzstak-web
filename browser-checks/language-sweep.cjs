@@ -33,6 +33,7 @@ const screens = {
   shop: "store.html?manage=1",
   hq: "feed.html?view=hq",
   booking: "booking.html",
+  // With one saved venue (mocked below), so the whole venue card is on screen: pitch builder, Preview, notes, stages.
   bookingSelections: "booking-selections.html",
   epk: "epk.html",
   sync: "messages.html",
@@ -76,6 +77,7 @@ welcome hello hi thanks thank please sorry
 venue venues gigs dates bookings contacts
 not for of is are will be can could would should example examples sale look looks refresh map found web address
 buyers buyer sellers seller receive fee fees under plus shops sections an my our their it its into
+preview crowd supplied optional details subject draft
 `.split(/\s+/).filter(Boolean));
 // Words that are also everyday words in the member's language ("in", "date", "camera" and "private" are Italian; "on" is
 // French; "post", "home", "booking", "pitch", "bio" and "line-up" are used as-is in all three).
@@ -88,10 +90,11 @@ const brand = /\b(DanzStak|SYNC|Mix|The Roll|Dailies|Daily|Tribes?|Bazaar|EPK|Mu
 
 function mockApi(page, lang) {
   const words = {
-    it: { post: "Stasera suoniamo al Covo, ci vediamo lì", comment: "Bellissimo", tribe: "Punk Bologna", shop: "Dischi di Night Shift", item: "Maglietta nera" },
-    fr: { post: "Ce soir on joue au Glazart, à tout à l'heure", comment: "Magnifique", tribe: "Punk Paris", shop: "Disques de Night Shift", item: "T-shirt noir" },
-    es: { post: "Esta noche tocamos en la Sala Apolo, nos vemos", comment: "Precioso", tribe: "Punk Madrid", shop: "Discos de Night Shift", item: "Camiseta negra" },
+    it: { post: "Stasera suoniamo al Covo, ci vediamo lì", comment: "Bellissimo", tribe: "Punk Bologna", shop: "Dischi di Night Shift", item: "Maglietta nera", venue: "Covo Club", address: "Viale Zagabria 1, Bologna", city: "Bologna", pitch: "Un set dal vivo diretto per sale indipendenti." },
+    fr: { post: "Ce soir on joue au Glazart, à tout à l'heure", comment: "Magnifique", tribe: "Punk Paris", shop: "Disques de Night Shift", item: "T-shirt noir", venue: "Glazart", address: "7-15 Av. de la Porte de la Villette, Paris", city: "Paris", pitch: "Un set live direct pour les salles indépendantes." },
+    es: { post: "Esta noche tocamos en la Sala Apolo, nos vemos", comment: "Precioso", tribe: "Punk Madrid", shop: "Discos de Night Shift", item: "Camiseta negra", venue: "Sala Apolo", address: "Carrer Nou de la Rambla 113, Barcelona", city: "Madrid", pitch: "Un directo sin rodeos para salas independientes." },
   }[lang];
+  const venue = { venueKey: "1234567890abcdef1234", name: words.venue, address: words.address, categories: ["punk"], websites: ["https://example.com"], emails: ["booking@example.com"], booking: { status: "Not contacted", showDate: "2027-03-12", followUp: "2027-03-01", feeCurrency: "EUR", outreachDraft: "" } };
   const ago = minutes => new Date(Date.now() - minutes * 60000).toISOString();
   const post = { postId: "33333333-3333-4333-8333-333333333333", userId: friend, authorMemberId: friend, authorName: "Ana Rossi", authorPicture: "", content: words.post, createdAt: ago(90), audience: "public", reactionCounts: { like: 2 } };
   return page.route("https://api.danzstak.com/**", route => {
@@ -109,6 +112,12 @@ function mockApi(page, lang) {
     if (p === "/calls/devices") return reply({ devices: [], registered: false });
     if (p === "/phone-verification") return reply({ verified: false });
     if (p === "/settings/posts") return reply({ hiddenPostIds: [] });
+    // Booking: one venue the artist saved, so the venue card (pitch draft, Preview, notes, pipeline) is on screen.
+    if (p === "/booking-pipeline" && method === "GET") return reply({ venues: [venue], artist: { name: "Night Shift", genre: "Punk", hometown: words.city, epk: "https://danzstak.com/epk.html?id=night-shift", pitch: words.pitch }, tour: { currency: "EUR" }, revision: "r1", epk: { ready: true, published: true, done: 6, total: 6, missing: [] }, epks: [{ epkId: "main", label: "", artistName: "Night Shift", ready: true }, { epkId: "abcdef0123", label: "DJ set", artistName: "Night Shift", ready: true }] });
+    if (p === "/tour-manager/credits") return reply({ bookingEmailCredits: 2, purchasedCredits: 2, sentEmails: 0, reservedCredits: 0, activity: [] });
+    if (p === "/tour-manager/outreach") return reply({ messages: [], replies: [] });
+    if (p === "/epk/outreach-share") return reply({ shares: [] });
+    if (p === "/tour-manager/contact-unlocks") return reply({ venueKeys: [venue.venueKey] });
     return reply({});
   });
 }
