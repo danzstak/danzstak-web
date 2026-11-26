@@ -81,3 +81,5 @@
 .venue-club{margin:4px 0;padding:4px 8px;border-left:3px solid #8a8f98;font-size:.84rem;line-height:1.35}
 .venue-club-verified{border-left-color:#1f8a4c;font-weight:700}
 .venue-club-replied{border-left-color:#ff5a1f}
+/* Spec 47 part 2: "Send with" picks which published EPK a pitch carries. */
+.booking-send-with{display:grid;gap:6px;font-weight:700}.booking-send-with select{width:100%;min-height:44px;padding:9px 10px;border:1px solid #a0aec0;border-radius:8px;font:inherit;background:#fff}.booking-sent-with{margin:0;font-size:.9rem;color:#4a5568;overflow-wrap:anywhere}.booking-sent-with strong{color:#1a202c}

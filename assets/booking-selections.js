@@ -69,6 +69,18 @@
   let epkGate = null;
   let pitchStats = null;
   const epkBlocked = () => Boolean(epkGate && epkGate.ready === false);
+  // Spec 47 part 2 ("Send with", owner 2026-11-24: "artist might send a different to different venues or festivals"):
+  // the published EPKs a pitch can carry. The default for a venue is the EPK chosen for it, else the one it got last time,
+  // else the one sent most recently, else the original.
+  let epkChoices = [];
+  const epkChoiceName = item => [item?.artistName, item?.label].map(value => String(value || "").trim()).filter(Boolean).join(" · ") || "EPK";
+  const latestShareEpk = list => list.filter(item => item.epkId).sort((a, b) => String(a.expiresAt || "").localeCompare(String(b.expiresAt || ""))).at(-1)?.epkId || "";
+  function sendWithEpk(venue) {
+    const ids = new Set(epkChoices.map(item => item.epkId));
+    for (const id of [venue.booking?.sendWithEpk, latestShareEpk(outreachShares.filter(item => item.venueKey === identity(venue))), latestShareEpk(outreachShares)]) if (id && ids.has(id)) return id;
+    return (epkChoices.find(item => item.epkId === "main") || epkChoices[0])?.epkId || "main";
+  }
+  const sendWithBlocked = venue => epkChoices.length > 1 ? epkChoices.find(item => item.epkId === sendWithEpk(venue))?.ready === false : epkBlocked();
   const legacyStages = { Research: "Not contacted", "Ready to pitch": "Email prepared", Contacted: "Email sent", "In conversation": "Reply received", Hold: "Interested" };
   let venues = [];
   let outreachShares = [];
@@ -229,8 +241,8 @@
     });
   }
 
-  async function createVenueEpkShare(venue, outreachId, allowPdf) {
-    const response = await fetchWithTimeout("https://api.danzstak.com/epk/outreach-share", { method:"POST", credentials:"include", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({ action:"create", venueKey:identity(venue), outreachId, allowPdf }) });
+  async function createVenueEpkShare(venue, outreachId, allowPdf, epkId = sendWithEpk(venue)) {
+    const response = await fetchWithTimeout("https://api.danzstak.com/epk/outreach-share", { method:"POST", credentials:"include", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({ action:"create", venueKey:identity(venue), outreachId, allowPdf, epkId }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !/^https:\/\/danzstak\.com\/epk\.html\?outreach=[a-f0-9]{32}#token=[a-f0-9]{64}$/.test(String(data.shareUrl || ""))) throw new Error(data.error || "A private venue EPK link could not be created.");
     return data;
@@ -694,6 +706,7 @@
     const fit = document.createElement("p");
     const shareEvidence = document.createElement("p"), venueShares = outreachShares.filter(item => item.venueKey === identity(venue) && item.revoked !== true), openCount = venueShares.reduce((sum, item) => sum + Number(item.openCount || 0), 0), lastOpenedAt = venueShares.map(item => item.lastOpenedAt).filter(Boolean).sort().at(-1);
     shareEvidence.className = "epk-open-evidence";
+    const sentWith = epkChoices.length > 1 ? epkChoices.find(item => item.epkId === latestShareEpk(venueShares)) : null;
     shareEvidence.textContent = openCount ? `Private EPK opened ${openCount} time${openCount === 1 ? "" : "s"}${lastOpenedAt ? ` · last opened ${new Intl.DateTimeFormat(undefined, { dateStyle:"medium", timeStyle:"short" }).format(new Date(lastOpenedAt))}` : ""}. Counts only; DanzStak does not identify the viewer.` : venueShares.some(item => item.creditReturnedAt) ? "Not opened within 30 days. Your credit came back." : "Private venue EPK not opened yet.";
     const venueOutreach = (window.danzstakTourManagerBilling?.outreach || []).filter(item => item.venueKey === identity(venue)).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), latestDelivery = venueOutreach[0];
     const deliveryEvidence = document.createElement("p");
@@ -747,7 +760,18 @@
     button.textContent = "Preview exact email";
     const contactUnlocked = window.danzstakBookingContactUnlocked?.(identity(venue)) === true;
     const email = contactUnlocked ? (venue.emails || []).find(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) : undefined;
-    button.disabled = !email || epkBlocked();
+    button.disabled = !email || sendWithBlocked(venue);
+    // "Send with": shown once the artist has more than one published EPK.
+    let sendWith = null;
+    if (epkChoices.length > 1) {
+      const select = document.createElement("select");
+      sendWith = document.createElement("label"); sendWith.className = "booking-send-with"; sendWith.textContent = "Send with";
+      select.setAttribute("aria-label", `EPK to send to ${venue.name || "this venue"}`);
+      for (const item of epkChoices) select.append(Object.assign(document.createElement("option"), { value:item.epkId, textContent: epkChoiceName(item) }));
+      select.value = sendWithEpk(venue);
+      select.addEventListener("change", () => { booking.sendWithEpk = select.value; persist(); button.disabled = !email || sendWithBlocked(venue); note.textContent = noteText(); });
+      sendWith.append(select);
+    }
     const creditPrompt = document.createElement("div"), creditMessage = document.createElement("p"), buyCredit = document.createElement("button");
     creditPrompt.className = "booking-credit-needed";
     creditMessage.textContent = "No booking-email credit is ready. You can still preview the exact message before buying.";
@@ -811,8 +835,11 @@
       }
     });
     const note = document.createElement("small");
-    note.textContent = epkBlocked() ? "Finish and publish your EPK to send pitches. Your venue and draft stay saved." : email ? "DanzStak saves your current pitch before review. Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Venue replies arrive in your private SYNC Bookings inbox." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
-    section.append(fit, shareEvidence, deliveryEvidence, builder, subjectLabel, label, button, creditPrompt, note);
+    const noteText = () => sendWithBlocked(venue) ? (epkChoices.length > 1 ? "This EPK isn't ready to send. Pick another one or finish it in the EPK builder." : "Finish and publish your EPK to send pitches. Your venue and draft stay saved.") : email ? "DanzStak saves your current pitch before review. Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Venue replies arrive in your private SYNC Bookings inbox." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
+    note.textContent = noteText();
+    let sentWithLine = null;
+    if (sentWith) { sentWithLine = document.createElement("p"); sentWithLine.className = "booking-sent-with"; sentWithLine.append(Object.assign(document.createElement("span"), { textContent:"Sent with" }), " ", Object.assign(document.createElement("strong"), { textContent: epkChoiceName(sentWith) })); }
+    section.append(fit, shareEvidence, ...(sentWithLine ? [sentWithLine] : []), deliveryEvidence, builder, subjectLabel, label, ...(sendWith ? [sendWith] : []), button, creditPrompt, note);
     const initialPitch = venueOutreach.find(item => !item.followUpTo && ["sent", "delivered", "replied"].includes(item.status)), existingFollowUp = initialPitch && venueOutreach.find(item => item.followUpTo === initialPitch.id), venueReplies = window.danzstakTourManagerBilling?.replies || [], hasReply = initialPitch && (initialPitch.repliedAt || booking.pipeline?.repliedAt || !["found", "pitched", "no_reply"].includes(pipeline.stageOf(bookingStatus(venue))) || venueReplies.some(item => item.outreachId === initialPitch.id && item.direction === "inbound")), today = new Date().toISOString().slice(0, 10), followUpDue = Boolean(booking.followUp && booking.followUp <= today);
     if (initialPitch && (followUpDue || existingFollowUp || hasReply)) {
       const followUp = document.createElement("section"), heading = document.createElement("h3"), state = document.createElement("p");
@@ -833,13 +860,13 @@
         followDraft.addEventListener("input", () => { booking.followUpDraft = followDraft.value; });
         followDraftLabel.append(followDraft);
         const followButton = document.createElement("button");
-        followButton.type = "button"; followButton.className = "secondary"; followButton.textContent = "Review one follow-up · 1 credit"; followButton.disabled = epkBlocked();
+        followButton.type = "button"; followButton.className = "secondary"; followButton.textContent = "Review one follow-up · 1 credit"; followButton.disabled = sendWithBlocked(venue);
         followButton.addEventListener("click", async () => {
           const currentArtist = artist(), email = initialPitch.recipient, outreachId = crypto.randomUUID().replaceAll("-", ""), publicEpk = currentArtist.epk, subjectText = `Following up: ${initialPitch.subject || `${currentArtist.name || "Artist"} booking enquiry`}`.slice(0, 180), baseMessage = followDraft.value.trim();
           if (!publicEpk || !baseMessage.includes(publicEpk)) { window.danzstakShowFeedback?.("Keep your published EPK link in the follow-up so DanzStak can swap in this venue's private link.", { urgent:true }); return; }
           followButton.disabled = true; followButton.textContent = "Preparing private EPK link…";
           try {
-            const share = await createVenueEpkShare(venue, outreachId, booking.allowEpkPdfDownload === true), preflight = await createOutreachPreflight(venue, email, outreachId, initialPitch.id), reviewedMessage = `${baseMessage.replaceAll(publicEpk, share.shareUrl)}\n\n---\n${preflight.footer}`;
+            const firstEpk = outreachShares.find(item => item.outreachId === initialPitch.id)?.epkId, share = await createVenueEpkShare(venue, outreachId, booking.allowEpkPdfDownload === true, epkChoices.some(item => item.epkId === firstEpk) ? firstEpk : sendWithEpk(venue)), preflight = await createOutreachPreflight(venue, email, outreachId, initialPitch.id), reviewedMessage = `${baseMessage.replaceAll(publicEpk, share.shareUrl)}\n\n---\n${preflight.footer}`;
             if (!(await reviewSend({ venue, to:email, subject:subjectText, message:reviewedMessage }))) { await revokeVenueEpkShare(venue, outreachId); followButton.disabled = false; followButton.textContent = "Review one follow-up · 1 credit"; return; }
             followButton.textContent = "Sending follow-up…";
             await window.danzstakSendBookingEmail({ venueKey:identity(venue), to:email, subject:subjectText, message:reviewedMessage, template:booking.pitchTemplate || "band", artistApproved:true, idempotencyKey:outreachId, followUpTo:initialPitch.id });
@@ -917,6 +944,7 @@
       venues = [...saved, ...retainedAdditions];
       revision = data.revision || "";
       epkGate = data.epk && typeof data.epk === "object" ? data.epk : null;
+      epkChoices = Array.isArray(data.epks) ? data.epks.filter(item => item && /^(?:main|[a-f0-9]{10})$/.test(String(item.epkId || ""))) : [];
       pitchStats = data.stats && typeof data.stats === "object" ? data.stats : null;
       renderPitchStats();
       for (const [key, id] of Object.entries(artistInputs)) document.getElementById(id).value = data.artist?.[key] || "";

@@ -108,6 +108,10 @@ EPKs, several of them can be for the same artist, and each keeps its published v
      5 per artist (server and screen), files shared by copies kept until no EPK uses them, impersonation holds and
      editor approvals reach the right EPK (the public copy carries `epkTourId`). Booking, the AI build and Music HQ still
      use the first EPK ("main"); they move to the chosen EPK in part 2. The AI build fills whichever EPK is open.
+   - **Part 2a (2026-11-26, claude/epk-send-with):** booking's "Send with" picker. The venue link record and its public
+     copy carry `epkId` / `epkTourId`; Tour Manager send, preflight and replies read the EPK the link names; the
+     booking workspace returns `epks` (published, each with `ready`); a venue keeps `booking.sendWithEpk`. The default
+     by kind of place waits for part 2b (venue links don't record the kind yet). A follow-up carries the first pitch's EPK.
 3. Restyle on the UI kit with the rest of week 2.
 
 ## Can the owner's earlier published EPK come back?

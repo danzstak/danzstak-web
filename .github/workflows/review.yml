@@ -383,6 +383,7 @@ jobs:
             '.\browser-checks\epk-share-card.cjs'
             '.\browser-checks\epk-versions.cjs'
             '.\browser-checks\epk-library.cjs'
+            '.\browser-checks\booking-send-with.cjs'
             '.\browser-checks\profile-share-card.cjs'
             '.\browser-checks\public-shop.cjs'
             '.\browser-checks\app-shortcuts.cjs'

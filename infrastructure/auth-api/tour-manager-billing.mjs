@@ -1,6 +1,6 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { AI_EPK_FEE_CENTS, AI_EPK_PRICE_CENTS, AI_EPK_TOTAL_CENTS } from "./ai-epk.mjs";
-import { EPK_WORKSPACE_KEY, epkGate, epkGateMessage, followUpDate, followUpEligible } from "./booking-pipeline.mjs";
+import { epkGate, epkGateMessage, epkRecordKeyFor, followUpDate, followUpEligible } from "./booking-pipeline.mjs";
 import { signalUpdate } from "./booking-venue-signals.mjs";
 import { buyerFees } from "./fees.mjs";
 import { SUPPRESSION_CLEAR_CONDITION, checkBookingContact, createMailDomainCheck, suppressionBlock, suppressionClearValues } from "./booking-contact-check.mjs";
@@ -152,6 +152,12 @@ export function verifyStripeSignature(payload, header, secret, currentTime = Dat
 
 export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, verifyArtist = null, accountEmail = async () => "", notifyBookingReply = async () => {}, env = process.env, fetcher = fetch, clock = Date.now, aliasGenerator = generateSyncNetworkAlias, mailDomainProblem = createMailDomainCheck({ clock }), aiEpkReady = async () => ({ ok: false, error: "AI builder coming soon" }) }) {
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
+  // Spec 47 part 2: the EPK a pitch carries is the one its venue link names (EPK#OUTREACH#<outreachId>, written by the
+  // Auth API when the link is made); gates, verification and holds are checked on that EPK, never only the first one.
+  async function pitchEpkRecord(userId, outreachId) {
+    const link = outreachId ? (await db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: `EPK#OUTREACH#${outreachId}` } }, ConsistentRead: true }))).Item : null;
+    return db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: epkRecordKeyFor(link?.epkId?.S) } }, ConsistentRead: true }));
+  }
   const testMode = () => /^(?:sk|rk)_test_/.test(env.STRIPE_SECRET_KEY || "");
   const liveKey = () => /^(?:sk|rk)_live_/.test(env.STRIPE_SECRET_KEY || "");
   const paymentsAllowed = () => Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) && (testMode() || (env.TOUR_MANAGER_LIVE_PAYMENTS === "true" && liveKey()));
@@ -508,7 +514,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       db.send(new GetItemCommand({ TableName: tableName, Key: suppressionKey(to), ConsistentRead: true })),
       db.send(new GetItemCommand({ TableName: tableName, Key: recipientCooldownKey(userId, to), ConsistentRead: true })),
       db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#OUTREACH_HOUR#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 48 })),
-      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: EPK_WORKSPACE_KEY } }, ConsistentRead: true }))
+      pitchEpkRecord(userId, outreachId)
     ]);
     const preflightGate = epkGate(epkRecord?.Item);
     if (!preflightGate.ready) return response(409, { error: epkGateMessage(preflightGate), epk: preflightGate }, headers);
@@ -586,7 +592,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
     if (typeof sendBookingReply !== "function") return response(503, { error: "Booking reply delivery is not configured." }, headers);
     if (typeof verifyArtist === "function") {
-      const epkItem = (await db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: EPK_WORKSPACE_KEY } }, ConsistentRead: true }))).Item;
+      const threadId = String(parseBody(event)?.outreachId || "").trim(), epkItem = (await pitchEpkRecord(userId, /^[a-zA-Z0-9_-]{16,100}$/.test(threadId) ? threadId : "")).Item;
       const hold = await verifyArtist({ userId, epkItem, purpose: "reply" }); // task 20: no mail in the act's name during an impersonation hold
       if (!hold?.ok) return response(403, { error: hold?.message || "This EPK is on hold.", verification: hold?.status || "needs_review", hold: true }, headers);
     }
@@ -1034,7 +1040,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!venueKey || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || subject.length < 3 || subject.length > 180 || message.length < 20 || message.length > 5000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(id) || followUpTo && !/^[a-zA-Z0-9_-]{16,100}$/.test(followUpTo)) return response(400, { error: "Choose a saved venue, reviewed email, subject, message, and valid send identifier." }, headers);
     const [workspace, epkRecord] = await Promise.all([
       db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true })),
-      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: EPK_WORKSPACE_KEY } }, ConsistentRead: true }))
+      pitchEpkRecord(userId, id)
     ]);
     const sendGate = epkGate(epkRecord?.Item);
     if (!sendGate.ready) return response(409, { error: epkGateMessage(sendGate), epk: sendGate }, headers);

@@ -4,6 +4,10 @@
  const t=window.danzstakTranslations||(window.danzstakTranslations={en:{}});
  const add={
 "it": {
+// Booking "Send with" (spec 47 part 2)
+"Send with": "Invia con",
+"This EPK isn't ready to send. Pick another one or finish it in the EPK builder.": "Questo EPK non è pronto per l'invio. Scegline un altro o completalo nel costruttore di EPK.",
+"Sent with": "Inviato con",
 // My shop on the UI kit (F21, docs/tasks/39 screen 3)
 "Keep it": "Tienilo",
 "My shop": "Il mio negozio",
@@ -1382,6 +1386,10 @@
 "Next leg": "Prossima tappa"
 },
 "fr": {
+// Booking "Send with" (spec 47 part 2)
+"Send with": "Envoyer avec",
+"This EPK isn't ready to send. Pick another one or finish it in the EPK builder.": "Cet EPK n'est pas prêt à être envoyé. Choisis-en un autre ou termine-le dans l'éditeur d'EPK.",
+"Sent with": "Envoyé avec",
 // My shop on the UI kit (F21, docs/tasks/39 screen 3)
 "Keep it": "Le garder",
 "My shop": "Ma boutique",
@@ -2754,6 +2762,10 @@
 "Next leg": "Étape suivante"
 },
 "es": {
+// Booking "Send with" (spec 47 part 2)
+"Send with": "Enviar con",
+"This EPK isn't ready to send. Pick another one or finish it in the EPK builder.": "Este EPK no está listo para enviar. Elige otro o termínalo en el editor de EPK.",
+"Sent with": "Enviado con",
 // My shop on the UI kit (F21, docs/tasks/39 screen 3)
 "Keep it": "Conservarlo",
 "My shop": "Mi tienda",

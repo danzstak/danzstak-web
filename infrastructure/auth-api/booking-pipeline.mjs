@@ -100,6 +100,9 @@ export function withPipeline(venues, events) {
 // EPK gate (task 02, owner 2026-11-16): sending any pitch needs a published EPK with this minimum.
 // Browsing venues stays open. Checked on the server before a credit is reserved.
 export const EPK_WORKSPACE_KEY = "epk-workspace-v1";
+// Spec 47 part 2 ("Send with"): a pitch carries one of the artist's EPKs. The venue link record names it ("main" or a
+// 10-hex id); anything else, or a link made before that, means the original EPK.
+export function epkRecordKeyFor(epkId) { return /^[a-f0-9]{10}$/.test(String(epkId || "")) ? `epk#${epkId}` : EPK_WORKSPACE_KEY; }
 export const EPK_REQUIREMENTS = [
   ["name", "Act name"],
   ["photo", "A photo"],
