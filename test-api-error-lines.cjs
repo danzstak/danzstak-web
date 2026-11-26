@@ -53,7 +53,7 @@ assert.ok(tableStart > 0 && tableEnd > tableStart, "i18n.js keeps the server err
 const table = vm.runInNewContext(`(${i18n.slice(tableStart + "const serverErrorLines=".length, tableEnd + 3)})`);
 const serverText = ["infrastructure/call-signaling/template.yaml", ...fs.readdirSync("infrastructure/auth-api").filter(file => file.endsWith(".mjs")).map(file => `infrastructure/auth-api/${file}`)]
   .map(file => read(file).replace(/\\'/g, "'")).join("\n");
-assert.ok(Object.keys(table).length >= 140, "the most-seen lines are all there");
+assert.ok(Object.keys(table).length >= 300, "the most-seen lines (4b) and the booking, EPK, tour, shop and ticket lines (4c) are all there");
 for (const [line, translated] of Object.entries(table)) {
   assert.ok(serverText.includes(`"${line}"`) || serverText.includes(`'${line}'`), `"${line}" is not a line the server sends`);
   assert.equal(translated.length, 3, `"${line}": it, fr, es`);
