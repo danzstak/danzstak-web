@@ -10,7 +10,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
 
-const origin = process.argv[2] || process.env.DANZSTAK_BOOKING_ORIGIN || "http://127.0.0.1:8037";
+const origin = process.argv[2] || process.env.DANZSTAK_BASE_URL || process.env.DANZSTAK_BOOKING_ORIGIN || "http://127.0.0.1:8037";
 const output = path.resolve("docs/screenshots/booking-send-with");
 fs.mkdirSync(output, { recursive:true });
 const venue = { venueKey:"1234567890abcdef1234", name:"Test Room", address:"100 Music Way, Portland, OR", categories:["live music", "punk"], websites:["https://example.com"], emails:["booking@example.com"], booking:{ status:"Not contacted", showDate:"2027-03-12", followUp:"2027-03-01", feeCurrency:"USD", outreachDraft:"" } };
