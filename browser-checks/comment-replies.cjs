@@ -139,7 +139,9 @@ async function open(browser, width, pathName, { oldServer = false, posts = [], l
         // Reply row to the reply's name; the thread now keeps only the list's own gap).
         const gap = await page.evaluate(() => { const row = document.querySelector('.comment[data-comment-id="c1"] .comment-action-row').getBoundingClientRect(), name = document.querySelector('.comment[data-comment-id="c2"] .comment-author').getBoundingClientRect(), next = document.querySelector('.comment[data-comment-id="c3"] .comment-author').getBoundingClientRect(), last = document.querySelector('.comment[data-comment-id="c2"] .comment-action-row').getBoundingClientRect(); return { reply: Math.round(name.top - row.bottom), nextThread: Math.round(next.top - last.bottom) }; });
         if (gap.reply > 12) failures.push(`${label}: the reply sits ${gap.reply}px below its comment's Reply row (12px at most)`);
-        if (gap.nextThread <= gap.reply) failures.push(`${label}: the next comment is as close as a reply (${JSON.stringify(gap)}): threads must still read apart`);
+        // Owner 2026-11-25 (second screenshot): "the next reply must match the first 2", "Not double spacing it needs to
+        // match": the next comment sits the same distance under a thread as a reply sits under its comment.
+        if (Math.abs(gap.nextThread - gap.reply) > 2) failures.push(`${label}: the next comment is ${gap.nextThread}px below the thread but a reply is ${gap.reply}px below its comment: they must match (${JSON.stringify(gap)})`);
         if (look.line !== "2px" || look.elbow !== "2px") failures.push(`${label}: no thread line between the comment and its reply (${JSON.stringify(look)})`);
         const btn = page.locator('.comment[data-comment-id="c1"] .comment-reply-button');
         const info = await btn.evaluate(e => { const r = e.getBoundingClientRect(), hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { text: e.textContent.trim(), svg: Boolean(e.querySelector("svg")), hit: Boolean(hit && e.contains(hit)), x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
